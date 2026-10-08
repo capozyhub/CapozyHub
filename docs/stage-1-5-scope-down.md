@@ -15,6 +15,8 @@ The gate must also prove the UI is styled, because a build can exit 0 with no CS
 - The emitted `.next/static/css/*.css` must contain compiled utilities (for example `.flex{`, `.bg-primary`) and must NOT contain the literal text `@tailwind`.
 - Every file the app needs must be tracked. `.gitignore` has broad patterns (`*.mjs`, `.env*`, `scripts/test-*.ts`), and `git add -A` silently skips matches. Un-ignored on 2026-10-08: `postcss.config.mjs`, `.env.example`, `scripts/test-*.ts`. After any import or move, compare `git ls-files` against the source list.
 
+Also run `npm run test:guards` on the clone (14 tests, needs the Supabase placeholders below; without them `test-api-auth-scope` fails at import).
+
 Build-time placeholders (dummy values, not credentials) are needed because some modules read env at import time:
 `NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `RESEND_API_KEY=re_placeholder` (`lib/email-service.ts` constructs `new Resend()` at import and throws without it).
