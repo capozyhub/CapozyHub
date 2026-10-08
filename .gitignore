@@ -109,15 +109,6 @@ scripts/.logo-backups/
 .superpowers/
 .env*
 
-# USSD feature — kept on disk for a possible future stage, but disabled and never pushed
-app/api/ussd/
-app/api/admin/ussd/
-app/api/admin/ussd-refunds/
-app/api/shop/ussd-activate/
-app/api/shop/ussd-code/
-app/admin/ussd/
-app/admin/ussd-refunds/
-app/dashboard/shop/ussd/
-lib/ussd/
-scripts/probe-expired-ussd.ts
-supabase/migrations/*ussd*.sql
+# Parked features (USSD and others removed from Capozy scope): kept on disk for possible
+# future use, outside the build, never pushed. Original paths are preserved under _parked/<feature>/.
+_parked/

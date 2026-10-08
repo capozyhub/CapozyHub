@@ -22,7 +22,7 @@
 import { createServerClient } from '@/lib/supabase'
 import { initiateReceiveMoney, checkReceiveMoneyStatus, channelForMsisdn } from '@/lib/hubtel-receive-money'
 import { makeUtilityReference, UtilityBiller } from '@/lib/hubtel-utility/billers'
-import { normalizePhone as normalizeToLocalGhanaPhone } from '@/lib/ussd/utils'
+import { normalizePhone as normalizeToLocalGhanaPhone } from '@/lib/phone-validation'
 import { getNetworkMeta } from '@/lib/momo-verify'
 import { sanitizeForStorage } from '@/lib/sanitize-for-storage'
 

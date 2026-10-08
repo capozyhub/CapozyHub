@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { isValidGhanaPhone, normalizePhone } from '@/lib/ussd/utils'
+import { isValidGhanaPhone, normalizePhone } from '@/lib/phone-validation'
 import { validateAfaRegistration } from '@/lib/afa-validation'
 import { AFA_PRICE_KEYS, resolveAfaPrice } from '@/lib/afa-pricing'
 import { resolveSubAgentAfaCost, AFA_PRODUCT_REF } from '@/lib/sub-agent-afa-pricing'

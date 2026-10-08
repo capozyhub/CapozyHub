@@ -101,3 +101,21 @@ export function getNetworkFromPrefix(prefix: string): string | null {
 export function isValidPrefix(prefix: string): boolean {
     return Object.values(NETWORK_PREFIXES).flat().includes(prefix)
 }
+
+/**
+ * Canonical 0XXXXXXXXX form. Strips spaces and a leading '+' so '+233...',
+ * '233...' and '0...' all normalise to the same lookup form.
+ */
+export function normalizePhone(mobile: string): string {
+    const clean = mobile.replace(/\s+/g, '').replace(/^\+/, '')
+    if (clean.startsWith('233') && clean.length === 12) {
+        return '0' + clean.slice(3)
+    }
+    return clean
+}
+
+/** Validate Ghana phone (0XXXXXXXXX or 233XXXXXXXXX, with optional +) */
+export function isValidGhanaPhone(phone: string): boolean {
+    const clean = phone.replace(/\s+/g, '').replace(/^\+/, '')
+    return /^(0\d{9}|233\d{9})$/.test(clean)
+}

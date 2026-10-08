@@ -1,7 +1,7 @@
 // lib/momo-payer-resolver.ts
 import { normalizeGhanaPhone } from '@/lib/sms-service'
 import { resolveNameSingle, getNetworkMeta } from '@/lib/momo-verify'
-import { normalizePhone as normalizeToLocalGhanaPhone } from '@/lib/ussd/utils'
+import { normalizePhone as normalizeToLocalGhanaPhone } from '@/lib/phone-validation'
 import { isMomoLookupEligible } from '@/lib/momo-eligibility'
 
 // Re-exported so existing server-side importers keep working unchanged.
