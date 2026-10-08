@@ -72,7 +72,7 @@ export function LegalPage({
                                 <h2 className="font-display text-xl font-semibold text-foreground sm:text-2xl">
                                     <span className="mr-2 tabular-nums text-brand-700 dark:text-brand-500">{i + 1}.</span>{s.title}
                                 </h2>
-                                <div className="mt-3 max-w-prose whitespace-pre-line text-base leading-relaxed text-muted-foreground">{s.body}</div>
+                                <div className="mt-3 max-w-prose whitespace-pre-line text-base leading-relaxed text-muted-foreground [&_p]:text-base [&_p]:leading-relaxed">{s.body}</div>
                             </section>
                         ))}
                     </div>

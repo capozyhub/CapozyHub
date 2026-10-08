@@ -38,10 +38,10 @@ export function AuthShell({
 }) {
     return (
         <div className="flex min-h-[100dvh] flex-col bg-black lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:bg-neu">
-            <aside className="relative isolate overflow-hidden bg-black px-6 pb-24 pt-6 text-white sm:px-10 lg:flex lg:min-h-[100dvh] lg:flex-col lg:justify-between lg:p-12 lg:pb-12 xl:p-16">
+            <aside className="relative isolate overflow-hidden bg-black px-6 pb-28 pt-6 text-white sm:px-10 sm:pb-32 lg:flex lg:min-h-[100dvh] lg:flex-col lg:justify-between lg:p-12 lg:pb-12 xl:p-16">
                 <BrandSwoosh
                     progress={progress}
-                    className="pointer-events-none absolute -bottom-6 -right-[28%] -z-10 w-[130%] sm:-right-[12%] sm:w-[85%] lg:-bottom-10 lg:-right-[22%] lg:w-[125%]"
+                    className="pointer-events-none absolute bottom-12 -right-[28%] -z-10 w-[130%] sm:bottom-14 sm:-right-[8%] sm:w-[75%] lg:-bottom-10 lg:-right-[22%] lg:w-[125%]"
                 />
 
                 <Link href="/" aria-label={BRAND.name} className={cn('flex w-fit items-center gap-2.5 rounded-full', FOCUS_ON_DARK)}>
