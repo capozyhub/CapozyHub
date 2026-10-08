@@ -74,7 +74,7 @@ function statusBadgeCls(status: WithdrawalRow['status']): string {
             return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/40'
         case 'moolre_pending':
         case 'paystack_pending':
-            return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40'
+            return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 border border-brand-200 dark:border-brand-800/40'
         default:
             return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
     }
@@ -376,7 +376,7 @@ function StatCards({ rows, total }: { rows: WithdrawalRow[]; total: number }) {
                 <p className="text-2xl font-black mt-1">{formatCurrency(pendingAmount)}</p>
                 <p className="text-xs text-white/60 mt-1">Net, this page</p>
             </div>
-            <div className="rounded-xl shadow-lg bg-gradient-to-br from-blue-600 to-blue-800 p-4 relative overflow-hidden text-white border border-white/10">
+            <div className="rounded-xl shadow-lg bg-gradient-to-br from-brand-600 to-brand-800 p-4 relative overflow-hidden text-black border border-white/10">
                 <Banknote className="w-5 h-5 absolute top-4 right-4 opacity-50" />
                 <p className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Page Net Total</p>
                 <p className="text-2xl font-black mt-1">{formatCurrency(totalOnPage)}</p>

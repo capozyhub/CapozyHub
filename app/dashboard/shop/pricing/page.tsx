@@ -76,8 +76,8 @@ const networkTabColors: Record<string, { active: string; inactive: string }> = {
         inactive: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30',
     },
     'AT-iShare': {
-        active: 'bg-blue-500 text-white border-blue-500 shadow-md',
-        inactive: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30',
+        active: 'bg-brand-500 text-black border-brand-500 shadow-md',
+        inactive: 'bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30',
     },
     'AT-BigTime': {
         active: 'bg-purple-600 text-white border-purple-600 shadow-md',
@@ -88,7 +88,7 @@ const networkTabColors: Record<string, { active: string; inactive: string }> = {
 const networkColors: Record<string, string> = {
     MTN: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
     Telecel: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    'AT-iShare': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    'AT-iShare': 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-400',
     'AT-BigTime': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
     AT: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 }
@@ -866,11 +866,11 @@ export default function ShopPricingPage() {
                         (Manual, Bulk) and only the active panel ever renders. */}
                     <TabsContent value="bulk" className="pt-4">
                     {/* Bulk apply with live preview */}
-                    <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 p-4 sm:p-5 space-y-4">
+                    <div className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/50 dark:bg-brand-900/10 p-4 sm:p-5 space-y-4">
                         <div className="flex items-center justify-between gap-3 flex-wrap">
                             <div className="flex items-center gap-2">
-                                <TrendingUp className="w-4 h-4 text-blue-600" />
-                                <h2 className="text-sm font-bold text-blue-900 dark:text-blue-300">Bulk Pricing</h2>
+                                <TrendingUp className="w-4 h-4 text-brand-700" />
+                                <h2 className="text-sm font-bold text-brand-900 dark:text-brand-300">Bulk Pricing</h2>
                             </div>
                             {/* Mode tabs */}
                             <div className="flex p-0.5 bg-white dark:bg-gray-900 rounded-lg border">
@@ -883,7 +883,7 @@ export default function ShopPricingPage() {
                                         onClick={() => { setBulkMode(m.id); setBulkValue('') }}
                                         className={cn(
                                             'px-3 py-1.5 text-[11px] font-semibold rounded-md transition-all',
-                                            bulkMode === m.id ? 'bg-blue-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                                            bulkMode === m.id ? 'bg-brand-600 text-black shadow-sm' : 'text-muted-foreground hover:text-foreground'
                                         )}
                                     >
                                         {m.label}
@@ -892,7 +892,7 @@ export default function ShopPricingPage() {
                             </div>
                         </div>
 
-                        <p className="text-xs text-blue-700/80 dark:text-blue-400/80">
+                        <p className="text-xs text-brand-700/80 dark:text-brand-400/80">
                             {bulkMode === 'flat'
                                 ? 'Sets a selling price per GB — e.g. typing 5 means 1GB → GHS 5.00, 2GB → GHS 10.00, 500MB → GHS 2.50. Profit is calculated automatically.'
                                 : 'Adds a percentage of your cost as profit (e.g. cost + 5%). Bigger bundles earn more.'}
@@ -991,7 +991,7 @@ export default function ShopPricingPage() {
                         )}
 
                         {parseFloat(bulkValue) > 0 && bulkPreviewRows.length > 0 && (
-                            <div className="flex items-center justify-between pt-2 border-t border-blue-100 dark:border-blue-900">
+                            <div className="flex items-center justify-between pt-2 border-t border-brand-100 dark:border-brand-900">
                                 <div className="text-xs text-muted-foreground space-y-0.5">
                                     <p><span className="font-medium text-foreground">{bulkApplicableRows.length}</span> package(s) will be updated</p>
                                     {bulkExcludedCount > 0 && <p>{bulkExcludedCount} excluded by you</p>}
@@ -1004,7 +1004,7 @@ export default function ShopPricingPage() {
                                 <Button
                                     onClick={handleApplyBulk}
                                     disabled={bulkApplicableRows.length === 0}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-lg h-10 font-semibold text-sm shrink-0"
+                                    className="bg-brand-600 hover:bg-brand-500 text-black px-5 rounded-lg h-10 font-semibold text-sm shrink-0"
                                 >
                                     Apply to {bulkApplicableRows.length}
                                 </Button>
@@ -1168,8 +1168,8 @@ export default function ShopPricingPage() {
             {/* ════════════ AIRTIME ════════════ */}
             {activeSection === 'airtime' && (
                 <div className="space-y-4">
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900 text-xs text-indigo-800 dark:text-indigo-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-indigo-500" />
+                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-brand-50/70 dark:bg-brand-900/10 border border-brand-100 dark:border-brand-900 text-xs text-brand-800 dark:text-brand-300">
+                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-brand-700" />
                         <p>
                             By default airtime profit is zero — you earn nothing until you set a markup below.
                             The combined total fee (network cost + your markup) is capped at 10%.
@@ -1229,7 +1229,7 @@ export default function ShopPricingPage() {
                     <Button
                         onClick={() => handleSaveSection('airtime')}
                         disabled={savingSection === 'airtime'}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white h-11 px-6 rounded-xl font-semibold gap-2"
+                        className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-black h-11 px-6 rounded-xl font-semibold gap-2"
                     >
                         {savingSection === 'airtime' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Airtime Profit

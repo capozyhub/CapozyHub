@@ -97,7 +97,7 @@ function IC({ children }: { children: React.ReactNode }) {
 // ─── Method Badge ─────────────────────────────────────────────────────────────
 const METHOD_COLORS: Record<Method, string> = {
     GET: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-    POST: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+    POST: 'bg-brand-500/15 text-brand-700 dark:text-brand-400 border-brand-500/30',
 }
 
 function MethodBadge({ method }: { method: Method }) {
@@ -1047,7 +1047,7 @@ export default function DevelopersPage() {
             )}
 
             {/* ── Hero ─────────────────────────────────────────────────────── */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-700 to-slate-900 text-white">
+            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-brand-700 to-slate-900 text-white">
                 <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(rgba(255,255,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] bg-[size:48px_48px]" />
                 <div className="relative max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-12 sm:py-20">
                     <div className="flex items-center gap-3 mb-6">

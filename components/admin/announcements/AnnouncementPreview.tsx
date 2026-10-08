@@ -29,7 +29,7 @@ export function AnnouncementPreview({ draft, surface }: {
                 'relative overflow-hidden px-6 pt-6 pb-7 text-center',
                 surface === 'dashboard'
                     ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500'
-                    : 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600'
+                    : 'bg-gradient-to-br from-brand-500 via-brand-600 to-brand-600'
             )}>
                 <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
                 <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 border border-white/30 mb-3">

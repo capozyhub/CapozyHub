@@ -53,7 +53,7 @@ type SmsProvider = 'hubtel' | 'moolre' | 'mnotify'
 
 const PROVIDER_META: Record<SmsProvider, { label: string; color: string; description: string }> = {
     hubtel:  { label: 'Hubtel',  color: 'bg-emerald-500', description: 'Direct Telco connections — highest delivery rate' },
-    moolre:  { label: 'Moolre',  color: 'bg-blue-500',    description: 'Reliable Ghanaian SMS gateway' },
+    moolre:  { label: 'Moolre',  color: 'bg-brand-500',    description: 'Reliable Ghanaian SMS gateway' },
     mnotify: { label: 'mNotify', color: 'bg-violet-500',  description: 'Fast delivery across all networks' },
 }
 
@@ -102,7 +102,7 @@ function RoleBadge({ role }: { role: string }) {
         : role === 'sub-admin'     ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
         : role === 'dealer'        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
         : role === 'agent'         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+        : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
     return <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', color)}>{role}</span>
 }
 
@@ -655,7 +655,7 @@ export default function AdminSMSBroadcastPage() {
 
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-brand-600 flex items-center justify-center shadow-lg flex-shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -742,7 +742,7 @@ export default function AdminSMSBroadcastPage() {
                                     <Button
                                         id="btn-send-sms"
                                         onClick={handleSend}
-                                        className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold h-11"
+                                        className="w-full gap-2 bg-gradient-to-r from-violet-600 to-brand-600 hover:from-violet-700 hover:to-brand-700 text-white font-bold h-11"
                                         disabled={sending || recipientCount === 0 || !message.trim()}
                                     >
                                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

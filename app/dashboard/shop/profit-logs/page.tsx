@@ -45,10 +45,10 @@ const ENTRY_CONFIG: Record<EntryType, { icon: React.ElementType; color: string; 
     airtime:        { icon: Phone,         color: 'text-green-600 dark:text-green-400',     bg: 'bg-green-100 dark:bg-green-900/30' },
     rc:             { icon: FileText,      color: 'text-violet-600 dark:text-violet-400',   bg: 'bg-violet-100 dark:bg-violet-900/30' },
     afa:            { icon: IdCard,        color: 'text-teal-600 dark:text-teal-400',       bg: 'bg-teal-100 dark:bg-teal-900/30' },
-    withdrawal:     { icon: ArrowUpRight,  color: 'text-blue-600 dark:text-blue-400',       bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    withdrawal:     { icon: ArrowUpRight,  color: 'text-brand-700 dark:text-brand-400',       bg: 'bg-brand-100 dark:bg-brand-900/30' },
     sms_bundle:     { icon: MessageSquare, color: 'text-purple-600 dark:text-purple-400',   bg: 'bg-purple-100 dark:bg-purple-900/30' },
     sms_activation: { icon: Zap,           color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-100 dark:bg-amber-900/30' },
-    utility_commission: { icon: Receipt,   color: 'text-cyan-600 dark:text-cyan-400',       bg: 'bg-cyan-100 dark:bg-cyan-900/30' },
+    utility_commission: { icon: Receipt,   color: 'text-brand-700 dark:text-brand-400',       bg: 'bg-brand-100 dark:bg-brand-900/30' },
 }
 
 import React from 'react'
@@ -270,10 +270,10 @@ export default function ShopProfitLogsPage() {
                     <Card className="rounded-xl border shadow-sm">
                         <CardContent className="p-2.5 sm:p-3.5">
                             <div className="flex items-center gap-1 mb-1">
-                                <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 flex-shrink-0" />
+                                <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-brand-700 flex-shrink-0" />
                                 <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium truncate">Withdrawn</p>
                             </div>
-                            <p className="text-sm sm:text-base font-bold tabular-nums text-blue-600 truncate">{formatCurrency(periodWithdrawn)}</p>
+                            <p className="text-sm sm:text-base font-bold tabular-nums text-brand-700 truncate">{formatCurrency(periodWithdrawn)}</p>
                             <p className="text-[10px] text-muted-foreground/60 mt-0.5 hidden sm:block">this period</p>
                         </CardContent>
                     </Card>

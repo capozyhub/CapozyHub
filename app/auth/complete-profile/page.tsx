@@ -34,7 +34,7 @@ function StepProgress({ labels, currentStep }: { labels: string[]; currentStep: 
                             <div className={cn(
                                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 shrink-0',
                                 done   && 'bg-emerald-500 border-emerald-500 text-white',
-                                active && 'bg-[#0056B3] border-[#0056B3] text-white shadow-[0_0_0_3px_rgba(0,86,179,0.18)]',
+                                active && 'bg-primary border-primary text-black shadow-[0_0_0_3px_rgba(0,86,179,0.18)]',
                                 !done && !active && 'bg-transparent border-slate-300 dark:border-slate-600 text-slate-400',
                             )}>
                                 {done ? <CheckCircle className="w-4 h-4" /> : num}
@@ -42,7 +42,7 @@ function StepProgress({ labels, currentStep }: { labels: string[]; currentStep: 
                             <span className={cn(
                                 'text-[10px] font-bold uppercase tracking-wider whitespace-nowrap',
                                 done   && 'text-emerald-600 dark:text-emerald-400',
-                                active && 'text-[#0056B3]',
+                                active && 'text-brand-700',
                                 !done && !active && 'text-slate-400',
                             )}>{label}</span>
                         </div>
@@ -408,7 +408,7 @@ export default function CompleteProfilePage() {
                 {/* Brand header */}
                 <div className="text-center mb-6">
                     <Link href="/" className="inline-flex flex-col items-center">
-                        <div className="relative w-20 h-20 mb-3 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-lg border-[3px] border-[#FFCC00]">
+                        <div className="relative w-20 h-20 mb-3 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-lg border-[3px] border-brand-500">
                             <BrandLogo width={80} height={80} className="object-contain w-full h-full" />
                         </div>
                         <BrandTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight" />
@@ -419,7 +419,7 @@ export default function CompleteProfilePage() {
                 </div>
 
                 <Card className="w-full border border-white/60 dark:border-slate-700/50 bg-white/92 dark:bg-slate-900/92 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
-                    <div className="h-0.5 w-full bg-gradient-to-r from-[#0056B3] via-[#00B4D8] to-[#FFCC00]" />
+                    <div className="h-0.5 w-full bg-gradient-to-r from-brand-700 via-brand-300 to-brand-500" />
                     <CardContent className="p-5 sm:p-6">
 
                         {/* Progress bar (only when 2 steps) */}
@@ -474,7 +474,7 @@ export default function CompleteProfilePage() {
                                 </div>
 
                                 <Button type="submit" disabled={submitting}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting
                                         ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Please wait...</>
                                         : otpEnabled ? 'Send Verification Code' : 'Continue'
@@ -511,7 +511,7 @@ export default function CompleteProfilePage() {
                                 </div>
 
                                 <Button type="submit" disabled={submitting || otpCode.length !== 6}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting
                                         ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</>
                                         : 'Verify & Continue'
@@ -587,7 +587,7 @@ export default function CompleteProfilePage() {
                                 </div>
 
                                 <Button type="submit" disabled={submitting}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting
                                         ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting password...</>
                                         : 'Complete Setup'

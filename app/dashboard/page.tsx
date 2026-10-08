@@ -62,8 +62,8 @@ const STAT_CARDS = [
         key: 'totalOrders' as const,
         label: 'Total Orders',
         sub: 'All time',
-        iconBg: 'bg-blue-50 dark:bg-blue-900/20',
-        iconColor: 'text-blue-600 dark:text-blue-400',
+        iconBg: 'bg-brand-50 dark:bg-brand-900/20',
+        iconColor: 'text-brand-700 dark:text-brand-400',
         Icon: ShoppingCart,
     },
     {
@@ -86,16 +86,16 @@ const STAT_CARDS = [
         key: 'queuedOrders' as const,
         label: 'Queued',
         sub: 'Registering number',
-        iconBg: 'bg-indigo-50 dark:bg-indigo-900/20',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
+        iconBg: 'bg-brand-50 dark:bg-brand-900/20',
+        iconColor: 'text-brand-700 dark:text-brand-400',
         Icon: Hourglass,
     },
     {
         key: 'processingOrders' as const,
         label: 'Processing',
         sub: 'In progress',
-        iconBg: 'bg-blue-50 dark:bg-blue-900/20',
-        iconColor: 'text-blue-600 dark:text-blue-400',
+        iconBg: 'bg-brand-50 dark:bg-brand-900/20',
+        iconColor: 'text-brand-700 dark:text-brand-400',
         Icon: Clock,
     },
     {
@@ -119,12 +119,12 @@ const STAT_CARDS = [
 const QUICK_LINKS = [
     { label: 'Buy Data',    href: '/dashboard/data-packages',  Icon: Package,      id: 'data-packages',    bg: 'bg-yellow-50 dark:bg-yellow-900/20',  icon: 'text-yellow-600 dark:text-yellow-400' },
     { label: 'Buy Airtime', href: '/dashboard/airtime',        Icon: Phone,        id: undefined,          bg: 'bg-orange-50 dark:bg-orange-900/20',  icon: 'text-orange-600 dark:text-orange-400' },
-    { label: 'Orders',      href: '/dashboard/my-orders',      Icon: ShoppingCart, id: 'order-history',    bg: 'bg-blue-50 dark:bg-blue-900/20',      icon: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Orders',      href: '/dashboard/my-orders',      Icon: ShoppingCart, id: 'order-history',    bg: 'bg-brand-50 dark:bg-brand-900/20',      icon: 'text-brand-700 dark:text-brand-400' },
     { label: 'Top Up',      href: '/dashboard/wallet',         Icon: Wallet,       id: undefined,          bg: 'bg-green-50 dark:bg-green-900/20',    icon: 'text-green-600 dark:text-green-400' },
     { label: 'Support',     href: '/dashboard/complaints',     Icon: AlertCircle,  id: 'complaint-button', bg: 'bg-red-50 dark:bg-red-900/20',        icon: 'text-red-600 dark:text-red-400' },
     { label: 'AFA Orders',  href: '/dashboard/afa-orders',     Icon: Star,         id: undefined,          bg: 'bg-purple-50 dark:bg-purple-900/20',  icon: 'text-purple-600 dark:text-purple-400' },
     { label: 'Vouchers',    href: '/dashboard/results-checker',Icon: FileText,     id: undefined,          bg: 'bg-teal-50 dark:bg-teal-900/20',      icon: 'text-teal-600 dark:text-teal-400' },
-    { label: 'My Shop',     href: '/dashboard/shop',           Icon: Store,        id: undefined,          bg: 'bg-indigo-50 dark:bg-indigo-900/20',  icon: 'text-indigo-600 dark:text-indigo-400' },
+    { label: 'My Shop',     href: '/dashboard/shop',           Icon: Store,        id: undefined,          bg: 'bg-brand-50 dark:bg-brand-900/20',  icon: 'text-brand-700 dark:text-brand-400' },
 ]
 
 function StatValue({ value }: { value: number }) {

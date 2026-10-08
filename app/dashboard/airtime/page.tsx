@@ -184,7 +184,7 @@ function SuccessModal({ order, onClose, onBuyMore }: { order: AirtimeOrder | nul
                     {isMashup && mashupBundle && (
                         <div className="grid grid-cols-2 gap-2 mb-4">
                             <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
-                                <Wifi className="w-4 h-4 text-blue-500 mb-1" />
+                                <Wifi className="w-4 h-4 text-brand-700 mb-1" />
                                 <span className="text-xs text-slate-500 dark:text-slate-400">Data</span>
                                 <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.data}</span>
                                 {!mashupBundle.exact && <span className="text-xs text-slate-400">Est. range</span>}
@@ -818,7 +818,7 @@ export default function AirtimePage() {
                                     <>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
-                                                <Wifi className="w-4 h-4 text-blue-500 mb-1" />
+                                                <Wifi className="w-4 h-4 text-brand-700 mb-1" />
                                                 <span className="text-xs text-slate-500 dark:text-slate-400">Data</span>
                                                 <span className="text-base font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.data}</span>
                                                 {!mashupBundle.exact && <span className="text-xs text-slate-400">Estimated range</span>}
@@ -903,7 +903,7 @@ export default function AirtimePage() {
                         </div>
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm min-w-0">
                             <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                                <History className="w-3.5 h-3.5 text-blue-500 shrink-0" /> <span className="truncate">Orders</span>
+                                <History className="w-3.5 h-3.5 text-brand-700 shrink-0" /> <span className="truncate">Orders</span>
                             </div>
                             <p className="text-sm font-semibold text-slate-900 dark:text-white truncate tabular-nums">{stats.totalOrders}</p>
                         </div>
@@ -1004,7 +1004,7 @@ export default function AirtimePage() {
                                                         'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border shrink-0',
                                                         order.type === 'mashup'
                                                             ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900'
-                                                            : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900'
+                                                            : 'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-950/40 dark:text-brand-400 dark:border-brand-900'
                                                     )}>
                                                         {order.type === 'mashup' ? <Zap className="w-2.5 h-2.5 fill-current" /> : <Phone className="w-2.5 h-2.5" />}
                                                         {order.type === 'mashup' ? 'Mashup' : 'Airtime'}

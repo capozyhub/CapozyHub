@@ -24,7 +24,7 @@ const FILTERS: { value: FilterType; label: string }[] = [
 
 const ROLE_COLORS: Record<string, string> = {
     agent: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    customer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    customer: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     'sub-admin': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 }
@@ -226,7 +226,7 @@ export function CreditsHistoryTab() {
     return (
         <div className="space-y-4">
             {/* Tip */}
-            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3">
+            <div className="text-xs text-muted-foreground bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-xl p-3">
                 📋 <strong>Credits History</strong> — all admin-credited top-ups. Use <strong>Add Debt</strong> to retroactively mark a top-up as unpaid (wallet balance stays unchanged).
             </div>
 
@@ -253,7 +253,7 @@ export function CreditsHistoryTab() {
                 <div className="grid grid-cols-3 gap-3">
                     {[
                         { icon: Banknote, label: 'Total Credited', value: formatCurrency(totalCredited), color: 'text-emerald-600' },
-                        { icon: Hash, label: 'Top-Ups', value: String(totalCount), color: 'text-blue-600' },
+                        { icon: Hash, label: 'Top-Ups', value: String(totalCount), color: 'text-brand-700' },
                         { icon: TrendingUp, label: 'Avg Amount', value: formatCurrency(avgAmount), color: 'text-amber-600' },
                     ].map(card => (
                         <div key={card.label} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-center">

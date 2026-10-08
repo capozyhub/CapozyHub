@@ -18,7 +18,7 @@ export function ApiEndpointBlock({
     const [lang, setLang] = useState<ApiLangTab>('cURL')
     const methodColor = method === 'GET'
         ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-        : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
+        : 'bg-brand-500/15 text-brand-700 dark:text-brand-400 border-brand-500/30'
 
     return (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">

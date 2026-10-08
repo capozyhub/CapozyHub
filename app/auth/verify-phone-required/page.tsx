@@ -333,7 +333,7 @@ export default function VerifyPhoneRequiredPage() {
             <div className="w-full max-w-[380px] sm:max-w-md relative z-10">
                 <div className="text-center mb-6">
                     <Link href="/" className="inline-flex flex-col items-center">
-                        <div className="relative w-20 h-20 mb-3 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-lg border-[3px] border-[#FFCC00]">
+                        <div className="relative w-20 h-20 mb-3 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-lg border-[3px] border-brand-500">
                             <BrandLogo width={80} height={80} className="object-contain w-full h-full" />
                         </div>
                         <BrandTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight" />
@@ -342,7 +342,7 @@ export default function VerifyPhoneRequiredPage() {
                 </div>
 
                 <Card className="w-full border border-white/60 dark:border-slate-700/50 bg-white/92 dark:bg-slate-900/92 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
-                    <div className="h-0.5 w-full bg-gradient-to-r from-[#0056B3] via-[#00B4D8] to-[#FFCC00]" />
+                    <div className="h-0.5 w-full bg-gradient-to-r from-brand-700 via-brand-300 to-brand-500" />
                     <CardContent className="p-5 sm:p-6">
                         {error && (
                             <Alert variant="destructive" className="mb-4 py-2 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/30">
@@ -365,7 +365,7 @@ export default function VerifyPhoneRequiredPage() {
                                     className="h-14 text-center text-2xl font-bold tracking-[0.5em] rounded-xl bg-white dark:bg-slate-800/70"
                                 />
                                 <Button type="submit" disabled={submitting || otpCode.length !== 6}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</> : 'Verify & Continue'}
                                 </Button>
                                 <div className="flex items-center justify-center gap-3 text-xs">
@@ -400,7 +400,7 @@ export default function VerifyPhoneRequiredPage() {
                                     </div>
                                 </div>
                                 <Button type="submit" disabled={submitting}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Checking...</> : 'Confirm'}
                                 </Button>
                             </form>
@@ -421,7 +421,7 @@ export default function VerifyPhoneRequiredPage() {
                                     </div>
                                 </div>
                                 <Button type="submit" disabled={submitting}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : 'Send Verification Code'}
                                 </Button>
                             </form>
@@ -442,7 +442,7 @@ export default function VerifyPhoneRequiredPage() {
                                     className="h-14 text-center text-2xl font-bold tracking-[0.5em] rounded-xl bg-white dark:bg-slate-800/70"
                                 />
                                 <Button type="submit" disabled={submitting || otpCode.length !== 6}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying...</> : 'Verify & Continue'}
                                 </Button>
                                 <div className="flex items-center justify-center text-xs">
@@ -482,7 +482,7 @@ export default function VerifyPhoneRequiredPage() {
                                         placeholder="Tell us what's happening..." className="rounded-xl text-sm bg-white dark:bg-slate-800/70" />
                                 </div>
                                 <Button type="submit" disabled={submitting}
-                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                                    className="w-full h-12 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300">
                                     {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : 'Send Message'}
                                 </Button>
                             </form>

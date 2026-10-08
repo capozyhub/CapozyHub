@@ -590,7 +590,7 @@ export default function ShopSmsPage() {
             <div className="grid grid-cols-3 gap-2">
                 <WalletCard label="SMS Credits"    amount={status.credits}       sub="credits"         color="border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-900/10" />
                 <WalletCard label="Profit Wallet"  amount={status.profitBalance} sub="available"       color="border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/10" />
-                <WalletCard label="Main Wallet"    amount={status.mainBalance}   sub="available"       color="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-900/10" />
+                <WalletCard label="Main Wallet"    amount={status.mainBalance}   sub="available"       color="border-brand-200 dark:border-brand-900 bg-brand-50/50 dark:bg-brand-900/10" />
             </div>
 
             {/* ── Your Sender IDs (single active slot — see the state block above) ── */}
@@ -1043,7 +1043,7 @@ export default function ShopSmsPage() {
                                             </span>
                                         ))}
                                         {manualPhones.map(p => (
-                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 px-2 py-0.5 rounded-full">
                                                 {p}<button onClick={() => setManualPhones(prev => prev.filter(x => x !== p))} title="Remove"><X className="w-3 h-3" /></button>
                                             </span>
                                         ))}
@@ -1301,7 +1301,7 @@ export default function ShopSmsPage() {
                                             <div className="min-w-0">
                                                 <p className="text-xs font-medium truncate max-w-[240px] sm:max-w-md flex items-center gap-1.5">
                                                     {log.source === 'auto_confirmation' && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">Auto</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 shrink-0">Auto</span>
                                                     )}
                                                     {log.source === 'reconciliation' && (
                                                         <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 shrink-0">Adjustment</span>

@@ -22,7 +22,7 @@ interface ActionDef {
 // which have no card and overlap pendingOrders, inflating the badge.)
 const ACTIONS: ActionDef[] = [
     { key: 'pendingOrders', href: '/admin/orders', label: 'Orders', suffix: 'Pending', icon: ShoppingCart, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30' },
-    { key: 'pendingShops', href: '/admin/shops', label: 'Shops', suffix: 'Review', icon: Store, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    { key: 'pendingShops', href: '/admin/shops', label: 'Shops', suffix: 'Review', icon: Store, color: 'text-brand-700', bg: 'bg-brand-100 dark:bg-brand-900/30' },
     { key: 'pendingWithdrawals', href: '/admin/shops/withdrawals', label: 'Withdrawals', suffix: 'Pending', icon: Banknote, color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
     { key: 'pendingComplaints', href: '/admin/complaints', label: 'Complaints', suffix: 'Issues', icon: MessageSquare, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30' },
     { key: 'pendingAfa', href: '/admin/afa-management', label: 'AFA Apps', suffix: 'Pending', icon: BadgeCheck, color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/30' },

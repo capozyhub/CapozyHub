@@ -101,7 +101,7 @@ export default async function ShopAboutPage({ params }: Props) {
                 {/* ── 2. Official Contact Info ── */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-700 dark:text-brand-400">
                             <Phone className="w-5 h-5" />
                         </div>
                         <h2 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Contact & Support</h2>
@@ -132,7 +132,7 @@ export default async function ShopAboutPage({ params }: Props) {
 
                         {shop.owner_email && (
                             <a href={`mailto:${shop.owner_email}`} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group sm:col-span-2">
-                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 group-hover:text-blue-600 transition-colors">
+                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 group-hover:text-brand-700 transition-colors">
                                     <Mail className="w-5 h-5" />
                                 </div>
                                 <div>

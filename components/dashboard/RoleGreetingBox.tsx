@@ -42,9 +42,9 @@ type TimeConfig = {
 function getTimeConfig(): TimeConfig {
     const h = new Date().getHours()
     if (h >= 5 && h < 12)  return { Icon: Sun,      iconColor: 'text-amber-500',  iconBg: 'bg-amber-50 dark:bg-amber-900/30'   }
-    if (h >= 12 && h < 17) return { Icon: CloudSun,  iconColor: 'text-sky-500',    iconBg: 'bg-sky-50 dark:bg-sky-900/30'       }
+    if (h >= 12 && h < 17) return { Icon: CloudSun,  iconColor: 'text-brand-700',    iconBg: 'bg-brand-50 dark:bg-brand-900/30'       }
     if (h >= 17 && h < 21) return { Icon: Sunset,    iconColor: 'text-orange-500', iconBg: 'bg-orange-50 dark:bg-orange-900/30' }
-    return                          { Icon: Moon,     iconColor: 'text-indigo-400', iconBg: 'bg-indigo-50 dark:bg-indigo-900/30' }
+    return                          { Icon: Moon,     iconColor: 'text-brand-400', iconBg: 'bg-brand-50 dark:bg-brand-900/30' }
 }
 
 function getStaticDateTime(): { dateStr: string; timeStr: string } {
@@ -72,11 +72,11 @@ function getTimeSinceJoined(createdAt?: string): string {
 
 const ROLE_PILL: Record<string, { label: string; dot: string; pill: string }> = {
     admin:     { label: 'System Administrator', dot: 'bg-red-500',    pill: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' },
-    sub_admin: { label: 'Sub-Administrator',    dot: 'bg-indigo-500', pill: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800' },
+    sub_admin: { label: 'Sub-Administrator',    dot: 'bg-brand-500', pill: 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:border-brand-800' },
     dealer:    { label: 'Authorized Dealer',    dot: 'bg-violet-500', pill: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800' },
     agent:     { label: 'Authorized Agent',     dot: 'bg-amber-500',  pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800' },
     subagent:  { label: 'Sub-Agent',            dot: 'bg-teal-500',   pill: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800' },
-    customer:  { label: 'Valued Customer',      dot: 'bg-blue-500',   pill: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' },
+    customer:  { label: 'Valued Customer',      dot: 'bg-brand-500',   pill: 'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:border-brand-800' },
 }
 
 export function RoleGreetingBox({ stats }: RoleGreetingBoxProps) {

@@ -3,53 +3,65 @@
 @tailwind utilities;
 
 @layer base {
+  /* Capozy palette, measured from the logo: gold #F6A900 / #F6C30F / #FEE21C,
+     silver #C2C2C2 / #E8E8E8 / #F9F9F9, black #000. Gold fails contrast as text on
+     white, so light mode uses black for focus rings and dark gold (brand-700) for text. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 97.6%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 47 93% 51%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 91%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 36%;
+    --accent: 47 90% 90%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 0 0% 0%;
     --radius: 0.75rem;
+
+    /* Soft-surface tokens (neumorphism). Canvas is the logo's mid silver; shadows are its dark and light silver. */
+    --neu-bg: #E8E8E8;
+    --neu-out: 9px 9px 20px #C2C2C2, -9px -9px 20px #FFFFFF;
+    --neu-out-sm: 5px 5px 11px #C2C2C2, -5px -5px 11px #FFFFFF;
+    --neu-in: inset 6px 6px 12px #C9C9C9, inset -6px -6px 12px #FFFFFF;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    /* Card: Slightly lighter than background for depth (Slate 900) */
-    --card: 222.2 47.4% 11.2%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 47 93% 51%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 66%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 17%;
+    --input: 0 0% 17%;
+    --ring: 47 93% 51%;
+
+    --neu-bg: #141414;
+    --neu-out: 9px 9px 20px #000000, -7px -7px 18px #242424;
+    --neu-out-sm: 5px 5px 11px #000000, -4px -4px 10px #232323;
+    --neu-in: inset 6px 6px 12px #000000, inset -5px -5px 11px #242424;
   }
 }
-
 @layer base {
   * {
     @apply border-border;
@@ -69,13 +81,17 @@
     /* Prevents pull-to-refresh on accidental swipes */
   }
 
-  /* ── Typography Scale (Inter system) ── */
+  /* ── Typography Scale (Bricolage Grotesque display, Figtree body) ── */
+  h1,h2 {
+    font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+  }
+
   h1 {
     font-size: 22px;
     line-height: 28px;
     font-weight: 600;
     letter-spacing: -0.02em;
-    color: #1A1A1A;
+    color: hsl(var(--foreground));
   }
 
   h2 {
@@ -83,19 +99,19 @@
     line-height: 24px;
     font-weight: 600;
     letter-spacing: -0.02em;
-    color: #1A1A1A;
+    color: hsl(var(--foreground));
   }
 
   h3 {
     font-size: 16px;
     line-height: 22px;
     font-weight: 500;
-    color: #1A1A1A;
+    color: hsl(var(--foreground));
   }
 
   h4, h5, h6 {
     font-weight: 500;
-    color: #1A1A1A;
+    color: hsl(var(--foreground));
   }
 
   p {
@@ -104,14 +120,6 @@
     font-weight: 400;
   }
 
-  .dark h1,
-  .dark h2,
-  .dark h3,
-  .dark h4,
-  .dark h5,
-  .dark h6 {
-    color: #E5E7EB;
-  }
 
   /* Helper for centered hero/page titles */
   .title-center {
@@ -120,6 +128,66 @@
 }
 
 @layer components {
+  /* ── Neumorphism: surfaces pushed out of / pressed into the canvas ── */
+  .bg-neu { background-color: var(--neu-bg); }
+  .neu-raised { background-color: var(--neu-bg); box-shadow: var(--neu-out); }
+  .neu-raised-sm { background-color: var(--neu-bg); box-shadow: var(--neu-out-sm); }
+  .neu-inset { background-color: var(--neu-bg); box-shadow: var(--neu-in); }
+  .neu-press { transition: box-shadow 180ms ease, transform 180ms ease; }
+  .neu-press:hover { box-shadow: var(--neu-out-sm); }
+  .neu-press:active { box-shadow: var(--neu-in); transform: scale(0.995); }
+
+  /* Same idea on the black hero, where only a faint top-left light can show. */
+  .neu-night { background-color: #111111; box-shadow: 14px 14px 30px rgba(0,0,0,0.85), -6px -6px 18px rgba(255,255,255,0.05), inset 1px 1px 0 rgba(255,255,255,0.06); }
+  .neu-night-in { background-color: #080808; box-shadow: inset 5px 5px 12px rgba(0,0,0,0.9), inset -4px -4px 10px rgba(255,255,255,0.05); }
+
+  /* ── Claymorphism: inflated, glossy, lit from the top-left ── */
+  .clay-gold {
+    color: #000;
+    background: linear-gradient(145deg, #FEE21C 0%, #F6C30F 45%, #F6A900 100%);
+    box-shadow:
+      8px 10px 20px rgba(246,169,0,0.38),
+      inset -6px -8px 12px rgba(155,98,0,0.45),
+      inset 6px 7px 12px rgba(255,255,255,0.65);
+    transition: box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+  }
+  .clay-gold:hover { filter: brightness(1.04); transform: translateY(-1px); }
+  .clay-gold:active {
+    transform: translateY(1px) scale(0.985);
+    box-shadow: 3px 4px 8px rgba(246,169,0,0.3), inset -3px -4px 8px rgba(155,98,0,0.4), inset 4px 5px 10px rgba(255,255,255,0.5);
+  }
+  .clay-black {
+    color: #fff;
+    background: linear-gradient(145deg, #3a3a3a 0%, #121212 55%, #000 100%);
+    box-shadow:
+      8px 10px 20px rgba(0,0,0,0.35),
+      inset -5px -7px 11px rgba(0,0,0,0.8),
+      inset 5px 6px 11px rgba(255,255,255,0.22);
+    transition: box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+  }
+  .clay-black:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .clay-black:active { transform: translateY(1px) scale(0.985); }
+  .clay-silver {
+    color: #000;
+    background: linear-gradient(145deg, #FFFFFF 0%, #F0F0F0 50%, #D2D2D2 100%);
+    box-shadow:
+      8px 10px 20px rgba(0,0,0,0.25),
+      inset -5px -7px 11px rgba(120,120,120,0.35),
+      inset 5px 6px 11px rgba(255,255,255,0.9);
+    transition: box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+  }
+  .clay-silver:hover { filter: brightness(1.03); transform: translateY(-1px); }
+  .clay-silver:active { transform: translateY(1px) scale(0.985); }
+
+  @keyframes swoosh-reveal {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0 0 0); }
+  }
+  .swoosh-reveal { animation: swoosh-reveal 1.5s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .swoosh-reveal { animation: none; }
+    .clay-gold, .clay-black, .clay-silver, .neu-press { transition: none; }
+  }
   .glass-card {
     @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm lg:backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-md lg:shadow-xl;
   }
@@ -129,7 +197,7 @@
   }
 
   .gradient-primary {
-    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600;
+    @apply bg-gradient-to-r from-brand-600 via-brand-500 to-brand-300;
   }
 
   .gradient-success {
@@ -173,7 +241,7 @@
   }
 
   .status-processing {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
+    @apply bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400;
   }
 
   .status-completed {
@@ -334,7 +402,7 @@
     position: absolute;
     border-radius: 50%;
     top: 50%; left: 50%;
-    border: 1.5px solid #FACC15;
+    border: 1.5px solid #F6C30F;
     transform: translate(-50%, -50%) scale(1);
     opacity: 0;
     animation: kfg-ring-out 2.2s cubic-bezier(0, .55, .45, 1) infinite;
@@ -349,14 +417,14 @@
   }
   .kfg-core {
     border-radius: 50%;
-    background: #FACC15;
+    background: #F6C30F;
     position: relative;
     z-index: 2;
     animation: kfg-core-pulse 2.2s ease-in-out infinite;
   }
   @keyframes kfg-core-pulse {
-    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 3px rgba(250,204,21,.15), 0 0 20px rgba(250,204,21,.5); }
-    50%       { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(250,204,21,.12), 0 0 28px rgba(250,204,21,.6); }
+    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 3px rgba(246,195,15,.15), 0 0 20px rgba(246,195,15,.5); }
+    50%       { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(246,195,15,.12), 0 0 28px rgba(246,195,15,.6); }
   }
   @keyframes kfg-fade-in {
     from { opacity: 0; }
@@ -376,11 +444,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8fafc;
+    background: #F9F9F9;
     transition: opacity 400ms ease;
   }
   .dark .page-ready-loader {
-    background: #020817;
+    background: #000000;
   }
 
   /* Notification modal list — thin white-tinted scrollbar on glass background */
@@ -453,12 +521,12 @@
 
 /* Glow effects - Simplified for mobile */
 .glow-primary {
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 10px rgba(246, 195, 15, 0.3);
 }
 
 @media (min-width: 1024px) {
   .glow-primary {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 20px rgba(246, 195, 15, 0.5);
   }
 }
 
@@ -505,7 +573,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
   font-size: 1.5rem !important;
   font-weight: 900 !important;
-  color: #FFCE00 !important;
+  color: #F6C30F !important;
   /* Brand Yellow */
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
@@ -533,7 +601,7 @@
 
 .driver-popover-description strong {
   font-weight: 800 !important;
-  color: #FFCE00 !important;
+  color: #F6C30F !important;
 }
 
 .driver-popover-description em {
@@ -552,7 +620,7 @@
 }
 
 .driver-popover-close-btn:hover {
-  color: #FFCE00 !important;
+  color: #F6C30F !important;
   background: transparent !important;
 }
 
@@ -599,7 +667,7 @@
 }
 
 .driver-popover-next-btn {
-  background: #FFCE00 !important;
+  background: #F6C30F !important;
   /* Brand yellow for Next */
   color: black !important;
 }
@@ -615,7 +683,7 @@
 .driver-active-element {
   border-radius: 0.5rem !important;
   /* Optional: Add a glow to the focused element */
-  box-shadow: 0 0 0 4px rgba(255, 206, 0, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(246, 195, 15, 0.5) !important;
   z-index: 100002 !important;
   /* Ensure it sits above the overlay */
   opacity: 1 !important;
@@ -632,7 +700,7 @@
 
 /* Dark mode specific styles - same as light for this transparent look */
 .dark .driver-popover-title {
-  color: #FFCE00 !important;
+  color: #F6C30F !important;
 }
 
 .dark .driver-popover-description {
@@ -645,7 +713,7 @@
 }
 
 .dark .driver-popover-next-btn {
-  background: #FFCE00 !important;
+  background: #F6C30F !important;
   color: black !important;
 }
 

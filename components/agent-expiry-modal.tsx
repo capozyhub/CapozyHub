@@ -91,24 +91,24 @@ export function AgentExpiryModal() {
 
                 <div className="space-y-6 py-4">
                     {/* Pricing Highlight */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                    <div className="bg-gradient-to-br from-brand-50 to-brand-50 dark:from-brand-950 dark:to-brand-950 p-6 rounded-xl border-2 border-brand-200 dark:border-brand-800">
                         <div className="flex items-center gap-2 mb-3">
-                            <Sparkles className="w-5 h-5 text-blue-600" />
-                            <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-100">Renew Your Access</h3>
+                            <Sparkles className="w-5 h-5 text-brand-700" />
+                            <h3 className="font-semibold text-lg text-brand-900 dark:text-brand-100">Renew Your Access</h3>
                         </div>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                        <p className="text-sm text-brand-700 dark:text-brand-300 mb-4">
                             Continue enjoying agent benefits at affordable prices:
                         </p>
                         <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-blue-300 text-blue-700 dark:text-blue-300 px-3 py-1">
+                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-brand-300 text-brand-700 dark:text-brand-300 px-3 py-1">
                                 <span className="font-semibold text-lg">GHS {pricing['3d']}</span>
                                 <span className="text-xs ml-1">/ 3 days</span>
                             </Badge>
-                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-blue-300 text-blue-700 dark:text-blue-300 px-3 py-1">
+                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-brand-300 text-brand-700 dark:text-brand-300 px-3 py-1">
                                 <span className="font-semibold text-lg">GHS {pricing['14d']}</span>
                                 <span className="text-xs ml-1">/ 14 days</span>
                             </Badge>
-                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-blue-300 text-blue-700 dark:text-blue-300 px-3 py-1">
+                            <Badge variant="outline" className="bg-white dark:bg-slate-900 border-brand-300 text-brand-700 dark:text-brand-300 px-3 py-1">
                                 <span className="font-semibold text-lg">GHS {pricing['30d']}</span>
                                 <span className="text-xs ml-1">/ 30 days</span>
                             </Badge>
@@ -119,7 +119,7 @@ export function AgentExpiryModal() {
                     <div className="space-y-3">
                         <Button
                             onClick={handleExtendAccess}
-                            className="w-full h-14 text-base font-semibold bg-blue-600 hover:bg-blue-700"
+                            className="w-full h-14 text-base font-semibold bg-brand-600 hover:bg-brand-500"
                             size="lg"
                         >
                             <Sparkles className="w-5 h-5 mr-2" />

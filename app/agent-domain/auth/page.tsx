@@ -133,13 +133,13 @@ export default function AgentAuthPage() {
                 className="pointer-events-none absolute inset-0 opacity-[0.07]"
                 style={{
                     backgroundImage:
-                        'radial-gradient(circle at 1px 1px, #FFCC00 1px, transparent 0)',
+                        'radial-gradient(circle at 1px 1px, #F6C30F 1px, transparent 0)',
                     backgroundSize: '28px 28px',
                 }}
             />
             <div
                 aria-hidden
-                className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-[#FFCC00] opacity-[0.08] blur-[120px]"
+                className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-brand-500 opacity-[0.08] blur-[120px]"
             />
 
             <div className="relative z-10 w-full max-w-[380px]">
@@ -147,7 +147,7 @@ export default function AgentAuthPage() {
                     not the consumer sign-in page it shares infrastructure with. */}
                 <div className="flex flex-col items-center text-center mb-7">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-[#12314F] border border-[#1E4468] shadow-[0_0_0_5px_rgba(255,204,0,0.06)]">
-                        <ShieldCheck className="w-5 h-5 text-[#FFCC00]" />
+                        <ShieldCheck className="w-5 h-5 text-brand-500" />
                     </div>
                     <h1 className="text-xl font-black tracking-tight text-white">
                         Welcome back
@@ -184,7 +184,7 @@ export default function AgentAuthPage() {
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
                                 placeholder="your@email.com or 024XXXXXXX"
-                                className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] pl-10 pr-3.5 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-[#FFCC00]/60 focus:ring-2 focus:ring-[#FFCC00]/20"
+                                className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] pl-10 pr-3.5 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/20"
                             />
                         </div>
                     </div>
@@ -203,7 +203,7 @@ export default function AgentAuthPage() {
                                 value={accessKey}
                                 onChange={(e) => setAccessKey(e.target.value)}
                                 placeholder="Your access key"
-                                className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] pl-10 pr-10 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-[#FFCC00]/60 focus:ring-2 focus:ring-[#FFCC00]/20"
+                                className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] pl-10 pr-10 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/20"
                             />
                             <button
                                 type="button"
@@ -222,7 +222,7 @@ export default function AgentAuthPage() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="mt-6 w-full h-11 rounded-xl bg-[#FFCC00] text-[#12294A] text-sm font-bold flex items-center justify-center gap-2 transition hover:bg-[#FFD633] disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="mt-6 w-full h-11 rounded-xl bg-brand-500 text-[#12294A] text-sm font-bold flex items-center justify-center gap-2 transition hover:bg-[#FFD633] disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         {submitting ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -243,7 +243,7 @@ export default function AgentAuthPage() {
                     <p className="font-medium text-[#EDF1F7]">Can&apos;t sign in?</p>
                     <button
                         type="button"
-                        className="text-[#FFCC00] underline underline-offset-2 hover:text-[#FFD633] transition-colors"
+                        className="text-brand-500 underline underline-offset-2 hover:text-[#FFD633] transition-colors"
                         onClick={() => setShowResetForm(true)}
                     >
                         Reset it yourself
@@ -262,8 +262,8 @@ export default function AgentAuthPage() {
                                 onClick={() => setResetChannel('email')}
                                 className={`flex-1 h-9 rounded-lg text-sm font-semibold transition ${
                                     resetChannel === 'email'
-                                        ? 'bg-[#FFCC00] text-[#12294A]'
-                                        : 'border border-[#1E3A57] text-[#9FB2CB] hover:border-[#FFCC00]/40'
+                                        ? 'bg-brand-500 text-[#12294A]'
+                                        : 'border border-[#1E3A57] text-[#9FB2CB] hover:border-brand-500/40'
                                 }`}
                             >
                                 Email
@@ -273,8 +273,8 @@ export default function AgentAuthPage() {
                                 onClick={() => setResetChannel('sms')}
                                 className={`flex-1 h-9 rounded-lg text-sm font-semibold transition ${
                                     resetChannel === 'sms'
-                                        ? 'bg-[#FFCC00] text-[#12294A]'
-                                        : 'border border-[#1E3A57] text-[#9FB2CB] hover:border-[#FFCC00]/40'
+                                        ? 'bg-brand-500 text-[#12294A]'
+                                        : 'border border-[#1E3A57] text-[#9FB2CB] hover:border-brand-500/40'
                                 }`}
                             >
                                 SMS
@@ -285,12 +285,12 @@ export default function AgentAuthPage() {
                             value={resetIdentifier}
                             onChange={(e) => setResetIdentifier(e.target.value)}
                             placeholder={resetChannel === 'email' ? 'Your email' : 'Your phone number'}
-                            className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] px-3.5 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-[#FFCC00]/60 focus:ring-2 focus:ring-[#FFCC00]/20"
+                            className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] px-3.5 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/20"
                         />
                         <button
                             type="submit"
                             disabled={resetSubmitting}
-                            className="w-full h-11 rounded-xl bg-[#FFCC00] text-[#12294A] text-sm font-bold flex items-center justify-center gap-2 transition hover:bg-[#FFD633] disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full h-11 rounded-xl bg-brand-500 text-[#12294A] text-sm font-bold flex items-center justify-center gap-2 transition hover:bg-[#FFD633] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {resetSubmitting ? 'Sending…' : 'Send reset instructions'}
                         </button>

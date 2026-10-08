@@ -570,7 +570,7 @@ export default function SmsContactsPage() {
                                         <p className="text-base font-bold tabular-nums mt-0.5">{groups.length.toLocaleString()}</p>
                                     </CardContent>
                                 </Card>
-                                <Card className="rounded-xl border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-900/10">
+                                <Card className="rounded-xl border-brand-200 dark:border-brand-900 bg-brand-50/50 dark:bg-brand-900/10">
                                     <CardContent className="p-3">
                                         <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">Total contacts</p>
                                         <p className="text-base font-bold tabular-nums mt-0.5">{totalContacts.toLocaleString()}</p>

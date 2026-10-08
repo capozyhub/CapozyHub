@@ -31,8 +31,8 @@ export function StatCards({ stats }: { stats: PageStats }) {
             label: 'Total Users',
             value: String(stats.totalUsers),
             icon: Users,
-            color: 'bg-blue-500',
-            textColor: 'text-blue-100',
+            color: 'bg-brand-500',
+            textColor: 'text-brand-100',
         },
         {
             label: 'Dealers',

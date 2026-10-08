@@ -259,7 +259,7 @@ export default function NumberRegistrationPage() {
 
     const statusPill = (s: string) => {
         const map: Record<string, string> = {
-            new: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+            new: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
             submitted: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
             registered: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             confirmed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -279,7 +279,7 @@ export default function NumberRegistrationPage() {
             <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                        <Hourglass className="w-6 h-6 text-indigo-600" /> MTN Number Registration
+                        <Hourglass className="w-6 h-6 text-brand-700" /> MTN Number Registration
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         Export new MTN recipient numbers to your supplier, then release their held orders once registered.
@@ -307,7 +307,7 @@ export default function NumberRegistrationPage() {
                         title="Server 1 (AgentPortal) whitelist gate — when ON, Server 1 is an active server: MTN purchases are blocked unless the number is registered on an active server (separate system, no shared state with the Registration Gate)"
                         className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                             data?.whitelistGateEnabled
-                                ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                                ? 'bg-brand-50 border-brand-300 text-brand-700 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400'
                                 : 'bg-gray-50 border-border text-muted-foreground dark:bg-gray-900/30'
                         }`}
                     >
@@ -321,7 +321,7 @@ export default function NumberRegistrationPage() {
                         title="Server 2 (Bundle Portal) whitelist gate — when ON, Server 2 is an active server: MTN purchases are blocked unless the number is registered on an active server. Works on its own or together with Server 1 (a number registered on either active server passes)"
                         className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                             data?.bundlePortalWhitelistEnabled
-                                ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                                ? 'bg-brand-50 border-brand-300 text-brand-700 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400'
                                 : 'bg-gray-50 border-border text-muted-foreground dark:bg-gray-900/30'
                         }`}
                     >
@@ -340,7 +340,7 @@ export default function NumberRegistrationPage() {
             )}
 
             {(data?.whitelistGateEnabled || data?.bundlePortalWhitelistEnabled) && (
-                <div className="rounded-xl bg-blue-50 dark:bg-blue-900/15 border border-blue-200 dark:border-blue-800/50 p-3 text-sm text-blue-800 dark:text-blue-300">
+                <div className="rounded-xl bg-brand-50 dark:bg-brand-900/15 border border-brand-200 dark:border-brand-800/50 p-3 text-sm text-brand-800 dark:text-brand-300">
                     The <b>Whitelist Gate</b> is <b>ON</b> with{' '}
                     <b>{data?.whitelistGateEnabled && data?.bundlePortalWhitelistEnabled ? 'Server 1 and Server 2' : data?.whitelistGateEnabled ? 'Server 1 only' : 'Server 2 only'}</b> active:
                     MTN purchases across every channel (dashboard, shop, API) are checked live before being charged, and a number registered on{' '}
@@ -351,10 +351,10 @@ export default function NumberRegistrationPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard label="New numbers" sub="Awaiting export" value={stats?.new ?? 0} color="text-indigo-600" Icon={Plus} />
+                <StatCard label="New numbers" sub="Awaiting export" value={stats?.new ?? 0} color="text-brand-700" Icon={Plus} />
                 <StatCard label="Submitted" sub="Awaiting supplier" value={stats?.submitted ?? 0} color="text-amber-600" Icon={FileSpreadsheet} />
                 <StatCard label="Registered" sub="Confirmed total" value={stats?.registered ?? 0} color="text-green-600" Icon={CheckCircle2} />
-                <StatCard label="Queued orders" sub="Held for release" value={stats?.queuedOrders ?? 0} color="text-indigo-600" Icon={Hourglass} />
+                <StatCard label="Queued orders" sub="Held for release" value={stats?.queuedOrders ?? 0} color="text-brand-700" Icon={Hourglass} />
             </div>
 
             {/* Tabs */}
@@ -364,7 +364,7 @@ export default function NumberRegistrationPage() {
                         key={t}
                         onClick={() => setTab(t)}
                         className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                            tab === t ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-muted-foreground hover:text-foreground'
+                            tab === t ? 'border-brand-600 text-brand-700' : 'border-transparent text-muted-foreground hover:text-foreground'
                         }`}
                     >
                         {t === 'new' ? 'New Numbers' : t === 'batches' ? 'Batches' : 'Registry'}
@@ -382,7 +382,7 @@ export default function NumberRegistrationPage() {
                         <button
                             onClick={downloadAndSubmit}
                             disabled={busy === 'download' || (stats?.new ?? 0) === 0}
-                            className="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2.5 text-sm font-semibold"
+                            className="flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-black px-4 py-2.5 text-sm font-semibold"
                         >
                             {busy === 'download' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                             Download &amp; Submit (Excel)

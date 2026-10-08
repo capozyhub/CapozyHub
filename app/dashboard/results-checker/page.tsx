@@ -391,7 +391,7 @@ export default function ResultsCheckerPage() {
                         <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Official Portal</span>
                     </div>
                     <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
-                        Result Checker <span className="text-[#0B1F3A] dark:text-blue-400">Access</span>
+                        Result Checker <span className="text-[#0B1F3A] dark:text-brand-400">Access</span>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Securely purchase and manage your examination credentials.</p>
                 </div>
@@ -400,7 +400,7 @@ export default function ResultsCheckerPage() {
                     <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
                     <span className="flex items-center gap-1"><Zap className="w-2.5 h-2.5 text-[#F5B800]" />Instant</span>
                     <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
-                    <span className="flex items-center gap-1"><ShieldCheck className="w-2.5 h-2.5 text-blue-500" />Verified</span>
+                    <span className="flex items-center gap-1"><ShieldCheck className="w-2.5 h-2.5 text-brand-700" />Verified</span>
                 </div>
             </div>
 
@@ -800,7 +800,7 @@ export default function ResultsCheckerPage() {
                                                                                 navigator.clipboard.writeText(`Serial: ${v.serial_number}\nPIN: ${v.pin}`)
                                                                                 toast.success('Copied to clipboard')
                                                                             }}
-                                                                            className="text-[9px] font-bold text-blue-500 uppercase flex items-center gap-1"
+                                                                            className="text-[9px] font-bold text-brand-700 uppercase flex items-center gap-1"
                                                                         >
                                                                             <Copy className="w-3 h-3" /> Copy Both
                                                                         </button>
@@ -854,7 +854,7 @@ export default function ResultsCheckerPage() {
                                                     <button
                                                         onClick={() => handleResendSMS(order.id)}
                                                         disabled={resending === order.id || !vouchers.length}
-                                                        className="mt-3 w-full py-3 rounded-xl border-2 border-blue-100 dark:border-blue-900 text-blue-700 dark:text-blue-400 font-semibold text-[10px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        className="mt-3 w-full py-3 rounded-xl border-2 border-brand-100 dark:border-brand-900 text-brand-700 dark:text-brand-400 font-semibold text-[10px] hover:bg-brand-50 dark:hover:bg-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                                         {resending === order.id
                                                             ? <><Loader2 className="w-4 h-4 animate-spin" /> Resending…</>
                                                             : <><RefreshCw className="w-4 h-4" /> Resend SMS</>}

@@ -11,8 +11,8 @@ import {
 export const TYPE_META: Record<string, { label: string; sign: '+' | '-'; cls: string; Icon: typeof Wallet }> = {
     commission:          { label: 'Commission Earned',   sign: '+', cls: 'text-emerald-600', Icon: TrendingUp },
     sub_agent_margin:    { label: 'Sub-Agent Earning',   sign: '+', cls: 'text-emerald-600', Icon: UserCheck },
-    transfer_out_main:   { label: 'Transfer to Wallet',  sign: '-', cls: 'text-blue-600',    Icon: ArrowRightLeft },
-    transfer_out_shop:   { label: 'Transfer to Shop',    sign: '-', cls: 'text-blue-600',    Icon: ArrowRightLeft },
+    transfer_out_main:   { label: 'Transfer to Wallet',  sign: '-', cls: 'text-brand-700',    Icon: ArrowRightLeft },
+    transfer_out_shop:   { label: 'Transfer to Shop',    sign: '-', cls: 'text-brand-700',    Icon: ArrowRightLeft },
     withdrawal:          { label: 'Withdrawal',          sign: '-', cls: 'text-violet-600',  Icon: Banknote },
     withdrawal_reversal: { label: 'Withdrawal Reversed', sign: '+', cls: 'text-amber-600',   Icon: RotateCcw },
 }

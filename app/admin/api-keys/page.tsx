@@ -165,8 +165,8 @@ function StatCard({
         emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-600 dark:text-emerald-400', text: 'text-emerald-600 dark:text-emerald-400' },
         red:     { iconBg: 'bg-red-500/10',     iconText: 'text-red-600 dark:text-red-400',         text: 'text-red-600 dark:text-red-400' },
         amber:   { iconBg: 'bg-amber-500/10',   iconText: 'text-amber-600 dark:text-amber-400',     text: 'text-amber-500' },
-        sky:     { iconBg: 'bg-sky-500/10',     iconText: 'text-sky-600 dark:text-sky-400',         text: 'text-sky-600 dark:text-sky-400' },
-        indigo:  { iconBg: 'bg-indigo-500/10',  iconText: 'text-indigo-600 dark:text-indigo-400',   text: 'text-indigo-600 dark:text-indigo-400' },
+        sky:     { iconBg: 'bg-brand-500/10',     iconText: 'text-brand-700 dark:text-brand-400',         text: 'text-brand-700 dark:text-brand-400' },
+        indigo:  { iconBg: 'bg-brand-500/10',  iconText: 'text-brand-700 dark:text-brand-400',   text: 'text-brand-700 dark:text-brand-400' },
         slate:   { iconBg: 'bg-slate-200 dark:bg-slate-700/60', iconText: 'text-slate-600 dark:text-slate-300', text: 'text-slate-900 dark:text-white' },
     }
     const a = accents[accent]
@@ -316,7 +316,7 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
             {tile('Success Rate', `${data.success_rate}%`,
                 data.success_rate >= 90 ? 'text-emerald-600 dark:text-emerald-400'
                 : data.success_rate >= 70 ? 'text-amber-500' : 'text-red-600 dark:text-red-400')}
-            {tile('Reqs (24h)', data.requests_24h.toLocaleString(), 'text-sky-600 dark:text-sky-400')}
+            {tile('Reqs (24h)', data.requests_24h.toLocaleString(), 'text-brand-700 dark:text-brand-400')}
             {tile('Avg Latency', `${data.avg_response_ms}ms`)}
         </div>
     )
@@ -371,7 +371,7 @@ function KeyRow({ item, onAction }: {
                             {item.has_webhook && (
                                 <span
                                     title="This key has a webhook URL configured"
-                                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-600 dark:text-sky-400"
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400"
                                 >
                                     <Webhook className="w-2.5 h-2.5" />
                                     Webhook
@@ -529,14 +529,14 @@ function LogsTab() {
 
     const statusColor = (code: number) => {
         if (code < 300) return 'text-emerald-600 dark:text-emerald-400'
-        if (code < 400) return 'text-blue-600 dark:text-blue-400'
+        if (code < 400) return 'text-brand-700 dark:text-brand-400'
         if (code < 500) return 'text-amber-600 dark:text-amber-400'
         return 'text-red-600 dark:text-red-400'
     }
 
     const methodColor = (method: string) => {
         if (method === 'GET') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-        if (method === 'POST') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+        if (method === 'POST') return 'bg-brand-500/10 text-brand-700 dark:text-brand-400 border-brand-500/20'
         return 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
     }
 
@@ -729,7 +729,7 @@ export default function AdminApiKeysPage() {
             {/* ── Header ─────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-brand-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
                         <Key className="w-6 h-6 text-white" />
                     </div>
                     <div>

@@ -202,7 +202,7 @@ export default function DataGodTerminalPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-3">
-                        <DatabaseZap className="w-8 h-8 text-indigo-500" />
+                        <DatabaseZap className="w-8 h-8 text-brand-700" />
                         DataGod Terminal
                     </h1>
                     <p className="text-xs md:text-sm text-muted-foreground mt-1">
@@ -217,7 +217,7 @@ export default function DataGodTerminalPage() {
                 </div>
             </div>
 
-            <Card className="bg-gradient-to-br from-indigo-700 to-indigo-950 text-white border-none shadow-lg">
+            <Card className="bg-gradient-to-br from-brand-700 to-brand-950 text-white border-none shadow-lg">
                 <CardContent className="p-4 md:p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
@@ -252,7 +252,7 @@ export default function DataGodTerminalPage() {
                     className={cn(
                         "px-6 py-3 font-bold text-sm transition-colors border-b-2",
                         activeTab === 'pending' 
-                            ? "border-indigo-600 text-indigo-600 dark:text-indigo-400" 
+                            ? "border-brand-600 text-brand-700 dark:text-brand-400" 
                             : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                     onClick={() => setActiveTab('pending')}
@@ -263,7 +263,7 @@ export default function DataGodTerminalPage() {
                     className={cn(
                         "px-6 py-3 font-bold text-sm transition-colors border-b-2",
                         activeTab === 'history' 
-                            ? "border-indigo-600 text-indigo-600 dark:text-indigo-400" 
+                            ? "border-brand-600 text-brand-700 dark:text-brand-400" 
                             : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                     onClick={() => setActiveTab('history')}
@@ -322,7 +322,7 @@ export default function DataGodTerminalPage() {
                                 <Button
                                     size="sm"
                                     onClick={fulfillSelected}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
                                     disabled={isRefulfilling || isSyncing}
                                 >
                                     {isRefulfilling ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <DatabaseZap className="w-4 h-4 mr-2" />}
@@ -421,7 +421,7 @@ export default function DataGodTerminalPage() {
                                                                 ) : (
                                                                     <Badge 
                                                                         variant={liveStatuses[order.id].status === 'completed' ? 'success' : liveStatuses[order.id].status === 'failed' ? 'destructive' : 'default'} 
-                                                                        className="text-[10px] font-black uppercase bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/30 dark:border-indigo-700 dark:text-indigo-400"
+                                                                        className="text-[10px] font-black uppercase bg-brand-100 text-brand-700 border-brand-300 dark:bg-brand-900/30 dark:border-brand-700 dark:text-brand-400"
                                                                         title="Live Status from DataGod"
                                                                     >
                                                                         LIVE: {liveStatuses[order.id].status}

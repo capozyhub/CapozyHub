@@ -792,16 +792,16 @@ export default function AdminUtilitiesPage() {
                                                         <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-violet-100 text-violet-700 hover:bg-violet-100 border-violet-200">API</Badge>
                                                     )}
                                                     {(o.source === 'ussd' || o.source === 'ussd_shop') && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">USSD</Badge>
+                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">USSD</Badge>
                                                     )}
                                                     {o.source === 'storefront' && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-cyan-100 text-cyan-700 hover:bg-cyan-100 border-cyan-200">Storefront</Badge>
+                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">Storefront</Badge>
                                                     )}
                                                     {o.source === 'dashboard' && (
                                                         <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200">Dashboard</Badge>
                                                     )}
                                                     {o.shop_name && o.users?.first_name && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
+                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                             Shop: {o.shop_name}
                                                         </Badge>
                                                     )}
@@ -846,7 +846,7 @@ export default function AdminUtilitiesPage() {
                                                 </Button>
                                             )}
                                             {canStatusSync(o) && (
-                                                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1 text-blue-700 border-blue-200 dark:text-blue-300 dark:border-blue-900"
+                                                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1 text-brand-700 border-brand-200 dark:text-brand-300 dark:border-brand-900"
                                                     disabled={busyOrders.has(o.id)}
                                                     onClick={() => setActionConfirm({ type: 'status_sync', order: o })}>
                                                     {busyOrders.has(o.id) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Sync
@@ -1115,9 +1115,9 @@ export default function AdminUtilitiesPage() {
             )}
 
             {/* ── Ops note ────────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/20 p-3 flex gap-2.5">
+            <div className="rounded-xl border border-brand-200 dark:border-brand-900 bg-brand-50 dark:bg-brand-950/20 p-3 flex gap-2.5">
                 <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700 dark:text-blue-300 leading-snug">
+                <p className="text-xs text-brand-700 dark:text-brand-300 leading-snug">
                     Status checks route through the Fixie static-IP proxy (Hubtel allowlists it). Each utility sale can use 2–3 proxied calls
                     (lookup, Ghana Water session, status check) vs ~1 for airtime — watch Fixie volume as utilities grow.
                 </p>
@@ -1262,7 +1262,7 @@ export default function AdminUtilitiesPage() {
                                             </Button>
                                         )}
                                         {canStatusSync(selectedOrder) && (
-                                            <Button size="sm" variant="outline" className="flex-1 h-9 text-xs gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300"
+                                            <Button size="sm" variant="outline" className="flex-1 h-9 text-xs gap-1.5 border-brand-200 text-brand-700 hover:bg-brand-50 dark:border-brand-900 dark:text-brand-300"
                                                 disabled={busyOrders.has(selectedOrder.id)}
                                                 onClick={() => setActionConfirm({ type: 'status_sync', order: selectedOrder })}>
                                                 <RefreshCw className="w-3.5 h-3.5" /> Status sync

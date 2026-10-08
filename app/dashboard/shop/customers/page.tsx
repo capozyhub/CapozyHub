@@ -187,7 +187,7 @@ export default function ShopCustomersPage() {
                 {[
                     { label: 'Customers', value: String(totals.count), icon: Users, color: 'text-emerald-600' },
                     { label: 'Returning', value: String(totals.returning), icon: Crown, color: 'text-amber-600' },
-                    { label: 'Total Orders', value: String(totals.orders), icon: ShoppingCart, color: 'text-blue-600' },
+                    { label: 'Total Orders', value: String(totals.orders), icon: ShoppingCart, color: 'text-brand-700' },
                     { label: 'Total Revenue', value: formatCurrency(totals.revenue), icon: TrendingUp, color: 'text-purple-600' },
                 ].map(({ label, value, icon: Icon, color }) => (
                     <Card key={label} className="border shadow-sm rounded-xl">
@@ -310,7 +310,7 @@ export default function ShopCustomersPage() {
                                             {c.tags.length > 0 && (
                                                 <div className="flex gap-1 mt-1 flex-wrap">
                                                     {c.tags.slice(0, 3).map(t => (
-                                                        <span key={t} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">{t}</span>
+                                                        <span key={t} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400">{t}</span>
                                                     ))}
                                                 </div>
                                             )}

@@ -14,7 +14,7 @@ const STATE_BADGE: Record<ReconState, { label: string; cls: string }> = {
   reconciled:     { label: '✅ Reconciled',      cls: 'text-green-600' },
   paid_unsettled: { label: '⚠ Paid, not settled', cls: 'text-amber-600' },
   mismatch:       { label: '🚩 Mismatch',        cls: 'text-red-600' },
-  in_flight:      { label: '⏳ In flight',        cls: 'text-blue-600' },
+  in_flight:      { label: '⏳ In flight',        cls: 'text-brand-700' },
   failed:         { label: '❌ Failed',           cls: 'text-muted-foreground' },
   unknown:        { label: '— Unknown',          cls: 'text-muted-foreground' },
 }

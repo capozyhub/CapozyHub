@@ -432,21 +432,21 @@ export function NotificationModal({
                 {(showPushPrompt || showInstallPrompt) && (
                     <div className="flex flex-col gap-2 px-3 sm:px-4 pt-2.5 pb-1 flex-shrink-0">
                         {showPushPrompt && (
-                            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50">
+                            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-100 dark:border-brand-900/50">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
-                                        <Bell className="w-3.5 h-3.5 text-blue-500" />
+                                    <div className="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center flex-shrink-0">
+                                        <Bell className="w-3.5 h-3.5 text-brand-700" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 leading-tight truncate">Enable Notifications</p>
-                                        <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-tight">Get real-time order updates</p>
+                                        <p className="text-xs font-semibold text-brand-900 dark:text-brand-200 leading-tight truncate">Enable Notifications</p>
+                                        <p className="text-[10px] text-brand-700 dark:text-brand-400 leading-tight">Get real-time order updates</p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={async () => { await requestPermission() }}
                                     disabled={isSubscribing}
-                                    className="flex-shrink-0 px-3 py-1 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+                                    className="flex-shrink-0 px-3 py-1 rounded-lg bg-brand-500 hover:bg-brand-600 text-black text-[11px] font-semibold transition-colors disabled:opacity-60"
                                 >
                                     {isSubscribing ? 'Enabling...' : 'Enable'}
                                 </button>
@@ -515,7 +515,7 @@ export function NotificationModal({
                                         'transition-colors duration-150',
                                         'hover:bg-gray-50 dark:hover:bg-gray-700',
                                         !notif.is_read && 'border-l-[3px] border-l-blue-500',
-                                        isHighlighted && 'bg-blue-50 dark:bg-blue-950/40 border-l-[3px] border-l-blue-500'
+                                        isHighlighted && 'bg-brand-50 dark:bg-brand-950/40 border-l-[3px] border-l-blue-500'
                                     )}
                                 >
                                     {/* Icon bubble */}
@@ -545,7 +545,7 @@ export function NotificationModal({
 
                                     {/* Unread dot */}
                                     {!notif.is_read && (
-                                        <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                                        <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />
                                     )}
 
                                     {/* Actions — revealed on hover */}
@@ -555,7 +555,7 @@ export function NotificationModal({
                                                 type="button"
                                                 onClick={async (e) => { e.stopPropagation(); await markAsRead(notif.id) }}
                                                 title="Mark as read"
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/30 transition-colors"
                                             >
                                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                             </button>
@@ -580,7 +580,7 @@ export function NotificationModal({
                     <button
                         type="button"
                         onClick={() => { onClose(); router.push('/dashboard/notifications') }}
-                        className="w-full flex items-center justify-center gap-1 py-3 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1 py-3 text-xs font-medium text-brand-700 dark:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
                     >
                         See all notifications <ChevronRight className="w-3.5 h-3.5" />
                     </button>

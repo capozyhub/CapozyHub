@@ -168,7 +168,7 @@ export default function AdminTermsPage() {
             </div>
 
             <button onClick={publish} disabled={saving}
-              className="w-full h-12 rounded-xl bg-[#FFCC00] text-black font-black flex items-center justify-center gap-2 disabled:opacity-50">
+              className="w-full h-12 rounded-xl bg-brand-500 text-black font-black flex items-center justify-center gap-2 disabled:opacity-50">
               <Save className="w-4 h-4" /> {saving ? 'Publishing…' : 'Publish'}
             </button>
           </div>

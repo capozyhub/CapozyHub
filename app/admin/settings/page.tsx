@@ -566,7 +566,7 @@ export default function AdminSettingsPage() {
                     <TabsTrigger value="fulfillment">Fulfillment</TabsTrigger>
                     <TabsTrigger value="access">Page Access</TabsTrigger>
                     <TabsTrigger value="landing">Landing Page</TabsTrigger>
-                    <TabsTrigger value="momo" className="text-indigo-600 font-semibold">📱 MoMo Claims</TabsTrigger>
+                    <TabsTrigger value="momo" className="text-brand-700 font-semibold">📱 MoMo Claims</TabsTrigger>
                 </TabsList>
 
                 {/* ── General ─────────────────────────────────────────────────── */}

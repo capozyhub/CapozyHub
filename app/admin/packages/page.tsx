@@ -318,7 +318,7 @@ export default function AdminPackagesPage() {
                             <h2 className="text-xl font-bold flex items-center gap-2">
                                 <span className={`px-3 py-1 rounded-full text-white text-sm ${network === 'MTN' ? 'bg-yellow-500' :
                                     network === 'Telecel' ? 'bg-red-600' :
-                                        'bg-blue-600'
+                                        'bg-brand-600'
                                     }`}>
                                     {network}
                                 </span>

@@ -46,8 +46,8 @@ function IOSInstallInstructions({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="space-y-5">
                     <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-black text-blue-600">1</span>
+                        <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-black text-brand-700">1</span>
                         </div>
                         <div>
                             <p className="text-sm font-bold text-slate-900 dark:text-white">
@@ -59,8 +59,8 @@ function IOSInstallInstructions({ onClose }: { onClose: () => void }) {
                         </div>
                     </div>
                     <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-black text-blue-600">2</span>
+                        <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-black text-brand-700">2</span>
                         </div>
                         <div>
                             <p className="text-sm font-bold text-slate-900 dark:text-white">
@@ -84,7 +84,7 @@ function IOSInstallInstructions({ onClose }: { onClose: () => void }) {
                         </p>
                     </div>
                 </div>
-                <Button onClick={onClose} className="w-full mt-6 h-11 bg-[#0056B3] hover:bg-[#004494] text-white font-bold rounded-xl">
+                <Button onClick={onClose} className="w-full mt-6 h-11 bg-primary hover:bg-primary/90 text-black font-bold rounded-xl">
                     Got it!
                 </Button>
             </div>
@@ -225,7 +225,7 @@ export function PWAInstallPrompt() {
                             <Button
                                 onClick={handleInstallClick}
                                 size="sm"
-                                className="bg-[#0056B3] hover:bg-[#004494] text-white font-bold rounded-lg text-xs px-3 h-8"
+                                className="bg-primary hover:bg-primary/90 text-black font-bold rounded-lg text-xs px-3 h-8"
                             >
                                 <Download className="w-3.5 h-3.5 mr-1" />
                                 {installText}
@@ -302,7 +302,7 @@ export function PWAInstallButton({ className }: { className?: string }) {
                 variant="outline"
                 size="sm"
                 className={cn(
-                    'border-[#0056B3]/30 text-[#0056B3] hover:bg-[#0056B3]/10 font-bold gap-1.5 rounded-full text-xs',
+                    'border-primary/30 text-brand-700 hover:bg-primary/10 font-bold gap-1.5 rounded-full text-xs',
                     className
                 )}
             >

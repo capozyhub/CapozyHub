@@ -192,7 +192,7 @@ export default function ProfitLogsClient() {
         <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-zinc-50/50 min-h-screen">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                    <ShieldCheck className="w-8 h-8 text-indigo-600" />
+                    <ShieldCheck className="w-8 h-8 text-brand-700" />
                     Premium Profit Logs
                 </h1>
                 <p className="text-muted-foreground max-w-3xl">
@@ -211,7 +211,7 @@ export default function ProfitLogsClient() {
                                     key={f}
                                     onClick={() => setDateFilter(f)}
                                     className={`px-4 py-2 text-sm font-semibold transition-colors flex-1 text-center whitespace-nowrap
-                                        ${dateFilter === f ? 'bg-indigo-600 text-white shadow-inner' : 'text-slate-600 hover:bg-slate-100'}
+                                        ${dateFilter === f ? 'bg-brand-600 text-black shadow-inner' : 'text-slate-600 hover:bg-slate-100'}
                                     `}
                                 >
                                     {f}
@@ -225,7 +225,7 @@ export default function ProfitLogsClient() {
                             aria-label="Filter by transaction type"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value as any)}
-                            className="bg-white border border-slate-200 text-sm font-semibold text-slate-700 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="bg-white border border-slate-200 text-sm font-semibold text-slate-700 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none focus:ring-2 focus:ring-brand-500"
                         >
                             <option value="All">All Transactions</option>
                             <option value="main">Main Platform Filter</option>
@@ -308,7 +308,7 @@ export default function ProfitLogsClient() {
                                 {loading && logs.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="py-20 text-center">
-                                            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-4" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-brand-700 mx-auto mb-4" />
                                             <p className="text-slate-500 font-semibold">Loading ledger records...</p>
                                         </td>
                                     </tr>
@@ -331,7 +331,7 @@ export default function ProfitLogsClient() {
                                             </td>
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-2 items-start">
-                                                    <Badge variant="outline" className={`uppercase text-[10px] tracking-wider px-2 py-0 border ${log.channel === 'main' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                                                    <Badge variant="outline" className={`uppercase text-[10px] tracking-wider px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
                                                         {log.channel === 'main' ? 'Main Platform' : 'Shop System'} · {log.role_at_time || 'Guest'}
                                                     </Badge>
                                                     
@@ -384,7 +384,7 @@ export default function ProfitLogsClient() {
                             className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-6 rounded-full shadow-sm flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                         >
                             {loadingMore ? (
-                                <><Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> Fetching records...</>
+                                <><Loader2 className="w-4 h-4 animate-spin text-brand-700" /> Fetching records...</>
                             ) : (
                                 <><RefreshCw className="w-4 h-4 text-slate-400" /> Load More Records</>
                             )}

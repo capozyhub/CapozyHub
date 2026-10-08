@@ -55,7 +55,7 @@ function StatusDot({ status }: { status: WithdrawalRow['status'] }) {
         'w-3 h-3 rounded-full flex-shrink-0 mt-0.5',
         status === 'completed' ? 'bg-emerald-500' :
         status === 'failed' || status === 'reversed' ? 'bg-red-500' :
-        status === 'moolre_pending' || status === 'paystack_pending' ? 'bg-blue-500' :
+        status === 'moolre_pending' || status === 'paystack_pending' ? 'bg-brand-500' :
         'bg-amber-500',
     )
     return <span className={cls} />
@@ -132,7 +132,7 @@ function Timeline({ steps }: { steps: TimelineStep[] }) {
                             className={cn(
                                 'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2',
                                 step.variant === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' :
-                                step.variant === 'active' ? 'bg-blue-500 border-blue-500 text-white' :
+                                step.variant === 'active' ? 'bg-brand-500 border-brand-500 text-black' :
                                 step.variant === 'error' ? 'bg-red-500 border-red-500 text-white' :
                                 'bg-muted border-border text-muted-foreground',
                             )}
@@ -377,7 +377,7 @@ export function WithdrawalDetailSheet({
                                 : row.status === 'failed' || row.status === 'reversed'
                                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                 : row.status === 'moolre_pending' || row.status === 'paystack_pending'
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
                                 : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
                         )}>
                             {statusLabel(row.status)}

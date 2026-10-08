@@ -24,7 +24,7 @@ export function NetworkIcon({ network, size = 40, className = '', variant = 'def
     const getFallbackStyle = (name: string) => {
         if (name === 'MTN') return 'bg-yellow-400 text-black'
         if (name === 'Telecel') return 'bg-red-600 text-white'
-        if (name.includes('AT')) return 'bg-blue-700 text-white'
+        if (name.includes('AT')) return 'bg-brand-700 text-white'
         return 'bg-gray-800 text-white'
     }
 

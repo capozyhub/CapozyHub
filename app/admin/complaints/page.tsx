@@ -47,7 +47,7 @@ function SupplierBadge({ order }: { order: { fulfillment_method?: string | null;
 
 function MessageTick({ state }: { state: 'sent' | 'delivered' | 'read' }) {
     if (state === 'sent') return <Check className="w-3.5 h-3.5 shrink-0" />
-    return <CheckCheck className={cn('w-3.5 h-3.5 shrink-0', state === 'read' && 'text-sky-300')} />
+    return <CheckCheck className={cn('w-3.5 h-3.5 shrink-0', state === 'read' && 'text-brand-300')} />
 }
 
 function PresenceBadge({ active }: { active: boolean | null }) {
@@ -1098,7 +1098,7 @@ function LegacyComplaints() {
                                 />
                             </div>
                         ) : (
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div className="p-3 bg-brand-50 dark:bg-brand-900/20 rounded-lg">
                                 <h4 className="font-semibold text-sm mb-1">Resolution</h4>
                                 <p className="text-sm">{selectedComplaint?.resolution_notes}</p>
                             </div>

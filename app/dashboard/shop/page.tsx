@@ -487,7 +487,7 @@ export default function ShopDashboardPage() {
                                             <Crown className="w-3 h-3" /> Lifetime
                                         </span>
                                     ) : (
-                                        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold', daysLeft <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300')}>
+                                        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold', daysLeft <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300')}>
                                             <Clock className="w-3 h-3" /> {daysLeft <= 0 ? 'Expired' : `${daysLeft}d left`}
                                         </span>
                                     )

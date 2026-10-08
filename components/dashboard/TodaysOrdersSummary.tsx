@@ -123,7 +123,7 @@ export function TodaysOrdersSummary() {
                         <div>
                             <p className="text-gray-500 font-medium text-sm">Today&apos;s Orders</p>
                             <div className="flex items-center gap-2 mt-1">
-                                <ShoppingCart className="w-8 h-8 text-blue-600 fill-blue-600" />
+                                <ShoppingCart className="w-8 h-8 text-brand-700 fill-brand-600" />
                                 <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-none">
                                     {stats.totalCount}
                                 </span>
@@ -141,8 +141,8 @@ export function TodaysOrdersSummary() {
                             
                             {/* Processing */}
                             <div className="flex items-center gap-2 text-sm">
-                                <Truck className="w-4 h-4 text-blue-500" />
-                                <span className="text-blue-600 font-medium">
+                                <Truck className="w-4 h-4 text-brand-700" />
+                                <span className="text-brand-700 font-medium">
                                     {stats.processing.count} processing ({stats.processing.gb}GB) ({formatCurrency(stats.processing.amount)})
                                 </span>
                             </div>
@@ -165,8 +165,8 @@ export function TodaysOrdersSummary() {
 
                             {/* Total Spent */}
                             <div className="flex items-center gap-2 text-sm pt-0.5">
-                                <Banknote className="w-4 h-4 text-blue-700 fill-blue-700" />
-                                <span className="text-blue-700 font-bold">
+                                <Banknote className="w-4 h-4 text-brand-700 fill-brand-700" />
+                                <span className="text-brand-700 font-bold">
                                     {formatCurrency(stats.totalSpent)} spent
                                 </span>
                             </div>
@@ -174,8 +174,8 @@ export function TodaysOrdersSummary() {
                     </div>
 
                     {/* Right side decorative cart */}
-                    <div className="hidden sm:flex shrink-0 ml-4 items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                        <ShoppingCart className="w-7 h-7 text-blue-600" />
+                    <div className="hidden sm:flex shrink-0 ml-4 items-center justify-center w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-900/30">
+                        <ShoppingCart className="w-7 h-7 text-brand-700" />
                     </div>
                 </div>
             </CardContent>

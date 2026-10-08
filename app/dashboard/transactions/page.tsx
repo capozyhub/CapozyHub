@@ -188,8 +188,8 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card>
                     <CardContent className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <Receipt className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                            <Receipt className="w-5 h-5 text-brand-700" />
                         </div>
                         <div>
                             {/* @ts-ignore */}
@@ -305,7 +305,7 @@ export default function TransactionsPage() {
                                 setSearchQuery('');
                                 setPage(0);
                             }}
-                            className="text-xs text-blue-600 hover:underline mb-2"
+                            className="text-xs text-brand-700 hover:underline mb-2"
                         >
                             Reset Filters
                         </button>

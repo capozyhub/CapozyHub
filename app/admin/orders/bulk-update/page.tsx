@@ -447,7 +447,7 @@ export default function BulkOrderUpdatePage() {
                                 <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold" disabled={isUpdating}>
                                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refund
                                 </Button>
-                                <Button size="sm" onClick={syncSelection} className="h-9 text-xs px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-50"
+                                <Button size="sm" onClick={syncSelection} className="h-9 text-xs px-3 bg-brand-600 hover:bg-brand-500 text-black font-bold disabled:opacity-50"
                                     disabled={isSyncing || !canSync} title={syncDisabledReason}>
                                     {isSyncing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RadioTower className="w-3.5 h-3.5 mr-1.5" />}
                                     Sync

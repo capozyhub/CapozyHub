@@ -650,10 +650,10 @@ export default function IShareFulfillmentPage() {
                         <div className="flex items-center gap-2.5">
                             <div className={cn(
                                 "p-2 rounded-lg shrink-0",
-                                isConsoleConnected ? "bg-indigo-100 dark:bg-indigo-900/30" : "bg-muted"
+                                isConsoleConnected ? "bg-brand-100 dark:bg-brand-900/30" : "bg-muted"
                             )}>
                                 {isConsoleConnected
-                                    ? <PlugZap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                    ? <PlugZap className="w-4 h-4 text-brand-700 dark:text-brand-400" />
                                     : <Plug className="w-4 h-4 text-muted-foreground" />}
                             </div>
                             <div>
@@ -673,7 +673,7 @@ export default function IShareFulfillmentPage() {
                                 disabled={isLoadingConnection || isTogglingConnection}
                                 variant={isConsoleConnected ? 'outline' : 'default'}
                                 size="sm"
-                                className={cn("h-8 text-xs px-3", isConsoleConnected && "border-indigo-500 text-indigo-600")}
+                                className={cn("h-8 text-xs px-3", isConsoleConnected && "border-brand-500 text-brand-700")}
                             >
                                 {isTogglingConnection ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
                                 {isConsoleConnected ? 'Disconnect' : 'Connect'}
@@ -693,7 +693,7 @@ export default function IShareFulfillmentPage() {
             </Card>
 
             {/* Balance Card */}
-            <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg">
+            <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-black border-none shadow-lg">
                 <CardContent className="p-4 md:p-6">
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
@@ -979,7 +979,7 @@ export default function IShareFulfillmentPage() {
                         <Button
                             size="sm"
                             onClick={() => refulfillOrders(Array.from(selectedOrders))}
-                            className="h-8 text-[11px] px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm"
+                            className="h-8 text-[11px] px-2.5 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
                             disabled={isRefulfilling || isUpdating}
                         >
                             {isRefulfilling ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
@@ -988,7 +988,7 @@ export default function IShareFulfillmentPage() {
                         <Button
                             size="sm"
                             onClick={() => setShowBulkRetry(true)}
-                            className="h-8 text-[11px] px-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm"
+                            className="h-8 text-[11px] px-2.5 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
                             disabled={isUpdating || isRefulfilling || retryEligibleSelected.length === 0}
                             title={retryEligibleSelected.length === 0 ? 'Select at least one failed/refunded order' : ''}
                         >
@@ -1014,7 +1014,7 @@ export default function IShareFulfillmentPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-6 text-[10px] px-2 border-indigo-400 text-indigo-600"
+                                    className="h-6 text-[10px] px-2 border-brand-400 text-brand-700"
                                     onClick={() => refulfillOrders(pendingOrderIds)}
                                     disabled={isRefulfilling || pendingOrderIds.length === 0}
                                 >
@@ -1138,7 +1138,7 @@ export default function IShareFulfillmentPage() {
                                 <span>This order was refunded — retrying will charge <b>today&apos;s price</b> to the {retryTarget?.shop_order_id ? "shop owner's" : "buyer's"} funding wallet. The exact amount charged will be confirmed after the retry succeeds.</span>
                             </div>
                         ) : (
-                            <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5">
+                            <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                                 <RotateCcw className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>This order failed and was never refunded — retrying re-dispatches it at no charge.</span>
                             </div>

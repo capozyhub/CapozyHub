@@ -140,7 +140,7 @@ export default function AdminTopUpPage() {
                         className={cn(
                             'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'history'
-                                ? 'bg-white dark:bg-slate-800 shadow-md text-blue-600 dark:text-blue-400'
+                                ? 'bg-white dark:bg-slate-800 shadow-md text-brand-700 dark:text-brand-400'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >

@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const name = searchParams.get('name') || 'S'
-    const color = searchParams.get('color') || '#0056B3'
+    const color = searchParams.get('color') || '#F6A900'
     const size = parseInt(searchParams.get('size') || '512', 10)
 
     const letter = name.charAt(0).toUpperCase()

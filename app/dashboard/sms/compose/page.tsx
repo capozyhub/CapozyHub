@@ -776,11 +776,11 @@ export default function SmsComposePage() {
                                 result.status === 'failed'
                                     ? 'bg-red-50 dark:bg-red-950/30'
                                     : scheduled || result.status === 'queued'
-                                        ? 'bg-blue-50 dark:bg-blue-950/30'
+                                        ? 'bg-brand-50 dark:bg-brand-950/30'
                                         : 'bg-emerald-50 dark:bg-emerald-950/30',
                             )}>
                                 {scheduled || result.status === 'queued'
-                                    ? <CalendarClock className="w-8 h-8 text-blue-600" />
+                                    ? <CalendarClock className="w-8 h-8 text-brand-700" />
                                     : result.status === 'failed'
                                         ? <AlertCircle className="w-8 h-8 text-red-500" />
                                         : <CheckCircle2 className="w-8 h-8 text-emerald-600" />}
@@ -909,7 +909,7 @@ export default function SmsComposePage() {
                         <span className={cn(
                             'text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full',
                             data.account.mode === 'business'
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
                                 : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
                         )}>
                             {data.account.mode === 'business' ? 'Business' : 'Platform'}

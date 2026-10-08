@@ -221,9 +221,9 @@ export function PinLockScreen({ userName, email, onVerified, onRecovered }: PinL
                 {/* ── Forgot PIN: password verification ── */}
                 {mode === 'forgot' && (
                     <div className="animate-in fade-in duration-300 space-y-4">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mx-auto w-full justify-center bg-[#0056B315] border border-[#0056B330]">
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#0056B3]" />
-                            <span className="text-xs font-bold text-[#0056B3]">Reset your PIN</span>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mx-auto w-full justify-center bg-[#F6C30F15] border border-[#F6C30F30]">
+                            <ShieldCheck className="w-3.5 h-3.5 text-brand-700" />
+                            <span className="text-xs font-bold text-brand-700">Reset your PIN</span>
                         </div>
                         <p className="text-xs text-center text-slate-500 dark:text-slate-400">
                             Enter your account password to reset your PIN. You can set a new one next, or continue without a PIN.
@@ -251,7 +251,7 @@ export function PinLockScreen({ userName, email, onVerified, onRecovered }: PinL
                             type="button"
                             onClick={handleForgotSubmit}
                             disabled={isLoading || !password}
-                            className="w-full h-11 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-[#0056B3] to-[#00B4D8] disabled:opacity-50"
+                            className="w-full h-11 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-brand-700 to-brand-300 disabled:opacity-50"
                         >
                             {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</> : 'Continue'}
                         </Button>
@@ -290,7 +290,7 @@ export function PinLockScreen({ userName, email, onVerified, onRecovered }: PinL
 
                 {isLoading && mode === 'pin' && (
                     <div className="flex justify-center mt-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#0056B3]" />
+                        <Loader2 className="w-5 h-5 animate-spin text-brand-700" />
                     </div>
                 )}
 

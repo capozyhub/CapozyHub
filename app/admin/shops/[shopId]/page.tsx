@@ -502,10 +502,10 @@ export default function AdminShopDetailPage() {
             )}
 
             {/* Live Pricing Viewer */}
-            <Card className="border-sky-200 dark:border-sky-800">
+            <Card className="border-brand-200 dark:border-brand-800">
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm flex items-center gap-2 text-sky-700 dark:text-sky-400">
+                        <CardTitle className="text-sm flex items-center gap-2 text-brand-700 dark:text-brand-400">
                             <BarChart2 className="w-4 h-4" />
                             Live Shop Pricing
                         </CardTitle>
@@ -514,7 +514,7 @@ export default function AdminShopDetailPage() {
                             variant="outline"
                             onClick={fetchLivePrices}
                             disabled={fetchingPrices}
-                            className="h-8 text-xs gap-1.5 border-sky-500 text-sky-700 hover:bg-sky-50"
+                            className="h-8 text-xs gap-1.5 border-brand-500 text-brand-700 hover:bg-brand-50"
                         >
                             {fetchingPrices ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -541,11 +541,11 @@ export default function AdminShopDetailPage() {
                             return (
                                 <>
                                     {/* Summary Metrics Bar */}
-                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-sky-50 dark:bg-sky-950 border border-sky-100 dark:border-sky-800">
+                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-brand-50 dark:bg-brand-950 border border-brand-100 dark:border-brand-800">
                                         <div className="flex items-center gap-1.5">
-                                            <BarChart2 className="w-3.5 h-3.5 text-sky-600" />
+                                            <BarChart2 className="w-3.5 h-3.5 text-brand-700" />
                                             <span className="text-xs text-muted-foreground">Total Packages:</span>
-                                            <span className="text-xs font-bold text-sky-700">{totalPkg}</span>
+                                            <span className="text-xs font-bold text-brand-700">{totalPkg}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />

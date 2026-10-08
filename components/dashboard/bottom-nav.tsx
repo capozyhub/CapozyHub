@@ -105,7 +105,7 @@ const ROLE_COLORS = {
         barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
         barBorder:  'border-gray-300 dark:border-gray-800',
         barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-blue-600',
+        activeBg:   'bg-brand-600',
         activeText: 'text-white',
         inactiveIcon: 'text-gray-500 dark:text-gray-400',
     },

@@ -148,7 +148,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
     return (
         <div className="space-y-4">
             {/* Tip */}
-            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
+            <div className="text-xs text-muted-foreground bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-lg p-3">
                 💡 <strong>Tip:</strong> Enter the full amount for one-click full settlement, or a lower amount to record a partial payment.
             </div>
 
@@ -239,7 +239,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                         title="Send SMS Reminder"
                                         onClick={() => handleSmsReminder(s)}
                                         disabled={sendingSms[s.id]}
-                                        className="text-muted-foreground hover:text-blue-600"
+                                        className="text-muted-foreground hover:text-brand-700"
                                     >
                                         {sendingSms[s.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
                                     </Button>

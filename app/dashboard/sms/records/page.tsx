@@ -57,7 +57,7 @@ function fmtDate(iso: string | null | undefined): string {
 interface ChipStyle { label: string; cls: string; pulse?: boolean }
 
 const CAMPAIGN_CHIP: Record<string, ChipStyle> = {
-    queued:     { label: 'Queued',     cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/25 dark:text-blue-400', pulse: true },
+    queued:     { label: 'Queued',     cls: 'bg-brand-100 text-brand-700 dark:bg-brand-900/25 dark:text-brand-400', pulse: true },
     processing: { label: 'Processing', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/25 dark:text-blue-400', pulse: true },
     completed:  { label: 'Completed',  cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-400' },
     partial:    { label: 'Partial',    cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/25 dark:text-amber-400' },

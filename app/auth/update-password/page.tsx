@@ -243,7 +243,7 @@ export default function UpdatePasswordPage() {
                                     This password reset page only works from a valid recovery link. Please request a fresh reset email.
                                 </p>
                                 <Link href="/auth/reset-password">
-                                    <Button className="w-full h-12 text-base font-bold bg-[#0056B3] hover:bg-[#004494] text-white shadow-lg rounded-xl">
+                                    <Button className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-black shadow-lg rounded-xl">
                                         Request a New Link
                                     </Button>
                                 </Link>
@@ -252,7 +252,7 @@ export default function UpdatePasswordPage() {
 
                         {isValidSession === null && (
                             <div className="flex justify-center items-center py-10">
-                                <Loader2 className="w-8 h-8 animate-spin text-[#0056B3]" />
+                                <Loader2 className="w-8 h-8 animate-spin text-brand-700" />
                             </div>
                         )}
 
@@ -265,7 +265,7 @@ export default function UpdatePasswordPage() {
                                 <p className="text-slate-600 text-sm">
                                     Your password has been changed. Redirecting you to login...
                                 </p>
-                                <Loader2 className="w-5 h-5 animate-spin text-[#0056B3] mx-auto" />
+                                <Loader2 className="w-5 h-5 animate-spin text-brand-700 mx-auto" />
                             </div>
                         )}
 
@@ -293,7 +293,7 @@ export default function UpdatePasswordPage() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             required
-                                            className="h-12 pl-11 pr-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#0056B3] focus:ring-[#0056B3]/20 rounded-xl text-base"
+                                            className="h-12 pl-11 pr-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary/20 rounded-xl text-base"
                                         />
                                         <button
                                             type="button"
@@ -317,7 +317,7 @@ export default function UpdatePasswordPage() {
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
                                             required
-                                            className="h-12 pl-11 pr-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#0056B3] focus:ring-[#0056B3]/20 rounded-xl text-base"
+                                            className="h-12 pl-11 pr-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary/20 rounded-xl text-base"
                                         />
                                         <button
                                             type="button"
@@ -332,7 +332,7 @@ export default function UpdatePasswordPage() {
                                 <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full h-12 text-base font-bold bg-[#0056B3] hover:bg-[#004494] text-white shadow-lg rounded-xl"
+                                    className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-black shadow-lg rounded-xl"
                                 >
                                     {isLoading ? (
                                         <>
@@ -350,7 +350,7 @@ export default function UpdatePasswordPage() {
                         )}
 
                         <div className="mt-5 text-center">
-                            <Link href="/auth" className="text-base text-[#0056B3] font-semibold hover:underline">
+                            <Link href="/auth" className="text-base text-brand-700 font-semibold hover:underline">
                                 ← Back to Login
                             </Link>
                         </div>

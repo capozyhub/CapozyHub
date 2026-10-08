@@ -540,7 +540,7 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
                                                     targetStatus === s
                                                         ? s === 'completed' ? 'bg-emerald-600 border-emerald-600 text-white'
                                                             : s === 'failed' ? 'bg-red-600 border-red-600 text-white'
-                                                                : 'bg-blue-600 border-blue-600 text-white'
+                                                                : 'bg-brand-600 border-brand-600 text-black'
                                                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600',
                                                 )}
                                             >{s}</button>
@@ -1332,7 +1332,7 @@ export default function AdminAirtimePage() {
                     icon={<TrendingUp className="w-4 h-4" />}
                     label="Gross sales"
                     value={`GHS ${cardStats.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    sub={<span><span className="text-blue-500">{cardStats.airtimeCount} airtime</span> · <span className="text-amber-500">{cardStats.mashupCount} mashup</span></span>}
+                    sub={<span><span className="text-brand-700">{cardStats.airtimeCount} airtime</span> · <span className="text-amber-500">{cardStats.mashupCount} mashup</span></span>}
                 />
                 <StatCard
                     icon={<Wallet className="w-4 h-4" />}
@@ -1595,7 +1595,7 @@ export default function AdminAirtimePage() {
                                                 {batch.order_count > 0 && (
                                                     <div className="mt-2.5 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                         <div
-                                                            className={cn('h-full rounded-full transition-all', isComplete ? 'bg-emerald-500' : isPartial ? 'bg-amber-500' : 'bg-blue-500')}
+                                                            className={cn('h-full rounded-full transition-all', isComplete ? 'bg-emerald-500' : isPartial ? 'bg-amber-500' : 'bg-brand-500')}
                                                             style={{ width: `${completion}%` }}
                                                         />
                                                     </div>

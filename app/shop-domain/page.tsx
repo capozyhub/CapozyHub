@@ -174,18 +174,18 @@ export default function ShopDomainDiscoveryPage() {
                         <BrandLogo width={112} height={112} priority />
                     </div>
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide mb-3 uppercase text-white">
-                        Welcome to <span>KiNG</span> <span className="text-[#FFCC00]">FLEXY GH</span> Stores
+                        Welcome to <span>KiNG</span> <span className="text-brand-500">FLEXY GH</span> Stores
                     </h1>
                     <p className="text-sm sm:text-base text-gray-300 font-medium mb-1">
                         Powering Digital Services in Ghana
                     </p>
                     <p className="text-xs text-gray-500 tracking-widest uppercase font-bold">
-                        By KiNG <span className="text-[#FFCC00]">FLEXY GH</span> Technologies
+                        By KiNG <span className="text-brand-500">FLEXY GH</span> Technologies
                     </p>
                 </div>
             </header>
 
-            <div className="w-full h-1 bg-gradient-to-r from-transparent via-[#0056B3]/30 to-transparent opacity-50" />
+            <div className="w-full h-1 bg-gradient-to-r from-transparent via-brand-700/30 to-transparent opacity-50" />
 
             {/* ── Search Area ── */}
             <section className="w-full bg-white dark:bg-slate-900 py-12 px-4 shadow-sm border-b border-gray-100 dark:border-slate-800 transition-colors">
@@ -200,9 +200,9 @@ export default function ShopDomainDiscoveryPage() {
                     </div>
 
                     {/* Search hint */}
-                    <div className="mb-5 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-start gap-2">
+                    <div className="mb-5 p-3 bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800/50 rounded-xl flex items-start gap-2">
                         <Info className="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
+                        <p className="text-xs text-brand-700 dark:text-brand-300 font-medium leading-relaxed">
                             <strong>Exact match required.</strong> Enter the complete shop name, the full shop link, or the owner&apos;s full 10-digit phone number e.g. 024XXXXXXX. Partial entries will not return results.
                         </p>
                     </div>
@@ -235,7 +235,7 @@ export default function ShopDomainDiscoveryPage() {
                                         href={adminContact}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#0056B3] text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                                        className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-primary text-black rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
                                     >
                                         Visit Official Storefront →
                                     </a>
@@ -244,7 +244,7 @@ export default function ShopDomainDiscoveryPage() {
                                         href="https://kingflexygh.com"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#0056B3] text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                                        className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-primary text-black rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
                                     >
                                         Visit Main Platform →
                                     </a>
@@ -264,14 +264,14 @@ export default function ShopDomainDiscoveryPage() {
                                     onChange={(e) => setQuery(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     disabled={isCooling || isLoading}
-                                    className="flex-1 w-full px-5 py-4 bg-gray-50 dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-[#0056B3]/20 focus:border-[#0056B3] transition-all font-semibold text-base sm:text-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="flex-1 w-full px-5 py-4 bg-gray-50 dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-base sm:text-lg disabled:opacity-60 disabled:cursor-not-allowed"
                                     placeholder="Shop name, shop link, 10-digit phone, or 4-digit code..."
                                     autoComplete="off"
                                 />
                                 <button
                                     onClick={handleSearch}
                                     disabled={isLoading || isCooling}
-                                    className="w-full md:w-auto px-8 py-4 bg-[#0056B3] hover:bg-[#004494] active:bg-[#003875] text-white rounded-2xl font-bold text-base transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full md:w-auto px-8 py-4 bg-primary hover:bg-primary/90 active:bg-[#003875] text-black rounded-2xl font-bold text-base transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -333,14 +333,14 @@ export default function ShopDomainDiscoveryPage() {
                                         </p>
                                         <div className="grid gap-4">
                                             {results.map((shop) => (
-                                                <div key={shop.shop_slug} className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:border-[#0056B3] hover:shadow-md transition-all group">
+                                                <div key={shop.shop_slug} className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:border-primary hover:shadow-md transition-all group">
                                                     <div className="flex-shrink-0 flex items-center gap-4 sm:gap-0">
                                                         {shop.logo_url ? (
                                                             <div className="w-20 h-20 relative rounded-full overflow-hidden">
                                                                 <Image src={shop.logo_url} alt={shop.shop_name} fill className="object-cover" sizes="80px" />
                                                             </div>
                                                         ) : (
-                                                            <div className="w-20 h-20 rounded-full bg-[#0056B3]/10 dark:bg-[#0056B3]/20 flex items-center justify-center text-[#0056B3] dark:text-[#4da6ff] text-3xl font-black border border-[#0056B3]/20 dark:border-[#0056B3]/40">
+                                                            <div className="w-20 h-20 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-brand-700 dark:text-brand-400 text-3xl font-black border border-primary/20 dark:border-primary/40">
                                                                 {shop.shop_name.charAt(0).toUpperCase()}
                                                             </div>
                                                         )}
@@ -350,7 +350,7 @@ export default function ShopDomainDiscoveryPage() {
                                                     </div>
 
                                                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                        <h3 className="hidden sm:block text-lg font-bold text-gray-900 dark:text-white capitalize truncate group-hover:text-[#0056B3] dark:group-hover:text-[#4da6ff] transition-colors">{shop.shop_name}</h3>
+                                                        <h3 className="hidden sm:block text-lg font-bold text-gray-900 dark:text-white capitalize truncate group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">{shop.shop_name}</h3>
                                                         {shop.description && (
                                                             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 line-clamp-2">
                                                                 {shop.description.length > 80 ? `${shop.description.substring(0, 80)}...` : shop.description}
@@ -361,7 +361,7 @@ export default function ShopDomainDiscoveryPage() {
                                                     <div className="flex-shrink-0 mt-2 sm:mt-0">
                                                         <Link
                                                             href={`/${shop.shop_slug}`}
-                                                            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-[#0056B3] dark:text-[#4da6ff] font-bold text-sm rounded-xl transition-colors group-hover:bg-[#0056B3] group-hover:text-white"
+                                                            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-500/50 text-brand-700 dark:text-brand-400 font-bold text-sm rounded-xl transition-colors group-hover:bg-primary group-hover:text-white"
                                                         >
                                                             View Shop →
                                                         </Link>
@@ -382,7 +382,7 @@ export default function ShopDomainDiscoveryPage() {
                 <div className="max-w-5xl mx-auto">
                     <div className="grid md:grid-cols-3 gap-6">
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-                            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center mb-4">
+                            <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center mb-4">
                                 <Zap className="w-6 h-6" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Ultra Fast Delivery</h3>
@@ -390,7 +390,7 @@ export default function ShopDomainDiscoveryPage() {
                         </div>
 
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-                            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center mb-4">
+                            <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center mb-4">
                                 <Lock className="w-6 h-6" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Secure Payments</h3>
@@ -398,7 +398,7 @@ export default function ShopDomainDiscoveryPage() {
                         </div>
 
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-                            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center mb-4">
+                            <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 flex items-center justify-center mb-4">
                                 <Clock className="w-6 h-6" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Always Available</h3>
@@ -448,7 +448,7 @@ export default function ShopDomainDiscoveryPage() {
                         </a>
                     </div>
                     <p className="text-xs text-gray-600 font-medium max-w-sm mx-auto">
-                        This is an official KiNG <span className="text-[#FFCC00]">FLEXY GH</span> storefront directory
+                        This is an official KiNG <span className="text-brand-500">FLEXY GH</span> storefront directory
                     </p>
                 </div>
             </footer>

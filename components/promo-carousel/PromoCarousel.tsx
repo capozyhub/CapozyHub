@@ -10,7 +10,7 @@ const THEME_GRADIENTS: Record<PromoTheme, string> = {
     amber: 'from-amber-700 via-orange-800 to-amber-950',
     violet: 'from-violet-700 via-purple-800 to-violet-950',
     emerald: 'from-emerald-700 via-emerald-800 to-emerald-950',
-    blue: 'from-blue-700 via-blue-800 to-blue-950',
+    blue: 'from-brand-700 via-brand-800 to-brand-950',
     rose: 'from-rose-700 via-rose-800 to-rose-950',
 }
 

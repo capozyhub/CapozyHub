@@ -97,7 +97,7 @@ export function RecentOrdersWidget() {
         const net = network.toLowerCase()
         if (net.includes('mtn')) return 'bg-yellow-500 text-black'
         if (net.includes('telecel') || net.includes('vodafone')) return 'bg-red-600 text-white'
-        if (net.includes('at') || net.includes('airteltigo')) return 'bg-blue-600 text-white'
+        if (net.includes('at') || net.includes('airteltigo')) return 'bg-brand-600 text-black'
         return 'bg-gray-500 text-white'
     }
 
@@ -107,8 +107,8 @@ export function RecentOrdersWidget() {
         <Card className="flex flex-col overflow-hidden border-2 shadow-sm rounded-xl bg-white dark:bg-gray-950/50">
             <CardHeader className="flex flex-row items-center justify-between pb-3 bg-gray-50/50 dark:bg-gray-900/20 border-b">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
-                        <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="p-1.5 bg-brand-100 dark:bg-brand-900/30 rounded-md">
+                        <ShoppingCart className="w-5 h-5 text-brand-700 dark:text-brand-400" />
                     </div>
                     <div>
                         <CardTitle className="text-lg font-bold">Recent Orders</CardTitle>
@@ -128,7 +128,7 @@ export function RecentOrdersWidget() {
                         <span className="hidden sm:inline">{isExpanded ? 'Hide' : 'Show'}</span>
                     </button>
                     <Link href="/dashboard/my-orders">
-                        <Button variant="ghost" size="sm" className="hidden sm:flex text-xs h-8 text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                        <Button variant="ghost" size="sm" className="hidden sm:flex text-xs h-8 text-brand-700 hover:text-brand-700 dark:text-brand-400">
                             View All
                             <ArrowRight className="w-3.5 h-3.5 ml-1" />
                         </Button>
@@ -304,7 +304,7 @@ export function RecentOrdersWidget() {
                             <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                                 <p className="text-xs text-center text-muted-foreground">
                                     Need help? Go to{' '}
-                                    <Link href="/dashboard/my-orders" className="text-blue-600 dark:text-blue-400 hover:underline">
+                                    <Link href="/dashboard/my-orders" className="text-brand-700 dark:text-brand-400 hover:underline">
                                         My Orders
                                     </Link>{' '}
                                     to file a complaint.

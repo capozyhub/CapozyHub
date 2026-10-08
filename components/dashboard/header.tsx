@@ -103,7 +103,7 @@ export function DashboardHeader({ onOpenNotifications, unreadCount }: DashboardH
                         {unreadCount > 0 && (
                             <span className={cn(
                                 "absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold",
-                                dbUser?.role === 'agent' ? "bg-black text-[#FFCE00]" : dbUser?.role === 'dealer' || dbUser?.role === 'subagent' ? "bg-white text-violet-700" : "bg-red-500 text-white"
+                                dbUser?.role === 'agent' ? "bg-black text-brand-500" : dbUser?.role === 'dealer' || dbUser?.role === 'subagent' ? "bg-white text-violet-700" : "bg-red-500 text-white"
                             )}>
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
@@ -178,7 +178,7 @@ export function DashboardHeader({ onOpenNotifications, unreadCount }: DashboardH
                                     <Badge
                                         className="w-fit mt-1 text-[10px] px-1.5 py-0"
                                         style={{
-                                            backgroundColor: isAdmin ? '#E60000' : isSubAdmin ? '#FACC15' : dbUser?.role === 'agent' ? '#25D366' : dbUser?.role === 'dealer' ? '#7C3AED' : dbUser?.role === 'subagent' ? '#0D9488' : '#0056B3',
+                                            backgroundColor: isAdmin ? '#E60000' : isSubAdmin ? '#F6C30F' : dbUser?.role === 'agent' ? '#25D366' : dbUser?.role === 'dealer' ? '#7C3AED' : dbUser?.role === 'subagent' ? '#0D9488' : '#F6A900',
                                             color: isSubAdmin ? 'black' : 'white'
                                         }}
                                     >

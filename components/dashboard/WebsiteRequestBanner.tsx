@@ -21,8 +21,8 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
 
     const shell =
         'relative overflow-hidden rounded-2xl border p-5 shadow-sm ' +
-        'border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-card to-card ' +
-        'dark:border-indigo-900/50 dark:from-indigo-950/40 dark:via-card dark:to-card'
+        'border-brand-200/70 bg-gradient-to-br from-brand-50 via-card to-card ' +
+        'dark:border-brand-900/50 dark:from-brand-950/40 dark:via-card dark:to-card'
 
     // Already has a request in flight — a calm status card, no competing CTA.
     if (activeRequest) {
@@ -30,14 +30,14 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
         return (
             <div className={shell}>
                 <div className="flex items-start gap-3.5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-400">
                         <PhoneCall className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                             <span className="relative flex h-2 w-2">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-60" />
-                                <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-60" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
                             </span>
                             <p className="text-sm font-semibold text-foreground">
                                 {isNew ? 'Request received' : 'Our team is on it'}
@@ -63,13 +63,13 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
         >
             {/* Header: what this is */}
             <div className="flex items-start gap-3.5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-400">
                     <Code2 className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-400">
                         Software development
-                        <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white dark:bg-indigo-500">
+                        <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-black dark:bg-brand-500">
                             New
                         </span>
                     </p>
@@ -84,7 +84,7 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
                 {HIGHLIGHTS.map(item => (
                     <span
                         key={item}
-                        className="rounded-full border border-indigo-200/70 bg-white/70 px-2.5 py-1 text-[11px] font-medium text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-200"
+                        className="rounded-full border border-brand-200/70 bg-white/70 px-2.5 py-1 text-[11px] font-medium text-brand-900 dark:border-brand-900/50 dark:bg-brand-950/40 dark:text-brand-200"
                     >
                         {item}
                     </span>
@@ -92,13 +92,13 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
             </div>
 
             {/* Action */}
-            <div className="mt-4 flex flex-col gap-3 border-t border-indigo-200/60 pt-3.5 dark:border-indigo-900/40 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 flex flex-col gap-3 border-t border-brand-200/60 pt-3.5 dark:border-brand-900/40 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs leading-relaxed text-muted-foreground">
                     Projects start from <span className="font-semibold text-foreground">GHS 1,000</span>.
                     Tell us what you need — we&apos;ll call to talk it through.
                 </p>
                 <Link href="/dashboard/website-request" className="shrink-0">
-                    <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 sm:w-auto">
+                    <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:bg-brand-500 dark:hover:bg-brand-400 sm:w-auto">
                         Start a request
                         <ArrowRight className="h-4 w-4" />
                     </span>

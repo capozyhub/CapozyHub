@@ -20,7 +20,7 @@ export function ThemeToggle({ brandName }: { brandName?: string }) {
 
     const themes = [
         { id: "light", label: "Light", icon: Sun, color: "text-amber-500", bg: "bg-amber-50" },
-        { id: "dark", label: "Dark", icon: Moon, color: "text-blue-500", bg: "bg-blue-50" },
+        { id: "dark", label: "Dark", icon: Moon, color: "text-brand-700", bg: "bg-brand-50" },
         { id: "system", label: "System", icon: Laptop, color: "text-slate-500", bg: "bg-slate-50" },
     ]
 

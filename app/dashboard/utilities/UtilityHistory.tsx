@@ -51,8 +51,8 @@ function StepDot({ state }: { state: StepState }) {
     }
     if (state === 'active') {
         return (
-            <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center shrink-0">
-                <Loader2 className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 animate-spin" />
+            <span className="w-4 h-4 rounded-full bg-brand-100 dark:bg-brand-950/60 flex items-center justify-center shrink-0">
+                <Loader2 className="w-2.5 h-2.5 text-brand-700 dark:text-brand-400 animate-spin" />
             </span>
         )
     }
@@ -102,7 +102,7 @@ function MiniTimeline({ order }: { order: UtilityOrderRow }) {
                         className={cn(
                             'text-[10px] leading-none truncate',
                             step.state === 'done' && 'text-green-600 dark:text-green-400 font-medium',
-                            step.state === 'active' && 'text-blue-600 dark:text-blue-400 font-medium animate-pulse',
+                            step.state === 'active' && 'text-brand-700 dark:text-brand-400 font-medium animate-pulse',
                             step.state === 'failed' && 'text-red-600 dark:text-red-400 font-medium',
                             step.state === 'refunded' && 'text-purple-600 dark:text-purple-400 font-medium',
                             step.state === 'idle' && 'text-slate-400 dark:text-slate-500'

@@ -29,7 +29,7 @@ function PinDots({ filled, shake }: { filled: number; shake: boolean }) {
                     className={cn(
                         'w-4 h-4 rounded-full transition-all duration-200',
                         i < filled
-                            ? 'scale-110 bg-[#0056B3] shadow-[0_0_8px_#0056B350]'
+                            ? 'scale-110 bg-primary shadow-[0_0_8px_#F6C30F50]'
                             : 'bg-slate-200 dark:bg-slate-700'
                     )}
                 />
@@ -214,7 +214,7 @@ export default function SetupPinPage() {
             <div className="relative z-10 w-full flex flex-col items-center">
                 {/* Logo */}
                 <Link href="/" className="inline-flex flex-col items-center mb-6">
-                    <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00] mb-2">
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500 mb-2">
                         <BrandLogo width={52} height={52} />
                     </div>
                     <BrandTitle className="text-base font-black tracking-tight" />
@@ -222,9 +222,9 @@ export default function SetupPinPage() {
 
                 {/* Identity block */}
                 <div className="flex flex-col items-center mb-5 text-center">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-2 bg-[#0056B315] border border-[#0056B330]">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#0056B3]" />
-                        <span className="text-xs font-bold text-[#0056B3]">Trusted Device</span>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-2 bg-[#F6C30F15] border border-[#F6C30F30]">
+                        <ShieldCheck className="w-3.5 h-3.5 text-brand-700" />
+                        <span className="text-xs font-bold text-brand-700">Trusted Device</span>
                     </div>
                     <p className="text-lg font-black text-slate-900 dark:text-white">
                         {fullName ? `Hi, ${fullName}! 👋` : 'Welcome back'}
@@ -242,7 +242,7 @@ export default function SetupPinPage() {
                 ) : (
                     <div className="w-full max-w-sm">
                         <Card className="w-full border border-white/60 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_24px_64px_rgba(0,0,0,0.12)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden">
-                            <div className="h-1 w-full bg-gradient-to-r from-[#0056B3] via-[#00B4D8] to-[#FFCC00]" />
+                            <div className="h-1 w-full bg-gradient-to-r from-brand-700 via-brand-300 to-brand-500" />
                             <CardContent className="p-6">
                                 <div className="text-center mb-5">
                                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{stepLabel}</p>
@@ -259,7 +259,7 @@ export default function SetupPinPage() {
 
                                 {isLoading && (
                                     <div className="flex items-center justify-center gap-2 mt-3">
-                                        <Loader2 className="w-4 h-4 animate-spin text-[#0056B3]" />
+                                        <Loader2 className="w-4 h-4 animate-spin text-brand-700" />
                                         <span className="text-sm font-medium text-slate-500">Saving PIN…</span>
                                     </div>
                                 )}

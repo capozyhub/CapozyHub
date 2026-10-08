@@ -226,8 +226,8 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                             className={cn(
                                 'text-xs px-2.5 py-1.5 rounded-full border transition-all',
                                 selectedTemplates.includes(t.id)
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                                    ? 'bg-brand-600 text-black border-brand-600'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-brand-400'
                             )}
                         >
                             {t.label}

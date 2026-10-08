@@ -1160,7 +1160,7 @@ export default function FulfillmentPage() {
                     <Button
                         onClick={() => refulfillPending(false)}
                         disabled={isRefulfilling || orders.filter(o => o.status === 'pending').length === 0}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
+                        className="bg-brand-600 hover:bg-brand-500 text-black font-bold h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
                     >
                         {isRefulfilling ? (
                             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -1215,7 +1215,7 @@ export default function FulfillmentPage() {
                 </Card>
 
                 {/* CodeCraft */}
-                <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-lg">
+                <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-black border-none shadow-lg">
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
@@ -1602,8 +1602,8 @@ export default function FulfillmentPage() {
                 {/* CodeCraft Row */}
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400">CodeCraft Networks</span>
+                        <Server className="w-3.5 h-3.5 text-brand-700" />
+                        <span className="text-xs font-bold uppercase tracking-wide text-brand-700 dark:text-brand-400">CodeCraft Networks</span>
                         <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -1612,14 +1612,14 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.codecraft_networks[net] ? 'text-blue-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.codecraft_networks[net] ? 'text-brand-700' : 'text-gray-400'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
                                             id={`cc-toggle-${net}`}
                                             variant={settings.codecraft_networks[net] ? 'outline' : 'default'}
                                             size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.codecraft_networks[net] ? 'border-blue-500 text-blue-600' : ''}`}
+                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.codecraft_networks[net] ? 'border-brand-500 text-brand-700' : ''}`}
                                             onClick={() => toggleNetwork(net, 'codecraft')}
                                             disabled={isSavingSettings}
                                         >
@@ -1627,9 +1627,9 @@ export default function FulfillmentPage() {
                                         </Button>
                                     </div>
                                     <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.codecraft_networks[net] ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-blue-600 dark:text-blue-400">CodeCraft</span>
-                                        {settings.codecraft_networks[net] && <span className="text-blue-500 font-semibold">· Active</span>}
+                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.codecraft_networks[net] ? 'bg-brand-500' : 'bg-gray-300'}`} />
+                                        <span className="font-bold text-brand-700 dark:text-brand-400">CodeCraft</span>
+                                        {settings.codecraft_networks[net] && <span className="text-brand-700 font-semibold">· Active</span>}
                                     </div>
                                     {net === 'MTN' && settings.codecraft_networks['MTN'] && (
                                         <div className="mt-2 pt-2 border-t border-dashed">
@@ -1953,8 +1953,8 @@ export default function FulfillmentPage() {
                 {/* AT-iShare Console Row — AT-iShare only, see ATISHARE_CONSOLE_SUPPORTED_NETWORKS */}
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-indigo-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">AT-iShare Console Networks</span>
+                        <Server className="w-3.5 h-3.5 text-brand-700" />
+                        <span className="text-xs font-bold uppercase tracking-wide text-brand-700 dark:text-brand-400">AT-iShare Console Networks</span>
                         <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -1963,14 +1963,14 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.atishare_console_networks[net] ? 'text-indigo-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.atishare_console_networks[net] ? 'text-brand-700' : 'text-gray-400'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
                                             id={`ac-toggle-${net}`}
                                             variant={settings.atishare_console_networks[net] ? 'outline' : 'default'}
                                             size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.atishare_console_networks[net] ? 'border-indigo-500 text-indigo-600' : ''}`}
+                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.atishare_console_networks[net] ? 'border-brand-500 text-brand-700' : ''}`}
                                             onClick={() => toggleNetwork(net, 'atishare_console')}
                                             disabled={isSavingSettings}
                                         >
@@ -1978,9 +1978,9 @@ export default function FulfillmentPage() {
                                         </Button>
                                     </div>
                                     <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.atishare_console_networks[net] ? 'bg-indigo-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-indigo-600 dark:text-indigo-400">AT-iShare Console</span>
-                                        {settings.atishare_console_networks[net] && <span className="text-indigo-500 font-semibold">· Active</span>}
+                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.atishare_console_networks[net] ? 'bg-brand-500' : 'bg-gray-300'}`} />
+                                        <span className="font-bold text-brand-700 dark:text-brand-400">AT-iShare Console</span>
+                                        {settings.atishare_console_networks[net] && <span className="text-brand-700 font-semibold">· Active</span>}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -2161,9 +2161,9 @@ export default function FulfillmentPage() {
                                         <p className="text-[9px] md:text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase">Pending</p>
                                         <p className="text-lg md:text-xl font-bold text-amber-600 dark:text-amber-500">{visibleOrders.filter(o => o.status === 'pending').length}</p>
                                     </div>
-                                    <div className="p-2 md:p-2.5 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100 dark:border-indigo-900/20 italic">
-                                        <p className="text-[9px] md:text-[10px] text-indigo-700 dark:text-indigo-400 font-bold uppercase">Queued</p>
-                                        <p className="text-lg md:text-xl font-bold text-indigo-600 dark:text-indigo-500">{visibleOrders.filter(o => o.status === 'queued').length}</p>
+                                    <div className="p-2 md:p-2.5 bg-brand-50 dark:bg-brand-900/10 rounded-lg border border-brand-100 dark:border-brand-900/20 italic">
+                                        <p className="text-[9px] md:text-[10px] text-brand-700 dark:text-brand-400 font-bold uppercase">Queued</p>
+                                        <p className="text-lg md:text-xl font-bold text-brand-700 dark:text-brand-500">{visibleOrders.filter(o => o.status === 'queued').length}</p>
                                     </div>
                                     <div className="p-2 md:p-2.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20 italic">
                                         <p className="text-[9px] md:text-[10px] text-yellow-700 dark:text-yellow-400 font-bold uppercase">Processing</p>
@@ -2181,9 +2181,9 @@ export default function FulfillmentPage() {
                                         <p className="text-[9px] md:text-[10px] text-purple-700 dark:text-purple-400 font-bold uppercase">Refunded</p>
                                         <p className="text-lg md:text-xl font-bold text-purple-600 dark:text-purple-500">{visibleOrders.filter(o => o.status === 'refunded').length}</p>
                                     </div>
-                                    <div className="p-2 md:p-2.5 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-blue-700 dark:text-blue-400 font-bold uppercase">Selected</p>
-                                        <p className="text-lg md:text-xl font-bold text-blue-600 dark:text-blue-500">{selectedOrders.size}</p>
+                                    <div className="p-2 md:p-2.5 bg-brand-50 dark:bg-brand-900/10 rounded-lg border border-brand-100 dark:border-brand-900/20">
+                                        <p className="text-[9px] md:text-[10px] text-brand-700 dark:text-brand-400 font-bold uppercase">Selected</p>
+                                        <p className="text-lg md:text-xl font-bold text-brand-700 dark:text-brand-500">{selectedOrders.size}</p>
                                     </div>
                                     <div className="p-2 md:p-2.5 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
                                         <p className="text-[9px] md:text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase">Total Cost</p>
@@ -2196,7 +2196,7 @@ export default function FulfillmentPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-lg">
+                    <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-black border-none shadow-lg">
                         <CardHeader className="pb-2 pt-4 px-4">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
                                 <Server className="w-4 h-4" /> Tip
@@ -2221,7 +2221,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => refulfillPending(true)}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
                                     disabled={isRefulfilling || isUpdating}
                                 >
                                     {isRefulfilling ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />}
@@ -2251,7 +2251,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => setShowBulkRetry(true)}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
                                     disabled={isUpdating || isRefulfilling || retryEligibleSelected.length === 0}
                                     title={retryEligibleSelected.length === 0 ? 'Select at least one failed/refunded order' : ''}
                                 >
@@ -2260,7 +2260,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     onClick={syncSelection}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-sm disabled:opacity-50"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm disabled:opacity-50"
                                     disabled={isUpdating || isRefulfilling || isSyncingSelection || !canSyncSelection}
                                     title={syncSelectionDisabledReason}
                                 >
@@ -2356,7 +2356,7 @@ export default function FulfillmentPage() {
                                                                 user (website shop rows attribute users = the owner) —
                                                                 otherwise it would duplicate the purchaser line. */}
                                                             {order.shop_name && order.users?.first_name && (
-                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
+                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                                     Shop: {order.shop_name}
                                                                 </Badge>
                                                             )}
@@ -2522,7 +2522,7 @@ export default function FulfillmentPage() {
                                 <span>This order was refunded — retrying will charge <b>today&apos;s price</b> to the {retryTarget?.shop_order_id ? "shop owner's" : "buyer's"} funding wallet. The exact amount charged will be confirmed after the retry succeeds.</span>
                             </div>
                         ) : (
-                            <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5">
+                            <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                                 <RotateCcw className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>This order failed and was never refunded — retrying re-dispatches it at no charge.</span>
                             </div>

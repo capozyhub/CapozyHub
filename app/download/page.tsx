@@ -81,7 +81,7 @@ export default function DownloadPage() {
             icon: Fingerprint,
             title: '6-Digit PIN Login',
             description: 'Skip your email and password. Tap 6 digits to unlock.',
-            gradient: 'from-blue-500 to-indigo-600',
+            gradient: 'from-brand-500 to-brand-600',
         },
         {
             icon: Zap,
@@ -120,7 +120,7 @@ export default function DownloadPage() {
             <div className="pt-20 pb-16 px-4 max-w-4xl mx-auto">
                 {/* Hero */}
                 <section className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="relative w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden shadow-2xl shadow-blue-500/20">
+                    <div className="relative w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden shadow-2xl shadow-brand-500/20">
                         <BrandLogo fill className="w-full h-full" />
                     </div>
 
@@ -142,7 +142,7 @@ export default function DownloadPage() {
                             <Button
                                 onClick={handleInstall}
                                 size="lg"
-                                className="bg-[#0056B3] hover:bg-[#004494] text-white font-bold px-8 rounded-xl shadow-lg shadow-blue-500/25 h-12 text-base"
+                                className="bg-primary hover:bg-primary/90 text-black font-bold px-8 rounded-xl shadow-lg shadow-brand-500/25 h-12 text-base"
                             >
                                 <Download className="w-5 h-5 mr-2" />
                                 Install <BrandTitle className="text-inherit" />
@@ -191,8 +191,8 @@ export default function DownloadPage() {
                                 className={cn(
                                     'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
                                     activeTab === tab.key
-                                        ? 'bg-[#0056B3] text-white shadow-md shadow-blue-500/20'
-                                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-[#0056B3]/30'
+                                        ? 'bg-primary text-black shadow-md shadow-brand-500/20'
+                                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-primary/30'
                                 )}
                             >
                                 <tab.icon className="w-4 h-4" />
@@ -230,8 +230,8 @@ export default function DownloadPage() {
                                     </StepItem>
                                 </div>
 
-                                <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30">
-                                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">
+                                <div className="p-3 rounded-xl bg-brand-50 dark:bg-brand-900/10 border border-brand-200 dark:border-brand-800/30">
+                                    <p className="text-xs text-brand-700 dark:text-brand-400 font-medium">
                                         <strong>Tip:</strong> When the app opens from your home screen, it will run in full-screen mode without Safari&apos;s address bar — just like a real app!
                                     </p>
                                 </div>
@@ -269,7 +269,7 @@ export default function DownloadPage() {
                                         </p>
                                         <Button
                                             onClick={handleInstall}
-                                            className="w-full sm:w-auto bg-[#0056B3] hover:bg-[#004494] text-white font-bold px-8 rounded-xl shadow-lg h-12 text-base"
+                                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-black font-bold px-8 rounded-xl shadow-lg h-12 text-base"
                                         >
                                             <Download className="w-5 h-5 mr-2" />
                                             Install App Now
@@ -282,8 +282,8 @@ export default function DownloadPage() {
                         {activeTab === 'windows' && (
                             <div className="space-y-6 animate-in fade-in duration-300">
                                 <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                                        <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                                        <Monitor className="w-5 h-5 text-brand-700 dark:text-brand-400" />
                                     </div>
                                     <div>
                                         <h3 className="font-black text-slate-900 dark:text-white">Windows / Mac</h3>
@@ -304,12 +304,12 @@ export default function DownloadPage() {
                                 </div>
 
                                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center space-y-3">
-                                        <p className="text-sm text-blue-600 dark:text-blue-400 font-bold">
+                                        <p className="text-sm text-brand-700 dark:text-brand-400 font-bold">
                                             {deferredPrompt ? 'Your browser is ready for one-tap install!' : 'Click to install or follow instructions above'}
                                         </p>
                                         <Button
                                             onClick={handleInstall}
-                                            className="w-full sm:w-auto bg-[#0056B3] hover:bg-[#004494] text-white font-bold px-8 rounded-xl shadow-lg h-12 text-base"
+                                            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-black font-bold px-8 rounded-xl shadow-lg h-12 text-base"
                                         >
                                             <Download className="w-5 h-5 mr-2" />
                                             Install App Now
@@ -322,7 +322,7 @@ export default function DownloadPage() {
 
                 {/* Share Section */}
                 <section className="text-center mb-12">
-                    <div className="bg-gradient-to-br from-[#0056B3] to-[#00B4D8] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-brand-700 to-brand-300 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
                         <div className="absolute inset-0 opacity-10 bg-[url('/carbon-fibre.png')]" />
                         <div className="relative z-10">
                             <Globe className="w-10 h-10 mx-auto mb-4 opacity-80" />
@@ -355,8 +355,8 @@ export default function DownloadPage() {
 function StepItem({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
     return (
         <div className="flex items-start gap-4">
-            <div className="w-8 h-8 rounded-lg bg-[#0056B3]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-black text-[#0056B3]">{step}</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-black text-brand-700">{step}</span>
             </div>
             <div>
                 <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">{title}</p>

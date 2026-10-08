@@ -357,7 +357,7 @@ export function ApiKeyCard({
                 ) : (
                     /* No key yet */
                     <div className="text-center py-10">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/20 dark:to-indigo-900/20 flex items-center justify-center mx-auto mb-4 border border-violet-200/60 dark:border-violet-800/30">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-brand-100 dark:from-violet-900/20 dark:to-brand-900/20 flex items-center justify-center mx-auto mb-4 border border-violet-200/60 dark:border-violet-800/30">
                             <TypeIcon className="w-7 h-7 text-violet-500" />
                         </div>
                         <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">
@@ -369,7 +369,7 @@ export function ApiKeyCard({
                         <Button
                             onClick={() => setShowWarningModal(true)}
                             disabled={isGenerating}
-                            className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white font-semibold gap-2 shadow-lg shadow-violet-500/20 h-10 px-6"
+                            className="bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white font-semibold gap-2 shadow-lg shadow-violet-500/20 h-10 px-6"
                         >
                             {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                             {isGenerating ? 'Generating…' : `Generate ${keyType === 'sms' ? 'SMS' : keyType === 'commission' ? 'Commission' : 'API'} Key`}
@@ -503,7 +503,7 @@ function DeveloperWarningModal({
                         onClick={onConfirm}
                         disabled={!acknowledged || isGenerating}
                         className={cn(
-                            'flex-1 h-10 text-sm font-semibold gap-2 order-1 sm:order-2 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-500/20',
+                            'flex-1 h-10 text-sm font-semibold gap-2 order-1 sm:order-2 bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white shadow-lg shadow-violet-500/20',
                             !acknowledged && 'opacity-50 cursor-not-allowed'
                         )}
                     >

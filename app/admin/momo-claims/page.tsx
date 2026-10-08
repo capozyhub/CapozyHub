@@ -93,7 +93,7 @@ const NETWORK_OPTIONS = [
 const NETWORK_COLORS: Record<string, string> = {
     MTN: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     Telecel: 'bg-red-100 text-red-800 border-red-300',
-    AirtelTigo: 'bg-blue-100 text-blue-800 border-blue-300',
+    AirtelTigo: 'bg-brand-100 text-brand-800 border-brand-300',
     Unknown: 'bg-gray-100 text-gray-700 border-gray-300',
 }
 
@@ -383,7 +383,7 @@ export default function MomoClaimsAdminPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Smartphone className="w-6 h-6 text-indigo-500" />
+                        <Smartphone className="w-6 h-6 text-brand-700" />
                         MoMo Claims
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1">
@@ -412,7 +412,7 @@ export default function MomoClaimsAdminPage() {
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     {[
-                        { label: 'Total', value: filteredStats.total, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                        { label: 'Total', value: filteredStats.total, color: 'text-brand-700', bg: 'bg-brand-50' },
                         { label: 'Pending', value: filteredStats.pending, color: 'text-amber-600', bg: 'bg-amber-50' },
                         { label: 'Claimed', value: filteredStats.claimed, color: 'text-green-600', bg: 'bg-green-50' },
                         { label: 'Voided', value: filteredStats.voided, color: 'text-gray-500', bg: 'bg-gray-50' },

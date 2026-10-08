@@ -73,7 +73,7 @@ export function NotificationMessage({ message, className, clampLines = 2 }: Noti
                     type="button"
                     onClick={toggle}
                     aria-expanded={expanded}
-                    className="mt-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded"
+                    className="mt-1 text-[11px] font-semibold text-brand-700 dark:text-brand-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 rounded"
                 >
                     {expanded ? 'Show less' : 'Show more'}
                 </button>

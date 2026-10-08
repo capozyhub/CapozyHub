@@ -356,7 +356,7 @@ export default function AdminAfaManagementPage() {
             {/* ─── Stats Overview ─── */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
-                    { label: 'Total', value: stats.total, icon: LayoutList, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                    { label: 'Total', value: stats.total, icon: LayoutList, color: 'text-brand-700', bg: 'bg-brand-50 dark:bg-brand-900/20' },
                     { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
                     { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                     { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
@@ -704,7 +704,7 @@ export default function AdminAfaManagementPage() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                                            className="gap-1.5 border-brand-300 text-brand-700 hover:bg-brand-50 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-500/20"
                                             disabled={isUpdating || selectedApp.status === 'processing' || selectedApp.status === 'refunded'}
                                             onClick={() => updateStatus(selectedApp.id, 'processing')}
                                         >

@@ -5,10 +5,10 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    themeColor: '#0f172a',
+    themeColor: '#000000',
     interactiveWidget: 'resizes-content',
 }
-import { Inter } from 'next/font/google'
+import { Bricolage_Grotesque, Figtree } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
@@ -17,9 +17,15 @@ import { PinProvider } from '@/contexts/pin-context'
 import { OfflineOverlay } from '@/components/offline-overlay'
 import { BRAND } from '@/lib/brand'
 
-const inter = Inter({
+const body = Figtree({
     subsets: ['latin'],
-    variable: '--font-inter',
+    variable: '--font-body',
+    display: 'swap',
+})
+
+const display = Bricolage_Grotesque({
+    subsets: ['latin'],
+    variable: '--font-display',
     display: 'swap',
 })
 
@@ -105,7 +111,7 @@ export default function RootLayout({
             <head>
                 <link rel="preload" href="/logo.png" as="image" />
             </head>
-            <body className={`${inter.variable} ${inter.className}`}>
+            <body className={`${body.variable} ${display.variable} ${body.className}`}>
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{

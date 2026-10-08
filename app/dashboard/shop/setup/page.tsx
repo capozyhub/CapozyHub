@@ -27,7 +27,7 @@ import { SenderIdExplainer } from '@/components/sms/sender-id-explainer'
 
 // ─── Brand Presets ────────────────────────────────────────────────────────────
 const BRAND_PRESETS = [
-    { name: 'Gold', color: '#FFCE00', accent: '#e6b800' },
+    { name: 'Gold', color: '#F6C30F', accent: '#F6A900' },
     { name: 'Green', color: '#25D366', accent: '#1ebc57' },
     { name: 'Red', color: '#E60000', accent: '#cc0000' },
     { name: 'Ocean Blue', color: '#2563eb', accent: '#1e40af' },
@@ -999,7 +999,7 @@ export default function ShopSetupPage() {
             <Card>
                 <SectionHeader
                     title="Contact Information"
-                    icon={<Phone className="w-4 h-4 text-blue-500" />}
+                    icon={<Phone className="w-4 h-4 text-brand-700" />}
                 />
                 {(
                     <CardContent className="space-y-4">

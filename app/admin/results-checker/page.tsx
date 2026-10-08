@@ -427,9 +427,9 @@ export default function AdminResultsCheckerPage() {
                                                     <p className="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Cost</p>
                                                     <p className="text-xs font-black text-gray-700 dark:text-gray-300 truncate">{formatCurrency(t.cost_price)}</p>
                                                 </div>
-                                                <div className="p-2 bg-blue-50 dark:bg-blue-900/10 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-blue-400 uppercase mb-0.5">Customer</p>
-                                                    <p className="text-xs font-black text-blue-700 dark:text-blue-400 truncate">{formatCurrency(t.customer_price)}</p>
+                                                <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
+                                                    <p className="text-[9px] font-bold text-brand-400 uppercase mb-0.5">Customer</p>
+                                                    <p className="text-xs font-black text-brand-700 dark:text-brand-400 truncate">{formatCurrency(t.customer_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl text-center">
                                                     <p className="text-[9px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
@@ -448,7 +448,7 @@ export default function AdminResultsCheckerPage() {
                                                 {[
                                                     { label: 'Available', val: t.stock.available, cls: 'text-emerald-600 dark:text-emerald-400' },
                                                     { label: 'Reserved', val: t.stock.reserved, cls: 'text-amber-600 dark:text-amber-400' },
-                                                    { label: 'Sold', val: t.stock.sold, cls: 'text-blue-600 dark:text-blue-400' },
+                                                    { label: 'Sold', val: t.stock.sold, cls: 'text-brand-700 dark:text-brand-400' },
                                                     { label: 'Invalid', val: t.stock.invalid, cls: 'text-red-500 dark:text-red-400' },
                                                 ].map(({ label, val, cls }) => (
                                                     <div key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800">

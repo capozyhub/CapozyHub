@@ -175,7 +175,7 @@ export function BusinessPerformanceWidget() {
                             />
                             {/* Progress Circle */}
                             <path
-                                className="text-blue-500 transition-all duration-1000 ease-out"
+                                className="text-brand-700 transition-all duration-1000 ease-out"
                                 strokeWidth="4"
                                 strokeDasharray={`${data.successRate}, 100`}
                                 strokeLinecap="round"
@@ -228,7 +228,7 @@ export function BusinessPerformanceWidget() {
                 <CardContent className="p-5 flex flex-col h-full justify-between">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Activity className="w-4 h-4 text-indigo-500" />
+                            <Activity className="w-4 h-4 text-brand-700" />
                             <p className="text-xs font-semibold uppercase tracking-wider">7-Day Trend</p>
                         </div>
                         <div className={cn("flex flex-col items-end shrink-0")}>
@@ -258,10 +258,10 @@ export function BusinessPerformanceWidget() {
                                     </div>
                                     <div 
                                         className={cn(
-                                            `w-full rounded-sm transition-all duration-500 ease-out group-hover/bar:bg-indigo-400 perf-bar-${i}`,
+                                            `w-full rounded-sm transition-all duration-500 ease-out group-hover/bar:bg-brand-400 perf-bar-${i}`,
                                             isToday 
-                                                ? "bg-indigo-500 dark:bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
-                                                : "bg-indigo-200 dark:bg-indigo-900/50"
+                                                ? "bg-brand-500 dark:bg-brand-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
+                                                : "bg-brand-200 dark:bg-brand-900/50"
                                         )}
                                     />
                                 </div>

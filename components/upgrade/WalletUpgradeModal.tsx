@@ -58,8 +58,8 @@ export default function WalletUpgradeModal({
     const newBalance = walletBalance - price
 
     const accentClass = isDealer
-        ? 'from-violet-600 to-indigo-700'
-        : 'from-[#FFCE00] to-amber-500'
+        ? 'from-violet-600 to-brand-700'
+        : 'from-brand-500 to-amber-500'
     const accentText = isDealer ? 'text-violet-300' : 'text-amber-600'
     const accentBg = isDealer ? 'bg-violet-500/20' : 'bg-yellow-400/20'
     const accentBorder = isDealer ? 'border-violet-500/30' : 'border-yellow-400/30'
@@ -110,7 +110,7 @@ export default function WalletUpgradeModal({
                 className={cn(
                     'relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden',
                     isDealer
-                        ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 border border-violet-500/40'
+                        ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
                         : 'bg-white dark:bg-gray-900 border border-yellow-200 dark:border-yellow-900/40'
                 )}
             >
@@ -271,8 +271,8 @@ export default function WalletUpgradeModal({
                                 className={cn(
                                     'flex-1 h-11 rounded-xl font-bold text-sm transition-all active:scale-95',
                                     isDealer
-                                        ? 'bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-900/50'
-                                        : 'bg-[#FFCE00] hover:bg-[#E6B800] text-black shadow-lg shadow-yellow-500/20'
+                                        ? 'bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white shadow-lg shadow-violet-900/50'
+                                        : 'bg-brand-500 hover:bg-brand-600 text-black shadow-lg shadow-yellow-500/20'
                                 )}
                             >
                                 {isProcessing ? (

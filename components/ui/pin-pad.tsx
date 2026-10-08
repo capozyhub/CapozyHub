@@ -86,7 +86,7 @@ export function PinPad({
         <div className="flex flex-col items-center justify-center w-full max-w-xs mx-auto select-none">
             {/* Title */}
             <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0056B3] to-[#00B4D8] flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-700 to-brand-300 flex items-center justify-center mx-auto mb-4 shadow-lg">
                     <Fingerprint className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white">{title}</h2>
@@ -106,7 +106,7 @@ export function PinPad({
                         className={cn(
                             'w-3.5 h-3.5 rounded-full transition-all duration-200',
                             i < pin.length
-                                ? 'bg-[#0056B3] scale-110 shadow-md shadow-[#0056B3]/30'
+                                ? 'bg-primary scale-110 shadow-md shadow-brand-700/30'
                                 : 'bg-slate-200 dark:bg-slate-700'
                         )}
                     />
@@ -170,7 +170,7 @@ export function PinPad({
                 <button
                     type="button"
                     onClick={onForgotPin}
-                    className="mt-6 text-sm font-semibold text-[#0056B3] hover:text-[#004494] dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    className="mt-6 text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
                 >
                     Use email & password instead
                 </button>

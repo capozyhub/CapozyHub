@@ -22,7 +22,7 @@ export const kpiValue = 'text-2xl font-bold tracking-tight text-zinc-900 dark:te
 /** Semantic accent palette (hex for charts; classes used inline in JSX). */
 export const accent = {
     red: '#E60000',      // alert / brand primary
-    yellow: '#FFCE00',   // highlight
+    yellow: '#F6C30F',   // highlight
     emerald: '#10B981',  // positive money movement
     rose: '#F43F5E',     // negative / debt
     blue: '#3B82F6',

@@ -19,7 +19,7 @@ const MOMO_PREFIX: Record<string, 'MTN' | 'Telecel' | 'AT'> = {
 const PROVIDERS: Array<{ id: 'MTN' | 'Telecel' | 'AT'; label: string; dot: string }> = [
     { id: 'MTN', label: 'MTN', dot: 'bg-amber-400' },
     { id: 'Telecel', label: 'Telecel', dot: 'bg-red-600' },
-    { id: 'AT', label: 'AirtelTigo', dot: 'bg-blue-600' },
+    { id: 'AT', label: 'AirtelTigo', dot: 'bg-brand-600' },
 ]
 
 // Normalize a Ghana number to local 0XXXXXXXXX form (converts a 233 prefix), capped to 10 digits.

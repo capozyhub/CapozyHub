@@ -33,7 +33,7 @@ const DESCRIPTION_STARTERS = [
 function SectionHeading({ step, title, hint }: { step: number; title: string; hint?: string }) {
     return (
         <div className="mb-3 flex items-start gap-2.5">
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[11px] font-bold text-white dark:bg-indigo-500">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-black dark:bg-brand-500">
                 {step}
             </span>
             <div className="min-w-0">
@@ -46,8 +46,8 @@ function SectionHeading({ step, title, hint }: { step: number; title: string; hi
 
 const fieldClass =
     'w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground ' +
-    'placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none ' +
-    'focus:ring-2 focus:ring-indigo-500/20 transition'
+    'placeholder:text-muted-foreground focus:border-brand-500 focus:outline-none ' +
+    'focus:ring-2 focus:ring-brand-500/20 transition'
 
 export default function WebsiteRequestPage() {
     const { dbUser } = useAuth()
@@ -178,7 +178,7 @@ export default function WebsiteRequestPage() {
                         { Icon: ShieldCheck, text: 'Your details stay private' },
                     ].map(({ Icon, text }) => (
                         <span key={text} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            <Icon className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                            <Icon className="h-3.5 w-3.5 text-brand-700 dark:text-brand-400" />
                             {text}
                         </span>
                     ))}
@@ -224,12 +224,12 @@ export default function WebsiteRequestPage() {
                                         className={cn(
                                             'flex items-center justify-between gap-2 rounded-xl border p-3 text-left text-sm font-medium transition',
                                             selected
-                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-100'
-                                                : 'border-border bg-background text-foreground hover:border-indigo-300 hover:bg-muted/50 dark:hover:border-indigo-800'
+                                                ? 'border-brand-500 bg-brand-50 text-brand-900 ring-1 ring-brand-500 dark:bg-brand-950/50 dark:text-brand-100'
+                                                : 'border-border bg-background text-foreground hover:border-brand-300 hover:bg-muted/50 dark:hover:border-brand-800'
                                         )}
                                     >
                                         <span className="min-w-0">{c.label}</span>
-                                        {selected && <Check className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />}
+                                        {selected && <Check className="h-4 w-4 shrink-0 text-brand-700 dark:text-brand-400" />}
                                     </button>
                                 )
                             })}
@@ -255,14 +255,14 @@ export default function WebsiteRequestPage() {
                                             className={cn(
                                                 'flex items-center gap-2.5 rounded-xl border p-2.5 text-left text-sm transition',
                                                 checked
-                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100'
+                                                    ? 'border-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/50 dark:text-brand-100'
                                                     : 'border-border bg-background text-foreground hover:bg-muted/50'
                                             )}
                                         >
                                             <span className={cn(
                                                 'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition',
                                                 checked
-                                                    ? 'border-indigo-600 bg-indigo-600 text-white dark:border-indigo-500 dark:bg-indigo-500'
+                                                    ? 'border-brand-600 bg-brand-600 text-black dark:border-brand-500 dark:bg-brand-500'
                                                     : 'border-border'
                                             )}>
                                                 {checked && <Check className="h-3 w-3" />}
@@ -306,7 +306,7 @@ export default function WebsiteRequestPage() {
                                     key={s.label}
                                     type="button"
                                     onClick={() => applyStarter(s.text)}
-                                    className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/40"
+                                    className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-brand-400 hover:bg-brand-50 dark:hover:border-brand-700 dark:hover:bg-brand-500/40"
                                 >
                                     {s.label}
                                 </button>
@@ -370,7 +370,7 @@ export default function WebsiteRequestPage() {
                                     className={cn(
                                         'rounded-full border px-3 py-1.5 text-xs font-medium transition',
                                         Number(budget) === amount
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100'
+                                            ? 'border-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/50 dark:text-brand-100'
                                             : 'border-border bg-background text-foreground hover:bg-muted/50'
                                     )}
                                 >
@@ -393,7 +393,7 @@ export default function WebsiteRequestPage() {
                                         className={cn(
                                             'rounded-full border px-3.5 py-1.5 text-xs font-medium transition',
                                             timeline === t.key
-                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100'
+                                                ? 'border-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/50 dark:text-brand-100'
                                                 : 'border-border bg-background text-foreground hover:bg-muted/50'
                                         )}
                                     >
@@ -435,7 +435,7 @@ export default function WebsiteRequestPage() {
                                 type="checkbox"
                                 checked={confirmSerious}
                                 onChange={e => setConfirmSerious(e.target.checked)}
-                                className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600"
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
                             />
                             <span className="text-xs leading-relaxed text-muted-foreground">
                                 This is a genuine project I want to move forward with, and I&apos;m happy for the
@@ -446,7 +446,7 @@ export default function WebsiteRequestPage() {
                         <Button
                             onClick={submitFull}
                             disabled={isSubmitting}
-                            className="mt-4 h-12 w-full rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                            className="mt-4 h-12 w-full rounded-xl bg-brand-600 text-sm font-bold text-black hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400"
                         >
                             {isSubmitting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…</>
@@ -462,7 +462,7 @@ export default function WebsiteRequestPage() {
                 <div className="space-y-4">
                     <section className="rounded-2xl border border-border bg-card p-5">
                         <div className="mb-4 flex items-start gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-400">
                                 <PhoneCall className="h-5 w-5" />
                             </span>
                             <div className="min-w-0">
@@ -510,7 +510,7 @@ export default function WebsiteRequestPage() {
                         <Button
                             onClick={submitCall}
                             disabled={isSubmitting}
-                            className="mt-4 h-12 w-full rounded-xl bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                            className="mt-4 h-12 w-full rounded-xl bg-brand-600 text-sm font-bold text-black hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400"
                         >
                             {isSubmitting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…</>

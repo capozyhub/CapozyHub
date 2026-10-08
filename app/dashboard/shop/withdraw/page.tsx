@@ -34,13 +34,13 @@ type Network = typeof NETWORKS[number]
 const NETWORK_COLORS: Record<Network, string> = {
     'MTN MoMo': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     'Telecel Cash': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    'AirtelTigo Money': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    'AirtelTigo Money': 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300',
 }
 
 const NETWORK_BG: Record<Network, string> = {
     'MTN MoMo': 'bg-yellow-500',
     'Telecel Cash': 'bg-red-500',
-    'AirtelTigo Money': 'bg-blue-500',
+    'AirtelTigo Money': 'bg-brand-500',
 }
 
 const NETWORK_SHORT: Record<Network, string> = {
@@ -470,7 +470,7 @@ export default function ShopWithdrawPage() {
             </Card>
 
             {/* ── Payout Processing Notice ── */}
-            <div className="flex gap-2.5 items-start p-3.5 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl text-xs text-blue-800 dark:text-blue-300">
+            <div className="flex gap-2.5 items-start p-3.5 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-100 dark:border-brand-900/40 rounded-xl text-xs text-brand-800 dark:text-brand-300">
                 <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400" />
                 <p>
                     <strong className="font-semibold">Processing times:</strong> Payouts are processed on business days.
@@ -922,7 +922,7 @@ export default function ShopWithdrawPage() {
                     )}
 
                     {/* ── Processing Delay Notice */}
-                    <div className="flex items-start gap-2 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
+                    <div className="flex items-start gap-2 p-3.5 rounded-xl bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 text-xs text-brand-800 dark:text-brand-300">
                         <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                         <span>
                             <strong>Note:</strong> Withdrawals requested during weekends, public holidays, or outside standard working hours may experience slight processing delays. For the fastest payout, please submit requests during regular business hours.

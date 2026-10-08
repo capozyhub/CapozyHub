@@ -801,7 +801,7 @@ export default function SmsPlatformAdminClient() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {[
                     { label: 'Total Revenue', value: formatCurrency(data.revenue.totalRevenue), icon: Wallet, color: 'text-emerald-600' },
-                    { label: 'Credits Sold', value: data.revenue.creditsSold.toLocaleString(), icon: Coins, color: 'text-blue-600' },
+                    { label: 'Credits Sold', value: data.revenue.creditsSold.toLocaleString(), icon: Coins, color: 'text-brand-700' },
                     { label: 'Purchases', value: data.revenue.purchases.toLocaleString(), icon: MessageSquare, color: 'text-purple-600' },
                     { label: 'Pending Reviews', value: String(pendingBusiness.length), icon: Building2, color: pendingBusiness.length ? 'text-amber-600' : 'text-muted-foreground' },
                     { label: 'Pending Senders', value: String(pendingSenders.length), icon: Radio, color: pendingSenders.length ? 'text-amber-600' : 'text-muted-foreground' },
@@ -899,7 +899,7 @@ export default function SmsPlatformAdminClient() {
                                                 <a
                                                     href={p.domain_link}
                                                     target="_blank" rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
                                                 >
                                                     <ExternalLink className="w-3 h-3" /> {p.domain_link}
                                                 </a>
@@ -1024,7 +1024,7 @@ export default function SmsPlatformAdminClient() {
                                                                 <Button
                                                                     size="sm" variant="outline"
                                                                     onClick={() => openDialog({ kind: 'sender', sender: s, op: 'submit_to_hubtel' })}
-                                                                    className="h-7 text-[11px] gap-1 text-blue-600 border-blue-200 dark:border-blue-900"
+                                                                    className="h-7 text-[11px] gap-1 text-brand-700 border-brand-200 dark:border-brand-900"
                                                                 >
                                                                     <Send className="w-3 h-3" /> Submit to Hubtel
                                                                 </Button>
@@ -1130,7 +1130,7 @@ export default function SmsPlatformAdminClient() {
                                                                 if (next.has(f.id)) next.delete(f.id); else next.add(f.id)
                                                                 return next
                                                             })}
-                                                            className="ml-1.5 text-blue-600 font-semibold hover:underline"
+                                                            className="ml-1.5 text-brand-700 font-semibold hover:underline"
                                                         >
                                                             {expanded ? 'Show less' : 'Show full message'}
                                                         </button>
@@ -1216,7 +1216,7 @@ export default function SmsPlatformAdminClient() {
                                                                 if (next.has(m.id)) next.delete(m.id); else next.add(m.id)
                                                                 return next
                                                             })}
-                                                            className="ml-1.5 text-blue-600 font-semibold hover:underline"
+                                                            className="ml-1.5 text-brand-700 font-semibold hover:underline"
                                                         >
                                                             {expanded ? 'Show less' : 'Show full message'}
                                                         </button>
@@ -1531,7 +1531,7 @@ export default function SmsPlatformAdminClient() {
                         <Card className="rounded-2xl">
                             <CardContent className="p-5 space-y-3">
                                 <h2 className="text-sm font-bold flex items-center gap-1.5">
-                                    <Radio className="w-4 h-4 text-blue-500" /> Sender ID Pool
+                                    <Radio className="w-4 h-4 text-brand-700" /> Sender ID Pool
                                 </h2>
                                 <p className="text-[11px] text-muted-foreground">
                                     Shared sender IDs any approved business can send under (before they get their own). Users pick one from their dashboard.
@@ -1714,7 +1714,7 @@ export default function SmsPlatformAdminClient() {
                         <Card className="rounded-2xl">
                             <CardContent className="p-5 space-y-3">
                                 <h2 className="text-sm font-bold flex items-center gap-1.5">
-                                    <Timer className="w-4 h-4 text-sky-500" /> SMS API Rate Limit
+                                    <Timer className="w-4 h-4 text-brand-700" /> SMS API Rate Limit
                                 </h2>
                                 <div>
                                     <label className="text-xs font-semibold text-muted-foreground">Requests per minute (default)</label>

@@ -46,7 +46,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any; d
     },
     processing: {
         label: 'Processing', icon: Clock,
-        color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+        color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400',
         description: 'Our team is currently processing your registration.',
     },
     completed: {
@@ -392,7 +392,7 @@ export default function AFAOrdersPage() {
             {activeTab === 'stats' && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {[
-                        { label: 'Total Registered', value: applications.length, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                        { label: 'Total Registered', value: applications.length, color: 'text-brand-700', bg: 'bg-brand-50 dark:bg-brand-900/20' },
                         { label: 'Pending',          value: applications.filter(a => a.status === 'pending').length,    color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
                         { label: 'Processing',       value: applications.filter(a => a.status === 'processing').length, color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
                         { label: 'Completed',        value: applications.filter(a => a.status === 'completed').length,  color: 'text-green-600',  bg: 'bg-green-50 dark:bg-green-900/20' },
@@ -434,8 +434,8 @@ export default function AFAOrdersPage() {
                         </Card>
                         <Card>
                             <CardContent className="p-4 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                                    <ShieldCheck className="w-5 h-5 text-blue-600" />
+                                <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center shrink-0">
+                                    <ShieldCheck className="w-5 h-5 text-brand-700" />
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground">Registration Fee</p>

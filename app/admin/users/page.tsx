@@ -110,10 +110,10 @@ const SEGMENTS: {
     sub?: (s: UserStats) => string
 }[] = [
     { key: 'total',      label: 'Total',      icon: UsersIcon,  color: 'text-slate-600 dark:text-slate-300', role: 'all',      status: 'all',       value: s => s.total },
-    { key: 'customers',  label: 'Customers',  icon: UserCircle, color: 'text-blue-600',    role: 'customer', status: 'all',       value: s => s.customers },
+    { key: 'customers',  label: 'Customers',  icon: UserCircle, color: 'text-brand-700',    role: 'customer', status: 'all',       value: s => s.customers },
     { key: 'agents',     label: 'Agents',     icon: BadgeCheck, color: 'text-emerald-600', role: 'agent',    status: 'all',       value: s => s.agents, sub: s => `${s.active_agents} active · ${s.expired_agents} expired` },
     { key: 'dealers',    label: 'Dealers',    icon: Gem,        color: 'text-violet-600',  role: 'dealer',   status: 'all',       value: s => s.dealers },
-    { key: 'subagents',  label: 'Subagents',  icon: UserCog,    color: 'text-cyan-600',    role: 'subagent', status: 'all',       value: s => s.subagents },
+    { key: 'subagents',  label: 'Subagents',  icon: UserCog,    color: 'text-brand-700',    role: 'subagent', status: 'all',       value: s => s.subagents },
     { key: 'staff',      label: 'Staff',      icon: Shield,     color: 'text-red-600',     role: 'staff',    status: 'all',       value: s => s.staff },
     { key: 'suspended',  label: 'Suspended',  icon: Ban,        color: 'text-orange-600',  role: 'all',      status: 'suspended', value: s => s.suspended },
     { key: 'expired',    label: 'Expired',    icon: Timer,      color: 'text-amber-600',   role: 'all',      status: 'expired',   value: s => s.expired },
@@ -525,7 +525,7 @@ export default function AdminUsersPage() {
             <div className="flex flex-col gap-3 sticky top-0 bg-background/95 backdrop-blur z-30 py-4 border-b">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        <h1 className="text-2xl font-bold bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
                             Users Management
                         </h1>
                         <p className="text-sm text-muted-foreground">Manage {totalCount} matching account{totalCount === 1 ? '' : 's'}</p>
@@ -543,7 +543,7 @@ export default function AdminUsersPage() {
                             onClick={exportForMNotify}
                             disabled={exporting}
                             variant="outline"
-                            className="gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300 hover:border-blue-400 rounded-xl dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                            className="gap-2 bg-brand-50 hover:bg-brand-100 text-brand-700 border-brand-300 hover:border-brand-400 rounded-xl dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800"
                         >
                             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                             Export {selectMode && selected.size > 0 ? `(${selected.size})` : 'All'}
@@ -781,7 +781,7 @@ export default function AdminUsersPage() {
                                                     <div className="h-px bg-border my-1" />
                                                     <DropdownMenuItem
                                                         onClick={() => requestResetPassword(user)}
-                                                        className="text-blue-600 focus:text-blue-700 focus:bg-blue-50"
+                                                        className="text-brand-700 focus:text-brand-700 focus:bg-brand-50"
                                                     >
                                                         <KeyRound className="w-4 h-4 mr-2" />
                                                         Reset Password
@@ -820,7 +820,7 @@ export default function AdminUsersPage() {
                                         {/* Details */}
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                                                <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                                                 <span className="truncate text-sm font-medium">{user.email}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
@@ -1013,7 +1013,7 @@ export default function AdminUsersPage() {
                         <div className="flex items-center justify-between rounded-xl border border-border p-3">
                             <div>
                                 <p className="text-sm font-medium flex items-center gap-1.5">
-                                    <MessageSquare className="w-4 h-4 text-blue-500" /> SMS alert
+                                    <MessageSquare className="w-4 h-4 text-brand-700" /> SMS alert
                                 </p>
                                 <p className="text-[11px] text-muted-foreground">Text the user that their account is suspended (and until when).</p>
                             </div>
@@ -1093,12 +1093,12 @@ export default function AdminUsersPage() {
                             {/* Stats grid */}
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { label: 'Orders', value: detailData.stats.totalOrders, icon: ClipboardList, color: 'text-blue-600' },
+                                    { label: 'Orders', value: detailData.stats.totalOrders, icon: ClipboardList, color: 'text-brand-700' },
                                     { label: 'Completed', value: detailData.stats.completedOrders, icon: CheckCircle2, color: 'text-green-600' },
                                     { label: 'Total Spent', value: formatCurrency(detailData.stats.totalSpent), icon: Wallet, color: 'text-emerald-600' },
                                     { label: 'Wallet', value: formatCurrency(detailData.stats.walletBalance), icon: Wallet, color: 'text-purple-600' },
                                     { label: 'Complaints', value: detailData.stats.complaints, icon: MessageSquare, color: 'text-red-600' },
-                                    { label: 'Shop', value: detailData.stats.hasShop ? (detailData.stats.shopName || 'Yes') : '—', icon: Store, color: 'text-indigo-600' },
+                                    { label: 'Shop', value: detailData.stats.hasShop ? (detailData.stats.shopName || 'Yes') : '—', icon: Store, color: 'text-brand-700' },
                                     { label: 'Recruited By', value: detailData.stats.recruitedBy || '—', icon: UsersIcon, color: 'text-teal-600' },
                                 ].map((item) => {
                                     const Icon = item.icon

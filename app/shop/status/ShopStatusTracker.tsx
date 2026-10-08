@@ -41,7 +41,7 @@ interface Order {
 const statusConfig = {
     pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
     processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: Loader2 },
-    queued: { label: 'Queued', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', icon: Hourglass },
+    queued: { label: 'Queued', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400', icon: Hourglass },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
     failed: { label: 'Failed', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: XCircle },
     refunded: { label: 'Refunded', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400', icon: XCircle },
@@ -65,7 +65,7 @@ function OrderCard({ order, baseLinkPath }: { order: Order; baseLinkPath: string
                             <p className="font-bold text-sm text-slate-900 dark:text-slate-100 transition-colors">
                                 {order.network === 'AFA' ? order.package_size : `${order.network} ${order.package_size}`}
                             </p>
-                            <Link href={`${baseLinkPath}/${order.shop_slug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                            <Link href={`${baseLinkPath}/${order.shop_slug}`} className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-1">
                                 {order.shop_name}
                             </Link>
                         </div>
@@ -279,7 +279,7 @@ export default function ShopStatusTracker() {
                 </div>
 
                 {/* ── UI Policy Descriptor Update ── */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl p-4 text-xs flex items-start gap-3 border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                <div className="bg-brand-50 dark:bg-brand-900/20 text-brand-800 dark:text-brand-300 rounded-xl p-4 text-xs flex items-start gap-3 border border-brand-100 dark:border-brand-800/50 shadow-sm">
                     <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
                     <p className="leading-relaxed font-medium">Tracking operates instantly! To save on system resources, recent results are locked for 1 minute per number, showing only orders strictly within the past 48 hours.</p>
                 </div>

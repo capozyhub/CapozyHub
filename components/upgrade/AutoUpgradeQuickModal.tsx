@@ -84,7 +84,7 @@ export default function AutoUpgradeQuickModal({
           })
         : null
 
-    const accentGradient = isDealer ? 'from-violet-600 to-indigo-700' : 'from-[#FFCE00] to-amber-500'
+    const accentGradient = isDealer ? 'from-violet-600 to-brand-700' : 'from-brand-500 to-amber-500'
     const accentText     = isDealer ? 'text-violet-300' : 'text-amber-600'
     const accentBg       = isDealer ? 'bg-violet-500/15 border-violet-500/30' : 'bg-yellow-400/15 border-yellow-400/30'
     const Icon           = isDealer ? Gem : Crown
@@ -138,7 +138,7 @@ export default function AutoUpgradeQuickModal({
             <div className={cn(
                 'relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden',
                 isDealer
-                    ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 border border-violet-500/40'
+                    ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
                     : 'bg-white dark:bg-gray-900 border border-yellow-200 dark:border-yellow-900/40'
             )}>
                 {/* Header */}
@@ -277,7 +277,7 @@ export default function AutoUpgradeQuickModal({
                                             className={cn(
                                                 'rounded-xl py-2.5 text-xs font-bold border-2 transition-all',
                                                 selectedPlan === p.id
-                                                    ? 'border-[#FFCE00] bg-yellow-400/20 text-gray-900 dark:text-white'
+                                                    ? 'border-brand-500 bg-yellow-400/20 text-gray-900 dark:text-white'
                                                     : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-yellow-300'
                                             )}
                                         >
@@ -345,8 +345,8 @@ export default function AutoUpgradeQuickModal({
                                     className={cn(
                                         'flex-1 h-10 rounded-xl font-bold text-sm transition-all active:scale-95',
                                         isDealer
-                                            ? 'bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white'
-                                            : 'bg-[#FFCE00] hover:bg-[#E6B800] text-black shadow-md shadow-yellow-400/20'
+                                            ? 'bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white'
+                                            : 'bg-brand-500 hover:bg-brand-600 text-black shadow-md shadow-yellow-400/20'
                                     )}
                                 >
                                     {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : (

@@ -390,7 +390,7 @@ export default function AdminShopSettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {(
                             [
-                                { role: 'customer' as Role, label: 'Customer', color: 'text-blue-600' },
+                                { role: 'customer' as Role, label: 'Customer', color: 'text-brand-700' },
                                 { role: 'agent' as Role, label: 'Agent', color: 'text-emerald-600' },
                                 { role: 'dealer' as Role, label: 'Dealer', color: 'text-violet-600' },
                             ]
@@ -437,8 +437,8 @@ export default function AdminShopSettingsPage() {
                         title="Customer"
                         subtitle="Applies to shops owned by regular customers"
                         icon={Users}
-                        iconColor="text-blue-600"
-                        borderColor="border-blue-200 dark:border-blue-800"
+                        iconColor="text-brand-700"
+                        borderColor="border-brand-200 dark:border-brand-800"
                         config={settings.customer}
                         onChange={(key, value) => updateRoleConfig('customer', key, value)}
                     />

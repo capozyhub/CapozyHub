@@ -167,7 +167,7 @@ export function TermsAcceptanceModal({
               <button
                 onClick={onAccept}
                 disabled={!reachedEnd || busy}
-                className="flex-1 h-11 rounded-xl font-black bg-[#FFCC00] text-black transition disabled:opacity-45 disabled:grayscale"
+                className="flex-1 h-11 rounded-xl font-black bg-brand-500 text-black transition disabled:opacity-45 disabled:grayscale"
               >
                 {busy ? 'Saving…' : 'I Accept'}
               </button>

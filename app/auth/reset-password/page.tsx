@@ -200,7 +200,7 @@ export default function ResetPasswordPage() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
-                                            className="h-12 pl-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#0056B3] focus:ring-[#0056B3]/20 rounded-xl text-base"
+                                            className="h-12 pl-11 bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-primary/20 rounded-xl text-base"
                                         />
                                     </div>
                                 </div>
@@ -208,7 +208,7 @@ export default function ResetPasswordPage() {
                                 <Button
                                     type="submit"
                                     disabled={isLoading || lockoutMinutes !== null}
-                                    className="w-full h-12 text-base font-bold bg-[#0056B3] hover:bg-[#004494] text-white shadow-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-black shadow-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {lockoutMinutes !== null ? (
                                         `Locked — try again in ${lockoutMinutes}m`
@@ -255,14 +255,14 @@ export default function ResetPasswordPage() {
                                         onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                                         required
                                         maxLength={8}
-                                        className="h-14 text-center text-2xl tracking-[0.2em] font-bold bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-300 focus:border-[#0056B3] focus:ring-[#0056B3]/20 rounded-xl"
+                                        className="h-14 text-center text-2xl tracking-[0.2em] font-bold bg-white/95 border-slate-200 text-slate-900 placeholder:text-slate-300 focus:border-primary focus:ring-primary/20 rounded-xl"
                                     />
                                     <div className="text-center pt-1">
                                         <button
                                             type="button"
                                             onClick={handleResendCode}
                                             disabled={resendCooldown > 0}
-                                            className="text-xs font-semibold text-[#0056B3] hover:underline disabled:opacity-50 disabled:no-underline"
+                                            className="text-xs font-semibold text-brand-700 hover:underline disabled:opacity-50 disabled:no-underline"
                                         >
                                             {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
                                         </button>
@@ -272,7 +272,7 @@ export default function ResetPasswordPage() {
                                 <Button
                                     type="submit"
                                     disabled={isLoading || otp.length < 6}
-                                    className="w-full h-12 text-base font-bold bg-[#0056B3] hover:bg-[#004494] text-white shadow-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-black shadow-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <>
@@ -287,7 +287,7 @@ export default function ResetPasswordPage() {
                         )}
 
                         <div className="mt-5 text-center">
-                            <Link href="/auth" className="text-base text-[#0056B3] font-semibold hover:underline">
+                            <Link href="/auth" className="text-base text-brand-700 font-semibold hover:underline">
                                 ← Back to Login
                             </Link>
                         </div>

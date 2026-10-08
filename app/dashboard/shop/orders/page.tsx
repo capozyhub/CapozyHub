@@ -88,7 +88,7 @@ const effectiveStatus = (order: ShopOrder) => order.orders?.[0]?.status || order
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
     pending: { label: 'Pending', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400', icon: Clock },
-    queued: { label: 'Queued', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400', icon: Hourglass },
+    queued: { label: 'Queued', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400', icon: Hourglass },
     processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Clock },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
     failed: { label: 'Failed', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
@@ -756,7 +756,7 @@ export default function ShopOrdersPage() {
                         { id: 'airtime', label: 'Airtime', icon: RefreshCcw, active: 'text-purple-600' },
                         { id: 'vouchers', label: 'Vouchers', icon: FileText, active: 'text-amber-600' },
                         { id: 'afa', label: 'AFA', icon: IdCard, active: 'text-teal-600' },
-                        { id: 'utility', label: 'Utility Bills', icon: Coins, active: 'text-sky-600' },
+                        { id: 'utility', label: 'Utility Bills', icon: Coins, active: 'text-brand-700' },
                     ] as const).map(tab => (
                         <button
                             key={tab.id}
@@ -908,9 +908,9 @@ export default function ShopOrdersPage() {
             {/* Stats Cards — compact */}
             <div className="grid grid-cols-3 lg:grid-cols-8 gap-2">
                 {[
-                    { label: 'Orders', value: stats.total, icon: ShoppingCart, color: 'text-blue-600' },
+                    { label: 'Orders', value: stats.total, icon: ShoppingCart, color: 'text-brand-700' },
                     { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-yellow-600' },
-                    { label: 'Queued', value: stats.queued, icon: Hourglass, color: 'text-indigo-600' },
+                    { label: 'Queued', value: stats.queued, icon: Hourglass, color: 'text-brand-700' },
                     { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-orange-600' },
                     { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600' },
                     { label: 'Refunded', value: stats.refunded, icon: AlertCircle, color: 'text-purple-600' },
@@ -980,7 +980,7 @@ export default function ShopOrdersPage() {
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         {order.is_utility ? (
                                                             <span className="flex items-center gap-1.5">
-                                                                <Coins className="w-3 h-3 text-sky-600" />
+                                                                <Coins className="w-3 h-3 text-brand-700" />
                                                                 {order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · {order.type_name}
                                                             </span>
                                                         ) : order.is_rc ? (
@@ -1039,7 +1039,7 @@ export default function ShopOrdersPage() {
                                                             if (orderComplaints.length > 0) {
                                                                 const complaintStatus = orderComplaints[0].status
                                                                 return (
-                                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800">
                                                                         <MessageSquare className="w-2.5 h-2.5" />
                                                                         <span className="text-[9px] font-bold uppercase">
                                                                             Complaint: {complaintStatus.replace('_', ' ')}
@@ -1052,7 +1052,7 @@ export default function ShopOrdersPage() {
                                                                     <Button
                                                                         size="sm"
                                                                         variant="ghost"
-                                                                        className="h-6 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                                        className="h-6 px-2 text-[10px] text-brand-700 hover:text-brand-700 hover:bg-brand-50"
                                                                         onClick={() => handleRetry(order)}
                                                                     >
                                                                         <RefreshCw className="w-3 h-3 mr-1" />
@@ -1133,7 +1133,7 @@ export default function ShopOrdersPage() {
                                             <div>
                                                 <p className="font-bold text-sm flex items-center gap-2 flex-wrap">
                                                     {order.is_utility ? (
-                                                        <><Coins className="w-3.5 h-3.5 text-sky-600" /> {order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · {order.type_name}</>
+                                                        <><Coins className="w-3.5 h-3.5 text-brand-700" /> {order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · {order.type_name}</>
                                                     ) : order.is_rc ? (
                                                         <><TrendingUp className="w-3.5 h-3.5 text-amber-600" /> {order.quantity}x {order.type_name}</>
                                                     ) : order.is_afa ? (
@@ -1192,7 +1192,7 @@ export default function ShopOrdersPage() {
                                                 if (orderComplaints.length > 0) {
                                                     const complaintStatus = orderComplaints[0].status
                                                     return (
-                                                        <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-100 dark:border-blue-800 w-full">
+                                                        <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800 w-full">
                                                             <MessageSquare className="w-3.5 h-3.5" />
                                                             <span className="text-[11px] font-bold uppercase tracking-wide">
                                                                 Complaint: {complaintStatus.replace('_', ' ')}
@@ -1205,7 +1205,7 @@ export default function ShopOrdersPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="w-full h-9 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 dark:border-blue-900"
+                                                            className="w-full h-9 text-xs text-brand-700 hover:text-brand-700 hover:bg-brand-50 border-brand-200 dark:border-brand-900"
                                                             onClick={() => handleRetry(order)}
                                                         >
                                                             <RefreshCw className="w-3.5 h-3.5 mr-2" />
@@ -1345,7 +1345,7 @@ export default function ShopOrdersPage() {
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>Today&apos;s cost price will be charged to your Flexy-Wallet — this may differ from what you originally paid. You&apos;ll see the exact amount charged once the retry succeeds.</span>
                         </div>
-                        <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5">
+                        <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                             <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>For MTN numbers, we recommend waiting 24 hours after a failed order before retrying, so the number can be verified into the MTN UP2U account.</span>
                         </div>

@@ -21,7 +21,7 @@ interface ShopOrdersOverviewProps {
 
 export function ShopOrdersOverview({ stats }: ShopOrdersOverviewProps) {
     const items = [
-        { label: 'Total', value: stats.total, icon: ShoppingCart, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+        { label: 'Total', value: stats.total, icon: ShoppingCart, color: 'text-brand-700', bg: 'bg-brand-50 dark:bg-brand-900/20' },
         { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
         { label: 'Processing', value: stats.pending + stats.processing, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
         { label: 'Failed', value: stats.failed, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
@@ -32,13 +32,13 @@ export function ShopOrdersOverview({ stats }: ShopOrdersOverviewProps) {
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
-                            <ShoppingCart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <div className="p-1.5 bg-brand-100 dark:bg-brand-900/30 rounded-md">
+                            <ShoppingCart className="w-4 h-4 text-brand-700 dark:text-brand-400" />
                         </div>
                         <CardTitle className="text-base font-bold">Shop Orders Overview</CardTitle>
                     </div>
                     <Link href="/dashboard/shop/orders">
-                        <Button variant="ghost" size="sm" className="text-xs h-7 text-blue-600 hover:text-blue-700 dark:text-blue-400 gap-1">
+                        <Button variant="ghost" size="sm" className="text-xs h-7 text-brand-700 hover:text-brand-700 dark:text-brand-400 gap-1">
                             View All
                             <ArrowRight className="w-3 h-3" />
                         </Button>

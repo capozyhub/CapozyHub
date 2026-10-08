@@ -40,20 +40,20 @@ function AnnouncementItem({
             className={cn(
                 'group relative flex flex-col gap-1.5 rounded-xl p-3.5 transition-all duration-200',
                 isUnread
-                    ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-200/60 dark:ring-blue-700/30'
+                    ? 'bg-brand-50/80 dark:bg-brand-950/40 ring-1 ring-brand-200/60 dark:ring-brand-700/30'
                     : 'hover:bg-gray-50 dark:hover:bg-white/5'
             )}
         >
             {/* Unread indicator bar */}
             {isUnread && (
-                <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-blue-500" />
+                <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-brand-500" />
             )}
 
             <div className="flex items-start justify-between gap-2 pl-2">
                 <p className={cn(
                     'text-[13px] font-semibold leading-tight tracking-tight',
                     isUnread
-                        ? 'text-blue-900 dark:text-blue-100'
+                        ? 'text-brand-900 dark:text-brand-100'
                         : 'text-gray-800 dark:text-gray-200'
                 )}>
                     {announcement.title}
@@ -61,7 +61,7 @@ function AnnouncementItem({
                 {isUnread && (
                     <button
                         onClick={onRead}
-                        className="shrink-0 text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 transition-colors"
+                        className="shrink-0 text-brand-400 hover:text-brand-700 dark:text-brand-500 dark:hover:text-brand-300 transition-colors"
                         title="Mark as read"
                     >
                         <CheckCheck className="h-3.5 w-3.5" />
@@ -127,7 +127,7 @@ export function FloatingBell() {
                     'shadow-black/10 dark:shadow-black/40',
                     'transition-all duration-200 ease-out',
                     'hover:scale-110 hover:shadow-xl active:scale-95',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
                 )}
                 aria-label="Announcements"
                 aria-expanded={open}
@@ -136,7 +136,7 @@ export function FloatingBell() {
                 <Bell
                     className={cn(
                         'h-5 w-5 text-gray-700 dark:text-gray-200 transition-colors',
-                        hasUnread && 'animate-elastic-ring text-blue-600 dark:text-blue-400'
+                        hasUnread && 'animate-elastic-ring text-brand-700 dark:text-brand-400'
                     )}
                     strokeWidth={1.8}
                 />
@@ -145,8 +145,8 @@ export function FloatingBell() {
                 {hasUnread && (
                     <span className="absolute right-2 top-2">
                         <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-70" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600" />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-70" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
                         </span>
                     </span>
                 )}
@@ -176,7 +176,7 @@ export function FloatingBell() {
                             Announcements
                         </span>
                         {hasUnread && (
-                            <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                            <span className="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/40 px-1.5 py-0.5 text-[10px] font-bold text-brand-700 dark:text-brand-300">
                                 {unreadCount} new
                             </span>
                         )}
@@ -185,7 +185,7 @@ export function FloatingBell() {
                         {hasUnread && (
                             <button
                                 onClick={markAllRead}
-                                className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline transition-all"
+                                className="text-[11px] font-medium text-brand-700 dark:text-brand-400 hover:underline transition-all"
                             >
                                 Mark all read
                             </button>

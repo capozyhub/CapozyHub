@@ -35,7 +35,7 @@ function StatusBadge({ a, showing }: { a: SystemAnnouncement; showing: boolean }
     const status = a.status ?? 'published'
     if (status === 'draft') return <Badge variant="secondary" className="text-[10px] font-medium">Draft</Badge>
     if (status === 'scheduled') {
-        return <Badge variant="outline" className="text-[10px] font-medium text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800">
+        return <Badge variant="outline" className="text-[10px] font-medium text-brand-700 dark:text-brand-400 border-brand-300 dark:border-brand-800">
             Scheduled{a.scheduled_at ? ` · ${formatDate(a.scheduled_at)}` : ''}
         </Badge>
     }
@@ -181,7 +181,7 @@ export function HistoryTab({ announcements, loading, onEdit, onDuplicate, onRefr
                                         <span className="text-[11px] text-muted-foreground">{a.is_active ? 'On' : 'Off'}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="sm" onClick={() => onEdit(a)} className="h-8 px-2 text-[11px] font-medium gap-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                                        <Button variant="ghost" size="sm" onClick={() => onEdit(a)} className="h-8 px-2 text-[11px] font-medium gap-1 text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/20">
                                             <Pencil className="w-3.5 h-3.5" /> Edit
                                         </Button>
                                         <Button variant="ghost" size="sm" onClick={() => onDuplicate(a)} className="h-8 px-2 text-[11px] font-medium gap-1 text-muted-foreground hover:text-foreground">

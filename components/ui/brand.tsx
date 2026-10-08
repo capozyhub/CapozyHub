@@ -46,16 +46,16 @@ export function BrandTitle({ className, variant = 'default' }: BrandTitleProps) 
     if (variant === 'hero') {
         return (
             <span className={cn("font-black tracking-tight", className)}>
-                <span className="text-slate-900 dark:text-white">{BRAND.nameFirst} </span>
-                <span className="text-[#F6C30F]">{BRAND.nameSecond}</span>
+                <span className="text-foreground">{BRAND.nameFirst} </span>
+                <span className="text-brand-700 dark:text-brand-500">{BRAND.nameSecond}</span>
             </span>
         )
     }
 
     return (
         <span className={cn("font-black tracking-tight", className)}>
-            <span className="text-black dark:text-white">{BRAND.nameFirst} </span>
-            <span className="text-[#F6C30F]">{BRAND.nameSecond}</span>
+            <span className="text-foreground">{BRAND.nameFirst} </span>
+            <span className="text-brand-700 dark:text-brand-500">{BRAND.nameSecond}</span>
         </span>
     )
 }

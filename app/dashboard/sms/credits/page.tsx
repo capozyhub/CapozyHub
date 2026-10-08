@@ -82,7 +82,7 @@ function timeAgo(iso: string): string {
 
 const KIND_META: Record<SmsLedgerKind, { label: string; icon: React.ElementType; iconClass: string; bgClass: string }> = {
     purchase:     { label: 'Bundle purchase',  icon: Coins,     iconClass: 'text-emerald-600 dark:text-emerald-400', bgClass: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    debit:        { label: 'Campaign send',    icon: Send,      iconClass: 'text-blue-600 dark:text-blue-400',       bgClass: 'bg-blue-100 dark:bg-blue-900/30' },
+    debit:        { label: 'Campaign send',    icon: Send,      iconClass: 'text-brand-700 dark:text-brand-400',       bgClass: 'bg-brand-100 dark:bg-brand-900/30' },
     refund:       { label: 'Refund',           icon: Undo2,     iconClass: 'text-purple-600 dark:text-purple-400',   bgClass: 'bg-purple-100 dark:bg-purple-900/30' },
     bonus:        { label: 'Bonus credits',    icon: Gift,      iconClass: 'text-amber-600 dark:text-amber-400',     bgClass: 'bg-amber-100 dark:bg-amber-900/30' },
     admin_adjust: { label: 'Admin adjustment', icon: Settings2, iconClass: 'text-gray-600 dark:text-gray-400',       bgClass: 'bg-gray-100 dark:bg-gray-800' },

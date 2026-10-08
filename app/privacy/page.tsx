@@ -52,7 +52,7 @@ export default function PrivacyPage() {
 
                         <div className="flex gap-4">
                             <div className="flex-shrink-0 mt-1">
-                                <Eye className="w-6 h-6 text-sky-500" />
+                                <Eye className="w-6 h-6 text-brand-700" />
                             </div>
                             <div>
                                 <h3 className="text-base font-black text-slate-900 dark:text-white mb-1">2. How We Use Your Information</h3>
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
 
                         <div className="flex gap-4">
                             <div className="flex-shrink-0 mt-1">
-                                <Lock className="w-6 h-6 text-indigo-500" />
+                                <Lock className="w-6 h-6 text-brand-700" />
                             </div>
                             <div>
                                 <h3 className="text-base font-black text-slate-900 dark:text-white mb-1">3. Data Protection</h3>

@@ -96,7 +96,7 @@ const DELIVERY_ROWS: { phone: string; status: 'Delivered' | 'Sent' | 'Undelivere
 
 const STATUS_STYLES: Record<string, string> = {
     Delivered: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-    Sent: 'bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] border-[#0056B3]/25 dark:border-[#4da6ff]/30',
+    Sent: 'bg-primary/10 text-brand-700 dark:text-brand-400 border-primary/25 dark:border-brand-400/30',
     Undelivered: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
 }
 
@@ -107,7 +107,7 @@ function DeliveryReportCard() {
             {/* header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30">
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-brand-700 dark:text-brand-400 flex items-center justify-center flex-shrink-0">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -196,7 +196,7 @@ export default function SmsPage() {
                     <Link href="/" className="flex items-center gap-2 flex-shrink-0">
                         <BrandLogo width={36} height={36} className="w-8 h-8 sm:w-9 sm:h-9" />
                         <span className="font-black tracking-tight text-slate-900 dark:text-white text-sm sm:text-base">
-                            KFT <span className="text-[#0056B3] dark:text-[#4da6ff]">SMS</span>
+                            KFT <span className="text-brand-700 dark:text-brand-400">SMS</span>
                         </span>
                     </Link>
                     <div className="flex items-center gap-1.5 sm:gap-2">
@@ -207,7 +207,7 @@ export default function SmsPage() {
                             API docs
                         </Link>
                         <Link href="/dashboard/sms">
-                            <Button className="h-10 bg-[#0056B3] hover:bg-[#004494] text-white font-bold px-4">Get started</Button>
+                            <Button className="h-10 bg-primary hover:bg-primary/90 text-black font-bold px-4">Get started</Button>
                         </Link>
                     </div>
                 </div>
@@ -217,13 +217,13 @@ export default function SmsPage() {
             <section className="relative px-4 sm:px-6 lg:px-8 pt-14 pb-16 sm:pt-20 sm:pb-24 overflow-hidden">
                 {/* ambient brand glow */}
                 <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden="true">
-                    <div className="absolute -top-24 left-[8%] w-72 h-72 rounded-full bg-[#0056B3]/15 dark:bg-[#0056B3]/20 blur-[90px]" />
-                    <div className="absolute top-10 right-[6%] w-80 h-80 rounded-full bg-[#00B4D8]/15 dark:bg-[#00B4D8]/15 blur-[90px]" />
+                    <div className="absolute -top-24 left-[8%] w-72 h-72 rounded-full bg-primary/15 dark:bg-primary/20 blur-[90px]" />
+                    <div className="absolute top-10 right-[6%] w-80 h-80 rounded-full bg-brand-300/15 dark:bg-brand-300/15 blur-[90px]" />
                 </div>
 
                 <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
                     <Reveal>
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] text-[11px] font-black uppercase tracking-widest mb-5">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-brand-700 dark:text-brand-400 text-[11px] font-black uppercase tracking-widest mb-5">
                             <Sparkles className="w-3.5 h-3.5" /> KFT SMS · Bulk &amp; transactional
                         </div>
                         <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-black tracking-tight leading-[1.05] text-slate-900 dark:text-white">
@@ -235,7 +235,7 @@ export default function SmsPage() {
                         </p>
                         <div className="mt-8 flex flex-col sm:flex-row gap-3">
                             <Link href="/dashboard/sms" className="w-full sm:w-auto">
-                                <Button size="xl" className="w-full bg-[#0056B3] hover:bg-[#004494] text-white font-bold">
+                                <Button size="xl" className="w-full bg-primary hover:bg-primary/90 text-black font-bold">
                                     Get started <ArrowRight className="w-5 h-5 ml-2" />
                                 </Button>
                             </Link>
@@ -264,7 +264,7 @@ export default function SmsPage() {
             <section className="px-4 sm:px-6 lg:px-8 py-16 bg-white/60 dark:bg-slate-900/40 border-y border-slate-200 dark:border-slate-800">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="text-center mb-10">
-                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#0056B3] dark:text-[#FFCC00]/90 uppercase block mb-2">Two ways to send</span>
+                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-brand-700 dark:text-brand-500/90 uppercase block mb-2">Two ways to send</span>
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Start shared, grow into your brand</h2>
                         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mt-3">Send under our trusted platform sender today, then unlock your own sender ID when you register your business.</p>
                     </Reveal>
@@ -275,13 +275,13 @@ export default function SmsPage() {
                                 <div className={cn(
                                     'h-full rounded-2xl border p-6 sm:p-7 bg-white dark:bg-slate-900',
                                     mode.accent === 'blue'
-                                        ? 'border-[#0056B3]/25 dark:border-[#4da6ff]/25'
+                                        ? 'border-primary/25 dark:border-brand-400/25'
                                         : 'border-emerald-300/50 dark:border-emerald-800/50'
                                 )}>
                                     <span className={cn(
                                         'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4',
                                         mode.accent === 'blue'
-                                            ? 'bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff]'
+                                            ? 'bg-primary/10 text-brand-700 dark:text-brand-400'
                                             : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                                     )}>
                                         {mode.badge}
@@ -291,7 +291,7 @@ export default function SmsPage() {
                                     <ul className="space-y-2.5">
                                         {mode.points.map((p) => (
                                             <li key={p} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
-                                                <CheckCircle2 className={cn('w-4 h-4 mt-0.5 flex-shrink-0', mode.accent === 'blue' ? 'text-[#0056B3] dark:text-[#4da6ff]' : 'text-emerald-500')} />
+                                                <CheckCircle2 className={cn('w-4 h-4 mt-0.5 flex-shrink-0', mode.accent === 'blue' ? 'text-brand-700 dark:text-brand-400' : 'text-emerald-500')} />
                                                 <span>{p}</span>
                                             </li>
                                         ))}
@@ -307,7 +307,7 @@ export default function SmsPage() {
             <section className="px-4 sm:px-6 lg:px-8 py-16">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="text-center mb-12">
-                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#0056B3] dark:text-[#FFCC00]/90 uppercase block mb-2">Everything included</span>
+                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-brand-700 dark:text-brand-500/90 uppercase block mb-2">Everything included</span>
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Built for how you actually message</h2>
                         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mt-3">From a one-off order alert to a campaign for thousands — the same clean tools, in the dashboard or over the API.</p>
                     </Reveal>
@@ -316,7 +316,7 @@ export default function SmsPage() {
                         {FEATURES.map((f, i) => (
                             <Reveal key={f.title} delay={(i % 4) * 0.06}>
                                 <div className="group h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                                    <div className="w-11 h-11 rounded-xl bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-brand-700 dark:text-brand-400 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
                                         <f.icon className="w-5 h-5" />
                                     </div>
                                     <h3 className="mt-4 font-bold text-slate-900 dark:text-white">{f.title}</h3>
@@ -332,14 +332,14 @@ export default function SmsPage() {
             <section className="px-4 sm:px-6 lg:px-8 py-16 bg-white/60 dark:bg-slate-900/40 border-y border-slate-200 dark:border-slate-800">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="text-center mb-10">
-                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#0056B3] dark:text-[#FFCC00]/90 uppercase block mb-2">Dashboard or API</span>
+                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-brand-700 dark:text-brand-500/90 uppercase block mb-2">Dashboard or API</span>
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Two ways to use it</h2>
                     </Reveal>
 
                     <div className="grid md:grid-cols-2 gap-5">
                         <Reveal>
                             <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 flex flex-col">
-                                <div className="w-11 h-11 rounded-xl bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center mb-4">
+                                <div className="w-11 h-11 rounded-xl bg-primary/10 text-brand-700 dark:text-brand-400 flex items-center justify-center mb-4">
                                     <MessageSquare className="w-5 h-5" />
                                 </div>
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">From the dashboard</h3>
@@ -354,7 +354,7 @@ export default function SmsPage() {
                                 </ul>
                                 <div className="mt-auto">
                                     <Link href="/dashboard/sms">
-                                        <Button className="bg-[#0056B3] hover:bg-[#004494] text-white font-bold">
+                                        <Button className="bg-primary hover:bg-primary/90 text-black font-bold">
                                             Open the SMS dashboard <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>
                                     </Link>
@@ -394,13 +394,13 @@ export default function SmsPage() {
             <section className="px-4 sm:px-6 lg:px-8 py-16">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="mb-8">
-                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#0056B3] dark:text-[#FFCC00]/90 uppercase block mb-2">Quickstart</span>
+                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-brand-700 dark:text-brand-500/90 uppercase block mb-2">Quickstart</span>
                         <div className="flex flex-wrap items-end justify-between gap-4">
                             <div>
                                 <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Send your first SMS</h2>
                                 <p className="text-slate-600 dark:text-slate-400 mt-3 max-w-xl">Authenticate with your API key, POST a message to one or many numbers, then check delivery by campaign ID.</p>
                             </div>
-                            <Link href="/developers" className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0056B3] dark:text-[#4da6ff] hover:underline">
+                            <Link href="/developers" className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-700 dark:text-brand-400 hover:underline">
                                 Full API reference <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -422,7 +422,7 @@ export default function SmsPage() {
                             {/* POST /sms/send */}
                             <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3 border-b border-slate-800">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border tracking-wide font-mono bg-blue-500/15 text-blue-400 border-blue-500/30">POST</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border tracking-wide font-mono bg-brand-500/15 text-brand-400 border-brand-500/30">POST</span>
                                     <code className="text-xs sm:text-sm font-mono font-semibold text-slate-200 truncate">/api/v2/sms/send</code>
                                 </div>
                                 <CopyButton text={SEND_CURL} />
@@ -458,7 +458,7 @@ export default function SmsPage() {
             <section className="px-4 sm:px-6 lg:px-8 pb-16">
                 <div className="max-w-5xl mx-auto">
                     <Reveal>
-                        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0056B3] to-[#00B4D8] p-8 sm:p-12 text-center shadow-2xl">
+                        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-700 to-brand-300 p-8 sm:p-12 text-center shadow-2xl">
                             <div className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] bg-[size:44px_44px]" aria-hidden="true" />
                             <div className="relative z-10">
                                 <div className="w-14 h-14 mx-auto rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center mb-5">
@@ -468,7 +468,7 @@ export default function SmsPage() {
                                 <p className="text-white/90 max-w-xl mx-auto mb-8">Buy your first credits, add a contact group, and send in minutes — or wire it into your app over the API.</p>
                                 <div className="flex flex-col sm:flex-row justify-center gap-3">
                                     <Link href="/dashboard/sms" className="w-full sm:w-auto">
-                                        <Button size="xl" className="w-full bg-white text-[#0056B3] hover:bg-white/90 font-bold shadow-lg">
+                                        <Button size="xl" className="w-full bg-white text-brand-700 hover:bg-white/90 font-bold shadow-lg">
                                             Get started <ArrowRight className="w-5 h-5 ml-2" />
                                         </Button>
                                     </Link>

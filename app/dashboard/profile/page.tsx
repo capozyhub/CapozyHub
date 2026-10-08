@@ -280,7 +280,7 @@ export default function ProfilePage() {
             return { label: 'Security Key', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }
         }
         if (pk.device_type === 'multiDevice') {
-            return { label: 'Synced (Cloud)', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }
+            return { label: 'Synced (Cloud)', className: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300' }
         }
         return { label: 'This Device', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' }
     }
@@ -592,12 +592,12 @@ export default function ProfilePage() {
                             const config = roleConfig[userRole] || roleConfig['customer']
                             const roleBgClass = {
                                 'admin': 'bg-[#E60000]',
-                                'sub-admin': 'bg-[#FACC15]',
+                                'sub-admin': 'bg-brand-500',
                                 'dealer': 'bg-[#7C3AED]',
                                 'agent': 'bg-[#25D366]',
                                 'subagent': 'bg-[#0D9488]',
-                                'customer': 'bg-[#0056B3]',
-                            }[userRole] || 'bg-[#0056B3]'
+                                'customer': 'bg-primary',
+                            }[userRole] || 'bg-primary'
 
                             const RoleIcon = config.icon
 
@@ -830,7 +830,7 @@ export default function ProfilePage() {
                                 <button
                                     type="button"
                                     onClick={() => { window.location.href = '/api/auth/signout?next=/auth/reset-password' }}
-                                    className="text-xs font-semibold text-[#0056B3] hover:underline"
+                                    className="text-xs font-semibold text-brand-700 hover:underline"
                                 >
                                     Forgot your current password?
                                 </button>
@@ -945,7 +945,7 @@ export default function ProfilePage() {
             )}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-[#0056B3] dark:text-blue-400" />
+                        <Shield className="w-5 h-5 text-brand-700 dark:text-brand-400" />
                         Quick Access PIN
                     </CardTitle>
                     <CardDescription>
@@ -970,7 +970,7 @@ export default function ProfilePage() {
                                 disabled={isPinLoading}
                                 className={cn(
                                     "flex-1 sm:flex-none",
-                                    hasPin ? "bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white" : "bg-[#0056B3] hover:bg-[#004494] text-white"
+                                    hasPin ? "bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white" : "bg-primary hover:bg-primary/90 text-black"
                                 )}
                                 variant={hasPin ? "secondary" : "default"}
                             >
@@ -998,7 +998,7 @@ export default function ProfilePage() {
                 <Card className={cn(dbUser?.role === 'agent' && "border-yellow-600/30")}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Key className="w-5 h-5 text-[#0056B3] dark:text-blue-400" />
+                            <Key className="w-5 h-5 text-brand-700 dark:text-brand-400" />
                             Passkeys
                         </CardTitle>
                         <CardDescription>
@@ -1022,7 +1022,7 @@ export default function ProfilePage() {
                                     const isDeleting = deletingPasskeyId === pk.id
                                     return (
                                         <div key={pk.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                            <Key className="w-4 h-4 text-[#0056B3] dark:text-blue-400 shrink-0" />
+                                            <Key className="w-4 h-4 text-brand-700 dark:text-brand-400 shrink-0" />
                                             <div className="flex-1 min-w-0">
                                                 {isRenaming ? (
                                                     <div className="flex items-center gap-2">
@@ -1037,7 +1037,7 @@ export default function ProfilePage() {
                                                             autoFocus
                                                             maxLength={50}
                                                         />
-                                                        <Button size="sm" className="h-8 text-xs bg-[#0056B3] hover:bg-[#004494] text-white" onClick={() => handleRenamePasskey(pk.id)}>Save</Button>
+                                                        <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-black" onClick={() => handleRenamePasskey(pk.id)}>Save</Button>
                                                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setRenamingPasskeyId(null)}>Cancel</Button>
                                                     </div>
                                                 ) : (
@@ -1085,7 +1085,7 @@ export default function ProfilePage() {
                         <Button
                             onClick={handleAddPasskey}
                             disabled={isAddingPasskey}
-                            className="bg-[#0056B3] hover:bg-[#004494] text-white w-full sm:w-auto"
+                            className="bg-primary hover:bg-primary/90 text-black w-full sm:w-auto"
                         >
                             {isAddingPasskey
                                 ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Registering…</>
@@ -1105,7 +1105,7 @@ export default function ProfilePage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-[#0056B3]" />
+                            <Shield className="w-5 h-5 text-brand-700" />
                             Confirm Your Password
                         </DialogTitle>
                         <DialogDescription>
@@ -1137,7 +1137,7 @@ export default function ProfilePage() {
                         <Button
                             onClick={handlePinPasswordConfirm}
                             disabled={!pinPasswordForTrust}
-                            className="bg-[#0056B3] hover:bg-[#004494] text-white"
+                            className="bg-primary hover:bg-primary/90 text-black"
                         >
                             <Shield className="w-4 h-4 mr-2" />
                             Continue to PIN Setup

@@ -89,7 +89,7 @@ export function PinSetup({ userName: _userName, onComplete, onCancel }: PinSetup
                 />
                 {isLoading && (
                     <div className="flex justify-center mt-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#0056B3]" />
+                        <Loader2 className="w-5 h-5 animate-spin text-brand-700" />
                     </div>
                 )}
                 {!isLoading && onCancel && (

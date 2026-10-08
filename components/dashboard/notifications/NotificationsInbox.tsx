@@ -91,7 +91,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                     <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 flex-shrink-0" />
                     <button type="button" onClick={() => setOnlyUnread(v => !v)}
                         className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                            onlyUnread ? 'bg-blue-600 text-white' : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700')}>
+                            onlyUnread ? 'bg-brand-600 text-black' : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700')}>
                         Unread ({unreadCount})
                     </button>
                 </div>
@@ -134,7 +134,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                                     onClick={() => handleClick(n)}
                                     className={cn('group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors',
                                         !n.is_read && 'border-l-[3px] border-l-blue-500',
-                                        n.id === highlightId && 'ring-2 ring-blue-400')}>
+                                        n.id === highlightId && 'ring-2 ring-brand-400')}>
                                     <div className={cn('w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', iconBg(n.type))}>
                                         <NotifIcon type={n.type} />
                                     </div>
@@ -146,11 +146,11 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                                         />
                                         <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">{formatDate(n.created_at ?? '')}</p>
                                     </div>
-                                    {!n.is_read && <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-blue-500" />}
+                                    {!n.is_read && <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-brand-500" />}
                                     <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
                                         {!n.is_read && (
                                             <button type="button" title="Mark as read" onClick={e => { e.stopPropagation(); markAsRead(n.id) }}
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/30"><CheckCircle2 className="w-3.5 h-3.5" /></button>
                                         )}
                                         <button type="button" title="Delete" onClick={e => { e.stopPropagation(); deleteNotif(n.id) }}
                                             className="w-6 h-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"><Trash2 className="w-3.5 h-3.5" /></button>

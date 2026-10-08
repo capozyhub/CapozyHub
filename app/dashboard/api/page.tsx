@@ -152,7 +152,7 @@ function StatCard({
         emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-600 dark:text-emerald-400', text: 'text-emerald-600 dark:text-emerald-400' },
         red: { iconBg: 'bg-red-500/10', iconText: 'text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400' },
         amber: { iconBg: 'bg-amber-500/10', iconText: 'text-amber-600 dark:text-amber-400', text: 'text-amber-600 dark:text-amber-400' },
-        sky: { iconBg: 'bg-sky-500/10', iconText: 'text-sky-600 dark:text-sky-400', text: 'text-sky-600 dark:text-sky-400' },
+        sky: { iconBg: 'bg-brand-500/10', iconText: 'text-brand-700 dark:text-brand-400', text: 'text-brand-700 dark:text-brand-400' },
         slate: { iconBg: 'bg-slate-200 dark:bg-slate-700/60', iconText: 'text-slate-600 dark:text-slate-300', text: 'text-slate-900 dark:text-white' },
     }[accent]
 
@@ -314,7 +314,7 @@ export default function ApiDashboardPage() {
             {/* ── Page Header ─────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-3 sm:gap-4 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-brand-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
                         <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div className="min-w-0">
@@ -1303,7 +1303,7 @@ function EndpointSampleTabs({ samples }: { samples: Record<ApiLangTab, string> }
 function PageHeader() {
     return (
         <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-brand-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
                 <Code2 className="w-6 h-6 text-white" />
             </div>
             <div>

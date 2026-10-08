@@ -174,9 +174,9 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
             {/* ── Form column ── */}
             <div className="space-y-4">
                 {isEditing && (
-                    <div className="flex items-center justify-between rounded-lg bg-blue-50 dark:bg-blue-950/40 px-3 py-2">
-                        <span className="text-[12px] font-medium text-blue-700 dark:text-blue-300">Editing existing announcement</span>
-                        <button onClick={() => { resetForm(); onCancelEdit() }} className="text-[12px] font-medium text-blue-600 hover:underline">
+                    <div className="flex items-center justify-between rounded-lg bg-brand-50 dark:bg-brand-950/40 px-3 py-2">
+                        <span className="text-[12px] font-medium text-brand-700 dark:text-brand-300">Editing existing announcement</span>
+                        <button onClick={() => { resetForm(); onCancelEdit() }} className="text-[12px] font-medium text-brand-700 hover:underline">
                             New instead
                         </button>
                     </div>

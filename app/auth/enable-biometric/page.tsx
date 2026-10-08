@@ -82,7 +82,7 @@ export default function EnableBiometricPage() {
 
             <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center">
                 <Link href="/" className="inline-flex flex-col items-center mb-7">
-                    <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00] mb-2">
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500 mb-2">
                         <BrandLogo width={52} height={52} />
                     </div>
                     <BrandTitle className="text-base font-black tracking-tight" />
@@ -90,9 +90,9 @@ export default function EnableBiometricPage() {
 
                 {/* Identity block */}
                 <div className="flex flex-col items-center mb-6">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3 bg-[#0056B315] border border-[#0056B330]">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#0056B3]" />
-                        <span className="text-xs font-bold text-[#0056B3]">Trusted Device</span>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3 bg-[#F6C30F15] border border-[#F6C30F30]">
+                        <ShieldCheck className="w-3.5 h-3.5 text-brand-700" />
+                        <span className="text-xs font-bold text-brand-700">Trusted Device</span>
                     </div>
                     <h2 className="text-xl font-black text-slate-900 dark:text-white">
                         {fullName ? `Hi, ${fullName}! 👋` : 'Welcome back'}
@@ -100,10 +100,10 @@ export default function EnableBiometricPage() {
                 </div>
 
                 {/* Icon */}
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 border-2 transition-all duration-300 ${success ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700' : 'bg-[#0056B315] border-[#0056B330]'}`}>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 border-2 transition-all duration-300 ${success ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700' : 'bg-[#F6C30F15] border-[#F6C30F30]'}`}>
                     {success
                         ? <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-                        : <Fingerprint className="w-10 h-10 text-[#0056B3]" />
+                        : <Fingerprint className="w-10 h-10 text-brand-700" />
                     }
                 </div>
 
@@ -133,7 +133,7 @@ export default function EnableBiometricPage() {
                         <Button
                             onClick={handleEnable}
                             disabled={loading}
-                            className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8] disabled:opacity-50"
+                            className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300 disabled:opacity-50"
                         >
                             {loading
                                 ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up…</>

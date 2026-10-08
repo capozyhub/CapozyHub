@@ -77,13 +77,13 @@ function getUserStatus(user: any): 'permanent' | 'active' | 'expiring' | 'expire
 }
 
 function getProgressProps(user: any, days: number | null) {
-    if (days === null) return { width: '100%', colorClass: 'fill-indigo-400' }
+    if (days === null) return { width: '100%', colorClass: 'fill-brand-400' }
     const max = user.role === 'dealer' ? 180 : 30
     const pct = Math.min((days / max) * 100, 100)
     const colorClass =
         days <= 7 ? 'fill-red-500' :
         days <= 14 ? 'fill-amber-400' :
-        user.role === 'dealer' ? 'fill-violet-400' : 'fill-blue-400'
+        user.role === 'dealer' ? 'fill-violet-400' : 'fill-brand-400'
     return { width: `${pct}%`, colorClass }
 }
 
@@ -512,13 +512,13 @@ export default function RoleManagementPage() {
                                 ))}
                                 <div className="space-y-1">
                                     <Label className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                        <ShieldCheck className="w-3 h-3 text-indigo-500" /> Permanent (GHS)
+                                        <ShieldCheck className="w-3 h-3 text-brand-700" /> Permanent (GHS)
                                     </Label>
                                     <Input
                                         type="number"
                                         value={prices['permanent']}
                                         onChange={e => setPrices({ ...prices, 'permanent': e.target.value })}
-                                        className="h-8 text-sm font-medium border-indigo-200 dark:border-indigo-800/50"
+                                        className="h-8 text-sm font-medium border-brand-200 dark:border-brand-800/50"
                                     />
                                 </div>
                             </div>
@@ -611,13 +611,13 @@ export default function RoleManagementPage() {
                             </div>
 
                             {/* Agent Promo */}
-                            <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/20">
+                            <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-brand-100 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20">
                                 <div className="space-y-0.5">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                        <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                        <Sparkles className="w-3.5 h-3.5 text-brand-700" />
                                         <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Agent Promo</span>
                                         {signupPromoRole === 'agent' && (
-                                            <Badge className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60 text-[10px] px-1.5 py-0 h-4">Active</Badge>
+                                            <Badge className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px] px-1.5 py-0 h-4">Active</Badge>
                                         )}
                                     </div>
                                     <p className="text-[11px] text-slate-500 dark:text-slate-400">Free 3-day Agent trial on signup.</p>
@@ -689,7 +689,7 @@ export default function RoleManagementPage() {
                                                     'py-1.5 px-2 rounded-md text-[11px] font-medium border transition-all',
                                                     assignDuration === d
                                                         ? d === 'permanent'
-                                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                                            ? 'bg-brand-600 text-black border-brand-600'
                                                             : 'bg-amber-500 text-white border-amber-500'
                                                         : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
                                                 )}
@@ -917,7 +917,7 @@ export default function RoleManagementPage() {
                                                         </td>
                                                         <td className="px-5 py-3.5">
                                                             {status === 'permanent' && (
-                                                                <Badge className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 text-[10px] font-medium gap-0.5">
+                                                                <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px] font-medium gap-0.5">
                                                                     <ShieldCheck className="w-2.5 h-2.5" /> Lifetime
                                                                 </Badge>
                                                             )}
@@ -934,7 +934,7 @@ export default function RoleManagementPage() {
                                                         <td className="px-5 py-3.5">
                                                             <div className="flex flex-col items-center gap-1">
                                                                 {days === null ? (
-                                                                    <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">∞</span>
+                                                                    <span className="text-[11px] font-medium text-brand-700 dark:text-brand-400">∞</span>
                                                                 ) : (
                                                                     <>
                                                                         <span className={cn(
@@ -965,7 +965,7 @@ export default function RoleManagementPage() {
                                                                             className="text-xs gap-2"
                                                                             onClick={() => { setExtendUser(user); setExtendDays('30') }}
                                                                         >
-                                                                            <Plus className="w-3.5 h-3.5 text-blue-500" /> Extend Days
+                                                                            <Plus className="w-3.5 h-3.5 text-brand-700" /> Extend Days
                                                                         </DropdownMenuItem>
                                                                     )}
                                                                     {status !== 'permanent' && (
@@ -980,7 +980,7 @@ export default function RoleManagementPage() {
                                                                         <>
                                                                             <DropdownMenuSeparator />
                                                                             <DropdownMenuItem
-                                                                                className="text-xs gap-2 text-indigo-600 dark:text-indigo-400 focus:bg-indigo-50 dark:focus:bg-indigo-950/30 focus:text-indigo-700 dark:focus:text-indigo-300"
+                                                                                className="text-xs gap-2 text-brand-700 dark:text-brand-400 focus:bg-brand-50 dark:focus:bg-brand-500/30 focus:text-brand-700 dark:focus:text-brand-300"
                                                                                 onClick={() => setPermanentUser(user)}
                                                                             >
                                                                                 <ShieldCheck className="w-3.5 h-3.5" /> Make Permanent
@@ -1043,7 +1043,7 @@ export default function RoleManagementPage() {
                                                                 <Crown className="w-2.5 h-2.5" /> Agent
                                                             </Badge>
                                                         )}
-                                                        {status === 'permanent' && <Badge className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 text-[10px]">Lifetime</Badge>}
+                                                        {status === 'permanent' && <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px]">Lifetime</Badge>}
                                                         {status === 'active' && <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 text-[10px]">Active</Badge>}
                                                         {status === 'expiring' && <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-[10px]">Expiring</Badge>}
                                                         {status === 'expired' && <Badge className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60 text-[10px]">Expired</Badge>}
@@ -1053,7 +1053,7 @@ export default function RoleManagementPage() {
                                                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-2">
                                                     <span className="text-[11px] text-slate-500 dark:text-slate-400">Days left</span>
                                                     {days === null ? (
-                                                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">∞ Lifetime</span>
+                                                        <span className="text-xs font-medium text-brand-700 dark:text-brand-400">∞ Lifetime</span>
                                                     ) : (
                                                         <span className={cn(
                                                             'text-sm font-bold tabular-nums',
@@ -1070,7 +1070,7 @@ export default function RoleManagementPage() {
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                className="flex-1 h-8 text-[11px] text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                                                className="flex-1 h-8 text-[11px] text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 hover:bg-brand-50 dark:hover:bg-brand-500/30"
                                                                 onClick={() => { setExtendUser(user); setExtendDays('30') }}
                                                             >
                                                                 <Plus className="w-3 h-3 mr-1" /> Extend
@@ -1089,7 +1089,7 @@ export default function RoleManagementPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            className="flex-1 h-8 text-[11px] text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                                                            className="flex-1 h-8 text-[11px] text-brand-700 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 hover:bg-brand-50 dark:hover:bg-brand-500/30"
                                                             onClick={() => setPermanentUser(user)}
                                                         >
                                                             <ShieldCheck className="w-3 h-3 mr-1" /> Permanent
@@ -1149,7 +1149,7 @@ export default function RoleManagementPage() {
                                 <Badge
                                     key={d}
                                     variant="outline"
-                                    className="cursor-pointer text-xs border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                    className="cursor-pointer text-xs border-brand-300 dark:border-brand-700 text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/30"
                                     onClick={() => setExtendDays(d.toString())}
                                 >
                                     +{d}d
@@ -1159,7 +1159,7 @@ export default function RoleManagementPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" className="text-sm" onClick={() => setExtendUser(null)}>Cancel</Button>
-                        <Button className="text-sm bg-blue-600 hover:bg-blue-700" onClick={handleExtend} disabled={isExtending}>
+                        <Button className="text-sm bg-brand-600 hover:bg-brand-500" onClick={handleExtend} disabled={isExtending}>
                             {isExtending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                             Extend Days
                         </Button>
@@ -1216,7 +1216,7 @@ export default function RoleManagementPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="text-base font-semibold flex items-center gap-2">
-                            <ShieldCheck className="w-5 h-5 text-indigo-500" /> Make Permanent Agent
+                            <ShieldCheck className="w-5 h-5 text-brand-700" /> Make Permanent Agent
                         </DialogTitle>
                         <DialogDescription className="text-sm">
                             Grant <strong>{permanentUser?.first_name} {permanentUser?.last_name}</strong> permanent lifetime access.
@@ -1225,7 +1225,7 @@ export default function RoleManagementPage() {
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" className="text-sm" onClick={() => setPermanentUser(null)}>Cancel</Button>
-                        <Button className="text-sm bg-indigo-600 hover:bg-indigo-700" onClick={handleMakePermanent} disabled={isMakingPermanent}>
+                        <Button className="text-sm bg-brand-600 hover:bg-brand-500" onClick={handleMakePermanent} disabled={isMakingPermanent}>
                             {isMakingPermanent ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
                             Confirm Permanent
                         </Button>

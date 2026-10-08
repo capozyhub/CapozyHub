@@ -122,11 +122,11 @@ export default async function ShopSuccessPage({ params, searchParams }: Props) {
         }
         if (isQueued) {
             return {
-                iconBg: 'bg-indigo-500',
+                iconBg: 'bg-brand-500',
                 Icon: Clock,
                 title: 'Order Received!',
                 subtitle: 'The recipient’s number is being registered with the network provider. Your data bundle will be delivered automatically once registration is confirmed.',
-                statusColor: 'text-indigo-600',
+                statusColor: 'text-brand-700',
             }
         }
         if (isPending) {
@@ -135,7 +135,7 @@ export default async function ShopSuccessPage({ params, searchParams }: Props) {
                 Icon: CheckCircle2,
                 title: 'Payment Successful!',
                 subtitle: 'Your data bundle is being processed and will be delivered shortly.',
-                statusColor: 'text-blue-600',
+                statusColor: 'text-brand-700',
             }
         }
         return {
@@ -188,7 +188,7 @@ export default async function ShopSuccessPage({ params, searchParams }: Props) {
                                 <heroConfig.Icon className="w-10 h-10 text-white" />
                             </div>
                         ) : isQueued ? (
-                            <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg bg-indigo-500">
+                            <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg bg-brand-500">
                                 <heroConfig.Icon className="w-10 h-10 text-white" />
                             </div>
                         ) : (

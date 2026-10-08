@@ -19,7 +19,8 @@ const config = {
         },
         extend: {
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['var(--font-body)', 'system-ui', 'sans-serif'],
+                display: ['var(--font-display)', 'var(--font-body)', 'system-ui', 'sans-serif'],
             },
             fontSize: {
                 // Heading scale
@@ -70,6 +71,24 @@ const config = {
                 card: {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
+                },
+                brand: {
+                    50: "#FFFBE6",
+                    100: "#FEF3B8",
+                    200: "#FEEA7A",
+                    300: "#FEE21C",
+                    400: "#F9CF12",
+                    500: "#F6C30F",
+                    600: "#F6A900",
+                    700: "#9A6900",
+                    800: "#6F4C00",
+                    900: "#463000",
+                    950: "#2A1D00",
+                },
+                silver: {
+                    50: "#F9F9F9",
+                    100: "#E8E8E8",
+                    200: "#C2C2C2",
                 },
                 mtn: {
                     DEFAULT: "#FFCC00",

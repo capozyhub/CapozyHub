@@ -16,7 +16,7 @@ import { Download, Loader2, TrendingUp, ArrowDownRight, RotateCcw, Wallet, Arrow
 
 const TYPE_META: Record<string, { label: string; sign: '+' | '-'; cls: string; Icon: typeof Wallet }> = {
     profit:                { label: 'Earning',   sign: '+', cls: 'text-emerald-600', Icon: TrendingUp },
-    withdrawal:            { label: 'Withdrawal', sign: '-', cls: 'text-blue-600',    Icon: ArrowDownRight },
+    withdrawal:            { label: 'Withdrawal', sign: '-', cls: 'text-brand-700',    Icon: ArrowDownRight },
     profit_reversal:       { label: 'Refund reversal', sign: '-', cls: 'text-purple-600', Icon: RotateCcw },
     commission_transfer_in: { label: 'Transfer from Commission', sign: '+', cls: 'text-violet-600', Icon: ArrowRightLeft },
 }
@@ -87,7 +87,7 @@ export default function ShopEarningsPage() {
                 </CardContent></Card>
                 <Card><CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">Total withdrawn</p>
-                    <p className="text-xl font-bold text-blue-600">{formatCurrency(wallet?.total_withdrawn ?? 0)}</p>
+                    <p className="text-xl font-bold text-brand-700">{formatCurrency(wallet?.total_withdrawn ?? 0)}</p>
                 </CardContent></Card>
             </div>
 

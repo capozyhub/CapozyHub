@@ -129,7 +129,7 @@ export default function CommissionWalletsTab() {
                     <p className="text-lg font-bold">{formatCurrency(totalBalance)}</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-3.5">
-                    <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /><p className="text-[11px] font-medium text-muted-foreground">Total paid out</p></div>
+                    <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 className="w-3.5 h-3.5 text-brand-700" /><p className="text-[11px] font-medium text-muted-foreground">Total paid out</p></div>
                     <p className="text-lg font-bold">{formatCurrency(totalPaid)}</p>
                 </CardContent></Card>
                 <Card><CardContent className="p-3.5">

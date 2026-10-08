@@ -28,7 +28,7 @@ const BRAND: Partial<Record<CtaKind, { className: string; Icon: ComponentType<{ 
     whatsapp: { className: 'bg-[#25D366] hover:bg-[#1EBE57] text-white', Icon: WhatsAppIcon },
     telegram: { className: 'bg-[#2AABEE] hover:bg-[#1E96D4] text-white', Icon: TelegramIcon },
     call: { className: 'bg-emerald-600 hover:bg-emerald-700 text-white', Icon: Phone },
-    email: { className: 'bg-blue-600 hover:bg-blue-700 text-white', Icon: Mail },
+    email: { className: 'bg-brand-600 hover:bg-brand-500 text-black', Icon: Mail },
 }
 
 export function AnnouncementCTAButtons({ row, variant = 'modal', className }: {

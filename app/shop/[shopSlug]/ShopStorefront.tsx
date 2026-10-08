@@ -122,9 +122,9 @@ interface Props {
 
 // Brand colors per network (used in Airtime tab)
 const networkColors: Record<string, { bgClass: string; textClass: string; borderClass: string; gradient: string }> = {
-    MTN: { bgClass: 'bg-[#FFCE00]', textClass: 'text-[#000000]', borderClass: 'border-[#e6b800]', gradient: 'from-yellow-400 to-yellow-500' },
+    MTN: { bgClass: 'bg-brand-500', textClass: 'text-[#000000]', borderClass: 'border-brand-600', gradient: 'from-yellow-400 to-yellow-500' },
     Telecel: { bgClass: 'bg-[#E60000]', textClass: 'text-[#ffffff]', borderClass: 'border-[#cc0000]', gradient: 'from-red-500 to-red-600' },
-    'AT-iShare': { bgClass: 'bg-[#0056B3]', textClass: 'text-[#ffffff]', borderClass: 'border-[#004494]', gradient: 'from-blue-600 to-blue-700' },
+    'AT-iShare': { bgClass: 'bg-primary', textClass: 'text-[#ffffff]', borderClass: 'border-brand-800', gradient: 'from-brand-600 to-brand-700' },
     'AT-BigTime': { bgClass: 'bg-[#6f42c1]', textClass: 'text-[#ffffff]', borderClass: 'border-[#5a32a3]', gradient: 'from-purple-600 to-purple-700' },
     AT: { bgClass: 'bg-[#F97316]', textClass: 'text-[#ffffff]', borderClass: 'border-[#ea580c]', gradient: 'from-orange-500 to-orange-600' },
 }
@@ -838,7 +838,7 @@ export default function ShopStorefront({
             <div className="fixed top-0 left-0 w-full z-[45] shadow-lg border-b border-black/5 dark:border-white/5 bg-[var(--brand-color)]/95 backdrop-blur-md transition-all duration-300 ease-in-out">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                        <button onClick={() => setIsSidebarOpen(true)} className="p-1 bg-[#FFCE00] hover:bg-[#E6B800] rounded-lg transition-colors flex-shrink-0 text-black border border-black/10 shadow-sm" aria-label="Open menu">
+                        <button onClick={() => setIsSidebarOpen(true)} className="p-1 bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors flex-shrink-0 text-black border border-black/10 shadow-sm" aria-label="Open menu">
                             <Menu className="w-6 h-6 text-black" />
                         </button>
                         {shop.logo_url && (
@@ -936,7 +936,7 @@ export default function ShopStorefront({
                         </div>
                         <div className="w-1 h-1 bg-gray-200 dark:bg-slate-800 rounded-full hidden sm:block" />
                         <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-                            <ShieldCheck className="w-3.5 h-3.5 text-blue-500" /> Verified Access
+                            <ShieldCheck className="w-3.5 h-3.5 text-brand-700" /> Verified Access
                         </div>
                     </div>
                 )}
@@ -990,14 +990,14 @@ export default function ShopStorefront({
                                 className={cn(
                                     'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
                                     activeTab === 'airtime'
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-md shadow-blue-100 dark:shadow-blue-900/30'
+                                        ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-500 shadow-md shadow-brand-100 dark:shadow-brand-900/30'
                                         : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
                                 )}
                             >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'airtime' ? 'bg-blue-500' : 'bg-gray-100 dark:bg-gray-700')}>
+                                <div className={cn('p-2.5 rounded-xl', activeTab === 'airtime' ? 'bg-brand-500' : 'bg-gray-100 dark:bg-gray-700')}>
                                     <Smartphone className={cn('w-5 h-5', activeTab === 'airtime' ? 'text-white' : 'text-gray-500 dark:text-gray-400')} />
                                 </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'airtime' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400')}>Airtime</span>
+                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'airtime' ? 'text-brand-700 dark:text-brand-400' : 'text-gray-500 dark:text-gray-400')}>Airtime</span>
                             </button>
                         )}
 
@@ -1012,7 +1012,7 @@ export default function ShopStorefront({
                                         : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
                                 )}
                             >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'mashup' ? 'bg-[#FFCE00]' : 'bg-gray-100 dark:bg-gray-700')}>
+                                <div className={cn('p-2.5 rounded-xl', activeTab === 'mashup' ? 'bg-brand-500' : 'bg-gray-100 dark:bg-gray-700')}>
                                     <Zap className={cn('w-5 h-5', activeTab === 'mashup' ? 'text-gray-900 fill-gray-900' : 'text-gray-500 dark:text-gray-400')} />
                                 </div>
                                 <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'mashup' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400')}>Mashup</span>
@@ -1111,7 +1111,7 @@ export default function ShopStorefront({
                 {isShopAirtimeEnabled && activeTab === 'airtime' && (
                     <div ref={airtimeRef} className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 transition-colors">
                         <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white bg-indigo-600 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-black bg-brand-600 shadow-sm">
                                 <Smartphone className="w-6 h-6" />
                             </div>
                             <div className="text-left">
@@ -1161,7 +1161,7 @@ export default function ShopStorefront({
                                             <input
                                                 type="tel" value={airtimePhone} onChange={(e) => setAirtimePhone(e.target.value)}
                                                 placeholder="Receiver Phone (e.g. 024XXXXXXX)"
-                                                className="w-full pl-12 pr-12 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full pl-12 pr-12 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                                             />
                                             {detectedNetwork && (
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1207,7 +1207,7 @@ export default function ShopStorefront({
                                             <input
                                                 type="number" min="1" step="0.5" value={airtimeAmount} onChange={(e) => setAirtimeAmount(e.target.value)}
                                                 placeholder={`Custom Amount`}
-                                                className="w-full pl-14 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-lg font-black transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                className="w-full pl-14 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-lg font-black transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                                             />
                                         </div>
                                     </div>
@@ -1217,7 +1217,7 @@ export default function ShopStorefront({
                                         <input
                                             type="email" value={airtimeEmail} onChange={(e) => setAirtimeEmail(e.target.value)}
                                             placeholder="Email for receipt (Optional)"
-                                            className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
                                         />
                                     </div>
 
@@ -1248,7 +1248,7 @@ export default function ShopStorefront({
                                     </div>
 
                                     {detectedNetwork && airtimeAmount !== '' && parseFloat(airtimeAmount) > 0 && (
-                                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-800 shadow-inner">
+                                        <div className="bg-brand-50 dark:bg-brand-900/20 rounded-2xl p-5 border border-brand-100 dark:border-brand-800 shadow-inner">
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
                                                     <span>Recharge Value</span>
@@ -1260,17 +1260,17 @@ export default function ShopStorefront({
                                                     <span className="text-gray-600 dark:text-gray-400">{useExact ? '+' : '–'} {formatCurrency(airFee)}</span>
                                                 </div>
 
-                                                <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-indigo-100/50 dark:bg-indigo-950/50 border border-indigo-200/50 dark:border-indigo-900/50">
-                                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter flex items-center gap-1.5">
+                                                <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-brand-100/50 dark:bg-brand-950/50 border border-brand-200/50 dark:border-brand-900/50">
+                                                    <span className="text-[10px] font-black text-brand-700 dark:text-brand-400 uppercase tracking-tighter flex items-center gap-1.5">
                                                         <Info className="w-3.5 h-3.5" /> Recipient Gets
                                                     </span>
-                                                    <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">{formatCurrency(airtimeToReceive)}</span>
+                                                    <span className="text-sm font-black text-brand-700 dark:text-brand-300">{formatCurrency(airtimeToReceive)}</span>
                                                 </div>
 
-                                                <div className="pt-2 border-t border-indigo-200/30">
+                                                <div className="pt-2 border-t border-brand-200/30">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-sm font-black text-indigo-900 dark:text-indigo-100 uppercase tracking-tighter">You Pay Total</span>
-                                                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(airTotal)}</span>
+                                                        <span className="text-sm font-black text-brand-900 dark:text-brand-100 uppercase tracking-tighter">You Pay Total</span>
+                                                        <span className="text-2xl font-black text-brand-700 dark:text-brand-400">{formatCurrency(airTotal)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1279,7 +1279,7 @@ export default function ShopStorefront({
 
                                     <button
                                         onClick={handleBuyAirtime} disabled={loading || !detectedNetwork || parseFloat(airtimeAmount || '0') <= 0}
-                                        className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                                        className="w-full py-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-black font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                     >
                                         {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><Smartphone className="w-5 h-5"/> Recharge Airtime</>}
                                     </button>
@@ -1292,7 +1292,7 @@ export default function ShopStorefront({
                 {isShopMashupEnabled && activeTab === 'mashup' && (
                     <div className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 transition-colors">
                         <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-900 bg-[#FFCE00] shadow-sm">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-900 bg-brand-500 shadow-sm">
                                 <Zap className="w-6 h-6" />
                             </div>
                             <div className="text-left">
@@ -1313,10 +1313,10 @@ export default function ShopStorefront({
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => setMashupBundle('data')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'data' ? "border-[#FFCE00] bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
+                                    <button onClick={() => setMashupBundle('data')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'data' ? "border-brand-500 bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
                                         <Zap className="w-4 h-4" /> Data Preferred
                                     </button>
-                                    <button onClick={() => setMashupBundle('balanced')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'balanced' ? "border-[#FFCE00] bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
+                                    <button onClick={() => setMashupBundle('balanced')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'balanced' ? "border-brand-500 bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
                                         <RefreshCw className="w-4 h-4" /> Balanced Preferred
                                     </button>
                                 </div>
@@ -1364,8 +1364,8 @@ export default function ShopStorefront({
                                                         <p className="text-[10px] font-bold text-yellow-600/70 dark:text-yellow-500/70 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
                                                             <Zap className="w-3 h-3" /> Data
                                                         </p>
-                                                        <p className="text-sm font-black text-blue-700 dark:text-blue-400">{mashupBreakdown.data}</p>
-                                                        {!mashupBreakdown.exact && <p className="text-xs text-blue-500 mt-0.5">Estimated Range</p>}
+                                                        <p className="text-sm font-black text-brand-700 dark:text-brand-400">{mashupBreakdown.data}</p>
+                                                        {!mashupBreakdown.exact && <p className="text-xs text-brand-700 mt-0.5">Estimated Range</p>}
                                                     </div>
                                                     <div className="flex-1 text-center">
                                                         <p className="text-[10px] font-bold text-yellow-600/70 dark:text-yellow-500/70 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
@@ -1405,7 +1405,7 @@ export default function ShopStorefront({
                                         parseFloat(mashupAmount) < mashupMinAmount ||
                                         parseFloat(mashupAmount) > mashupMaxAmount
                                     }
-                                    className="w-full py-4 rounded-xl bg-[#FFCE00] hover:bg-yellow-500 text-gray-900 font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                                    className="w-full py-4 rounded-xl bg-brand-500 hover:bg-yellow-500 text-gray-900 font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                 >
                                     {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><Zap className="w-5 h-5"/> Buy Mashup</>}
                                 </button>
@@ -1848,17 +1848,17 @@ export default function ShopStorefront({
 
                         {isShopAirtimeEnabled && (
                             <button onClick={() => selectProduct('airtime')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'airtime' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'airtime' ? "bg-blue-500" : "bg-gray-100 dark:bg-gray-800")}>
+                                <div className={cn("p-1.5 rounded-lg", activeTab === 'airtime' ? "bg-brand-500" : "bg-gray-100 dark:bg-gray-800")}>
                                     <Smartphone className={cn("w-4 h-4", activeTab === 'airtime' ? "text-white" : "text-gray-400")} />
                                 </div>
                                 <span className="font-bold flex-1 text-left">Airtime Recharge</span>
-                                {activeTab === 'airtime' && <Check className="w-4 h-4 text-blue-500" />}
+                                {activeTab === 'airtime' && <Check className="w-4 h-4 text-brand-700" />}
                             </button>
                         )}
 
                         {isShopMashupEnabled && (
                             <button onClick={() => selectProduct('mashup')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'mashup' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'mashup' ? "bg-[#FFCE00]" : "bg-gray-100 dark:bg-gray-800")}>
+                                <div className={cn("p-1.5 rounded-lg", activeTab === 'mashup' ? "bg-brand-500" : "bg-gray-100 dark:bg-gray-800")}>
                                     <Zap className={cn("w-4 h-4", activeTab === 'mashup' ? "text-gray-900 fill-gray-900" : "text-gray-400")} />
                                 </div>
                                 <span className="font-bold flex-1 text-left">MTN Mashup</span>
@@ -1944,7 +1944,7 @@ export default function ShopStorefront({
                             "relative overflow-hidden px-6 pt-6 pb-7 text-center",
                             announcement.type === 'admin'
                                 ? "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500"
-                                : "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600"
+                                : "bg-gradient-to-br from-brand-500 via-brand-600 to-brand-600"
                         )}>
                             {/* Decorative blobs */}
                             <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" />
@@ -2042,7 +2042,7 @@ export default function ShopStorefront({
                                                                     navigator.clipboard.writeText(`Serial: ${v.serial_number}\nPIN: ${v.pin}`)
                                                                     toast.success('Copied to clipboard')
                                                                 }}
-                                                                className="text-xs font-bold text-blue-500 uppercase px-2 py-1"
+                                                                className="text-xs font-bold text-brand-700 uppercase px-2 py-1"
                                                             >
                                                                 Copy
                                                             </button>

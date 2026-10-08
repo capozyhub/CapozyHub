@@ -49,7 +49,7 @@ const ROLE_ICONS: Record<string, any> = {
 const ROLE_COLORS: Record<string, string> = {
     dealer: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
     agent: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    customer: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    customer: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     'sub-admin': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 }
@@ -297,7 +297,7 @@ function SelectedUserCard({
                 {/* Gradient accent top strip */}
                 <div className="h-1.5 w-full rounded-t-2xl bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500" />
 
-                <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-slate-900 dark:to-slate-800/80 p-5 rounded-b-2xl">
+                <div className="bg-gradient-to-br from-slate-50 to-brand-50/40 dark:from-slate-900 dark:to-slate-800/80 p-5 rounded-b-2xl">
                     {/* Top row: avatar + main info + balance */}
                     <div className="flex items-start gap-4">
                         {/* Avatar with optional debt glow */}

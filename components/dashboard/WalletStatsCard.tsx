@@ -16,8 +16,8 @@ export function WalletStatsCard({ balance, totalCredited, totalSpent }: WalletSt
             <div className="bg-[#1A1A1A] p-6 text-white">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                        <Wallet className="w-6 h-6 text-[#FACC15]" />
-                        <span className="font-semibold uppercase tracking-widest text-xs text-[#FACC15]">Lifetime Wallet Stats</span>
+                        <Wallet className="w-6 h-6 text-brand-500" />
+                        <span className="font-semibold uppercase tracking-widest text-xs text-brand-500">Lifetime Wallet Stats</span>
                     </div>
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

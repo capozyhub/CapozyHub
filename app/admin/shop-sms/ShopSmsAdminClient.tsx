@@ -346,8 +346,8 @@ export default function ShopSmsAdminClient() {
                 {[
                     { label: 'Activations', value: String(data.revenue.activationCount), icon: Zap, color: 'text-emerald-600' },
                     { label: 'Activation Revenue', value: formatCurrency(data.revenue.activationTotal), icon: Wallet, color: 'text-emerald-600' },
-                    { label: 'Bundles Sold', value: String(data.revenue.purchaseCount), icon: Coins, color: 'text-blue-600' },
-                    { label: 'Bundle Revenue', value: formatCurrency(data.revenue.purchaseTotal), icon: Wallet, color: 'text-blue-600' },
+                    { label: 'Bundles Sold', value: String(data.revenue.purchaseCount), icon: Coins, color: 'text-brand-700' },
+                    { label: 'Bundle Revenue', value: formatCurrency(data.revenue.purchaseTotal), icon: Wallet, color: 'text-brand-700' },
                     { label: 'Credits Sold', value: String(data.revenue.creditsSold), icon: MessageSquare, color: 'text-purple-600' },
                 ].map(({ label, value, icon: Icon, color }) => (
                     <Card key={label} className="border shadow-sm rounded-xl">
@@ -449,7 +449,7 @@ export default function ShopSmsAdminClient() {
 
                         <div>
                             <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                <Link2 className="w-3.5 h-3.5 text-blue-500" /> Extra allowed link domains
+                                <Link2 className="w-3.5 h-3.5 text-brand-700" /> Extra allowed link domains
                             </label>
                             <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                                 Comma-separated. <strong>In addition to</strong> KiNG FLEXY + WhatsApp/Facebook/Instagram/X/Telegram
@@ -576,7 +576,7 @@ export default function ShopSmsAdminClient() {
                 <CardContent className="p-0">
                     <div className="px-4 py-3 border-b">
                         <h2 className="text-sm font-bold flex items-center gap-1.5">
-                            <Coins className="w-4 h-4 text-blue-500" /> Shop Credit Balances ({data.shopWallets.length})
+                            <Coins className="w-4 h-4 text-brand-700" /> Shop Credit Balances ({data.shopWallets.length})
                         </h2>
                     </div>
                     {data.shopWallets.length === 0 ? (

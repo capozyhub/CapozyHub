@@ -438,13 +438,13 @@ export default function MyOrdersPage() {
             case 'completed':
                 return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
             case 'processing':
-                return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
             case 'failed':
                 return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             case 'refunded':
                 return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
             case 'queued':
-                return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
+                return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
             case 'pending':
                 return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
             default:
@@ -486,7 +486,7 @@ export default function MyOrdersPage() {
                     <p className="text-base sm:text-lg font-bold">{stats.totalOrders}</p>
                     <p className="text-[10px] sm:text-xs text-gray-400">Total Orders</p>
                 </div>
-                <div className="bg-[#FACC15] rounded-xl p-3 sm:p-4 text-center text-black">
+                <div className="bg-brand-500 rounded-xl p-3 sm:p-4 text-center text-black">
                     <p className="text-base sm:text-lg font-bold">{formatAmount(stats.totalAmount)}</p>
                     <p className="text-[10px] sm:text-xs text-black/70">Total Amount</p>
                 </div>
@@ -528,7 +528,7 @@ export default function MyOrdersPage() {
                         key={value}
                         onClick={() => setTimePeriod(value)}
                         className={`px-1 py-2 text-[10px] sm:text-xs rounded-lg border transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === value
-                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-[#FACC15] dark:text-black dark:border-[#FACC15]'
+                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-brand-500 dark:text-black dark:border-brand-500'
                             : 'bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-500'
                             }`}
                     >
@@ -538,7 +538,7 @@ export default function MyOrdersPage() {
                 <button
                     onClick={() => setIsCustomDialogOpen(true)}
                     className={`px-1 py-2 text-[10px] sm:text-xs rounded-lg border transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === 'Custom'
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-[#FACC15] dark:text-black dark:border-[#FACC15]'
+                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-brand-500 dark:text-black dark:border-brand-500'
                         : 'bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-500'
                         }`}
                 >
@@ -704,7 +704,7 @@ export default function MyOrdersPage() {
                                     <span className="text-sm text-muted-foreground">{order.status}</span>
                                     {/* Action Area */}
                                     {orderThreads[order.id] || (order.complaints && order.complaints.length > 0) ? (
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800">
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             <span className="text-xs font-medium capitalize">
                                                 Complaint: {(orderThreads[order.id]?.status
@@ -724,7 +724,7 @@ export default function MyOrdersPage() {
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleRetry(order)}
-                                            className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20"
+                                            className="text-brand-700 border-brand-200 hover:bg-brand-50 dark:text-brand-400 dark:border-brand-800 dark:hover:bg-brand-500/20"
                                         >
                                             <RefreshCw className="w-4 h-4 mr-1" />
                                             Retry
@@ -855,7 +855,7 @@ export default function MyOrdersPage() {
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>Today&apos;s price will be charged to your wallet — this may differ from what you originally paid. You&apos;ll see the exact amount charged once the retry succeeds.</span>
                         </div>
-                        <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5">
+                        <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                             <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>For MTN numbers, we recommend waiting 24 hours after a failed order before retrying, so the number can be verified into the MTN UP2U account.</span>
                         </div>
@@ -932,7 +932,7 @@ export default function MyOrdersPage() {
                                     toast.error('Please select both dates')
                                 }
                             }}
-                            className="rounded-xl bg-[#1a1a1a] text-white hover:bg-black dark:bg-[#FACC15] dark:text-black dark:hover:bg-yellow-500"
+                            className="rounded-xl bg-[#1a1a1a] text-white hover:bg-black dark:bg-brand-500 dark:text-black dark:hover:bg-yellow-500"
                         >
                             Apply Filter
                         </Button>

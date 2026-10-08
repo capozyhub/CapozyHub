@@ -33,15 +33,15 @@ export function WebsiteRequestPromo() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ type: 'spring', stiffness: 220, damping: 30 }}
-                className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-white to-white p-6 shadow-lg shadow-indigo-900/5 dark:border-indigo-900/50 dark:from-indigo-950/50 dark:via-gray-950 dark:to-gray-950 dark:shadow-black/20 sm:p-9"
+                className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-brand-200/70 bg-gradient-to-br from-brand-50 via-white to-white p-6 shadow-lg shadow-brand-900/5 dark:border-brand-900/50 dark:from-brand-950/50 dark:via-gray-950 dark:to-gray-950 dark:shadow-black/20 sm:p-9"
             >
                 {/* Thesis */}
                 <div className="flex items-start gap-4">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-sm dark:bg-indigo-500">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-600 text-black shadow-sm dark:bg-brand-500">
                         <Code2 className="h-6 w-6" />
                     </span>
                     <div className="min-w-0">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-400">
                             Software development
                         </p>
                         <h2 className="mt-1 text-2xl font-black leading-tight tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -61,7 +61,7 @@ export function WebsiteRequestPromo() {
                             key={label}
                             className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white/70 p-3.5 dark:border-gray-800 dark:bg-white/[0.03]"
                         >
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-400">
                                 <Icon className="h-4 w-4" />
                             </span>
                             <div className="min-w-0">
@@ -76,7 +76,7 @@ export function WebsiteRequestPromo() {
                 <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
                     {ASSURANCES.map(({ Icon, text }) => (
                         <span key={text} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                            <Icon className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                            <Icon className="h-3.5 w-3.5 text-brand-700 dark:text-brand-400" />
                             {text}
                         </span>
                     ))}
@@ -92,7 +92,7 @@ export function WebsiteRequestPromo() {
                         </span>
                     </p>
                     <Link href={href} className="shrink-0">
-                        <span className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 sm:w-auto">
+                        <span className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-bold text-black shadow-sm transition hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:bg-brand-500 dark:hover:bg-brand-400 sm:w-auto">
                             Start a request
                             <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                         </span>

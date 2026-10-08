@@ -311,7 +311,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                     <div className={cn(
                         "mx-4 mt-6 p-4 rounded-2xl border shadow-lg",
                         dbUser?.role === 'agent'
-                            ? "bg-[#FFCE00] border-black/10"
+                            ? "bg-brand-500 border-black/10"
                             : dbUser?.role === 'dealer'
                                 ? "bg-gradient-to-br from-violet-700 to-purple-800 border-violet-500/30"
                                 : "bg-gradient-to-br from-gray-200/90 to-gray-300 dark:from-gray-800/90 dark:to-gray-900 border-gray-400/50 dark:border-gray-700/50"
@@ -323,10 +323,10 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                 className={cn(
                                     "relative w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md ring-2 ring-white/20",
                                     dbUser?.role === 'admin' ? "bg-[#E60000]" :
-                                    dbUser?.role === 'sub-admin' ? "bg-[#FACC15]" :
+                                    dbUser?.role === 'sub-admin' ? "bg-brand-500" :
                                     dbUser?.role === 'agent' ? "bg-[#25D366]" :
                                     dbUser?.role === 'dealer' ? "bg-[#7C3AED]" :
-                                    dbUser?.role === 'subagent' ? "bg-[#0D9488]" : "bg-[#0056B3]"
+                                    dbUser?.role === 'subagent' ? "bg-[#0D9488]" : "bg-primary"
                                 )}
                             >
                                 <RoleIcon className="w-6 h-6" />
@@ -378,7 +378,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                             dbUser?.role === 'sub-admin' ? "text-[#B59410]" :
                                             dbUser?.role === 'agent' ? "text-[#25D366]" :
                                             dbUser?.role === 'dealer' ? "text-[#7C3AED]" :
-                                            dbUser?.role === 'subagent' ? "text-[#0D9488]" : "text-[#0056B3]"
+                                            dbUser?.role === 'subagent' ? "text-[#0D9488]" : "text-brand-700"
                                         )}
                                     >
                                         {currentRole.label}
@@ -463,7 +463,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                         <div className={cn(
                             "flex items-center justify-between p-3 rounded-xl border backdrop-blur-md",
                             dbUser?.role === 'agent'
-                                ? "bg-[#FFCE00] border-black/10"
+                                ? "bg-brand-500 border-black/10"
                                 : dbUser?.role === 'dealer'
                                     ? "bg-white/10 border-white/20"
                                     : "bg-gray-300/60 dark:bg-black/40 border-gray-400/30 dark:border-gray-800/50"
@@ -526,12 +526,12 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                             "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200",
                                             isActive
                                                 ? dbUser?.role === 'agent'
-                                                    ? "bg-black text-[#FFCE00] shadow-lg"
+                                                    ? "bg-black text-brand-500 shadow-lg"
                                                     : dbUser?.role === 'dealer'
                                                         ? "bg-white/20 text-white shadow-lg"
                                                         : "bg-yellow-500/20 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                                                 : dbUser?.role === 'agent'
-                                                    ? "text-black hover:text-[#FFCE00] hover:bg-black/10"
+                                                    ? "text-black hover:text-brand-500 hover:bg-black/10"
                                                     : dbUser?.role === 'dealer'
                                                         ? "text-white/80 hover:text-white hover:bg-white/10"
                                                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-300/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200",
@@ -540,7 +540,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                     >
                                         <item.icon className={cn(
                                             "w-5 h-5 flex-shrink-0",
-                                            isActive && (dbUser?.role === 'agent' ? "text-[#FFCE00]" : dbUser?.role === 'dealer' ? "text-white" : "text-yellow-600 dark:text-yellow-400")
+                                            isActive && (dbUser?.role === 'agent' ? "text-brand-500" : dbUser?.role === 'dealer' ? "text-white" : "text-yellow-600 dark:text-yellow-400")
                                         )} />
                                         {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
                                     </div>
@@ -568,12 +568,12 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                                 "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200",
                                                 isLinkActive('/dashboard/recruit')
                                                     ? dbUser?.role === 'agent'
-                                                        ? "bg-black text-[#FFCE00] shadow-lg"
+                                                        ? "bg-black text-brand-500 shadow-lg"
                                                         : dbUser?.role === 'dealer'
                                                             ? "bg-white/20 text-white shadow-lg"
                                                             : "bg-yellow-500/20 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                                                     : dbUser?.role === 'agent'
-                                                        ? "text-black hover:text-[#FFCE00] hover:bg-black/10"
+                                                        ? "text-black hover:text-brand-500 hover:bg-black/10"
                                                         : dbUser?.role === 'dealer'
                                                             ? "text-white/80 hover:text-white hover:bg-white/10"
                                                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-300/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200",
@@ -582,7 +582,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                         >
                                             <UserPlus className={cn(
                                                 "w-5 h-5 flex-shrink-0",
-                                                isLinkActive('/dashboard/recruit') && (dbUser?.role === 'agent' ? "text-[#FFCE00]" : dbUser?.role === 'dealer' ? "text-white" : "text-yellow-600 dark:text-yellow-400")
+                                                isLinkActive('/dashboard/recruit') && (dbUser?.role === 'agent' ? "text-brand-500" : dbUser?.role === 'dealer' ? "text-white" : "text-yellow-600 dark:text-yellow-400")
                                             )} />
                                             {!isCollapsed && <span className="text-sm font-medium">Sub-Agents</span>}
                                         </div>
@@ -607,12 +607,12 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                             "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200 mb-1",
                                             isShopActive
                                                 ? dbUser?.role === 'agent'
-                                                    ? "bg-black text-[#FFCE00] shadow-lg"
+                                                    ? "bg-black text-brand-500 shadow-lg"
                                                     : dbUser?.role === 'dealer'
                                                         ? "bg-white/20 text-white shadow-lg"
                                                         : "bg-emerald-500/20 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                                 : dbUser?.role === 'agent'
-                                                    ? "text-black hover:text-[#FFCE00] hover:bg-black/10"
+                                                    ? "text-black hover:text-brand-500 hover:bg-black/10"
                                                     : dbUser?.role === 'dealer'
                                                         ? "text-white/80 hover:text-white hover:bg-white/10"
                                                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-300/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200",
@@ -621,7 +621,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                     >
                                         <Store className={cn(
                                             "w-5 h-5 flex-shrink-0",
-                                            isShopActive && (dbUser?.role === 'agent' ? "text-[#FFCE00]" : dbUser?.role === 'dealer' ? "text-white" : "text-emerald-600 dark:text-emerald-400")
+                                            isShopActive && (dbUser?.role === 'agent' ? "text-brand-500" : dbUser?.role === 'dealer' ? "text-white" : "text-emerald-600 dark:text-emerald-400")
                                         )} />
                                         {!isCollapsed && <span className="text-sm font-medium">My Store</span>}
                                     </div>
@@ -638,12 +638,12 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                         "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200",
                                         isShopActive
                                             ? dbUser?.role === 'agent'
-                                                ? "bg-black text-[#FFCE00] shadow-lg"
+                                                ? "bg-black text-brand-500 shadow-lg"
                                                 : dbUser?.role === 'dealer'
                                                     ? "bg-white/20 text-white shadow-lg"
                                                     : "bg-emerald-500/20 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                             : dbUser?.role === 'agent'
-                                                ? "text-black hover:text-[#FFCE00] hover:bg-black/10"
+                                                ? "text-black hover:text-brand-500 hover:bg-black/10"
                                                 : dbUser?.role === 'dealer'
                                                     ? "text-white/80 hover:text-white hover:bg-white/10"
                                                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-300/60 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-gray-200",
@@ -653,7 +653,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                     <Store className={cn(
                                         "w-5 h-5 flex-shrink-0",
                                         isShopActive && (
-                                            dbUser?.role === 'agent' ? "text-[#FFCE00]" :
+                                            dbUser?.role === 'agent' ? "text-brand-500" :
                                             dbUser?.role === 'dealer' ? "text-white" :
                                             "text-emerald-600 dark:text-emerald-400"
                                         )
@@ -704,12 +704,12 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                                             "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-200",
                                                             isActive
                                                                 ? dbUser?.role === 'agent'
-                                                                    ? "bg-black text-[#FFCE00] font-semibold"
+                                                                    ? "bg-black text-brand-500 font-semibold"
                                                                     : dbUser?.role === 'dealer'
                                                                         ? "bg-white/20 text-white font-semibold"
                                                                         : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold"
                                                                 : dbUser?.role === 'agent'
-                                                                    ? "text-black hover:text-[#FFCE00] hover:bg-black/10"
+                                                                    ? "text-black hover:text-brand-500 hover:bg-black/10"
                                                                     : dbUser?.role === 'dealer'
                                                                         ? "text-white/70 hover:text-white hover:bg-white/10"
                                                                         : "text-gray-600 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:text-emerald-600 dark:hover:text-emerald-400",
@@ -719,7 +719,7 @@ export function DashboardSidebar({ communityLink = 'https://chat.whatsapp.com/GY
                                                         <item.icon className={cn(
                                                             "w-5 h-5 flex-shrink-0",
                                                             isActive && (
-                                                                dbUser?.role === 'agent' ? "text-[#FFCE00]" :
+                                                                dbUser?.role === 'agent' ? "text-brand-500" :
                                                                 dbUser?.role === 'dealer' ? "text-white" :
                                                                 "text-emerald-600 dark:text-emerald-400"
                                                             )

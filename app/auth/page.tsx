@@ -47,7 +47,7 @@ import {
 const TERMS_SECTIONS = [
     {
         icon: Shield,
-        color: 'text-sky-500',
+        color: 'text-brand-700',
         title: '1. Account Security',
         body: 'You are responsible for maintaining the confidentiality of your login credentials. Any transaction performed through your account is considered authorized by you.',
     },
@@ -65,7 +65,7 @@ const TERMS_SECTIONS = [
     },
     {
         icon: Clock,
-        color: 'text-blue-500',
+        color: 'text-brand-700',
         title: '4. Processing Times & 24hr Reporting',
         body: 'While 99% of transactions hit the entered number within seconds, telecommunications networks may experience downtime. Customers must report non-received orders within 24 hours of purchase. Failure to report within this window may result in the loss of eligibility for fulfillment.',
     },
@@ -77,7 +77,7 @@ const TERMS_SECTIONS = [
     },
     {
         icon: UserCheck,
-        color: 'text-indigo-500',
+        color: 'text-brand-700',
         title: '6. Agent & Shop Roles',
         body: 'Users who purchase Agent upgrades or open Shops are bound by the pricing and operational guidelines set by KiNG FLEXY GH. We reserve the right to suspend accounts that abuse the platform or violate network provider rules.',
     },
@@ -120,7 +120,7 @@ function OrDivider() {
 }
 
 function BrandAccentLine() {
-    return <div className="h-1 w-full bg-gradient-to-r from-[#0056B3] via-[#00B4D8] to-[#FFCC00]" />
+    return <div className="h-1 w-full bg-gradient-to-r from-brand-700 via-brand-300 to-brand-500" />
 }
 
 // ─── PIN dots ────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ function PinDots({ filled, length = 6, shake }: { filled: number; length?: numbe
                     className={cn(
                         'w-4 h-4 rounded-full transition-all duration-200',
                         i < filled
-                            ? 'scale-110 bg-[#0056B3] shadow-[0_0_8px_#0056B350]'
+                            ? 'scale-110 bg-primary shadow-[0_0_8px_#F6C30F50]'
                             : 'bg-slate-200 dark:bg-slate-700'
                     )}
                 />
@@ -310,9 +310,9 @@ function PinFirstScreen({
         <div className="w-full max-w-sm flex flex-col items-center">
             {/* Identity */}
             <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3 bg-[#0056B315] border border-[#0056B330]">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#0056B3]" />
-                    <span className="text-xs font-bold text-[#0056B3]">Trusted Device</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3 bg-[#F6C30F15] border border-[#F6C30F30]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-brand-700" />
+                    <span className="text-xs font-bold text-brand-700">Trusted Device</span>
                 </div>
                 {firstName ? (
                     <h2 className="text-xl font-black text-slate-900 dark:text-white">Hi, {firstName}! 👋</h2>
@@ -336,7 +336,7 @@ function PinFirstScreen({
                     )}
                     {isLoading && (
                         <div className="flex items-center justify-center gap-2 mt-3">
-                            <Loader2 className="w-4 h-4 animate-spin text-[#0056B3]" />
+                            <Loader2 className="w-4 h-4 animate-spin text-brand-700" />
                             <span className="text-sm font-medium text-slate-500">Verifying…</span>
                         </div>
                     )}
@@ -374,7 +374,7 @@ function PinFirstScreen({
                 <button
                     type="button"
                     onClick={onSwitchAccount}
-                    className="text-sm font-semibold flex items-center gap-1.5 transition-colors text-[#0056B3]"
+                    className="text-sm font-semibold flex items-center gap-1.5 transition-colors text-brand-700"
                 >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Sign in as someone else
@@ -558,7 +558,7 @@ function SignInForm({ onGoogleLoading, googleLoading }: {
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input type="text" autoComplete="username" placeholder="your@email.com or 024XXXXXXX" value={identifier}
                             onChange={e => setIdentifier(e.target.value)} required
-                            className="h-11 pl-10 rounded-xl text-sm focus:ring-2 focus:ring-[#0056B340]" />
+                            className="h-11 pl-10 rounded-xl text-sm focus:ring-2 focus:ring-[#F6C30F40]" />
                     </div>
                 </div>
 
@@ -578,7 +578,7 @@ function SignInForm({ onGoogleLoading, googleLoading }: {
                 </div>
 
                 <Button type="submit" disabled={isLoading || lockoutMinutes !== null}
-                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-brand-700 to-brand-300">
                     {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in…</> : <><LogIn className="w-4 h-4 mr-2" />Sign In</>}
                 </Button>
             </form>
@@ -586,7 +586,7 @@ function SignInForm({ onGoogleLoading, googleLoading }: {
             {needsConfirm && (
                 <div className="text-center animate-in fade-in slide-in-from-top-1 duration-300">
                     <button type="button" onClick={handleResendConfirmation} disabled={resendState !== 'idle'}
-                        className="text-xs font-semibold transition-colors text-[#0056B3] inline-flex items-center justify-center gap-1 disabled:opacity-60">
+                        className="text-xs font-semibold transition-colors text-brand-700 inline-flex items-center justify-center gap-1 disabled:opacity-60">
                         <RefreshCw className={cn('w-3 h-3', resendState === 'sending' && 'animate-spin')} />
                         {resendState === 'sending' ? 'Sending…' : resendState === 'sent' ? 'Confirmation email sent — check your inbox' : 'Resend confirmation email'}
                     </button>
@@ -596,7 +596,7 @@ function SignInForm({ onGoogleLoading, googleLoading }: {
             {/* Always visible — recovery must never be one failed attempt away. */}
             <div className="text-center">
                 <Link href="/auth/reset-password"
-                    className="text-xs font-semibold transition-colors text-[#0056B3] inline-flex items-center justify-center gap-1">
+                    className="text-xs font-semibold transition-colors text-brand-700 inline-flex items-center justify-center gap-1">
                     <KeyRound className="w-3 h-3" />Forgot your password?
                 </Link>
             </div>
@@ -612,7 +612,7 @@ function SignInForm({ onGoogleLoading, googleLoading }: {
                     >
                         {passkeyLoading
                             ? <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
-                            : <KeyRound className="w-5 h-5 text-[#0056B3] flex-shrink-0" />
+                            : <KeyRound className="w-5 h-5 text-brand-700 flex-shrink-0" />
                         }
                         <span>{passkeyLoading ? 'Authenticating…' : 'Sign in with Passkey'}</span>
                     </button>
@@ -849,7 +849,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
         return (
             <div className="space-y-4">
                 <div className="text-center space-y-1">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-gradient-to-br from-brand-700 to-brand-300">
                         <MessageSquare className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="font-black text-base text-slate-900 dark:text-white">Verify your phone</h3>
@@ -869,7 +869,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                         autoFocus className="h-12 text-center text-xl font-black tracking-[0.4em] rounded-xl" />
                 </div>
                 <Button type="button" onClick={handleVerifyOTP} disabled={otpLoading || otpCode.length !== 6}
-                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-brand-700 to-brand-300">
                     {otpLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</> : <><CheckCircle2 className="w-4 h-4 mr-2" />Verify & Create Account</>}
                 </Button>
                 <div className="flex items-center justify-between text-sm">
@@ -878,7 +878,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                         <ArrowLeft className="w-3 h-3" /> Go back
                     </button>
                     <button type="button" onClick={handleResendOTP} disabled={resendCooldown > 0}
-                        className="font-semibold flex items-center gap-1 transition-colors disabled:opacity-50 text-[#0056B3] text-xs">
+                        className="font-semibold flex items-center gap-1 transition-colors disabled:opacity-50 text-brand-700 text-xs">
                         <RefreshCw className="w-3 h-3" />
                         {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
                     </button>
@@ -908,7 +908,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                     type="button"
                     onClick={handleResendSignupConfirmation}
                     disabled={resendCooldown > 0}
-                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8] disabled:opacity-60"
+                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300 disabled:opacity-60"
                 >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend confirmation email'}
@@ -932,7 +932,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                 <DialogContent className="max-w-md flex flex-col p-0 gap-0 max-h-[85vh]">
                     <DialogHeader className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
                         <DialogTitle className="flex items-center gap-2 text-sm font-black">
-                            <BookOpen className="w-4 h-4 text-[#0056B3]" />
+                            <BookOpen className="w-4 h-4 text-brand-700" />
                             Terms of Service
                         </DialogTitle>
                     </DialogHeader>
@@ -957,7 +957,7 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                         </Button>
                         <Button
                             onClick={() => { setAgreedToTerms(true); setShowTermsDialog(false) }}
-                            className="flex-1 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-[#0056B3] to-[#00B4D8]"
+                            className="flex-1 h-10 text-sm font-bold text-white rounded-xl bg-gradient-to-br from-brand-700 to-brand-300"
                         >
                             <CheckCircle2 className="w-4 h-4 mr-1.5" />
                             I Accept
@@ -1052,23 +1052,23 @@ function SignUpForm({ onGoogleLoading, googleLoading }: {
                                 setShowTermsDialog(true)
                             }
                         }}
-                        className="w-4 h-4 mt-0.5 border-slate-300 rounded cursor-pointer accent-[#0056B3]"
+                        className="w-4 h-4 mt-0.5 border-slate-300 rounded cursor-pointer accent-brand-700"
                     />
                     <label htmlFor="terms" className="text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer leading-relaxed">
                         I have read and agree to the latest{' '}
                         <button type="button" onClick={() => setShowTermsDialog(true)}
-                            className="font-bold text-[#0056B3] hover:underline">
+                            className="font-bold text-brand-700 hover:underline">
                             Terms of Service
                         </button>
                         {' '}(v{termsMeta.version}, effective {termsMeta.effectiveDate}){' '}and{' '}
-                        <Link href="/privacy" target="_blank" className="font-bold hover:underline text-[#0056B3]">
+                        <Link href="/privacy" target="_blank" className="font-bold hover:underline text-brand-700">
                             Privacy Policy
                         </Link>
                     </label>
                 </div>
 
                 <Button type="submit" disabled={isLoading || !agreedToTerms || lockoutMinutes !== null}
-                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-[#0056B3] to-[#00B4D8]">
+                    className="w-full h-11 text-sm font-bold text-white rounded-xl shadow-lg transition-all disabled:opacity-50 bg-gradient-to-br from-brand-700 to-brand-300">
                     {isLoading
                         ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</>
                         : <><UserPlus className="w-4 h-4 mr-2" />Create Account</>}
@@ -1150,7 +1150,7 @@ export default function AuthPage() {
         return (
             <div className="relative min-h-screen w-full flex items-center justify-center">
                 <BackgroundBubbles scrollable />
-                <Loader2 className="w-7 h-7 animate-spin text-[#0056B3]" />
+                <Loader2 className="w-7 h-7 animate-spin text-brand-700" />
             </div>
         )
     }
@@ -1170,7 +1170,7 @@ export default function AuthPage() {
                 </div>
                 <div className="relative z-10 w-full flex flex-col items-center">
                     <Link href="/" className="inline-flex flex-col items-center mb-8">
-                        <div className="relative w-16 h-16 mb-2 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00]">
+                        <div className="relative w-16 h-16 mb-2 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500">
                             <BrandLogo width={60} height={60} />
                         </div>
                         <BrandTitle className="text-base font-black tracking-tight" />
@@ -1206,7 +1206,7 @@ export default function AuthPage() {
                 {/* ── LEFT: Brand panel (lg+) ── */}
                 <div className="hidden lg:flex flex-col justify-center px-12 xl:px-16 py-16 w-[420px] xl:w-[460px] shrink-0 border-r border-slate-200/60 dark:border-slate-700/40 bg-white/30 dark:bg-slate-900/20 backdrop-blur-sm">
                     <Link href="/" className="flex flex-col items-start mb-10">
-                        <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00] mb-3">
+                        <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500 mb-3">
                             <BrandLogo width={52} height={52} />
                         </div>
                         <BrandTitle className="text-xl font-black tracking-tight" />
@@ -1218,8 +1218,8 @@ export default function AuthPage() {
                     <div className="space-y-5 mb-10">
                         {BRAND_FEATURES.map(({ icon: Icon, title, desc }) => (
                             <div key={title} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[#0056B310] dark:bg-[#0056B320] flex items-center justify-center shrink-0">
-                                    <Icon className="w-[18px] h-[18px] text-[#0056B3]" />
+                                <div className="w-9 h-9 rounded-xl bg-[#F6C30F10] dark:bg-[#F6C30F20] flex items-center justify-center shrink-0">
+                                    <Icon className="w-[18px] h-[18px] text-brand-700" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none">{title}</p>
@@ -1238,7 +1238,7 @@ export default function AuthPage() {
 
                         {/* Logo — mobile only */}
                         <Link href="/" className="flex flex-col items-center w-full mb-6 lg:hidden">
-                            <div className="relative w-16 h-16 mb-2 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00]">
+                            <div className="relative w-16 h-16 mb-2 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500">
                                 <BrandLogo width={60} height={60} />
                             </div>
                             <BrandTitle className="text-base font-black tracking-tight" />
@@ -1268,7 +1268,7 @@ export default function AuthPage() {
                                     className={cn(
                                         'flex-1 h-9 rounded-xl text-sm font-bold transition-all duration-200',
                                         activeTab === tab
-                                            ? 'text-white shadow-md bg-gradient-to-br from-[#0056B3] to-[#00B4D8]'
+                                            ? 'text-white shadow-md bg-gradient-to-br from-brand-700 to-brand-300'
                                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                     )}
                                 >

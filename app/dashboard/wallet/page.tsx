@@ -69,8 +69,8 @@ const NETWORK_BADGE: Record<string, { bg: string; text: string; border: string; 
     'MTN': { bg: 'bg-yellow-400', text: 'text-yellow-950', border: 'border-yellow-500', label: 'MTN' },
     'Telecel Cash': { bg: 'bg-red-600', text: 'text-white', border: 'border-red-700', label: 'Telecel' },
     'Telecel': { bg: 'bg-red-600', text: 'text-white', border: 'border-red-700', label: 'Telecel' },
-    'AirtelTigo Money': { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-700', label: 'AirtelTigo' },
-    'AirtelTigo': { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-700', label: 'AirtelTigo' },
+    'AirtelTigo Money': { bg: 'bg-brand-600', text: 'text-black', border: 'border-brand-700', label: 'AirtelTigo' },
+    'AirtelTigo': { bg: 'bg-brand-600', text: 'text-black', border: 'border-brand-700', label: 'AirtelTigo' },
     'Unknown': { bg: 'bg-gray-400', text: 'text-white', border: 'border-gray-500', label: 'Unknown' },
 }
 
@@ -611,7 +611,7 @@ function WalletContent() {
                     <Card>
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                <Plus className="w-4 h-4 text-blue-600" />
+                                <Plus className="w-4 h-4 text-brand-700" />
                                 Top Up Wallet
                                 {(dbUser?.role === 'agent' || dbUser?.role === 'dealer') && (
                                     <span className="text-xs font-normal text-red-500 ml-1">· Paystack fee applies</span>
@@ -697,7 +697,7 @@ function WalletContent() {
                                                     </SelectItem>
                                                     <SelectItem value="ATL">
                                                         <span className="flex items-center gap-2">
-                                                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                                                            <span className="w-2.5 h-2.5 rounded-full bg-brand-600 shrink-0" />
                                                             AirtelTigo
                                                         </span>
                                                     </SelectItem>
@@ -727,7 +727,7 @@ function WalletContent() {
 
                                     {/* Pay button */}
                                     <Button onClick={handleCharge}
-                                        className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                        className="w-full h-12 text-lg bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700"
                                         disabled={!topUpAmount || parseFloat(topUpAmount) < minTopup || parseFloat(topUpAmount) > maxTopup || !momoPhone}>
                                         <Smartphone className="w-5 h-5 mr-2" />
                                         Pay {topUpAmount && parseFloat(topUpAmount) >= minTopup && parseFloat(topUpAmount) <= maxTopup && formatCurrency(totalAmount)} via MoMo
@@ -934,7 +934,7 @@ function WalletContent() {
 
                     {chargeStep === 'charging' && (
                         <div className="flex flex-col items-center py-10 gap-4">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                            <Loader2 className="w-10 h-10 animate-spin text-brand-700" />
                             <p className="font-semibold">Initiating payment...</p>
                         </div>
                     )}
@@ -1003,7 +1003,7 @@ function WalletContent() {
 
                     {chargeStep === 'verifying' && (
                         <div className="flex flex-col items-center py-10 gap-4">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                            <Loader2 className="w-10 h-10 animate-spin text-brand-700" />
                             <p className="font-semibold">Confirming payment...</p>
                         </div>
                     )}

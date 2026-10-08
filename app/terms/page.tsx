@@ -39,7 +39,7 @@ export default async function TermsPage() {
             <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-8 space-y-8">
                 {/* Hero */}
                 <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-sky-500 opacity-10" />
+                    <div className="absolute top-0 left-0 w-full h-24 bg-brand-500 opacity-10" />
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-20 h-20 rounded-3xl shadow-xl border-4 border-white mb-4 bg-slate-900 flex items-center justify-center text-white">
                             <BookOpen className="w-8 h-8" />

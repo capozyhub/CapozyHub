@@ -185,10 +185,10 @@ function UpgradePageInner() {
             oldPrice: oldPrices['14d'],
             popular: true,
             tier: 'gold',
-            color: 'border-[#FFCE00] ring-2 ring-[#FFCE00]/30 dark:border-amber-500 dark:ring-amber-500/30',
-            buttonClass: 'bg-[#FFCE00] hover:bg-[#E6B800] text-black shadow-lg shadow-[#FFCE00]/20',
+            color: 'border-brand-500 ring-2 ring-brand-500/30 dark:border-amber-500 dark:ring-amber-500/30',
+            buttonClass: 'bg-brand-500 hover:bg-brand-600 text-black shadow-lg shadow-brand-500/20',
             badgeText: 'MOST POPULAR',
-            badgeColor: 'from-[#FFCE00] to-[#E6B800]',
+            badgeColor: 'from-brand-500 to-brand-600',
             priceColor: 'text-amber-600 dark:text-amber-400',
             bgClass: 'bg-amber-50 dark:bg-amber-950/40'
         },
@@ -201,9 +201,9 @@ function UpgradePageInner() {
             popular: false,
             tier: 'diamond',
             color: 'border-purple-400 ring-2 ring-purple-400/30 dark:border-purple-600 dark:ring-purple-600/30',
-            buttonClass: 'bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-700 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-800 shadow-lg shadow-purple-500/30',
+            buttonClass: 'bg-gradient-to-r from-purple-600 via-brand-600 to-brand-700 hover:from-purple-700 hover:via-brand-700 hover:to-brand-800 shadow-lg shadow-purple-500/30',
             badgeText: 'PREMIUM',
-            badgeColor: 'from-purple-600 to-indigo-700',
+            badgeColor: 'from-purple-600 to-brand-700',
             priceColor: 'text-purple-600 dark:text-purple-400',
             bgClass: 'bg-purple-50 dark:bg-purple-950/40'
         },
@@ -247,7 +247,7 @@ function UpgradePageInner() {
 
     if (isLoading) {
         return (
-            <div className="fixed inset-0 bg-[#FFCE00] flex items-center justify-center z-50 p-6">
+            <div className="fixed inset-0 bg-brand-500 flex items-center justify-center z-50 p-6">
                 <Crown className="w-16 h-16 text-yellow-600 animate-bounce" />
             </div>
         )
@@ -485,13 +485,13 @@ function UpgradePageInner() {
                                     <div
                                         key={plan}
                                         className={cn(
-                                            'relative rounded-2xl p-6 border-2 bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 shadow-xl shadow-violet-900/50 flex flex-col gap-4',
+                                            'relative rounded-2xl p-6 border-2 bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 shadow-xl shadow-violet-900/50 flex flex-col gap-4',
                                             highlight
                                                 ? 'border-violet-400 ring-4 ring-violet-500/20'
                                                 : 'border-violet-700/60'
                                         )}
                                     >
-                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full shadow-md z-10">
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-violet-500 to-brand-600 rounded-full shadow-md z-10">
                                             <span className="text-[9px] font-bold text-white uppercase tracking-widest">{badge}</span>
                                         </div>
                                         <div className="mt-2">
@@ -514,7 +514,7 @@ function UpgradePageInner() {
                                         ))}
                                         <Button
                                             onClick={() => handleDealerUpgrade(plan)}
-                                            className="w-full h-10 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-900/50 transition-all active:scale-95 text-sm mt-auto"
+                                            className="w-full h-10 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white shadow-lg shadow-violet-900/50 transition-all active:scale-95 text-sm mt-auto"
                                         >
                                             <Gem className="w-3.5 h-3.5 mr-2" />
                                             Choose {title}
@@ -562,13 +562,13 @@ function UpgradePageInner() {
                                     <div
                                         key={plan}
                                         className={cn(
-                                            'relative rounded-2xl p-6 border-2 bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 shadow-xl shadow-violet-900/50 flex flex-col gap-4',
+                                            'relative rounded-2xl p-6 border-2 bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 shadow-xl shadow-violet-900/50 flex flex-col gap-4',
                                             highlight
                                                 ? 'border-violet-400 ring-4 ring-violet-500/20'
                                                 : 'border-violet-700/60'
                                         )}
                                     >
-                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full shadow-md z-10">
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-violet-500 to-brand-600 rounded-full shadow-md z-10">
                                             <span className="text-[9px] font-bold text-white uppercase tracking-widest">{badge}</span>
                                         </div>
                                         <div className="mt-2">
@@ -591,7 +591,7 @@ function UpgradePageInner() {
                                         ))}
                                         <Button
                                             onClick={() => handleDealerUpgrade(plan)}
-                                            className="w-full h-10 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white shadow-lg shadow-violet-900/50 transition-all active:scale-95 text-sm mt-auto"
+                                            className="w-full h-10 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white shadow-lg shadow-violet-900/50 transition-all active:scale-95 text-sm mt-auto"
                                         >
                                             <Gem className="w-3.5 h-3.5 mr-2" />
                                             Add {title}
@@ -613,7 +613,7 @@ function UpgradePageInner() {
 export default function UpgradePage() {
     return (
         <Suspense fallback={
-            <div className="fixed inset-0 bg-[#FFCE00] flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-brand-500 flex items-center justify-center z-50">
                 <Crown className="w-16 h-16 text-yellow-600 animate-bounce" />
             </div>
         }>

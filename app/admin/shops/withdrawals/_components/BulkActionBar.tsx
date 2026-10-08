@@ -118,7 +118,7 @@ export function BulkActionBar({
               'font-bold gap-1.5 rounded-lg',
               hasBank
                 ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white',
+                : 'bg-brand-600 hover:bg-brand-500 text-black',
             )}
           >
             {busy ? (

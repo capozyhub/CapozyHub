@@ -26,14 +26,14 @@ export const UTILITY_BILLER_META: Record<UtilityBiller, UtilityBillerMeta> = {
     },
     ghana_water: {
         Icon: Droplets,
-        badge: 'bg-sky-100 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400',
-        ring: 'ring-sky-400/70 dark:ring-sky-500/50',
+        badge: 'bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400',
+        ring: 'ring-brand-400/70 dark:ring-brand-500/50',
         blurb: 'Water bill payment',
     },
     dstv: {
         Icon: Tv,
-        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400',
-        ring: 'ring-blue-400/70 dark:ring-blue-500/50',
+        badge: 'bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400',
+        ring: 'ring-brand-400/70 dark:ring-brand-500/50',
         blurb: 'Subscription renewal',
     },
     gotv: {

@@ -6,7 +6,7 @@ import { NetworkIcon } from '@/components/network-icon'
 export const NETWORK_STYLE: Record<string, { selectedBorder: string; cardBg: string; isMTN: boolean }> = {
     MTN: { selectedBorder: 'border-amber-400', cardBg: 'bg-amber-400', isMTN: true },
     Telecel: { selectedBorder: 'border-red-600', cardBg: 'bg-red-600', isMTN: false },
-    'AT-iShare': { selectedBorder: 'border-blue-600', cardBg: 'bg-blue-600', isMTN: false },
+    'AT-iShare': { selectedBorder: 'border-brand-600', cardBg: 'bg-brand-600', isMTN: false },
     'AT-BigTime': { selectedBorder: 'border-violet-600', cardBg: 'bg-violet-600', isMTN: false },
     AT: { selectedBorder: 'border-orange-500', cardBg: 'bg-orange-500', isMTN: false },
 }

@@ -56,14 +56,14 @@ export function BiometricSetupPrompt({ password, onDone }: BiometricSetupPromptP
             <BackgroundBubbles scrollable />
             <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center">
                 <div className="mb-8">
-                    <div className="relative w-16 h-16 mb-3 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-[#FFCC00] mx-auto">
+                    <div className="relative w-16 h-16 mb-3 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 shadow-xl border-[3px] border-brand-500 mx-auto">
                         <BrandLogo width={60} height={60} />
                     </div>
                     <BrandTitle className="text-lg font-black tracking-tight" />
                 </div>
 
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-[#0056B315] border-2 border-[#0056B330]">
-                    <Fingerprint className="w-10 h-10 text-[#0056B3]" />
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-[#F6C30F15] border-2 border-[#F6C30F30]">
+                    <Fingerprint className="w-10 h-10 text-brand-700" />
                 </div>
 
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
@@ -81,7 +81,7 @@ export function BiometricSetupPrompt({ password, onDone }: BiometricSetupPromptP
                     <Button
                         onClick={handleEnable}
                         disabled={loading}
-                        className="w-full h-12 text-base font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-[#0056B3] to-[#00B4D8] disabled:opacity-50"
+                        className="w-full h-12 text-base font-bold text-white rounded-xl shadow-lg bg-gradient-to-br from-brand-700 to-brand-300 disabled:opacity-50"
                     >
                         {loading
                             ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Setting up…</>

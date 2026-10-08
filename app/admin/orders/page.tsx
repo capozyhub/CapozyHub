@@ -835,13 +835,13 @@ export default function AdminOrdersPage() {
                             )}
                         </div>
                     </div>
-                    <FileText className="w-8 h-8 text-blue-100 dark:text-blue-900 flex-shrink-0" />
+                    <FileText className="w-8 h-8 text-brand-100 dark:text-brand-900 flex-shrink-0" />
                 </CardHeader>
 
                 <CardContent className="flex-1 overflow-hidden flex flex-col py-2">
                     <div className="flex items-center justify-between mb-2 flex-shrink-0">
                         <span className="text-xs text-muted-foreground">{formatDate(batch.created_at)}</span>
-                        <span className="text-sm font-bold text-blue-600">{batch.order_count} orders</span>
+                        <span className="text-sm font-bold text-brand-700">{batch.order_count} orders</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto border rounded-md bg-muted/5 p-2 space-y-2">
@@ -851,7 +851,7 @@ export default function AdminOrdersPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={loadBatchOrders}
-                                    className="text-blue-600 hover:text-blue-700 font-bold"
+                                    className="text-brand-700 hover:text-brand-700 font-bold"
                                 >
                                     <FileText className="w-4 h-4 mr-2" />
                                     Click to View {batch.order_count} Orders
@@ -872,7 +872,7 @@ export default function AdminOrdersPage() {
                                         <div className="flex items-center gap-1">
                                             <span className="font-bold text-[10px]">{order.users?.first_name} {order.users?.last_name}</span>
                                             {order.shop_name && (
-                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
+                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                     Shop: {order.shop_name}
                                                 </Badge>
                                             )}
@@ -902,7 +902,7 @@ export default function AdminOrdersPage() {
                                                                     // Update local state
                                                                     setBatchOrders(prev => Array.isArray(prev) ? prev.map(o => o.id === order.id ? { ...o, status: 'processing' } : o) : [])
                                                                 }}>
-                                                                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                                                                    <Clock className="w-4 h-4 mr-2 text-brand-700" />
                                                                     Mark as Processing
                                                                 </DropdownMenuItem>
                                                             )}
@@ -934,7 +934,7 @@ export default function AdminOrdersPage() {
                                                     )}
                                                     {(order.status === 'failed' || order.status === 'refunded') && (
                                                         <DropdownMenuItem onClick={() => handleRetry(order)}>
-                                                            <RefreshCw className="w-4 h-4 mr-2 text-blue-500" />
+                                                            <RefreshCw className="w-4 h-4 mr-2 text-brand-700" />
                                                             Retry Order
                                                         </DropdownMenuItem>
                                                     )}
@@ -966,7 +966,7 @@ export default function AdminOrdersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => onUpdateBatchStatus('processing')}>
-                                <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                                <Clock className="w-4 h-4 mr-2 text-brand-700" />
                                 Mark All Processing
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onUpdateBatchStatus('failed')}>
@@ -1021,7 +1021,7 @@ export default function AdminOrdersPage() {
         const status = order?.status
         const styles: Record<string, string> = {
             pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-            queued: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+            queued: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
             processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
             completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
@@ -1135,7 +1135,7 @@ export default function AdminOrdersPage() {
                                                     : network === 'Telecel'
                                                         ? 'bg-red-600 hover:bg-red-700 text-white'
                                                         : network === 'AT-iShare' || network === 'AT-BigTime'
-                                                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                            ? 'bg-brand-600 hover:bg-brand-500 text-black'
                                                             : 'bg-primary text-primary-foreground'
                                                 : 'hover:bg-muted'
                                                 }`}
@@ -1175,7 +1175,7 @@ export default function AdminOrdersPage() {
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <p className="text-sm font-semibold">{order.users?.first_name} {order.users?.last_name}</p>
                                                     {order.shop_name && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
+                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                             Shop: {order.shop_name}
                                                         </Badge>
                                                     )}
@@ -1230,7 +1230,7 @@ export default function AdminOrdersPage() {
                                                     )}
                                                     {order.status !== 'processing' && (
                                                         <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'processing')}>
-                                                            <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                                                            <Clock className="w-4 h-4 mr-2 text-brand-700" />
                                                             Mark as Processing
                                                         </DropdownMenuItem>
                                                     )}
@@ -1242,7 +1242,7 @@ export default function AdminOrdersPage() {
                                                     )}
                                                     {(order.status === 'failed' || order.status === 'refunded') && (
                                                         <DropdownMenuItem onClick={() => handleRetry(order)}>
-                                                            <RefreshCw className="w-4 h-4 mr-2 text-blue-500" />
+                                                            <RefreshCw className="w-4 h-4 mr-2 text-brand-700" />
                                                             Retry Order
                                                         </DropdownMenuItem>
                                                     )}
@@ -1284,7 +1284,7 @@ export default function AdminOrdersPage() {
                                             : network === 'Telecel'
                                                 ? 'bg-red-600 hover:bg-red-700 text-white'
                                                 : network === 'AT-iShare' || network === 'AT-BigTime'
-                                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    ? 'bg-brand-600 hover:bg-brand-500 text-black'
                                                     : 'bg-primary text-primary-foreground'
                                         : 'hover:bg-muted'
                                         }`}
@@ -1320,7 +1320,7 @@ export default function AdminOrdersPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                                className="bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800"
                                 onClick={() => handleDownloadAllFiltered('sales')}
                                 disabled={filteredBatches.length === 0}
                             >
@@ -1492,7 +1492,7 @@ export default function AdminOrdersPage() {
                                 <span>This order was refunded — retrying will charge <b>today&apos;s price</b> to the {retryTarget?.shop_order_id ? "shop owner's" : "buyer's"} wallet. The exact amount charged will be confirmed after the retry succeeds.</span>
                             </div>
                         ) : (
-                            <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5">
+                            <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                                 <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>This order failed and was never refunded — retrying re-dispatches it at no charge.</span>
                             </div>
