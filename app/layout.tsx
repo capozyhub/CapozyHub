@@ -15,6 +15,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { PinProvider } from '@/contexts/pin-context'
 import { OfflineOverlay } from '@/components/offline-overlay'
+import { BRAND } from '@/lib/brand'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -23,12 +24,12 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://kingflexygh.com'),
-    title: 'KiNG FLEXY GH - Powering Digital Services in Ghana',
-    description: 'Buy affordable MTN, Telecel, and AirtelTigo data bundles, airtime, and mashup online in Ghana. Instantly purchase WAEC & BECE Results Checker vouchers, pay utility bills, send bulk SMS, complete MTN AFA Registrations, and integrate our Developer API for data, airtime, SMS, results checkers, AFA and bills. Fast, secure, and reliable digital solutions — KiNG FLEXY GH, Powering Digital Services in Ghana.',
+    metadataBase: new URL(BRAND.siteUrl),
+    title: `${BRAND.name} - Powering Digital Services in Ghana`,
+    description: `Buy affordable MTN, Telecel, and AirtelTigo data bundles, airtime, and mashup online in Ghana. Instantly purchase WAEC & BECE Results Checker vouchers, complete MTN AFA Registrations, open your own reseller shop, and integrate our Developer API. Fast, secure, and reliable digital solutions — ${BRAND.name}.`,
     keywords: [
         // Brand
-        'KiNG FLEXY GH', 'King Flexy Technologies', 'kingflexygh.com',
+        BRAND.name, BRAND.domain,
         // Data & Airtime
         'buy data bundles Ghana', 'cheap data Ghana', 'affordable data bundles', 'MTN data bundles Ghana',
         'Telecel data bundles', 'AirtelTigo data bundles', 'buy data online Ghana', 'mobile data Ghana',
@@ -45,39 +46,38 @@ export const metadata: Metadata = {
         'MTN AFA registration Ghana', 'AFA agent registration', 'MTN agent registration Ghana',
         'how to register for AFA Ghana', 'AFA registration fee Ghana',
         // Developer API
-        'developer API Ghana', 'VTU API Ghana', 'King Flexy API', 'data reseller API Ghana',
+        'developer API Ghana', 'VTU API Ghana', 'data reseller API Ghana',
         'airtime API Ghana', 'results checker API', 'digital services API Ghana',
-        'reseller platform Ghana', 'bulk data API Ghana',
-        'bulk SMS API Ghana', 'utility bill payment API Ghana', 'data bundle API Ghana',
+        'reseller platform Ghana', 'bulk data API Ghana', 'data bundle API Ghana',
         'AFA registration API Ghana',
         // General
         'digital services Ghana', 'online digital platform Ghana', 'data reseller Ghana',
         'Ghana fintech', 'instant delivery Ghana'
     ],
-    authors: [{ name: 'KiNG FLEXY TECHNOLOGIES LTD' }],
+    authors: [{ name: BRAND.name }],
     openGraph: {
-        title: 'KiNG FLEXY GH - Powering Digital Services in Ghana',
+        title: `${BRAND.name} - Powering Digital Services in Ghana`,
         description: 'Buy data bundles, airtime, mashup, WAEC Results Checkers, AFA Registrations & access our Developer API. Fast, secure digital services in Ghana.',
         type: 'website',
-        url: 'https://kingflexygh.com',
-        siteName: 'KiNG FLEXY GH',
+        url: BRAND.siteUrl,
+        siteName: BRAND.name,
         images: [
             {
                 url: '/logo.png',
-                width: 1200,
-                height: 630,
-                alt: 'KiNG FLEXY GH Logo',
+                width: 512,
+                height: 512,
+                alt: `${BRAND.name} logo`,
             },
         ],
     },
     twitter: {
-        card: 'summary_large_image',
-        title: 'KiNG FLEXY GH - Powering Digital Services in Ghana',
+        card: 'summary',
+        title: `${BRAND.name} - Powering Digital Services in Ghana`,
         description: 'Buy data bundles, airtime, mashup, WAEC Results Checkers, AFA Registrations & access our Developer API. Fast, secure digital services in Ghana.',
         images: ['/logo.png'],
     },
     appleWebApp: {
-        title: 'KiNGFLEXYGH',
+        title: BRAND.name,
         statusBarStyle: 'black-translucent',
         capable: true,
     },
@@ -112,35 +112,29 @@ export default function RootLayout({
                         __html: JSON.stringify({
                             "@context": "https://schema.org",
                             "@type": "Organization",
-                            "name": "KiNG FLEXY TECHNOLOGIES LTD",
-                            "alternateName": "KiNG FLEXY GH",
-                            "url": "https://kingflexygh.com/",
-                            "logo": "https://kingflexygh.com/logo.png",
-                            "description": "Powering Digital Services in Ghana. Buy data bundles, airtime, mashup, WAEC Results Checker vouchers, utility bills, bulk SMS and MTN AFA Registrations, and integrate our Developer API.",
+                            "name": BRAND.name,
+                            "url": `${BRAND.siteUrl}/`,
+                            "logo": `${BRAND.siteUrl}/logo.png`,
+                            "description": "Powering Digital Services in Ghana. Buy data bundles, airtime, mashup, WAEC Results Checker vouchers and MTN AFA Registrations, and integrate our Developer API.",
                             "areaServed": "GH",
                             "hasOfferCatalog": {
                                 "@type": "OfferCatalog",
-                                "name": "KiNG FLEXY GH products and APIs",
+                                "name": `${BRAND.name} products and APIs`,
                                 "itemListElement": [
                                     ['Data Bundles API', 'data-bundles'],
                                     ['Airtime API', 'airtime'],
                                     ['Results Checker API', 'results-checker'],
                                     ['AFA Registration API', 'afa-registration'],
-                                    ['SMS API', 'sms'],
-                                    ['Utility Bills API', 'utility-bills'],
                                 ].map(([name, slug]) => ({
                                     "@type": "Offer",
                                     "itemOffered": {
                                         "@type": "Service",
                                         "name": name,
-                                        "url": `https://kingflexygh.com/developers/${slug}`
+                                        "url": `${BRAND.siteUrl}/developers/${slug}`
                                     }
                                 }))
                             },
-                            "sameAs": [
-                                "https://kingflexygh.com",
-                                "https://www.kingflexygh.com"
-                            ]
+                            "sameAs": [BRAND.siteUrl]
                         })
                     }}
                 />

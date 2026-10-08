@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { getAdminSettings } from '@/lib/admin-settings-cache'
 import HomeClient from '@/components/home-client'
+import { BRAND } from '@/lib/brand'
 
 // Canonical lives here, not in the root layout, which every page inherits.
 export const metadata: Metadata = {
-    alternates: { canonical: 'https://kingflexygh.com' },
+    alternates: { canonical: BRAND.siteUrl },
 }
 
 // Rebuild from DB at most every 5 minutes; served from Vercel Edge CDN between rebuilds.
@@ -32,46 +33,18 @@ export default async function LandingPage() {
         'whatsapp_community_link',
     ], 5 * 60 * 1000)
 
-    let guestUrl = 'https://kingflexygh.com/shop/felix-s-shop'
+    // No inherited defaults: every value below is empty until an admin sets a real one
+    // (Admin > Settings). The landing page hides any section or button that has no data.
+    let guestUrl = ''
     let adminPhone = ''
-    let whatsappGroupLink = 'https://chat.whatsapp.com/FC6jYV3VDEQ4MmdTXiFqDV?mode=gi_t'
-    let whatsappChannelLink = 'https://whatsapp.com/channel/0029Vb7HTfx47XeIZz7ht232'
-    let whatsappCommunityLink = 'https://chat.whatsapp.com/FC6jYV3VDEQ4MmdTXiFqDV?mode=gi_t'
-    let landingCustomerCountRaw = '5,000+'
+    let whatsappGroupLink = ''
+    let whatsappChannelLink = ''
+    let whatsappCommunityLink = ''
+    let landingCustomerCountRaw = ''
     let landingDataPackagesByNetwork: Record<string, any[]> = {}
     let showPopularPackages = false
-    let landingAgentPlans: any[] = [
-        { key: '3d', title: 'Starter', duration: '3 Days Access', price: '9.99', badge: 'Quick Start' },
-        { key: '14d', title: 'Most Popular', duration: '14 Days Access', price: '49.99', badge: 'Best Value' },
-        { key: '30d', title: 'Premium', duration: '30 Days Access', price: '99.99', badge: 'Business Ready' },
-        { key: 'permanent', title: 'Lifetime', duration: 'Permanent Access', price: '149.99', badge: 'One Time' },
-    ]
-    let landingTestimonials: any[] = [
-        {
-            name: 'Efua A.',
-            role: 'Retail Buyer - Accra',
-            rating: 5,
-            quote: 'Very easy to use. I buy MTN data in seconds and always get delivery fast.',
-        },
-        {
-            name: 'Kojo M.',
-            role: 'Reseller - Kumasi',
-            rating: 5,
-            quote: 'Setting up my shop was simple. The branded shop link helped me grow repeat customers.',
-        },
-        {
-            name: 'Nana Y.',
-            role: 'Student - Cape Coast',
-            rating: 4,
-            quote: 'Wallet payments are smooth, and support replies quickly when I need help.',
-        },
-        {
-            name: 'Abena K.',
-            role: 'Agent Member',
-            rating: 5,
-            quote: 'Agent plans are clear, and I like that I can manage everything from one dashboard.',
-        },
-    ]
+    let landingAgentPlans: any[] = []
+    let landingTestimonials: any[] = []
 
     if (adminSettings.guest_storefront_url) {
         guestUrl = adminSettings.guest_storefront_url

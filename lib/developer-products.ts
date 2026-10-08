@@ -2,8 +2,12 @@
 // (/developers/<slug>), /llms.txt and the sitemap. Facts here mirror
 // postman/specs/openapi.yaml — change the spec first, then this file.
 
+import { BRAND } from '@/lib/brand'
+
+// API_BASE still names the old API host/version: the public API rename (no v1/v2 in
+// paths, Capozy-branded host and key prefixes) is scheduled for Stage 2.
 export const API_BASE = 'https://api.kingflexygh.com/api/v2'
-export const SITE = 'https://kingflexygh.com'
+export const SITE = BRAND.siteUrl
 
 export type KeyType = 'standard' | 'commission' | 'sms'
 
@@ -129,7 +133,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
         curl: curlPost('/afa/register', 'kf_live_your_api_key_here', {
             reference: 'afa-1001',
             full_name: 'Ama Mensah',
-            phone: '0551617309',
+            phone: '0241234567',
             id_type: 'Ghana Card',
             id_number: 'GHA-123456789-0',
             date_of_birth: '1995-04-12',
@@ -137,52 +141,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             location: 'Madina',
         }),
         keywords: ['AFA registration API Ghana', 'MTN AFA API', 'AFA agent registration Ghana'],
-    },
-    {
-        slug: 'sms',
-        name: 'SMS API',
-        title: 'Bulk SMS API Ghana — Send OTP, Alerts & Campaigns',
-        description:
-            'Send bulk and transactional SMS in Ghana through a REST API. Up to 10,000 recipients per request, approved sender IDs, delivery tracking and credit balance.',
-        intro:
-            'Send OTPs, order updates and campaigns from your own systems. Small sends (up to 500 recipients) dispatch immediately and larger sends are queued and processed within a minute, with per-recipient delivery tracking.',
-        keyType: 'sms',
-        endpoints: [
-            { method: 'POST', path: '/sms/send', summary: 'Send an SMS to one or many recipients' },
-            { method: 'GET', path: '/sms/senders', summary: 'List sender IDs this key may send under' },
-            { method: 'GET', path: '/sms/campaigns', summary: 'List your recent SMS campaigns' },
-            { method: 'GET', path: '/sms/messages/{id}', summary: 'Delivery status for a campaign' },
-            { method: 'GET', path: '/sms/balance', summary: 'Your SMS credit balance' },
-        ],
-        curl: curlPost('/sms/send', 'kf_sms_live_your_sms_key_here', {
-            message: 'Your verification code is 482913',
-            recipients: ['0551617309'],
-            reference: 'sms-1001',
-        }),
-        keywords: ['bulk SMS API Ghana', 'SMS API Ghana', 'OTP SMS API Ghana', 'transactional SMS Ghana'],
-    },
-    {
-        slug: 'utility-bills',
-        name: 'Utility Bills API',
-        title: 'Utility Bill Payment API Ghana — ECG, Ghana Water, DStv, GOtv, StarTimes',
-        description:
-            'Pay ECG, Ghana Water, DStv, GOtv and StarTimes bills through an API in Ghana. Verify accounts before paying and earn commission on every payment.',
-        intro:
-            'List billers, verify an account or meter, pay at face value from your wallet and poll the order status. Commission is paid into a dedicated Commission Wallet.',
-        keyType: 'commission',
-        endpoints: [
-            { method: 'GET', path: '/utilities/billers', summary: 'Full biller catalog' },
-            { method: 'GET', path: '/utilities/lookup', summary: 'Verify an account before paying' },
-            { method: 'POST', path: '/utilities/pay', summary: 'Pay a bill at face value from your wallet' },
-            { method: 'GET', path: '/utilities/orders/{reference}', summary: 'Poll a utility bill order\'s status' },
-        ],
-        curl: curlPost('/utilities/pay', 'kf_cs_live_your_commission_key_here', {
-            biller: 'dstv',
-            account: '1234567890',
-            amount: 50,
-            reference: 'bill-1001',
-        }),
-        keywords: ['utility bill API Ghana', 'ECG bill payment API', 'Ghana Water API', 'DStv payment API Ghana', 'GOtv API', 'StarTimes API'],
     },
 ]
 
@@ -192,10 +150,10 @@ export function getProduct(slug: string): DeveloperProduct | undefined {
 
 export function llmsTxt(): string {
     const lines: string[] = []
-    lines.push('# KiNG FLEXY GH')
+    lines.push(`# ${BRAND.name}`)
     lines.push('')
     lines.push(
-        '> KiNG FLEXY GH (KiNG FLEXY TECHNOLOGIES LTD) is a Ghana digital services platform and developer API: MTN, Telecel and AirtelTigo data bundles, airtime, WAEC/BECE results checker vouchers, MTN AFA registration, utility bill payments (ECG, Ghana Water, DStv, GOtv, StarTimes), and bulk SMS. Ghana only.',
+        `> ${BRAND.name} is a Ghana digital services platform and developer API: MTN, Telecel and AirtelTigo data bundles, airtime, WAEC/BECE results checker vouchers and MTN AFA registration. Ghana only.`,
     )
     lines.push('')
     lines.push('## API')

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { WebsiteRequestPromo } from '@/components/website-request-promo'
+import { BRAND } from '@/lib/brand'
 import {
     Smartphone,
     Zap,
@@ -22,7 +22,6 @@ import {
     Users,
     Boxes,
     MessageSquare,
-    Send,
     LifeBuoy,
     Star,
     Quote,
@@ -82,43 +81,16 @@ interface FaqItem {
 
 type PackagesByNetwork = Record<string, LandingDataPackage[]>
 
-const DEFAULT_GUEST_URL = 'https://kingflexygh.com/shop/felix-s-shop'
-const DEFAULT_CUSTOMER_COUNT_LABEL = '5,000+'
-const DEFAULT_CUSTOMER_COUNT_TARGET = 5000
+// Nothing below is invented marketing: a brand-new business has no customer count,
+// no reviews and no published agent prices yet. Each of these is empty until an admin
+// sets real values (Admin > Settings > Landing Page), and the matching section hides itself.
+const DEFAULT_GUEST_URL = ''
+const DEFAULT_CUSTOMER_COUNT_LABEL = ''
+const DEFAULT_CUSTOMER_COUNT_TARGET = 0
 
-const DEFAULT_AGENT_PLANS: LandingAgentPlan[] = [
-    { key: '3d', title: 'Starter', duration: '3 Days Access', price: '9.99', badge: 'Quick Start' },
-    { key: '14d', title: 'Most Popular', duration: '14 Days Access', price: '49.99', badge: 'Best Value' },
-    { key: '30d', title: 'Premium', duration: '30 Days Access', price: '99.99', badge: 'Business Ready' },
-    { key: 'permanent', title: 'Lifetime', duration: 'Permanent Access', price: '149.99', badge: 'One Time' },
-]
+const DEFAULT_AGENT_PLANS: LandingAgentPlan[] = []
 
-const DEFAULT_TESTIMONIALS: LandingReview[] = [
-    {
-        name: 'Efua A.',
-        role: 'Retail Buyer - Accra',
-        rating: 5,
-        quote: 'Very easy to use. I buy MTN data in seconds and always get delivery fast.',
-    },
-    {
-        name: 'Kojo M.',
-        role: 'Reseller - Kumasi',
-        rating: 5,
-        quote: 'Setting up my shop was simple. The branded shop link helped me grow repeat customers.',
-    },
-    {
-        name: 'Nana Y.',
-        role: 'Student - Cape Coast',
-        rating: 4,
-        quote: 'Wallet payments are smooth, and support replies quickly when I need help.',
-    },
-    {
-        name: 'Abena K.',
-        role: 'Agent Member',
-        rating: 5,
-        quote: 'Agent plans are clear, and I like that I can manage everything from one dashboard.',
-    },
-]
+const DEFAULT_TESTIMONIALS: LandingReview[] = []
 
 const getFaqItems = (guestUrl: string): FaqItem[] => [
     {
@@ -129,19 +101,20 @@ const getFaqItems = (guestUrl: string): FaqItem[] => [
             </span>
         ),
     },
-    {
+    // Only offered when a guest storefront URL is configured.
+    ...(guestUrl ? [{
         question: 'Can I buy without creating an account?',
         answer: (
             <span>
                 Yes! If you prefer a quick one-time purchase without signing up, you can use our Guest Storefront option. Click <a href={guestUrl} className="text-[#0056B3] font-bold hover:underline">Here</a> to visit the guest store and buy instantly using Mobile Money or Card.
             </span>
         ),
-    },
+    }] : []),
     {
         question: 'How does the wallet system work?',
         answer: (
             <span>
-                Your wallet is your personal spending account on KiNG FLEXY GH. You top it up once using Mobile Money or Bank Transfer, and your funds are securely stored. You can then use your wallet balance to buy data, airtime, or register as an AFA agent instantly without having to enter payment details every time.
+                Your wallet is your personal spending account on {BRAND.name}. You top it up once using Mobile Money or card, and your funds are securely stored. You can then use your wallet balance to buy data, airtime, or register as an AFA agent instantly without having to enter payment details every time.
             </span>
         ),
     },
@@ -233,9 +206,9 @@ export default function HomeClient({
     landingAgentPlans = DEFAULT_AGENT_PLANS,
     landingTestimonials = DEFAULT_TESTIMONIALS,
     adminSettings = {},
-    whatsappGroupLink = 'https://chat.whatsapp.com/FC6jYV3VDEQ4MmdTXiFqDV?mode=gi_t',
-    whatsappChannelLink = 'https://whatsapp.com/channel/0029Vb7HTfx47XeIZz7ht232',
-    whatsappCommunityLink = 'https://chat.whatsapp.com/FC6jYV3VDEQ4MmdTXiFqDV?mode=gi_t',
+    whatsappGroupLink = '',
+    whatsappChannelLink = '',
+    whatsappCommunityLink = '',
 }: {
     guestUrl?: string
     adminPhone?: string
@@ -254,6 +227,8 @@ export default function HomeClient({
     const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(0)
     const [countTarget, setCountTarget] = useState(DEFAULT_CUSTOMER_COUNT_TARGET)
     const whatsappHref = adminPhone ? `https://wa.me/${adminPhone}` : '#community'
+    // Contact / community entry points only render when a real destination is configured.
+    const hasContact = !!adminPhone
 
     const groupedPackageEntries = useMemo(() => {
         const entries = Object.entries(landingDataPackagesByNetwork)
@@ -318,6 +293,7 @@ export default function HomeClient({
         channel: whatsappChannelLink,
         community: whatsappCommunityLink,
     }
+    const hasCommunity = !!(communityLinks.group || communityLinks.channel || communityLinks.community)
 
     useEffect(() => {
         if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return
@@ -342,7 +318,7 @@ export default function HomeClient({
         if (isHovered || !isHeroVisible) return
         const timer = setInterval(() => {
             setDirection(1)
-            setCurrentSlide(prev => (prev + 1) % 4)
+            setCurrentSlide(prev => (prev + 1) % slides.length)
         }, 10000)
         return () => clearInterval(timer)
     }, [isHovered, isHeroVisible])
@@ -364,11 +340,13 @@ export default function HomeClient({
                             Create Account
                         </Button>
                     </Link>
-                    <a href={guestUrl} className="w-full sm:w-auto">
-                        <Button variant="outline" className="w-full rounded-full border-slate-300/80 text-slate-700 bg-slate-50 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:bg-white/5 dark:hover:bg-white/10 font-bold h-12 px-6 transition-all duration-300 hover:scale-105 active:scale-95 backdrop-blur-sm">
-                            Buy as Guest
-                        </Button>
-                    </a>
+                    {guestUrl && (
+                        <a href={guestUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full rounded-full border-slate-300/80 text-slate-700 bg-slate-50 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:bg-white/5 dark:hover:bg-white/10 font-bold h-12 px-6 transition-all duration-300 hover:scale-105 active:scale-95 backdrop-blur-sm">
+                                Buy as Guest
+                            </Button>
+                        </a>
+                    )}
                     <Link href="/download" className="w-full sm:w-auto">
                         <Button variant="outline" className="w-full rounded-full border-[#FFCC00]/40 hover:border-[#FFCC00] text-slate-700 bg-slate-50 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:bg-white/5 dark:hover:bg-white/10 font-bold h-12 px-6 transition-all duration-300 hover:scale-105 active:scale-95 backdrop-blur-sm flex items-center justify-center gap-2">
                             <Download className="w-4 h-4 text-[#FFCC00]" />
@@ -394,11 +372,13 @@ export default function HomeClient({
                             Open Your Shop
                         </Button>
                     </Link>
-                    <a href={guestUrl} className="w-full sm:w-auto">
-                        <Button variant="outline" className="w-full rounded-full border-slate-300/80 text-slate-700 bg-slate-50 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:bg-white/5 dark:hover:bg-white/10 font-bold h-12 px-6 transition-all duration-300 hover:scale-105 active:scale-95 backdrop-blur-sm">
-                            View Shop Demo
-                        </Button>
-                    </a>
+                    {guestUrl && (
+                        <a href={guestUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full rounded-full border-slate-300/80 text-slate-700 bg-slate-50 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:bg-white/5 dark:hover:bg-white/10 font-bold h-12 px-6 transition-all duration-300 hover:scale-105 active:scale-95 backdrop-blur-sm">
+                                View Shop Demo
+                            </Button>
+                        </a>
+                    )}
                 </div>
             )
         },
@@ -421,17 +401,20 @@ export default function HomeClient({
                 </div>
             )
         },
-        {
+        // Only shown when there is a real support contact or community link to point at.
+        ...(hasContact || hasCommunity ? [{
             subhead: "SUPPORT & RESOURCES",
             title: <span className="text-slate-900 dark:text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black block tracking-tight leading-none">Help & Live Community</span>,
             description: "Get direct support, track transactional complaints, and connect with other resellers inside our community chat.",
             ctas: (
                 <div className="flex flex-wrap items-center gap-3">
-                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                        <Button className="w-full rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12 px-6 shadow-md transition-all duration-300 hover:scale-105 active:scale-95 border-none">
-                            Contact Support
-                        </Button>
-                    </a>
+                    {hasContact && (
+                        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                            <Button className="w-full rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12 px-6 shadow-md transition-all duration-300 hover:scale-105 active:scale-95 border-none">
+                                Contact Support
+                            </Button>
+                        </a>
+                    )}
                     {communityLinks.community && (
                         <a href={communityLinks.community} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                             <Button className="w-full rounded-full bg-[#FFCC00] hover:bg-[#E6B800] text-black font-bold h-12 px-6 shadow-md transition-all duration-300 hover:scale-105 active:scale-95 border-none">
@@ -448,7 +431,7 @@ export default function HomeClient({
                     )}
                 </div>
             )
-        }
+        }] : []),
     ]
 
     return (
@@ -473,9 +456,9 @@ export default function HomeClient({
                             <a href="#wallet" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Wallet</a>
                             <a href="#resell" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Resell</a>
                             <a href="#afa" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">AFA</a>
-                            <a href="#community" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Community</a>
-                            <Link href="/sms" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">SMS</Link>
-                            <Link href="/dashboard/utilities" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Utilities</Link>
+                            {hasCommunity && (
+                                <a href="#community" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Community</a>
+                            )}
                             <Link href="/dashboard/recruit" className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0056B3] dark:hover:text-[#4da6ff] transition-colors">Sub-Agent</Link>
                         </div>
 
@@ -483,14 +466,16 @@ export default function HomeClient({
                             <div className="hidden sm:block">
                                 <PWAInstallButton />
                             </div>
-                            <a
-                                href={whatsappHref}
-                                target={adminPhone ? '_blank' : undefined}
-                                rel={adminPhone ? 'noopener noreferrer' : undefined}
-                                className="hidden sm:inline-flex text-sm font-semibold text-[#25D366] hover:text-[#1ea955] transition-colors"
-                            >
-                                Contact
-                            </a>
+                            {hasContact && (
+                                <a
+                                    href={whatsappHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hidden sm:inline-flex text-sm font-semibold text-[#25D366] hover:text-[#1ea955] transition-colors"
+                                >
+                                    Contact
+                                </a>
+                            )}
                             <Link href="/auth">
                                 <Button variant="ghost" className={cn('font-semibold px-2 text-xs h-8 sm:h-10 sm:px-3 sm:text-sm', headerScrolled ? 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800' : 'text-slate-800 dark:text-slate-100 hover:bg-white/20 dark:hover:bg-white/10')}>
                                     Login
@@ -624,9 +609,6 @@ export default function HomeClient({
                 </div>
             </section>
 
-            {/* Website/App request promo — funnels landing visitors to the website-request flow */}
-            <WebsiteRequestPromo />
-
             {/* Top Services Grid Section */}
             <section id="products" className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-950">
                 <div className="max-w-7xl mx-auto">
@@ -636,7 +618,7 @@ export default function HomeClient({
                         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mt-2">Explore the fully automated features and instant digital services powering our ecosystem.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         {[
                             {
                                 title: "Data Bundles",
@@ -703,22 +685,6 @@ export default function HomeClient({
                                 icon: <Wallet className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                             },
                             {
-                                title: "SMS",
-                                desc: "Bulk & transactional SMS for OTPs, alerts, and campaigns — sent in seconds.",
-                                link: "/sms",
-                                bg: "from-cyan-500/10 to-sky-500/5 dark:from-cyan-500/20 dark:to-sky-500/10",
-                                border: "border-cyan-200 dark:border-cyan-900/30",
-                                icon: <MessageSquare className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
-                            },
-                            {
-                                title: "Bill Pay",
-                                desc: "Pay ECG, Ghana Water, and other utility bills instantly from your wallet.",
-                                link: "/dashboard/utilities",
-                                bg: "from-orange-500/10 to-red-500/5 dark:from-orange-500/20 dark:to-red-500/10",
-                                border: "border-orange-200 dark:border-orange-900/30",
-                                icon: <Zap className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                            },
-                            {
                                 title: "Sub-Agent Program",
                                 desc: "Recruit and manage your own network of sub-agents, and earn from their sales.",
                                 link: "/dashboard/recruit",
@@ -760,7 +726,7 @@ export default function HomeClient({
 
                     <div className="grid md:grid-cols-3 gap-8 md:gap-6">
                         {[
-                            { step: '01', title: 'Create Account', description: 'Sign up with your phone and basic details.', icon: Smartphone },
+                            { step: '01', title: 'Create Account', description: 'Sign up with your email and basic details.', icon: Smartphone },
                             { step: '02', title: 'Fund Your Wallet', description: 'Top up once and stay ready to buy any time.', icon: CreditCard },
                             { step: '03', title: 'Buy Data Bundle', description: 'Choose bundle, enter number, and receive delivery instantly.', icon: CheckCircle2 },
                         ].map((item) => (
@@ -812,7 +778,13 @@ export default function HomeClient({
             {/* 3. Trust Strip */}
             <section className="pb-10 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {[`${landingCustomerCountRaw} Happy Customers`, 'Instant Delivery', 'MTN - Telecel - AirtelTigo', 'Available 24/7'].map((item) => (
+                    {[
+                        // Customer count only when an admin has set a real number.
+                        landingCustomerCountRaw ? `${landingCustomerCountRaw} Happy Customers` : '',
+                        'Instant Delivery',
+                        'MTN - Telecel - AirtelTigo',
+                        'Available 24/7',
+                    ].filter(Boolean).map((item) => (
                         <div key={item} className="rounded-xl border border-black dark:border-white bg-white/90 dark:bg-slate-900/70 px-4 py-3 text-center text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-200">{item}</div>
                     ))}
                 </div>
@@ -822,7 +794,7 @@ export default function HomeClient({
             <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Why Choose KiNG FLEXY GH?</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Why Choose {BRAND.name}?</h2>
                     </div>
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -901,7 +873,7 @@ export default function HomeClient({
                                     <Store className="w-7 h-7 text-[#0056B3]" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="font-black text-white text-lg leading-tight truncate">Felix&apos;s Data Hub</p>
+                                    <p className="font-black text-white text-lg leading-tight truncate">Your Data Shop</p>
                                     <p className="text-white/90 text-xs">Fast data bundles and airtime, trusted by daily buyers.</p>
                                 </div>
                             </div>
@@ -935,117 +907,10 @@ export default function HomeClient({
                         <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-200 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-200">Live</div>
                     </div>
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-3">Developer API</h2>
-                    <p className="text-slate-700 dark:text-slate-300 mb-6 max-w-3xl">Integrate KiNG FLEXY GH directly into your website or app. Automate data and airtime purchases for your customers via our API.</p>
+                    <p className="text-slate-700 dark:text-slate-300 mb-6 max-w-3xl">Integrate {BRAND.name} directly into your website or app. Automate data and airtime purchases for your customers via our API.</p>
                     <Link href="/developers">
                         <Button variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 font-bold">View Docs<ExternalLink className="w-4 h-4 ml-2" /></Button>
                     </Link>
-                </div>
-            </section>
-
-            {/* 10b. KFT SMS — Bulk & Transactional Messaging */}
-            <section id="sms" className="py-16 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-12">
-                        <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#0056B3] dark:text-[#FFCC00]/90 uppercase block mb-2">New · KFT SMS</span>
-                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Send SMS to your customers — at scale</h2>
-                        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mt-3">Bulk and transactional SMS for Ghana businesses. Campaigns, OTPs, and order alerts — under your own sender ID, with a delivery report on every number.</p>
-                    </div>
-
-                    <div className="grid lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-10 items-center mb-10">
-                        {/* Left: value + CTAs */}
-                        <div>
-                            <div className="flex flex-wrap gap-2 mb-6">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] border border-[#0056B3]/20 dark:border-[#4da6ff]/25">
-                                    <Shield className="w-3.5 h-3.5" /> Platform mode
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                                    <BadgeCheck className="w-3.5 h-3.5" /> Business mode — your own sender ID
-                                </span>
-                            </div>
-                            <div className="space-y-3 mb-8">
-                                {[
-                                    'Start on our shared trusted sender, or send under your own brand',
-                                    'Per-recipient Sent → Delivered tracking on every message',
-                                    'Buy SMS credits — 160 characters = 1 credit per recipient',
-                                ].map((item) => (
-                                    <div key={item} className="flex items-start gap-3">
-                                        <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                                        <span className="text-slate-700 dark:text-slate-300 font-medium">{item}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <Link href="/sms" className="w-full sm:w-auto">
-                                    <Button size="xl" className="w-full bg-[#0056B3] hover:bg-[#004494] text-white font-bold">
-                                        Explore KFT SMS<ArrowRight className="w-5 h-5 ml-2" />
-                                    </Button>
-                                </Link>
-                                <Link href="/developers" className="w-full sm:w-auto">
-                                    <Button size="xl" variant="outline" className="w-full font-bold border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100">
-                                        <Code2 className="w-5 h-5 mr-2" />Read the API docs
-                                    </Button>
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Right: delivery-report signature card */}
-                        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 rounded-xl bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center shrink-0">
-                                        <MessageSquare className="w-5 h-5" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">Sender: AcmeGH</p>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">Order updates · 1,204 recipients</p>
-                                    </div>
-                                </div>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live
-                                </span>
-                            </div>
-                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {[
-                                    { phone: '024 •• •• 512', status: 'Delivered', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
-                                    { phone: '055 •• •• 907', status: 'Delivered', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
-                                    { phone: '020 •• •• 143', status: 'Sent', cls: 'bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] border-[#0056B3]/25 dark:border-[#4da6ff]/30' },
-                                    { phone: '027 •• •• 668', status: 'Undelivered', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
-                                ].map((row) => (
-                                    <div key={row.phone} className="flex items-center justify-between gap-3 px-5 py-3">
-                                        <span className="font-mono text-xs text-slate-600 dark:text-slate-300 truncate">{row.phone}</span>
-                                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border tracking-wide', row.cls)}>{row.status}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="px-5 py-4 bg-slate-50/70 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Delivery rate</span>
-                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">98.7%</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: '98.7%' }} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Feature highlights */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[
-                            { icon: BadgeCheck, title: 'Your own sender ID', desc: 'Send under your brand name once your business is verified.' },
-                            { icon: CheckCircle2, title: 'Delivery reports', desc: 'Track every number from Sent to Delivered or Undelivered.' },
-                            { icon: Send, title: 'Bulk, scheduling & templates', desc: 'Message contact groups, schedule sends, and reuse templates.' },
-                            { icon: Code2, title: 'Developer API', desc: 'Fire OTPs and order alerts from your app with kf_live_ keys.' },
-                        ].map((f) => (
-                            <div key={f.title} className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                                <div className="w-11 h-11 rounded-xl bg-[#0056B3]/10 text-[#0056B3] dark:text-[#4da6ff] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                                    <f.icon className="w-5 h-5" />
-                                </div>
-                                <h3 className="mt-4 font-bold text-slate-900 dark:text-white">{f.title}</h3>
-                                <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{f.desc}</p>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </section>
 
@@ -1073,7 +938,8 @@ export default function HomeClient({
                 </div>
             </section>
 
-            {/* 12. Agent Membership Pricing */}
+            {/* 12. Agent Membership Pricing — only once an admin has published real plan prices */}
+            {landingAgentPlans.length > 0 && (
             <section className="py-16 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12">
@@ -1120,7 +986,7 @@ export default function HomeClient({
                                 </div>
                                 <h3 className="text-xl font-black text-white mb-1">Become a Dealer</h3>
                                 <p className="text-sm text-violet-200 max-w-xl">
-                                    The highest reseller rank on KiNG FLEXY. Available exclusively to <span className="font-black text-white">Lifetime Agent</span> members — unlock more discounted prices, full Developer API access with high rate limits, priority order processing, and direct priority support.
+                                    The highest reseller rank on {BRAND.name}. Available exclusively to <span className="font-black text-white">Lifetime Agent</span> members — unlock more discounted prices, full Developer API access with high rate limits, priority order processing, and direct priority support.
                                 </p>
                             </div>
                             <Link href="/auth?tab=signup" className="shrink-0">
@@ -1133,6 +999,7 @@ export default function HomeClient({
                     </div>
                 </div>
             </section>
+            )}
 
             {/* 14. Support + Complaints */}
             <section className="py-16 px-4 sm:px-6 lg:px-8">
@@ -1148,10 +1015,16 @@ export default function HomeClient({
                                 <LifeBuoy className="w-6 h-6" />
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Easy Support System</h3>
-                            <p className="text-slate-600 dark:text-slate-400 mb-5">Get support through WhatsApp and in-app help channels whenever you need guidance.</p>
-                            <a href={whatsappHref} target={adminPhone ? '_blank' : undefined} rel={adminPhone ? 'noopener noreferrer' : undefined}>
-                                <Button variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 font-bold">Talk to Support</Button>
-                            </a>
+                            <p className="text-slate-600 dark:text-slate-400 mb-5">{hasContact ? 'Get support through WhatsApp and in-app help channels whenever you need guidance.' : 'Sign in to reach support and get help from inside your dashboard.'}</p>
+                            {hasContact ? (
+                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                                    <Button variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 font-bold">Talk to Support</Button>
+                                </a>
+                            ) : (
+                                <Link href="/auth">
+                                    <Button variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 font-bold">Sign In for Support</Button>
+                                </Link>
+                            )}
                         </div>
 
                         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
@@ -1208,22 +1081,25 @@ export default function HomeClient({
                 </section>
             )}
 
-            {/* 16. Social Proof */}
+            {/* 16. Social Proof — only with a real, admin-set customer count */}
+            {landingCustomerCountRaw && countTarget > 0 && (
             <section className="py-16 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="w-14 h-14 mx-auto rounded-full bg-[#0056B3]/10 text-[#0056B3] flex items-center justify-center mb-4"><Users className="w-7 h-7" /></div>
-                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-3">Join Thousands of Ghanaians Who Trust KiNG FLEXY GH</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-3">Join the Growing {BRAND.name} Community</h2>
                     <p className="text-4xl sm:text-5xl md:text-6xl font-black text-[#0056B3] mb-3">{countTarget.toLocaleString()}{landingCustomerCountRaw.includes('+') ? '+' : ''}</p>
                     <p className="text-slate-600 dark:text-slate-400">Customers across Ghana rely on our speed, reliability, and reseller support.</p>
                 </div>
             </section>
+            )}
 
-            {/* 17. Testimonials */}
+            {/* 17. Testimonials — only with real, admin-published reviews (3 or more) */}
+            {landingTestimonials.length >= 3 && (
             <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-10">
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-3">What Customers Are Saying</h2>
-                        <p className="text-slate-600 dark:text-slate-400">Live customer-style reviews on how easy and reliable the platform feels day to day.</p>
+                        <p className="text-slate-600 dark:text-slate-400">Feedback on how easy and reliable the platform feels day to day.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {landingTestimonials.slice(0, 6).map((review, index) => (
@@ -1246,6 +1122,7 @@ export default function HomeClient({
                     </div>
                 </div>
             </section>
+            )}
 
             {/* 18. FAQ */}
             <section className="py-16 px-4 sm:px-6 lg:px-8">
@@ -1291,16 +1168,19 @@ export default function HomeClient({
                                 <Link href="/auth?tab=signup">
                                     <Button size="xl" className="bg-white text-[#0056B3] hover:bg-white/90 text-lg px-8 font-bold shadow-lg w-full sm:w-auto">Create Free Account<ArrowRight className="ml-2 w-5 h-5" /></Button>
                                 </Link>
-                                <a href={whatsappHref} target={adminPhone ? '_blank' : undefined} rel={adminPhone ? 'noopener noreferrer' : undefined}>
-                                    <Button size="xl" className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20bd5a] text-white border-none text-lg px-8 font-bold shadow-lg">Contact Us on WhatsApp</Button>
-                                </a>
+                                {hasContact && (
+                                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                                        <Button size="xl" className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20bd5a] text-white border-none text-lg px-8 font-bold shadow-lg">Contact Us on WhatsApp</Button>
+                                    </a>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 20. Community */}
+            {/* 20. Community — only when a WhatsApp group/channel is configured */}
+            {hasCommunity && (
             <section id="community" className="py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-8">
@@ -1310,6 +1190,7 @@ export default function HomeClient({
                     <WhatsAppCommunityButtons />
                 </div>
             </section>
+            )}
 
             {/* 21. Footer */}
             <LandingFooter

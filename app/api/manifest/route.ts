@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { BRAND } from '@/lib/brand'
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -9,13 +10,13 @@ export async function GET(request: Request) {
     // If no shop slug, return the main platform manifest
     if (!shopSlug) {
         return NextResponse.json({
-            name: 'KiNGFLEXYGH - Data Bundles & Airtime',
-            short_name: 'KiNGFLEXYGH',
+            name: `${BRAND.name} - Data Bundles & Airtime`,
+            short_name: BRAND.name,
             description: 'Buy affordable MTN, Telecel, and AirtelTigo data bundles & airtime online in Ghana.',
             start_url: '/',
             display: 'standalone',
-            background_color: '#0f172a',
-            theme_color: '#0f172a',
+            background_color: '#000000',
+            theme_color: '#000000',
             orientation: 'portrait-primary',
             scope: '/',
             icons: [
