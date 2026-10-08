@@ -774,3 +774,42 @@
   from { width: 0%; }
   to   { width: 100%; }
 }
+
+/* ── Lightweight mode ───────────────────────────────────────────────────────
+   Soft shadows and blur are the expensive part of the neumorphic/clay look. Phones get
+   lighter shadows; devices flagged data-perf="lite" (low memory, few cores, data saver,
+   reduced data; see the inline script in app/layout.tsx) get single-layer shadows, no
+   backdrop blur, no SVG blur filters and no entrance animations. Same layout either way. */
+@media (max-width: 640px) {
+  :root {
+    --neu-out: 6px 6px 12px #C2C2C2, -5px -5px 10px #FFFFFF;
+    --neu-out-sm: 4px 4px 8px #C2C2C2, -3px -3px 7px #FFFFFF;
+    --neu-in: inset 4px 4px 8px #C9C9C9, inset -4px -4px 8px #FFFFFF;
+  }
+  .dark {
+    --neu-out: 6px 6px 12px #000000, -4px -4px 10px #232323;
+    --neu-out-sm: 4px 4px 8px #000000, -3px -3px 7px #232323;
+    --neu-in: inset 4px 4px 8px #000000, inset -3px -3px 7px #232323;
+  }
+}
+
+html[data-perf='lite'] {
+  --neu-out: 4px 4px 8px #C2C2C2;
+  --neu-out-sm: 3px 3px 6px #C2C2C2;
+  --neu-in: inset 2px 2px 5px #C2C2C2;
+}
+html[data-perf='lite'].dark {
+  --neu-out: 4px 4px 8px #000000;
+  --neu-out-sm: 3px 3px 6px #000000;
+  --neu-in: inset 2px 2px 5px #000000;
+}
+html[data-perf='lite'] .neu-night { box-shadow: 6px 6px 14px rgba(0,0,0,0.8), inset 1px 1px 0 rgba(255,255,255,0.06); }
+html[data-perf='lite'] .neu-night-in { box-shadow: inset 3px 3px 8px rgba(0,0,0,0.9); }
+html[data-perf='lite'] .clay-gold { box-shadow: 0 5px 10px rgba(246,169,0,0.3), inset 0 -3px 5px rgba(155,98,0,0.4), inset 0 2px 3px rgba(255,255,255,0.55); transition: none; }
+html[data-perf='lite'] .clay-black { box-shadow: 0 5px 10px rgba(0,0,0,0.3), inset 0 -3px 5px rgba(0,0,0,0.7), inset 0 2px 3px rgba(255,255,255,0.2); transition: none; }
+html[data-perf='lite'] .clay-silver { box-shadow: 0 5px 10px rgba(0,0,0,0.22), inset 0 -3px 5px rgba(120,120,120,0.3), inset 0 2px 3px rgba(255,255,255,0.8); transition: none; }
+html[data-perf='lite'] .swoosh-fx { display: none; }
+html[data-perf='lite'] .swoosh-reveal,
+html[data-perf='lite'] .animate-in { animation: none !important; }
+html[data-perf='lite'] [class*='backdrop-blur'] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html[data-perf='lite'] * { scroll-behavior: auto !important; }

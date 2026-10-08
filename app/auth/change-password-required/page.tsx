@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ArrowRight } from 'lucide-react'
+import { AuthShell } from '@/components/auth/auth-shell'
+import { ClayButton, Notice, PasswordField, PasswordRules } from '@/components/auth/fields'
+import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE } from '@/lib/password-validation'
 import { toast } from '@/lib/toast'
 
 export default function ChangePasswordRequiredPage() {
@@ -10,13 +12,13 @@ export default function ChangePasswordRequiredPage() {
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState('')
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (newPassword !== confirmPassword) {
-            toast.error("New password and confirmation don't match.")
-            return
-        }
+        setError('')
+        if (!isStrongPassword(newPassword)) { setError(PASSWORD_REQUIREMENTS_MESSAGE); return }
+        if (newPassword !== confirmPassword) { setError('The two new passwords do not match.'); return }
         setSubmitting(true)
         try {
             const res = await fetch('/api/users/change-password', {
@@ -24,32 +26,35 @@ export default function ChangePasswordRequiredPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
             })
-            const body = await res.json()
-            if (!res.ok) {
-                toast.error(body.error || 'Could not change password.')
-                return
-            }
-            toast.success('Password changed. You can also set up biometric sign-in anytime from your profile.')
+            const body = await res.json().catch(() => ({}))
+            if (!res.ok) { setError(body.error || 'Could not change your password.'); return }
+            toast.success('Password changed')
             window.location.assign('/dashboard')
+        } catch {
+            setError('Something went wrong. Please try again.')
         } finally {
             setSubmitting(false)
         }
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center px-4">
-            <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-                <h1 className="text-xl font-bold">Set a new password</h1>
-                <p className="text-sm text-muted-foreground">
-                    For your security, you need to set your own password before continuing.
-                </p>
-                <Input type="password" placeholder="Current access key" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-                <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
-                <Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
-                <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting ? 'Saving…' : 'Set password'}
-                </Button>
+        <AuthShell
+            heading="Set your own password."
+            lead="Replace the one you were given with a password only you know."
+            progress={0.75}
+            backHref="/dashboard"
+            backLabel="Back to dashboard"
+        >
+            <form onSubmit={submit} className="neu-raised space-y-5 rounded-[2rem] p-6 sm:p-7">
+                {error && <Notice>{error}</Notice>}
+                <PasswordField id="currentPassword" label="Current password or access key" value={currentPassword} onChange={setCurrentPassword} autoComplete="current-password" autoFocus />
+                <PasswordField id="newPassword" label="New password" value={newPassword} onChange={setNewPassword} autoComplete="new-password" />
+                <PasswordRules value={newPassword} />
+                <PasswordField id="confirmPassword" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" />
+                <ClayButton type="submit" loading={submitting}>
+                    {submitting ? 'Saving' : <>Save password<ArrowRight className="h-4 w-4" /></>}
+                </ClayButton>
             </form>
-        </div>
+        </AuthShell>
     )
 }

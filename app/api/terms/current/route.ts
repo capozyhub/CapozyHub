@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerAnonClient } from '@/lib/supabase'
-import { FALLBACK_TERMS_VERSION, FALLBACK_EFFECTIVE_DATE } from '@/lib/terms'
+import { FALLBACK_TERMS_VERSION, FALLBACK_EFFECTIVE_DATE, DEFAULT_TERMS_SECTIONS } from '@/lib/terms'
 
 // Public endpoint — read by the /terms page, the dashboard gate, and the
 // storefront guest gate. Cached 60s; an admin publish propagates within a minute.
@@ -31,7 +31,7 @@ export async function GET() {
         effectiveDate: cur?.effective_date ?? FALLBACK_EFFECTIVE_DATE,
         minAcceptableVersion: min,
         changelog: (cur?.changelog ?? []).slice(0, 5),
-        sections: cur?.sections ?? [],
+        sections: cur?.sections?.length ? cur.sections : DEFAULT_TERMS_SECTIONS,
       },
     })
   } catch (err) {

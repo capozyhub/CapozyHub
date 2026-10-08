@@ -108,6 +108,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
+                <script dangerouslySetInnerHTML={{ __html: "(function(){try{var d=document.documentElement,n=navigator,m=n.deviceMemory,c=n.hardwareConcurrency,s=n.connection&&n.connection.saveData;if((m&&m<=2)||(c&&c<=4)||s||matchMedia('(prefers-reduced-data: reduce)').matches)d.setAttribute('data-perf','lite')}catch(e){}})()" }} />
                 <link rel="preload" href="/logo.png" as="image" />
             </head>
             <body className={`${body.variable} ${display.variable} ${body.className}`}>

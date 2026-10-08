@@ -203,11 +203,11 @@ function Swoosh({ className }: { className?: string }) {
             <g clipPath="url(#swoosh-clip)">
                 <path
                     d="M-20 640 C 300 690 600 520 800 280 C 900 170 1020 90 1230 70"
-                    fill="none" stroke="#8A5600" strokeOpacity="0.55" strokeWidth="26" filter="url(#swoosh-soft)"
+                    className="swoosh-fx" fill="none" stroke="#8A5600" strokeOpacity="0.55" strokeWidth="26" filter="url(#swoosh-soft)"
                 />
                 <path
                     d="M-20 566 C 250 606 545 436 726 214 C 826 94 964 26 1220 6"
-                    fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="10" strokeLinecap="round" filter="url(#swoosh-soft)"
+                    className="swoosh-fx" fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="10" strokeLinecap="round" filter="url(#swoosh-soft)"
                 />
             </g>
         </svg>
@@ -341,7 +341,7 @@ export default function HomeClient({
                     aria-label="Main"
                     className={cn(
                         'mx-auto max-w-6xl rounded-[1.75rem] text-white transition-colors duration-300 shadow-[0_14px_34px_rgba(0,0,0,0.5),inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(0,0,0,0.6)]',
-                        navSolid || menuOpen ? 'bg-[#0b0b0b]/95 backdrop-blur-xl' : 'bg-[#0b0b0b]/70 backdrop-blur-md'
+                        navSolid || menuOpen ? 'bg-[#0b0b0b]/95' : 'bg-[#0b0b0b]/80'
                     )}
                 >
                     <div className="flex h-14 items-center justify-between gap-3 pl-3 pr-2 sm:pl-4">
