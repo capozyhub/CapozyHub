@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { MessageCircle, Radio, Users2 } from 'lucide-react'
-import { BrandLogo, BrandTitle } from '@/components/ui/brand'
+import { BrandLogo } from '@/components/ui/brand'
 import { cn } from '@/lib/utils'
 import { DEVELOPER_PRODUCTS } from '@/lib/developer-products'
 import { BRAND } from '@/lib/brand'
@@ -13,30 +13,30 @@ interface FooterLink {
 }
 
 const PRODUCT_LINKS: FooterLink[] = [
-    { label: 'Data Bundles', href: '#products' },
-    { label: 'Airtime Topup', href: '#products' },
-    { label: 'AFA Registration', href: '#afa' },
+    { label: 'Data bundles', href: '/#products' },
+    { label: 'Airtime', href: '/#products' },
+    { label: 'AFA registration', href: '/#afa' },
     { label: 'Developer API', href: '/developers' },
 ]
 
 const COMPANY_LINKS: FooterLink[] = [
-    { label: 'Wallet', href: '#wallet' },
-    { label: 'Reseller Shops', href: '#resell' },
-    { label: 'Sub-Agent Program', href: '/dashboard/recruit' },
+    { label: 'How it works', href: '/#how' },
+    { label: 'Open a shop', href: '/#resell' },
+    { label: 'Sub-agents', href: '/dashboard/recruit' },
 ]
 
 const LEGAL_LINKS: FooterLink[] = [
-    { label: 'Terms of Service', href: '/terms' },
-    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of service', href: '/terms' },
+    { label: 'Privacy policy', href: '/privacy' },
 ]
 
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500'
+
 function FooterColumnLink({ href, label }: FooterLink) {
-    const isRoute = href.startsWith('/')
-    const className = "text-sm text-slate-600 dark:text-slate-400 hover:text-[#0056B3] dark:hover:text-[#FFCC00] transition-colors"
-    return isRoute ? (
-        <Link href={href} className={className}>{label}</Link>
-    ) : (
-        <a href={href} className={className}>{label}</a>
+    return (
+        <Link href={href} className={cn('rounded text-sm text-silver-200 transition-colors hover:text-brand-400', FOCUS)}>
+            {label}
+        </Link>
     )
 }
 
@@ -61,104 +61,74 @@ export function LandingFooter({
     const hasCommunity = !!(whatsappGroupLink || whatsappChannelLink)
     const hasContact = !!adminPhone
 
+    const social = [
+        hasContact && { href: whatsappHref, label: 'Chat with us on WhatsApp', Icon: MessageCircle },
+        whatsappChannelLink && { href: whatsappChannelLink, label: 'Follow our WhatsApp channel', Icon: Radio },
+        whatsappGroupLink && { href: whatsappGroupLink, label: 'Join our WhatsApp community group', Icon: Users2 },
+    ].filter(Boolean) as { href: string; label: string; Icon: typeof Radio }[]
+
     return (
-        <footer className={cn("relative mt-auto", className)}>
-            {/* Brand hairline — the one accent this footer spends */}
-            <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#0056B3] dark:via-[#FFCC00] to-transparent opacity-40" />
-
-            <div className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6">
-                        {/* Brand column — spans full width on mobile */}
-                        <div className="col-span-2 md:col-span-1">
-                            <Link href="/" className="flex items-center gap-2">
-                                <BrandLogo width={32} height={32} className="w-8 h-8" />
-                                <BrandTitle className="text-lg" />
-                            </Link>
-                            <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
-                                Ghana&apos;s all-in-one platform for data, airtime, and reseller tools — instant delivery, always.
-                            </p>
-                            {(hasContact || hasCommunity) && (
-                            <div className="flex items-center gap-4 mt-4">
-                                {hasContact && (
-                                    <a
-                                        href={whatsappHref}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label="Chat with us on WhatsApp"
-                                        className="text-slate-500 hover:text-[#25D366] transition-colors"
-                                    >
-                                        <MessageCircle className="w-5 h-5" />
-                                    </a>
-                                )}
-                                {whatsappChannelLink && (
-                                    <a
-                                        href={whatsappChannelLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label="Follow our WhatsApp channel"
-                                        className="text-slate-500 hover:text-[#25D366] transition-colors"
-                                    >
-                                        <Radio className="w-5 h-5" />
-                                    </a>
-                                )}
-                                {whatsappGroupLink && (
-                                    <a
-                                        href={whatsappGroupLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label="Join our WhatsApp community group"
-                                        className="text-slate-500 hover:text-[#25D366] transition-colors"
-                                    >
-                                        <Users2 className="w-5 h-5" />
-                                    </a>
-                                )}
-                            </div>
-                            )}
-                        </div>
-
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Products</h4>
-                            <ul className="space-y-2.5">
-                                {PRODUCT_LINKS.map((link) => (
-                                    <li key={link.label}><FooterColumnLink {...link} /></li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Company</h4>
-                            <ul className="space-y-2.5">
-                                {COMPANY_LINKS.map((link) => (
-                                    <li key={link.label}><FooterColumnLink {...link} /></li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Legal</h4>
-                            <ul className="space-y-2.5">
-                                {LEGAL_LINKS.map((link) => (
-                                    <li key={link.label}><FooterColumnLink {...link} /></li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Developer API</h4>
-                        <ul className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
-                            {DEVELOPER_PRODUCTS.map((p) => (
-                                <li key={p.slug}>
-                                    <FooterColumnLink href={`/developers/${p.slug}`} label={p.name} />
-                                </li>
-                            ))}
-                        </ul>
-                        <p className="text-xs text-slate-500 dark:text-slate-500">
-                            © {footerText}. All rights reserved.
+        <footer className={cn('relative mt-auto bg-black text-white', className)}>
+            <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+                <div className="grid grid-cols-2 gap-10 md:grid-cols-4 md:gap-8">
+                    <div className="col-span-2 md:col-span-1">
+                        <Link href="/" className={cn('flex w-fit items-center gap-2 rounded-full', FOCUS)}>
+                            <BrandLogo width={36} height={36} className="h-9 w-9" />
+                            <span className="font-display text-xl font-bold tracking-tight">
+                                {BRAND.nameFirst} <span className="text-brand-500">{BRAND.nameSecond}</span>
+                            </span>
+                        </Link>
+                        <p className="mt-4 max-w-xs text-sm leading-relaxed text-silver-200">
+                            Data, airtime, result checkers and AFA from one wallet, with the tools to resell them.
                         </p>
+                        {(hasContact || hasCommunity) && social.length > 0 && (
+                            <div className="mt-5 flex items-center gap-3">
+                                {social.map(({ href, label, Icon }) => (
+                                    <a
+                                        key={label}
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label={label}
+                                        className={cn('neu-night flex h-11 w-11 items-center justify-center rounded-full text-silver-100 transition-colors hover:text-[#25D366]', FOCUS)}
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </div>
+
+                    {[
+                        { heading: 'Products', links: PRODUCT_LINKS },
+                        { heading: 'Company', links: COMPANY_LINKS },
+                        { heading: 'Legal', links: LEGAL_LINKS },
+                    ].map((col) => (
+                        <div key={col.heading}>
+                            <h4 className="font-display text-base font-semibold text-white">{col.heading}</h4>
+                            <ul className="mt-4 space-y-3">
+                                {col.links.map((link) => (
+                                    <li key={link.label}><FooterColumnLink {...link} /></li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
                 </div>
+
+                <div className="neu-night-in mt-12 rounded-2xl p-5 sm:p-6">
+                    <h4 className="font-display text-base font-semibold text-white">Developer API</h4>
+                    <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                        {DEVELOPER_PRODUCTS.map((p) => (
+                            <li key={p.slug}>
+                                <FooterColumnLink href={`/developers/${p.slug}`} label={p.name} />
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                <p className="mt-10 text-xs text-silver-200/80">
+                    © {footerText}. All rights reserved.
+                </p>
             </div>
         </footer>
     )
