@@ -37,7 +37,7 @@ export function AuthShell({
     children: React.ReactNode
 }) {
     return (
-        <div className="min-h-[100dvh] bg-black lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:bg-neu">
+        <div className="flex min-h-[100dvh] flex-col bg-black lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:bg-neu">
             <aside className="relative isolate overflow-hidden bg-black px-6 pb-24 pt-6 text-white sm:px-10 lg:flex lg:min-h-[100dvh] lg:flex-col lg:justify-between lg:p-12 lg:pb-12 xl:p-16">
                 <BrandSwoosh
                     progress={progress}
@@ -67,7 +67,7 @@ export function AuthShell({
                 <p className="hidden text-sm text-silver-200/80 lg:block">{BRAND.domain}</p>
             </aside>
 
-            <main className="relative -mt-8 flex flex-col rounded-t-[2rem] bg-neu px-5 pb-10 pt-6 shadow-[0_-18px_40px_rgba(0,0,0,0.35)] sm:px-10 lg:mt-0 lg:min-h-[100dvh] lg:justify-center lg:rounded-none lg:shadow-none">
+            <main className="relative -mt-8 flex flex-1 flex-col rounded-t-[2rem] bg-neu px-5 pb-10 pt-6 shadow-[0_-18px_40px_rgba(0,0,0,0.35)] sm:px-10 lg:mt-0 lg:min-h-[100dvh] lg:justify-center lg:rounded-none lg:shadow-none">
                 <div className="mx-auto w-full max-w-[26rem]">
                     <Link href={backHref} className={cn('mb-6 inline-flex items-center gap-1.5 rounded text-sm font-semibold text-muted-foreground hover:text-foreground', FOCUS)}>
                         <ArrowLeft className="h-4 w-4" /> {backLabel}
