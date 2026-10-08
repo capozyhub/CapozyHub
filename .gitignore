@@ -62,6 +62,8 @@ scratch/
 scratch_*.js
 scratch-*.ts
 scratch-*.js
+# *.mjs above is for scratch scripts; the PostCSS config is required for Tailwind to run
+!postcss.config.mjs
 
 # Claude Code local settings (personal overrides, not for repo)
 .claude/settings.local.json
@@ -89,8 +91,8 @@ modal-designs-preview.html
 docs/superpowers/plans/
 docs/superpowers/specs/
 
-# Pure-logic test & eval scripts (run locally via `npx tsx`; not tracked in source control)
-scripts/test-*.ts
+# Pure-logic test scripts (scripts/test-*.ts) ARE tracked: `npm run test:guards` runs them.
+# Eval script (not a test) stays local-only:
 scripts/sms-filter-eval.ts
 
 # One-off local diagnostic probes (ad-hoc investigation scratch, not part of the audited probe history)
@@ -108,6 +110,8 @@ scripts/.logo-backups/
 # Subagent-driven-development scratch workspace (ledger, briefs, reports, review packages)
 .superpowers/
 .env*
+# .env* above must not hide the committed template
+!.env.example
 
 # Parked features (USSD and others removed from Capozy scope): kept on disk for possible
 # future use, outside the build, never pushed. Original paths are preserved under _parked/<feature>/.

@@ -11,6 +11,10 @@ Decided with the owner on 2026-10-08. This is the working plan; update it as are
 ## Verification gate (every area)
 Fresh clone of `HEAD` in a scratch directory (committed files only), then `npm ci`, `npx tsc --noEmit`, `npx next build`. All must pass before anything is pushed. Commits stay local until the owner approves.
 
+The gate must also prove the UI is styled, because a build can exit 0 with no CSS processing:
+- The emitted `.next/static/css/*.css` must contain compiled utilities (for example `.flex{`, `.bg-primary`) and must NOT contain the literal text `@tailwind`.
+- Every file the app needs must be tracked. `.gitignore` has broad patterns (`*.mjs`, `.env*`, `scripts/test-*.ts`), and `git add -A` silently skips matches. Un-ignored on 2026-10-08: `postcss.config.mjs`, `.env.example`, `scripts/test-*.ts`. After any import or move, compare `git ls-files` against the source list.
+
 Build-time placeholders (dummy values, not credentials) are needed because some modules read env at import time:
 `NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `RESEND_API_KEY=re_placeholder` (`lib/email-service.ts` constructs `new Resend()` at import and throws without it).
@@ -49,6 +53,16 @@ Each area also removes its cron routes and any `vercel.json` / workflow entries.
 Owner instruction (2026-10-08): once the removal areas are done, go through the product page by page, in order, and delete every piece of content that mentions things we removed (SMS, utility bills, USSD, Hubtel, phone OTP, Google/passkey/PIN login, named suppliers, ...).
 Order: landing page, auth page, terms (and other legal/policy pages), then the remaining pages. Each page is its own reviewable commit.
 Visual identity (Stage 3) follows the logo palette: black, gold, silver/white. Tailwind tokens are set from the logo so the whole UI follows it.
+
+Measured from `brand/capozy-logo-source.jpg`:
+
+| Role | Values |
+|---|---|
+| Gold | deep `#F6A900`, mid `#F6C30F`, light `#FEE21C` |
+| Silver | dark `#C2C2C2`, mid `#E8E8E8`, light `#F9F9F9` |
+| Black | `#000000` (logo background) |
+
+Tailwind 3.4 + PostCSS + autoprefixer are intact. Theme colors are CSS variables (`hsl(var(--primary))` etc.) in `app/globals.css`, so the retheme is a variable swap there plus the hard-coded brand colors in components (for example `#FFCC00` in `BrandTitle`).
 
 ## Known consequences
 - Data, airtime, AFA and results-checker orders cannot fulfill until a supplier is configured.
