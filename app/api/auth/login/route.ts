@@ -2,14 +2,12 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { hasTrustedRequestOrigin } from '@/lib/site-url'
-import { validateGhanaianPhone } from '@/lib/phone-validation'
 import { randomUUID } from 'crypto'
 
 // Single generic message for every credential failure — must never differ
-// based on whether email or phone was submitted, or whether the identifier
-// existed at all. Distinguishing these would let an attacker enumerate
-// which emails/phone numbers are registered.
-const INVALID_CREDENTIALS_MESSAGE = 'Invalid email, phone number, or password.'
+// based on whether the email exists. Distinguishing these would let an attacker
+// enumerate which emails are registered.
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,11 +21,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, phone, password } = body
+    const { email, password } = body
 
-    if (!password || (!email && !phone) || (email && phone)) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email or phone number, and password, are required' },
+        { error: 'Email and password are required' },
         { status: 400 }
       )
     }
@@ -36,47 +34,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
 
-    let resolvedEmail: string
-
-    if (email !== undefined) {
-      if (typeof email !== 'string' || email.length > 254) {
-        return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
-      }
-      resolvedEmail = email
-    } else {
-      if (typeof phone !== 'string' || phone.length > 20) {
-        return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
-      }
-
-      const phoneValidation = validateGhanaianPhone(phone)
-      if (!phoneValidation.isValid) {
-        // An invalid phone SHAPE must not be distinguishable from a
-        // valid-but-unknown one — same generic message either way.
-        return NextResponse.json({ error: INVALID_CREDENTIALS_MESSAGE }, { status: 401 })
-      }
-
-      // Resolve phone -> email server-side only, via the service-role
-      // client — this is never exposed as a standalone "does this phone
-      // exist" endpoint.
-      const supabaseAdmin = createServerClient()
-      const { data: match, error: lookupError } = await (supabaseAdmin.from('users') as any)
-        .select('email')
-        .eq('phone_number', phoneValidation.normalizedNumber)
-        .maybeSingle()
-
-      if (lookupError) {
-        console.error('[auth/login] phone lookup failed:', lookupError.code ?? lookupError.status, lookupError.message)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-      }
-
-      if (!match?.email) {
-        // Unknown phone number — collapse into the exact same response as
-        // a wrong password so phone existence can't be enumerated.
-        return NextResponse.json({ error: INVALID_CREDENTIALS_MESSAGE }, { status: 401 })
-      }
-
-      resolvedEmail = match.email
+    if (typeof email !== 'string' || email.length > 254) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
+
+    const resolvedEmail: string = email.trim().toLowerCase()
 
     const supabase = await createRouteClient()
 
@@ -158,11 +120,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: INVALID_CREDENTIALS_MESSAGE }, { status: 401 })
     }
 
-    // SECURITY: sub-agent accounts must sign in at agent.kingflexygh.com, not
+    // SECURITY: sub-agent accounts must sign in at agent.capozygh.com, not
     // the main apex. Scoped to the two literal production apex hostnames only
     // (never a suffix/endsWith match) — previews, localhost, and every
-    // subdomain (including agent.kingflexygh.com itself) must keep working.
-    const PROD_APEX_HOSTS = ['kingflexygh.com', 'www.kingflexygh.com']
+    // subdomain (including agent.capozygh.com itself) must keep working.
+    const PROD_APEX_HOSTS = ['capozygh.com', 'www.capozygh.com']
     const requestHost = request.headers.get('host') || ''
     if (PROD_APEX_HOSTS.includes(requestHost)) {
       const supabaseAdmin = createServerClient()
@@ -175,7 +137,7 @@ export async function POST(request: NextRequest) {
         // session this user has on every device (the default 'global' scope would).
         await supabase.auth.signOut({ scope: 'local' })
         return NextResponse.json(
-          { error: 'Sub-agent accounts sign in at agent.kingflexygh.com, not here.' },
+          { error: 'Sub-agent accounts sign in at agent.capozygh.com, not here.' },
           { status: 403 },
         )
       }

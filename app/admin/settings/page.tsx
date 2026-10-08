@@ -145,7 +145,6 @@ export default function AdminSettingsPage() {
     const [footerCopyrightText, setFooterCopyrightText] = useState('')
     const [footerBrandingText, setFooterBrandingText] = useState('')
     const [autoFulfillment, setAutoFulfillment] = useState(true)
-    const [phoneVerificationEnabled, setPhoneVerificationEnabled] = useState(false)
 
     // Landing page states
     const [landingCustomerCount, setLandingCustomerCount] = useState('5,000+')
@@ -205,7 +204,6 @@ export default function AdminSettingsPage() {
         { key: 'footer_copyright_text', value: footerCopyrightText },
         { key: 'footer_branding_text', value: footerBrandingText },
         { key: 'auto_fulfillment_enabled', value: String(autoFulfillment) },
-        { key: 'phone_verification_enabled', value: coerceBool(phoneVerificationEnabled) },
         { key: 'page_access_dashboard', value: String(pageAccessDashboard) },
         { key: 'page_access_data_packages', value: String(pageAccessDataPackages) },
         { key: 'page_access_orders', value: String(pageAccessOrders) },
@@ -232,7 +230,7 @@ export default function AdminSettingsPage() {
         paystackFee, agentPaystackFee, dealerPaystackFee, paystackMinTopup, paystackMaxTopup, mtnAdjustment,
         agentUpgradePrice, afaPriceCustomer, afaPriceAgent, afaPriceDealer, afaCostPrice, smsCostPerSegment, storefrontAfaEnabled, supportEmail, guestStorefrontUrl,
         whatsappGroupLink, whatsappChannelLink, whatsappAdminNumber, whatsappCommunityLink, footerCopyrightText,
-        footerBrandingText, autoFulfillment, phoneVerificationEnabled, pageAccessDashboard, pageAccessDataPackages,
+        footerBrandingText, autoFulfillment, pageAccessDashboard, pageAccessDataPackages,
         pageAccessOrders, pageAccessWallet, pageAccessComplaints, pageAccessNotifications, pageAccessProfile,
         pageAccessShop, pageAccessStorefront, pageAccessAirtime, pageAccessResultsChecker, pageAccessUpgrade,
         pageAccessTransactions, pageAccessAfaOrders, pageAccessRecruit, pageAccessCommission, pageAccessSms,
@@ -302,7 +300,6 @@ export default function AdminSettingsPage() {
             setFooterCopyrightText(s.footer_copyright_text || '2026 KiNG FLEXY TECHNOLOGIES LTD')
             setFooterBrandingText(s.footer_branding_text || 'KiNG FLEXY TECHNOLOGIES')
             setAutoFulfillment(s.auto_fulfillment_enabled === 'true')
-            setPhoneVerificationEnabled(s.phone_verification_enabled === 'true' || (s.phone_verification_enabled as unknown) === true)
 
             const tryParseArray = (raw: unknown, fallback: unknown[]) => {
                 if (Array.isArray(raw)) return raw
@@ -716,14 +713,6 @@ export default function AdminSettingsPage() {
                         />
                     </SettingsPanel>
 
-                    <SettingsPanel title="Phone Verification" description="SMS OTP verification during signup via Moolre" icon={Phone}>
-                        <ToggleRow
-                            label="Require Phone OTP on Signup"
-                            description="Send a 6-digit SMS code to verify each user's phone number before their account is created. Disable to skip verification (useful during testing)."
-                            checked={phoneVerificationEnabled}
-                            onCheckedChange={setPhoneVerificationEnabled}
-                        />
-                    </SettingsPanel>
                 </TabsContent>
 
                 {/* ── Page Access ──────────────────────────────────────────────── */}

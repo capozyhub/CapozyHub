@@ -9,7 +9,6 @@
 /** Settings keys that may be flipped via /api/admin/settings/toggle (admin-only). */
 export const CRITICAL_TOGGLE_KEYS = [
     'auto_fulfillment_enabled',
-    'phone_verification_enabled',
     'page_access_storefront',
     'mtn_express_delivery_enabled',
     'number_registration_gate_enabled',
@@ -44,10 +43,6 @@ export const TOGGLE_META: Record<ToggleKey, { label: string; description: string
     auto_fulfillment_enabled: {
         label: 'Auto-Fulfillment',
         description: 'Automatically process data orders via fulfillment APIs',
-    },
-    phone_verification_enabled: {
-        label: 'Phone Verification',
-        description: 'Require SMS OTP on signup',
     },
     page_access_storefront: {
         label: 'Public Storefront',

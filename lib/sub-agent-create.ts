@@ -222,30 +222,18 @@ export async function createSubAgent(
         return { success: false, status: 403, error: 'You have reached your recruit limit' }
     }
 
-    // Rule 5: uniqueness (email OR phone). Deliberate, scoped exception to the
-    // enumeration-avoidance policy used elsewhere (app/api/auth/signup,
-    // app/api/auth/login keep their existing generic-message behavior, untouched):
-    // this is a recruiter-creates-a-known-person flow, so the recruiter already
-    // personally knows who they're recruiting — naming which field collided
-    // leaks nothing exploitable here, and a distinct message lets them fix the
-    // right field immediately.
-    // Two parallel .eq() queries, never a .or() built from user input — same
-    // filter-injection-avoidance pattern as app/api/auth/signup/route.ts.
-    const [emailLookup, phoneLookup] = await Promise.all([
-        (db.from('users') as any).select('id').eq('email', email).maybeSingle(),
-        (db.from('users') as any).select('id').eq('phone_number', phone).maybeSingle(),
-    ])
+    // Rule 5: email uniqueness. Phone numbers are unverified and not unique, so they are
+    // not checked. This is a recruiter-creates-a-known-person flow, so naming the
+    // collided field leaks nothing exploitable.
+    const emailLookup = await (db.from('users') as any).select('id').eq('email', email).maybeSingle()
 
-    if (emailLookup.error || phoneLookup.error) {
-        console.error('[createSubAgent] uniqueness lookup failed', emailLookup.error, phoneLookup.error)
+    if (emailLookup.error) {
+        console.error('[createSubAgent] uniqueness lookup failed', emailLookup.error)
         return { success: false, status: 500, error: GENERIC_CREATE_FAILURE }
     }
 
     if (emailLookup.data) {
         return { success: false, status: 400, error: 'An account with this email already exists.' }
-    }
-    if (phoneLookup.data) {
-        return { success: false, status: 400, error: 'An account with this phone number already exists.' }
     }
 
     // Rule 6: create the account. The access key IS the sub-agent's Supabase

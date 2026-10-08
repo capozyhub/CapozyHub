@@ -74,14 +74,6 @@ const fallbackCriticalLimits: Record<string, InMemoryLimitConfig> = {
     '/api/auth/forgot-password': { maxRequests: 3, windowMs: 60 * 60 * 1000 },
     '/api/auth/subagent-reset': { maxRequests: 3, windowMs: 60 * 60 * 1000 },
     '/api/users/change-password': { maxRequests: 5, windowMs: 10 * 60 * 1000 },
-    // Mirror the pinManage limiter so a Redis outage can't reopen the password-
-    // guessing oracle on /api/auth/pin.
-    '/api/auth/pin': { maxRequests: 15, windowMs: 10 * 60 * 1000 },
-    '/api/auth/phone-verify-gate/hint': { maxRequests: 20, windowMs: 10 * 60 * 1000 },
-    '/api/auth/phone-verify-gate/recover': { maxRequests: 15, windowMs: 10 * 60 * 1000 },
-    '/api/auth/phone-verify-gate/recover/complete': { maxRequests: 10, windowMs: 10 * 60 * 1000 },
-    '/api/auth/phone-verify-gate/send-current': { maxRequests: 20, windowMs: 10 * 60 * 1000 },
-    '/api/auth/phone-verify-gate/verify-current': { maxRequests: 20, windowMs: 10 * 60 * 1000 },
     // A single password typo on the confirm-to-delete field must not lock the
     // whole flow for 24h. 5/15m still hard-caps brute-force of the delete
     // password while letting an honest retry through. Mirror in rateLimiters.deleteAccount.
@@ -127,16 +119,6 @@ const SIGNUP_FAIL_CLOSED_PATHS: ReadonlySet<string> = new Set([
     // reject outright on a Redis outage rather than falling through to a weaker
     // per-Lambda backstop.
     '/api/auth/resend-confirmation',
-    // ⚠️ DO NOT add '/api/auth/pin' here. It looks tempting — the set/remove
-    // step-up verifies the account password, so a Redis outage dropping to the
-    // per-Lambda fallback does widen the guess budget. But failing closed makes
-    // the `status` action 503, and PinContext's status check treats ANY !res.ok
-    // as "verified" (contexts/pin-context.tsx) — so a Redis blip would silently
-    // BYPASS the app lock entirely while also stranding genuinely locked users.
-    // An auth bypass is strictly worse than a widened rate limit. The real
-    // protections here are the shared pin_attempts/pin_locked_until DB lockout
-    // (see verifyStepUp in app/api/auth/pin/route.ts), which is independent of
-    // Redis, plus the per-Lambda entry in fallbackCriticalLimits above.
 ])
 
 // ============================================================
@@ -174,20 +156,7 @@ const rateLimiters = REDIS_CONFIGURED ? {
     forgotPassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:forgotPassword' }),
     subAgentSelfServiceReset: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:subAgentSelfServiceReset' }),
     resendConfirmation: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:resendConfirmation' }),
-    // /api/auth/pin — the set/remove step-up now verifies the ACCOUNT PASSWORD, so
-    // this endpoint must not fall to the loose general limiter (which would make it
-    // a 100/min password-guessing oracle for anyone holding a valid session). 15/10m
-    // per-user caps guessing hard while still covering a legit lock cycle (a status
-    // check + up to 5 verify attempts + a forgot-PIN remove/set). Both the verify
-    // path AND the set/remove step-up path are additionally DB-capped at 5 attempts
-    // sharing one pin_attempts/pin_locked_until counter (see verifyStepUp).
-    pinManage: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(15, '10 m'), prefix: 'kfg:pinManage' }),
     changePassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'kfg:changePassword' }),
-    phoneVerifyGateHint: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '10 m'), prefix: 'kfg:phoneVerifyGateHint' }),
-    phoneVerifyGateRecover: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(15, '10 m'), prefix: 'kfg:phoneVerifyGateRecover' }),
-    phoneVerifyGateRecoverComplete: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:phoneVerifyGateRecoverComplete' }),
-    phoneVerifyGateSendCurrent: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '10 m'), prefix: 'kfg:phoneVerifyGateSendCurrent' }),
-    phoneVerifyGateVerifyCurrent: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '10 m'), prefix: 'kfg:phoneVerifyGateVerifyCurrent' }),
     checkAvailability: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:checkAvailability' }),
     // A successful sign-in is exactly ONE callback, but a whole CGNAT/shared-NAT
     // (common on Ghanaian mobile) shares one IP here, so keep the budget generous
@@ -823,24 +792,6 @@ export async function middleware(request: NextRequest) {
         } else if (pathname === '/api/auth/resend-confirmation') {
             limiter = rateLimiters.resendConfirmation
             identifier = ip
-        } else if (pathname === '/api/auth/pin') {
-            limiter = rateLimiters.pinManage
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/auth/phone-verify-gate/hint') {
-            limiter = rateLimiters.phoneVerifyGateHint
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/auth/phone-verify-gate/recover') {
-            limiter = rateLimiters.phoneVerifyGateRecover
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/auth/phone-verify-gate/recover/complete') {
-            limiter = rateLimiters.phoneVerifyGateRecoverComplete
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/auth/phone-verify-gate/send-current') {
-            limiter = rateLimiters.phoneVerifyGateSendCurrent
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/auth/phone-verify-gate/verify-current') {
-            limiter = rateLimiters.phoneVerifyGateVerifyCurrent
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
         } else if (pathname === '/api/users/change-password') {
             limiter = rateLimiters.changePassword
             identifier = authUser?.id ?? ip
@@ -1129,15 +1080,13 @@ export async function middleware(request: NextRequest) {
     // EXCEPTIONS:
     //   /auth/update-password — Supabase creates a recovery session on link click;
     //     redirecting away would prevent the user from setting a new password.
-    //   /auth/enable-biometric & /auth/setup-pin — require an active session to read
-    //     dbUser.email/id for credential registration; must stay reachable post-login.
     //   /auth/change-password-required — no longer an automatic redirect target
     //     (the forced password change was removed 2026-09-30, see
     //     app/dashboard/layout.tsx), but the page itself still exists for anyone
     //     who navigates to it directly to change their password voluntarily.
     //     Kept exempted so that still works instead of bouncing them to
     //     /dashboard.
-    const authExceptions = ['/auth/update-password', '/auth/enable-biometric', '/auth/setup-pin', '/auth/complete-profile', '/auth/change-password-required', '/auth/verify-phone-required']
+    const authExceptions = ['/auth/update-password', '/auth/change-password-required']
     if (pathname.startsWith('/auth') && !authExceptions.some(p => pathname.startsWith(p))) {
         if (authUser) {
             return addNoCacheHeaders(NextResponse.redirect(new URL('/dashboard', request.url)))

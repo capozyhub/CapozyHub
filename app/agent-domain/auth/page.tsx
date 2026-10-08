@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { KeyRound, Mail, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react'
-import { resolveLoginIdentifier } from '@/lib/login-identifier'
 import { toast } from '@/lib/toast'
 
 // ─── Sub-agent access page ──────────────────────────────────────────────────
@@ -10,15 +9,11 @@ import { toast } from '@/lib/toast'
 // sub-agent isn't handed a memorized password — a recruiter mints them an
 // "access key" (Task 5's Regenerate flow reissues it; there is no self-service
 // recovery). This page frames the field accordingly, but the wire protocol is
-// unchanged: POST { email, password } OR { phone, password } to
+// unchanged: POST { email, password } to
 // /api/auth/login, same as the password branch of app/auth/page.tsx (via
 // signIn() in contexts/auth-context.tsx) and app/marketplace-domain/auth/
 // AuthClient.tsx's SignInForm.submit(), whose status handling this mirrors
-// exactly (429 w/ Retry-After, 401, 403, generic). The identifier field
-// reuses resolveLoginIdentifier (lib/login-identifier.ts) — the same
-// email-vs-Ghanaian-phone detection app/auth/page.tsx's unified "Email or
-// Phone Number" field uses — so phone-format validation and error copy stay
-// identical between the two login surfaces.
+// exactly (429 w/ Retry-After, 401, 403, generic). The field takes the account email.
 
 export default function AgentAuthPage() {
     const [identifier, setIdentifier] = useState('')
@@ -73,9 +68,9 @@ export default function AgentAuthPage() {
         if (submitting) return
         setError('')
 
-        const resolved = resolveLoginIdentifier(identifier)
-        if (resolved.type === 'invalid') {
-            setError('Invalid email, phone number, or password.')
+        const email = identifier.trim().toLowerCase()
+        if (!email.includes('@')) {
+            setError('Invalid email or access key.')
             return
         }
 
@@ -84,11 +79,7 @@ export default function AgentAuthPage() {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(
-                    resolved.type === 'email'
-                        ? { email: resolved.value, password: accessKey }
-                        : { phone: resolved.value, password: accessKey }
-                ),
+                body: JSON.stringify({ email, password: accessKey }),
             })
 
             if (response.status === 429) {
@@ -153,7 +144,7 @@ export default function AgentAuthPage() {
                         Welcome back
                     </h1>
                     <p className="text-sm text-[#8DA0BC] mt-1.5 max-w-[280px] leading-relaxed">
-                        Sign in to your sub-agent dashboard with your email or phone number and the access key your recruiter gave you.
+                        Sign in to your sub-agent dashboard with your email and the access key your recruiter gave you.
                     </p>
                 </div>
 
@@ -172,7 +163,7 @@ export default function AgentAuthPage() {
 
                     <div className="space-y-1.5">
                         <label htmlFor="agent-identifier" className="block text-xs font-semibold text-[#9FB2CB]">
-                            Email or Phone Number
+                            Email
                         </label>
                         <div className="relative">
                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5E7594]" />
@@ -183,7 +174,7 @@ export default function AgentAuthPage() {
                                 required
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
-                                placeholder="your@email.com or 024XXXXXXX"
+                                placeholder="your@email.com"
                                 className="w-full h-11 rounded-xl border border-[#1E3A57] bg-[#0B2036] pl-10 pr-3.5 text-sm text-white placeholder:text-[#4A6180] outline-none transition focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/20"
                             />
                         </div>

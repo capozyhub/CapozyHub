@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr'
-import { createServerClient as createAdminClient } from '@/lib/supabase'
 import { getAdminSettings } from '@/lib/admin-settings-cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -27,38 +26,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/auth')
     }
 
-    const admin = createAdminClient()
-
-    // Run both queries in parallel: admin settings (cached — this layout runs on
-    // EVERY dashboard page view, see lib/admin-settings-cache.ts) + profile
-    // completeness check (per-user, never cached). 5-minute TTL (product
-    // decision, 2026-09-24) — every key here is pure display copy an admin
-    // changes rarely.
-    const [adminSettings, profileResult] = await Promise.all([
-        getAdminSettings([
-            'footer_copyright_text', 'footer_branding_text', 'whatsapp_community_link',
-            'signup_promo_role', 'terms_current_version', 'terms_min_acceptable_version',
-            'terms_effective_date',
-        ], 5 * 60 * 1000),
-        (admin.from('users') as any)
-            .select('phone_number, phone_verified, role')
-            .eq('id', user.id)
-            .single(),
-    ])
-
-    // Users who signed up via Google before the phone+password requirement
-    // are sent here to complete their profile before accessing the dashboard.
-    if (!profileResult.data?.phone_number) {
-        redirect('/auth/complete-profile')
-    }
-
-    // Mandatory phone verification gate (2026-09-30) — every authenticated
-    // user must verify the number on file (or recover a new one) before
-    // reaching any dashboard page. Runs on every request, so it retroactively
-    // catches already-logged-in sessions on their next navigation.
-    if (!profileResult.data?.phone_verified) {
-        redirect('/auth/verify-phone-required')
-    }
+    // Admin settings (cached: this layout runs on EVERY dashboard page view, see
+    // lib/admin-settings-cache.ts). 5-minute TTL (product decision, 2026-09-24):
+    // every key here is pure display copy an admin changes rarely.
+    //
+    // The only gate on the dashboard is "signed in". There is deliberately no
+    // phone-verification or profile-completeness redirect: phone numbers are
+    // collected unverified and asked for again only where a feature needs one.
+    const adminSettings = await getAdminSettings([
+        'footer_copyright_text', 'footer_branding_text', 'whatsapp_community_link',
+        'terms_current_version', 'terms_min_acceptable_version',
+        'terms_effective_date',
+    ], 5 * 60 * 1000)
 
     // Removed 2026-09-30 (owner decision): sub-agents used to be forced to
     // change their access key into a self-chosen password on first login.
@@ -77,14 +56,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // back. /auth/change-password-required still exists as an optional,
     // self-service page (nothing links to it automatically anymore).
 
-    const communityLink = adminSettings.whatsapp_community_link || 'https://chat.whatsapp.com/GY8X8nUkNgYATUiOY5gXAb'
-    const signupPromoRole: 'dealer' | 'agent' | null =
-        adminSettings.signup_promo_role === 'dealer' || adminSettings.signup_promo_role === 'agent'
-            ? adminSettings.signup_promo_role
-            : null
-
+    const communityLink = adminSettings.whatsapp_community_link || ''
     return (
-        <DashboardLayoutClient adminSettings={adminSettings} communityLink={communityLink} signupPromoRole={signupPromoRole}>
+        <DashboardLayoutClient adminSettings={adminSettings} communityLink={communityLink}>
             {children}
         </DashboardLayoutClient>
     )

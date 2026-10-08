@@ -106,8 +106,6 @@ export default function RoleManagementPage() {
     const [isSavingPrices, setIsSavingPrices] = useState(false)
 
     // Promos
-    const [signupPromoRole, setSignupPromoRole] = useState<'dealer' | 'agent' | null>(null)
-    const [isSavingPromo, setIsSavingPromo] = useState(false)
 
     // Assign Role
     const [assignRole, setAssignRole] = useState<'agent' | 'dealer'>('agent')
@@ -183,8 +181,6 @@ export default function RoleManagementPage() {
                 setDealerPrice1m(String(s.find(x => x.key === 'dealer_upgrade_price_1m')?.value || '99.99'))
                 setDealerPrice3m(String(s.find(x => x.key === 'dealer_upgrade_price_3m')?.value || '199.99'))
                 setShowStrikethrough(s.find(x => x.key === 'show_price_strikethrough')?.value === 'true')
-                const promo = s.find(x => x.key === 'signup_promo_role')?.value || null
-                setSignupPromoRole(promo === 'dealer' || promo === 'agent' ? promo : null)
             }
 
             if (agentsRes.ok) setAgents(await agentsRes.json())
@@ -213,27 +209,6 @@ export default function RoleManagementPage() {
             toast.error(e.message)
         } finally {
             setIsSavingPrices(false)
-        }
-    }
-
-    const handleSavePromo = async (newRole: 'dealer' | 'agent' | null) => {
-        const prev = signupPromoRole
-        setSignupPromoRole(newRole)
-        setIsSavingPromo(true)
-        try {
-            const res = await fetch('/api/admin/settings/signup-promo', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promoRole: newRole }),
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to update promo')
-            toast.success(newRole ? `${newRole === 'dealer' ? 'Dealer' : 'Agent'} promo enabled` : 'Promo disabled')
-        } catch (e: any) {
-            setSignupPromoRole(prev)
-            toast.error(e.message)
-        } finally {
-            setIsSavingPromo(false)
         }
     }
 
@@ -578,65 +553,6 @@ export default function RoleManagementPage() {
                                     : <Save className="w-3.5 h-3.5 mr-2" />}
                                 Save Prices
                             </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Promos Card */}
-                    <Card className="border-slate-200 dark:border-slate-700/60 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 rounded-t-xl">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <Gift className="w-4 h-4 text-emerald-500" />
-                                Signup Promos
-                            </CardTitle>
-                            <CardDescription className="text-xs">Grant new users a free role on signup.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-3">
-                            {/* Dealer Promo */}
-                            <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-violet-100 dark:border-violet-900/40 bg-violet-50/40 dark:bg-violet-950/20">
-                                <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        <Gem className="w-3.5 h-3.5 text-violet-500" />
-                                        <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Dealer Promo</span>
-                                        {signupPromoRole === 'dealer' && (
-                                            <Badge className="bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/60 text-[10px] px-1.5 py-0 h-4">Active</Badge>
-                                        )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Free 1-month Dealer on signup.</p>
-                                </div>
-                                <Switch
-                                    checked={signupPromoRole === 'dealer'}
-                                    disabled={isSavingPromo}
-                                    onCheckedChange={v => handleSavePromo(v ? 'dealer' : null)}
-                                />
-                            </div>
-
-                            {/* Agent Promo */}
-                            <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-brand-100 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20">
-                                <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        <Sparkles className="w-3.5 h-3.5 text-brand-700" />
-                                        <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Agent Promo</span>
-                                        {signupPromoRole === 'agent' && (
-                                            <Badge className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px] px-1.5 py-0 h-4">Active</Badge>
-                                        )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Free 3-day Agent trial on signup.</p>
-                                </div>
-                                <Switch
-                                    checked={signupPromoRole === 'agent'}
-                                    disabled={isSavingPromo}
-                                    onCheckedChange={v => handleSavePromo(v ? 'agent' : null)}
-                                />
-                            </div>
-
-                            {isSavingPromo && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 justify-center">
-                                    <Loader2 className="w-3 h-3 animate-spin" /> Saving…
-                                </div>
-                            )}
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-700/60 pt-2">
-                                Only one promo can be active at a time.
-                            </p>
                         </CardContent>
                     </Card>
 

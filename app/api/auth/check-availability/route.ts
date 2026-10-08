@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { accountEmailSchema, phoneSchema } from '@/lib/validation'
+import { accountEmailSchema } from '@/lib/validation'
 import { createServerClient } from '@/lib/supabase'
 import { hasTrustedRequestOrigin } from '@/lib/site-url'
 
 const schema = z.object({
-    email: accountEmailSchema.optional(),
-    phoneNumber: phoneSchema.optional(),
-}).refine(d => d.email || d.phoneNumber, {
-    message: 'At least one of email or phoneNumber is required',
+    email: accountEmailSchema,
 })
 
 export async function POST(request: NextRequest) {
@@ -33,21 +30,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Invalid input' }, { status: 400 })
     }
 
-    const { email, phoneNumber } = parsed.data
+    const { email } = parsed.data
     const admin = createServerClient()
 
-    const checks = await Promise.all([
-        email
-            ? (admin.from('users') as any).select('id').eq('email', email).maybeSingle()
-            : Promise.resolve({ data: null }),
-        phoneNumber
-            ? (admin.from('users') as any).select('id').eq('phone_number', phoneNumber).maybeSingle()
-            : Promise.resolve({ data: null }),
-    ])
+    const { data } = await (admin.from('users') as any).select('id').eq('email', email).maybeSingle()
 
-    // SEC-025: return a single generic shape that does not disclose which
-    // identifier (email/phone/both) is taken, to prevent account enumeration.
-    const available = !checks[0].data && !checks[1].data
-
-    return NextResponse.json({ available })
+    // SEC-025: a plain boolean, no detail about which field collided.
+    return NextResponse.json({ available: !data })
 }

@@ -29,8 +29,6 @@ const PUBLIC_ALLOWED_KEYS = new Set([
     'whatsapp_community_link',
     'footer_copyright_text',
     'footer_branding_text',
-    'signup_promo_role',
-    'phone_verification_enabled',
     // Per-network data-bundle stock map { MTN:false, ... } — read by the client buy
     // page to show a network as "Out of Stock at the Moment". Non-sensitive (customers
     // see the state anyway).

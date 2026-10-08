@@ -3,7 +3,7 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { nameSchema } from '@/lib/validation'
+import { nameSchema, phoneSchema } from '@/lib/validation'
 import { hasTrustedRequestOrigin } from '@/lib/site-url'
 
 export async function PUT(request: NextRequest) {
@@ -31,15 +31,13 @@ export async function PUT(request: NextRequest) {
         const body = await request.json()
         
         // 2. STRICT INPUT VALIDATION (XSS Prevention)
-        // phone_number is deliberately NOT accepted here (2026-09-30): it can only be
-        // set/changed through /auth/complete-profile (first-time, unverified) or the
-        // phone-verify-gate recovery flow (once verified) — both require proving control
-        // of the number via OTP. This route uses the service-role client, which the
-        // guard_users_privilege_change() trigger cannot gate (auth.uid() is null for
-        // service-role writes), so phone_number must never reach this update payload.
+        // phone_number is accepted but never treated as verified: it is the user's own
+        // unverified contact claim. This route uses the service-role client, so every other
+        // column (role, status, balances...) must stay out of this schema.
         const profileSchema = z.object({
             first_name: nameSchema.optional(),
             last_name: nameSchema.optional(),
+            phone_number: phoneSchema.optional(),
         })
 
         const validation = profileSchema.safeParse(body)
@@ -53,11 +51,12 @@ export async function PUT(request: NextRequest) {
         // Destructure only the specifically allowed fields from validated data.
         // If an attacker sends { role: 'admin' } or { phone_number: '...' }, it is
         // completely ignored here — never reaches the schema, let alone the payload.
-        const { first_name, last_name } = validation.data
+        const { first_name, last_name, phone_number } = validation.data
 
         const updatePayload = {
             ...(first_name !== undefined && { first_name: String(first_name).trim() }),
             ...(last_name !== undefined && { last_name: String(last_name).trim() }),
+            ...(phone_number !== undefined && { phone_number }),
             updated_at: new Date().toISOString()
         }
         

@@ -9,7 +9,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { SystemAnnouncementModal } from '@/components/system-announcement-modal'
 import { SessionExpiryModal } from '@/components/session-expiry-modal'
 import { AgentExpiryModal } from '@/components/agent-expiry-modal'
-import { SignupPromoModal } from '@/components/signup-promo-modal'
 import { TermsGate } from '@/components/terms/terms-gate'
 import { NotificationModal } from '@/components/dashboard/NotificationModal'
 import { BrandLoader } from '@/components/ui/brand-loader'
@@ -32,12 +31,10 @@ export default function DashboardLayoutClient({
     children,
     adminSettings = {},
     communityLink,
-    signupPromoRole = null,
 }: {
     children: React.ReactNode
     adminSettings?: Record<string, string>
     communityLink?: string
-    signupPromoRole?: 'dealer' | 'agent' | null
 }) {
     const { user, dbUser, isLoading } = useAuth()
     const { isCollapsed, isAnnouncementBellOpen } = useUI()
@@ -115,24 +112,10 @@ export default function DashboardLayoutClient({
         return () => { supabase.removeChannel(channel) }
     }, [dbUser])
 
-    // ── Profile-completeness guard (Layer 2) ─────────────────────────────────
-    // Derived before any early returns so hooks are always called unconditionally.
-    // updateUser({ password }) for OAuth users does NOT add an email identity —
-    // we rely on user_metadata.has_password written by complete-profile instead.
-    const isGoogleUser   = user?.identities?.some((id: any) => id.provider === 'google') ?? false
-    const hasPassword    = (user?.user_metadata?.has_password === true)
-        || (user?.identities?.some((id: any) => id.provider === 'email') ?? false)
-    const profileComplete = !isLoading && !!user && !!dbUser
-        && (!!dbUser.phone_number && (!isGoogleUser || hasPassword))
-
-    useEffect(() => {
-        if (!isLoading && user && dbUser && !profileComplete) {
-            router.replace('/auth/complete-profile')
-        }
-    }, [isLoading, user, dbUser, profileComplete, router])
-
-    // Show loader while auth is resolving, profile is incomplete, or redirect is pending.
-    if (isLoading || !user || !dbUser || !profileComplete) {
+    // Show a loader while auth is resolving. There is no profile-completeness redirect:
+    // phone numbers are collected unverified at signup and asked for again only where
+    // a feature needs one, so a missing phone never blocks the dashboard.
+    if (isLoading || !user || !dbUser) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#E5E7EB] dark:bg-[#000000]">
                 <BrandLoader fullScreen={false} />
@@ -184,7 +167,6 @@ export default function DashboardLayoutClient({
         <ModalQueueProvider>
         <div className="min-h-screen bg-[#E5E7EB] dark:bg-[#000000] relative">
             <TermsGate minVersion={adminSettings['terms_min_acceptable_version'] || ''} effectiveDate={adminSettings['terms_effective_date']} />
-            <SignupPromoModal promoRole={signupPromoRole} />
             <SystemAnnouncementModal />
 
             {/* ── Web Push Permission Toast (queue-aware, 8 s delay) ─────── */}

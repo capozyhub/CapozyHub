@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { usePin } from '@/contexts/pin-context'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,15 +37,6 @@ import {
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { formatDate, cn } from '@/lib/utils'
-import { clearTrustedDevice } from '@/lib/pin-crypto'
-import {
-    browserSupportsWebAuthn,
-    listPasskeys,
-    registerNewPasskey,
-    renamePasskey,
-    deletePasskey,
-    type PasskeyRecord,
-} from '@/lib/passkey-client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { roleConfig, UserRole } from '@/lib/roles'
@@ -54,96 +44,9 @@ import { roleConfig, UserRole } from '@/lib/roles'
 import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE } from '@/lib/password-validation'
 
 export default function ProfilePage() {
-    const { dbUser, user, signOut, isSigningOut, refreshUser, syncSession, getPendingCredentials } = useAuth()
-    const { showPinSetup, isPinSet } = usePin()
+    const { dbUser, user, signOut, isSigningOut, refreshUser } = useAuth()
     const router = useRouter()
     const searchParams = useSearchParams()
-
-    const [isConnectingGoogle, setIsConnectingGoogle] = useState(false)
-    const [isDisconnectingGoogle, setIsDisconnectingGoogle] = useState(false)
-
-    const hasGoogleIdentity = user?.identities?.some(id => id.provider === 'google') ?? false
-    const hasPasswordIdentity = user?.user_metadata?.has_password === true
-        || (user?.identities?.some(id => id.provider === 'email') ?? false)
-
-    // Handle the return from supabase.auth.linkIdentity() — Google redirects
-    // through /auth/callback (which exchanges the code and refreshes the
-    // session) and lands back here with ?linked=google once done.
-    useEffect(() => {
-        if (searchParams.get('linked') !== 'google') return
-
-        const finalizeLink = async () => {
-            try {
-                // The /auth/callback route enforces the email match server-side
-                // before the browser ever runs. If it already handled a
-                // mismatch, report that outcome and stop — the identity is
-                // already gone (or the failure is already logged server-side).
-                const serverOutcome = searchParams.get('link')
-                if (serverOutcome === 'mismatch') {
-                    await syncSession()
-                    toast.error(
-                        `That Google account doesn't match your KiNG FLEXY email, so it was not connected. ` +
-                        `Please use the Google account registered to your KiNG FLEXY email.`
-                    )
-                    return
-                }
-                if (serverOutcome === 'mismatch_failed') {
-                    await syncSession()
-                    toast.error(
-                        `A Google account that doesn't match your KiNG FLEXY email was connected, and we ` +
-                        `couldn't remove it automatically. Please tap Disconnect, or contact support.`
-                    )
-                    return
-                }
-
-                await syncSession()
-                const { data: { user: freshUser } } = await supabase.auth.getUser()
-                const googleIdentity = freshUser?.identities?.find(id => id.provider === 'google')
-
-                if (!googleIdentity) return
-
-                // Supabase does NOT enforce that the linked Google account's email
-                // matches this account — this check is the only thing that does.
-                // Anything other than a confirmed, case-insensitive match is
-                // treated as a mismatch and unlinked (fail closed).
-                const googleEmail = googleIdentity.identity_data?.email
-                const matches =
-                    typeof googleEmail === 'string' &&
-                    typeof freshUser?.email === 'string' &&
-                    googleEmail.toLowerCase() === freshUser.email.toLowerCase()
-
-                if (matches) {
-                    toast.success('Google account connected!')
-                    return
-                }
-
-                const { error: unlinkError } = await supabase.auth.unlinkIdentity(googleIdentity)
-                await syncSession()
-
-                if (unlinkError) {
-                    console.error('[profile] failed to unlink mismatched Google identity:', unlinkError.message)
-                    toast.error(
-                        `A Google account that doesn't match your KiNG FLEXY email was connected, and we ` +
-                        `couldn't remove it automatically. Please tap Disconnect, or contact support.`
-                    )
-                    return
-                }
-
-                toast.error(
-                    `That Google account (${googleEmail ?? 'unknown'}) doesn't match your ` +
-                    `KiNG FLEXY email (${freshUser?.email ?? 'unknown'}). Please use the Google account registered to that email.`
-                )
-            } catch (err) {
-                console.error('[profile] finalizing Google link failed:', err)
-                toast.error("Couldn't finish connecting Google. Please try again.")
-            } finally {
-                router.replace('/dashboard/profile')
-            }
-        }
-
-        finalizeLink()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams])
 
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
@@ -182,165 +85,6 @@ export default function ProfilePage() {
     const [deletePassword, setDeletePassword] = useState('')
     const [isDeleting, setIsDeleting] = useState(false)
 
-    // PIN Management
-    const [hasPin, setHasPin] = useState<boolean | null>(null)
-    const [isPinLoading, setIsPinLoading] = useState(true)
-    const [isRemovePinDialogOpen, setIsRemovePinDialogOpen] = useState(false)
-    const [removePinPassword, setRemovePinPassword] = useState('')
-    const [isRemovingPin, setIsRemovingPin] = useState(false)
-    const [isPinPasswordDialogOpen, setIsPinPasswordDialogOpen] = useState(false)
-    const [pinPasswordForTrust, setPinPasswordForTrust] = useState('')
-    const [pinPasswordError, setPinPasswordError] = useState('')
-
-    // Passkey Management
-    const [passkeyWebAuthnSupported, setPasskeyWebAuthnSupported] = useState(false)
-    const [passkeys, setPasskeys] = useState<PasskeyRecord[]>([])
-    const [passkeyListLoading, setPasskeyListLoading] = useState(true)
-    const [isAddingPasskey, setIsAddingPasskey] = useState(false)
-    const [renamingPasskeyId, setRenamingPasskeyId] = useState<string | null>(null)
-    const [renameValue, setRenameValue] = useState('')
-    const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null)
-
-    useEffect(() => {
-        const checkPinStatus = async () => {
-            try {
-                const res = await fetch('/api/auth/pin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'status' }),
-                })
-                if (res.ok) {
-                    const data = await res.json()
-                    setHasPin(data.hasPin)
-                }
-            } catch (e) {
-                console.error('Failed to check PIN status', e)
-            } finally {
-                setIsPinLoading(false)
-            }
-        }
-        checkPinStatus()
-    }, [])
-
-    // Sync hasPin with context state (updates after setup via showPinSetup())
-    useEffect(() => {
-        if (isPinSet) setHasPin(true)
-    }, [isPinSet])
-
-    // Load passkeys on mount
-    useEffect(() => {
-        const supported = browserSupportsWebAuthn()
-        setPasskeyWebAuthnSupported(supported)
-        if (!supported) { setPasskeyListLoading(false); return }
-        listPasskeys().then(keys => {
-            setPasskeys(keys)
-            setPasskeyListLoading(false)
-        })
-    }, [])
-
-    const handleAddPasskey = async () => {
-        setIsAddingPasskey(true)
-        const result = await registerNewPasskey()
-        setIsAddingPasskey(false)
-        if (result.success && result.passkey) {
-            setPasskeys(prev => [result.passkey!, ...prev])
-            toast.success('Passkey registered successfully!')
-        } else if (result.error) {
-            toast.error(result.error)
-        }
-    }
-
-    const handleRenamePasskey = async (id: string) => {
-        if (!renameValue.trim()) return
-        const ok = await renamePasskey(id, renameValue.trim())
-        if (ok) {
-            setPasskeys(prev => prev.map(p => p.id === id ? { ...p, friendly_name: renameValue.trim() } : p))
-            setRenamingPasskeyId(null)
-            toast.success('Passkey renamed.')
-        } else {
-            toast.error('Failed to rename passkey.')
-        }
-    }
-
-    const handleDeletePasskey = async (id: string) => {
-        setDeletingPasskeyId(id)
-        const result = await deletePasskey(id)
-        setDeletingPasskeyId(null)
-        if (result.success) {
-            setPasskeys(prev => prev.filter(p => p.id !== id))
-            toast.success('Passkey removed.')
-        } else {
-            toast.error(result.error || 'Failed to remove passkey.')
-        }
-    }
-
-    function getPasskeyBadge(pk: PasskeyRecord): { label: string; className: string } {
-        const t = pk.transports ?? []
-        if (t.includes('usb') || t.includes('nfc') || t.includes('ble')) {
-            return { label: 'Security Key', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }
-        }
-        if (pk.device_type === 'multiDevice') {
-            return { label: 'Synced (Cloud)', className: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300' }
-        }
-        return { label: 'This Device', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' }
-    }
-
-    const handleSetupOrChangePin = () => {
-        const creds = getPendingCredentials()
-        if (creds) {
-            showPinSetup(creds.password)
-        } else {
-            setPinPasswordError('')
-            setPinPasswordForTrust('')
-            setIsPinPasswordDialogOpen(true)
-        }
-    }
-
-    const handlePinPasswordConfirm = () => {
-        if (!pinPasswordForTrust) { setPinPasswordError('Please enter your password.'); return }
-        setIsPinPasswordDialogOpen(false)
-        showPinSetup(pinPasswordForTrust)
-        setPinPasswordForTrust('')
-    }
-
-    const handleRemovePin = async () => {
-        // Step-up: removing the app-lock PIN now requires the account password so
-        // a briefly-unlocked session can't silently disable it.
-        if (!removePinPassword) {
-            toast.error('Please enter your account password to confirm.')
-            return
-        }
-        setIsRemovingPin(true)
-        try {
-            const res = await fetch('/api/auth/pin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'remove', password: removePinPassword }),
-            })
-            if (res.status === 401) {
-                toast.error('Incorrect password. Please try again.')
-                return
-            }
-            if (!res.ok) throw new Error('Failed to remove PIN')
-
-            // Clear local PIN session and trusted device credentials
-            try {
-                localStorage.removeItem('kfg_pin_verified')
-                localStorage.removeItem('kfg_pin_verified_at')
-                clearTrustedDevice()
-            } catch {}
-
-            setHasPin(false)
-            setIsRemovePinDialogOpen(false)
-            setRemovePinPassword('')
-            toast.success('PIN removed. You can set a new one anytime from this page.')
-        } catch {
-            toast.error('Failed to remove PIN. Please try again.')
-        } finally {
-            setIsRemovingPin(false)
-        }
-    }
-
     useEffect(() => {
         if (dbUser) {
             setFormData({
@@ -374,6 +118,7 @@ export default function ProfilePage() {
                 body: JSON.stringify({
                     first_name: formData.first_name,
                     last_name: formData.last_name,
+                    phone_number: formData.phone_number,
                 })
             })
 
@@ -477,52 +222,6 @@ export default function ProfilePage() {
             toast.error('Failed to terminate sessions. Please try logging out completely.')
         } finally {
             setIsTerminatingSessions(false)
-        }
-    }
-
-    const handleConnectGoogle = async () => {
-        setIsConnectingGoogle(true)
-        try {
-            const { error } = await supabase.auth.linkIdentity({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/dashboard/profile?linked=google')}`,
-                },
-            })
-            if (error) {
-                toast.error("Couldn't connect Google right now. Please try again later.")
-                console.error('[profile] linkIdentity error:', error.message)
-                setIsConnectingGoogle(false)
-            }
-            // On success, linkIdentity redirects the browser — nothing else to do here.
-        } catch {
-            toast.error("Couldn't connect Google right now. Please try again later.")
-            setIsConnectingGoogle(false)
-        }
-    }
-
-    const handleDisconnectGoogle = async () => {
-        if (!hasPasswordIdentity) {
-            toast.error('Set a password first — Google is currently your only way to sign in.')
-            return
-        }
-
-        setIsDisconnectingGoogle(true)
-        try {
-            const googleIdentity = user?.identities?.find(id => id.provider === 'google')
-            if (!googleIdentity) return
-
-            const { error } = await supabase.auth.unlinkIdentity(googleIdentity)
-            if (error) {
-                toast.error('Could not disconnect Google. Please try again.')
-                return
-            }
-            await syncSession()
-            toast.success('Google account disconnected.')
-        } catch {
-            toast.error('Could not disconnect Google. Please try again.')
-        } finally {
-            setIsDisconnectingGoogle(false)
         }
     }
 
@@ -680,16 +379,16 @@ export default function ProfilePage() {
                                 <Input
                                     id="phone_number"
                                     name="phone_number"
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="tel"
                                     value={formData.phone_number}
-                                    disabled
-                                    readOnly
+                                    onChange={handleChange}
+                                    className={fieldErrors.phone_number ? 'border-red-500 focus:ring-red-500' : ''}
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Your phone number is verified and can only be changed through{' '}
-                                    <Link href="/auth/verify-phone-required?mode=change" className="underline">
-                                        account recovery
-                                    </Link>.
-                                </p>
+                                {fieldErrors.phone_number
+                                    ? <p className="text-red-500 text-xs mt-1">{fieldErrors.phone_number}</p>
+                                    : <p className="text-xs text-muted-foreground">Used for your orders and payouts. We do not verify it with a code.</p>}
                             </div>
                             <div className="flex gap-2">
                                 <Button onClick={handleSave} disabled={isSaving}>
@@ -885,310 +584,6 @@ export default function ProfilePage() {
             </Card>
 
             </div>{/* end Row 1 grid */}
-
-            {/* ── Connected Accounts Card ── */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                        </svg>
-                        Connected Accounts
-                    </CardTitle>
-                    <CardDescription>
-                        Link your Google account so you can sign in either way.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div>
-                            <p className="font-medium text-sm">Google</p>
-                            <p className="text-xs text-muted-foreground">
-                                {hasGoogleIdentity ? 'Connected' : 'Not connected'}
-                            </p>
-                        </div>
-                        {hasGoogleIdentity ? (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDisconnectGoogle}
-                                disabled={isDisconnectingGoogle || !hasPasswordIdentity}
-                                title={!hasPasswordIdentity ? 'Set a password first — Google is your only sign-in method' : undefined}
-                            >
-                                {isDisconnectingGoogle ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                Disconnect
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleConnectGoogle}
-                                disabled={isConnectingGoogle}
-                            >
-                                {isConnectingGoogle ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                Connect
-                            </Button>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ── Row 2: PIN + Passkeys (side-by-side when both present) ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mb-6">
-
-            {/* Quick Access PIN Card */}
-            <Card className={cn(
-                dbUser?.role === 'agent' && "border-yellow-600/30"
-            )}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-brand-700 dark:text-brand-400" />
-                        Quick Access PIN
-                    </CardTitle>
-                    <CardDescription>
-                        Use a 6-digit PIN to securely unlock the app without typing your password.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 gap-4">
-                        <div className="flex-1 text-center sm:text-left">
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                {isPinLoading ? 'Checking...' : hasPin ? 'PIN is Active' : 'No PIN Configured'}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                {hasPin
-                                    ? 'Your session is secured with a 6-digit PIN.'
-                                    : 'Set up a PIN for faster and secure login.'}
-                            </p>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <Button
-                                onClick={handleSetupOrChangePin}
-                                disabled={isPinLoading}
-                                className={cn(
-                                    "flex-1 sm:flex-none",
-                                    hasPin ? "bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white" : "bg-primary hover:bg-primary/90 text-black"
-                                )}
-                                variant={hasPin ? "secondary" : "default"}
-                            >
-                                <Shield className="w-4 h-4 mr-1.5" />
-                                {hasPin ? 'Change PIN' : 'Set Up PIN'}
-                            </Button>
-                            {hasPin && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setIsRemovePinDialogOpen(true)}
-                                    disabled={isPinLoading}
-                                    className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-                                >
-                                    <ShieldOff className="w-4 h-4 mr-1.5" />
-                                    Remove PIN
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ── Passkeys Card ────────────────────────────────────────── */}
-            {passkeyWebAuthnSupported && (
-                <Card className={cn(dbUser?.role === 'agent' && "border-yellow-600/30")}>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Key className="w-5 h-5 text-brand-700 dark:text-brand-400" />
-                            Passkeys
-                        </CardTitle>
-                        <CardDescription>
-                            Sign in with Face ID, fingerprint, or a security key — across all your devices, including QR-code cross-device sign-in on desktop.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {passkeyListLoading ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
-                                <Loader2 className="w-4 h-4 animate-spin" /> Loading passkeys…
-                            </div>
-                        ) : passkeys.length === 0 ? (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 py-1">
-                                No passkeys registered yet. Add one below for faster, more secure sign-in.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {passkeys.map(pk => {
-                                    const badge = getPasskeyBadge(pk)
-                                    const isRenaming = renamingPasskeyId === pk.id
-                                    const isDeleting = deletingPasskeyId === pk.id
-                                    return (
-                                        <div key={pk.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                            <Key className="w-4 h-4 text-brand-700 dark:text-brand-400 shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                                {isRenaming ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <Input
-                                                            value={renameValue}
-                                                            onChange={e => setRenameValue(e.target.value)}
-                                                            onKeyDown={e => {
-                                                                if (e.key === 'Enter') handleRenamePasskey(pk.id)
-                                                                if (e.key === 'Escape') setRenamingPasskeyId(null)
-                                                            }}
-                                                            className="h-8 text-sm"
-                                                            autoFocus
-                                                            maxLength={50}
-                                                        />
-                                                        <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-black" onClick={() => handleRenamePasskey(pk.id)}>Save</Button>
-                                                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setRenamingPasskeyId(null)}>Cancel</Button>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{pk.friendly_name}</p>
-                                                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                            <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', badge.className)}>{badge.label}</span>
-                                                            {pk.backed_up && (
-                                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Cloud Backup</span>
-                                                            )}
-                                                            <span className="text-[10px] text-slate-400">Added {formatDate(pk.created_at)}</span>
-                                                            {pk.last_used_at && (
-                                                                <span className="text-[10px] text-slate-400">Used {formatDate(pk.last_used_at)}</span>
-                                                            )}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                            {!isRenaming && (
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    <Button
-                                                        variant="ghost" size="sm"
-                                                        className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                                        onClick={() => { setRenamingPasskeyId(pk.id); setRenameValue(pk.friendly_name) }}
-                                                        title="Rename"
-                                                    >
-                                                        <Pencil className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost" size="sm"
-                                                        className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                                                        onClick={() => handleDeletePasskey(pk.id)}
-                                                        disabled={isDeleting}
-                                                        title="Remove passkey"
-                                                    >
-                                                        {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                        <Button
-                            onClick={handleAddPasskey}
-                            disabled={isAddingPasskey}
-                            className="bg-primary hover:bg-primary/90 text-black w-full sm:w-auto"
-                        >
-                            {isAddingPasskey
-                                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Registering…</>
-                                : <><Key className="w-4 h-4 mr-2" />{passkeys.length === 0 ? 'Add Your First Passkey' : 'Add Another Passkey'}</>
-                            }
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-
-            </div>{/* end Row 2 grid */}
-
-            {/* ── Danger Zone (full width) ── */}
-
-            {/* PIN Password Confirmation Dialog (needed when session is older than 5 min) */}
-            <Dialog open={isPinPasswordDialogOpen} onOpenChange={open => { setIsPinPasswordDialogOpen(open); if (!open) setPinPasswordForTrust('') }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-brand-700" />
-                            Confirm Your Password
-                        </DialogTitle>
-                        <DialogDescription>
-                            Enter your password once so your PIN can securely sign you in without typing it again next time.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 py-2">
-                        <Label htmlFor="pinPassword">Password</Label>
-                        <Input
-                            id="pinPassword"
-                            type="password"
-                            placeholder="Your account password"
-                            value={pinPasswordForTrust}
-                            onChange={e => { setPinPasswordForTrust(e.target.value); setPinPasswordError('') }}
-                            onKeyDown={e => { if (e.key === 'Enter' && pinPasswordForTrust) handlePinPasswordConfirm() }}
-                            autoFocus
-                        />
-                        {pinPasswordError && (
-                            <p className="text-sm text-red-600 flex items-center gap-1.5">
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                {pinPasswordError}
-                            </p>
-                        )}
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="outline" onClick={() => setIsPinPasswordDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handlePinPasswordConfirm}
-                            disabled={!pinPasswordForTrust}
-                            className="bg-primary hover:bg-primary/90 text-black"
-                        >
-                            <Shield className="w-4 h-4 mr-2" />
-                            Continue to PIN Setup
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Remove PIN Confirmation Dialog */}
-            <Dialog open={isRemovePinDialogOpen} onOpenChange={setIsRemovePinDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <ShieldOff className="w-5 h-5 text-red-500" />
-                            Remove Quick Access PIN
-                        </DialogTitle>
-                        <DialogDescription>
-                            This will disable PIN login on this device. You will need to sign in with your email and password. You can set up a new PIN anytime from this page.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-1.5 py-1">
-                        <Label htmlFor="removePinPassword">Enter your account password to confirm</Label>
-                        <Input
-                            id="removePinPassword"
-                            type="password"
-                            autoComplete="current-password"
-                            placeholder="Account password"
-                            value={removePinPassword}
-                            onChange={e => setRemovePinPassword(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleRemovePin() }}
-                        />
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button
-                            variant="outline"
-                            onClick={() => { setIsRemovePinDialogOpen(false); setRemovePinPassword('') }}
-                            disabled={isRemovingPin}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleRemovePin}
-                            disabled={isRemovingPin || !removePinPassword}
-                        >
-                            {isRemovingPin ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldOff className="w-4 h-4 mr-2" />}
-                            Remove PIN
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             {/* Danger Zone */}
             <Card className="border-red-200 dark:border-red-900">

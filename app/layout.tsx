@@ -13,7 +13,6 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
-import { PinProvider } from '@/contexts/pin-context'
 import { OfflineOverlay } from '@/components/offline-overlay'
 import { BRAND } from '@/lib/brand'
 
@@ -151,14 +150,12 @@ export default function RootLayout({
                     disableTransitionOnChange
                 >
                     <AuthProvider>
-                        <PinProvider>
                             <UIProvider>
                                 <PageReadyLoader />
                                 <OfflineOverlay />
                                 {children}
                                 <Toaster position="top-right" richColors />
                             </UIProvider>
-                        </PinProvider>
                     </AuthProvider>
                 </ThemeProvider>
             </body>

@@ -34,31 +34,17 @@ export async function POST(request: NextRequest) {
 
     const { email, password, firstName, lastName, phoneNumber } = validation.data
 
-    // Check for duplicate email or phone number first.
-    // Two parallel `.eq` queries instead of one `.or()` so we never build a
-    // PostgREST filter string from user input — eliminates the filter-injection
-    // footgun even if the validator above ever loosens.
+    // Duplicate-email check only. The phone number is collected unverified, so it is
+    // NOT checked for uniqueness: otherwise anyone could register a victim's number
+    // and stop them from ever signing up with it.
     const supabaseAdmin = createServerClient()
-    const [emailResult, phoneResult] = await Promise.all([
-        (supabaseAdmin.from('users') as any)
-            .select('id')
-            .eq('email', email)
-            .maybeSingle(),
-        (supabaseAdmin.from('users') as any)
-            .select('id')
-            .eq('phone_number', phoneNumber)
-            .maybeSingle(),
-    ])
+    const { data: existingEmail } = await (supabaseAdmin.from('users') as any)
+        .select('id')
+        .eq('email', email)
+        .maybeSingle()
 
-    const existingEmail = !!emailResult.data
-    const existingPhone = !!phoneResult.data
-
-    if (existingEmail && existingPhone) {
-        return NextResponse.json({ error: 'An account with this email and phone number already exists' }, { status: 400 })
-    } else if (existingEmail) {
+    if (existingEmail) {
         return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 })
-    } else if (existingPhone) {
-        return NextResponse.json({ error: 'An account with this phone number already exists' }, { status: 400 })
     }
 
     const supabase = await createRouteClient()

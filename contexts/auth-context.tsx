@@ -5,9 +5,6 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { User as DBUser } from '@/types/supabase'
 import { useRouter } from 'next/navigation'
-import { clearTrustedDevice } from '@/lib/pin-crypto'
-import { toast } from '@/lib/toast'
-import { resolveLoginIdentifier } from '@/lib/login-identifier'
 
 interface AuthContextType {
     user: User | null
@@ -19,7 +16,7 @@ interface AuthContextType {
     isDealer: boolean
     /** True when the user has been idle for ≥60 min (60 min warning before auto-logout). */
     sessionExpiring: boolean
-    /** `identifier` is an email or phone number (resolved via resolveLoginIdentifier).
+    /** `identifier` is the account email.
      *  Returns the error (null on success), plus the HTTP status and a stable
      *  machine-readable `code` (e.g. 'email_not_confirmed') so callers can branch
      *  on the failure kind — a transient 429/500 vs a genuine 401 credential
@@ -31,7 +28,7 @@ interface AuthContextType {
     /**
      * Reads the current Supabase session and synchronises all auth context state
      * (session, user, dbUser). Returns true if a session was found.
-     * Use after external session establishment (e.g. passkey sign-in) to ensure
+     * Use after external session establishment (e.g. after an email-link sign-in) to ensure
      * React state is fully updated before navigating to the dashboard.
      */
     syncSession: () => Promise<boolean>
@@ -39,11 +36,6 @@ interface AuthContextType {
     isSigningOut: boolean
     /** Resets the inactivity timer — call when the user clicks "Stay logged in". */
     extendSession: () => void
-    /** Short-lived credentials stored only in memory after a successful login.
-     *  Used by PinContext to encrypt and save trusted device data on PIN setup.
-     *  Automatically cleared after 5 minutes. */
-    getPendingCredentials: () => { email: string; password: string } | null
-    clearPendingCredentials: () => void
 }
 
 interface SignUpData {
@@ -116,37 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sessionExpiringRef = useRef(false)
     const router = useRouter()
 
-    // Short-lived in-memory credentials — cleared after 5 minutes for security.
-    // The timer in `pendingCredentialsTimerRef` actively wipes the ref even if
-    // nothing ever reads it (e.g., user closes the PIN dialog without
-    // configuring a PIN). Without the active timer, the password could linger
-    // in memory until the tab was closed.
-    const pendingCredentialsRef = useRef<{ email: string; password: string; expiresAt: number } | null>(null)
-    const pendingCredentialsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     // Throttles how often user activity is broadcast to sibling tabs (E2).
     const lastActivityShareRef = useRef(0)
 
     // Tracks the latest fetchDbUser invocation. Concurrent calls (from initAuth and
     // onAuthStateChange) both run, but only the most recent result is applied to state.
     const fetchDbUserCallId = useRef(0)
-
-    const getPendingCredentials = useCallback(() => {
-        const c = pendingCredentialsRef.current
-        if (!c) return null
-        if (Date.now() > c.expiresAt) {
-            pendingCredentialsRef.current = null
-            return null
-        }
-        return { email: c.email, password: c.password }
-    }, [])
-
-    const clearPendingCredentials = useCallback(() => {
-        pendingCredentialsRef.current = null
-        if (pendingCredentialsTimerRef.current) {
-            clearTimeout(pendingCredentialsTimerRef.current)
-            pendingCredentialsTimerRef.current = null
-        }
-    }, [])
 
     const isAdmin = dbUser?.role === 'admin'
     const isSubAdmin = dbUser?.role === 'sub-admin'
@@ -295,20 +262,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [fetchDbUser])
 
     const signIn = async (identifier: string, password: string) => {
-        const resolved = resolveLoginIdentifier(identifier)
+        const email = identifier.trim().toLowerCase()
 
-        if (resolved.type === 'invalid') {
-            return { error: { message: 'Invalid email, phone number, or password.' } as Error }
+        if (!email || !email.includes('@')) {
+            return { error: { message: 'Invalid email or password.' } as Error }
         }
 
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                resolved.type === 'email'
-                    ? { email: resolved.value, password }
-                    : { phone: resolved.value, password }
-            )
+            body: JSON.stringify({ email, password })
         })
 
         if (response.status === 429) {
@@ -321,7 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!response.ok) {
             // status + code let callers distinguish a genuine 401 credential
-            // rejection (safe to wipe a trusted device) from a transient 500,
+            // rejection from a transient 500,
             // and detect email_not_confirmed to offer a resend.
             return { error: { message: data.error || 'Sign-in failed.' } as Error, status: response.status, code: data.code }
         }
@@ -334,23 +297,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (freshSession?.user) {
             await fetchDbUser(freshSession.user.id)
         }
-
-        // Store credentials in memory for 5 minutes so PinContext can save
-        // trusted device on PIN setup. Use the ACCOUNT'S email from the
-        // resolved session — not the raw identifier — since a phone-number
-        // login never has an email to hand otherwise. The active timer
-        // ensures the ref is wiped even if no code path ever calls
-        // getPendingCredentials() — e.g., the user closes the PIN setup
-        // dialog without finishing.
-        if (pendingCredentialsTimerRef.current) {
-            clearTimeout(pendingCredentialsTimerRef.current)
-        }
-        const accountEmail = freshSession?.user?.email ?? (resolved.type === 'email' ? resolved.value : '')
-        pendingCredentialsRef.current = { email: accountEmail, password, expiresAt: Date.now() + 5 * 60 * 1000 }
-        pendingCredentialsTimerRef.current = setTimeout(() => {
-            pendingCredentialsRef.current = null
-            pendingCredentialsTimerRef.current = null
-        }, 5 * 60 * 1000)
 
         return { error: null, status: 200 }
     }
@@ -379,7 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Refresh the Supabase client session from the server-set cookie AND push
-        // it into React state before returning — mirrors signIn()/passkey login.
+        // it into React state before returning — mirrors signIn().
         // Without this, DashboardLayoutClient renders with user=null/dbUser=null
         // and the caller's router.push('/dashboard') races the eventual
         // onAuthStateChange callback, leaving new users stuck on BrandLoader.
@@ -394,13 +340,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Clear the session-alive marker so the next fresh tab open correctly
             // triggers the close-detection sign-out in initAuth.
             sessionStorage.removeItem(SESSION_ALIVE_KEY)
-            localStorage.removeItem('kfg_pin_verified')
-            localStorage.removeItem('kfg_pin_verified_at')
             // Clear cross-tab coordination so the next login can't inherit a stale
             // "sibling alive" / "recently active" timestamp.
             localStorage.removeItem(LAST_SEEN_KEY)
             localStorage.removeItem(LAST_ACTIVITY_KEY)
-            // Do NOT clearTrustedDevice() here — PIN/biometric login on next visit needs it
         } catch {}
 
         // Defer navigation by one frame so React can flush isSigningOut=true to the
@@ -479,8 +422,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Firing here too would send two simultaneous requests to /api/auth/signout.
                 if (!sessionExpiringRef.current) {
                     try {
-                        localStorage.removeItem('kfg_pin_verified')
-                        localStorage.removeItem('kfg_pin_verified_at')
                         localStorage.removeItem(CLOSE_EXPIRY_KEY)
                     } catch {}
                     // Use the server-side signout route so it revokes the refresh token
@@ -528,8 +469,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         if (Date.now() - closeTime > INACTIVITY_TIMEOUT) {
                             localStorage.removeItem(CLOSE_EXPIRY_KEY)
                             try {
-                                localStorage.removeItem('kfg_pin_verified')
-                                localStorage.removeItem('kfg_pin_verified_at')
                             } catch {}
                             window.location.href = '/api/auth/signout?reason=session_expired'
                             return
@@ -610,8 +549,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     // True closure that exceeded the inactivity budget.
                                     localStorage.removeItem(CLOSE_EXPIRY_KEY)
                                     try {
-                                        localStorage.removeItem('kfg_pin_verified')
-                                        localStorage.removeItem('kfg_pin_verified_at')
                                     } catch {}
                                     // scope:'local' — this defensive close-detection sign-out
                                     // must not revoke the shared refresh token and kill a
@@ -641,8 +578,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     if (verifyError || !verifiedUser) {
                                         localStorage.removeItem(CLOSE_EXPIRY_KEY)
                                         try {
-                                            localStorage.removeItem('kfg_pin_verified')
-                                            localStorage.removeItem('kfg_pin_verified_at')
                                         } catch {}
                                         await supabase.auth.signOut({ scope: 'local' })
                                         window.location.href = '/auth?reason=session_expired'
@@ -686,17 +621,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     try { sessionStorage.setItem(SESSION_ALIVE_KEY, '1') } catch {}
                     await fetchDbUser(session.user.id)
 
-                    if (event === 'SIGNED_IN') {
-                        try {
-                            const pinNotice = localStorage.getItem('kfg_pin_notice')
-                            if (pinNotice === 'setup') {
-                                localStorage.removeItem('kfg_pin_notice')
-                                setTimeout(() => {
-                                    toast.info('Your app-lock PIN has been removed. You can set up a new one anytime in Profile → Security.', { duration: 8000 })
-                                }, 1500)
-                            }
-                        } catch {}
-                    }
                 } else {
                     setDbUser(null)
                 }
@@ -724,8 +648,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 refreshUser,
                 syncSession,
                 extendSession,
-                getPendingCredentials,
-                clearPendingCredentials,
             }}
         >
             {children}
