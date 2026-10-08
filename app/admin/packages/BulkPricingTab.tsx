@@ -30,13 +30,12 @@ const NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime'] as const
 
 type Network = typeof NETWORKS[number]
 
-type PriceRole = 'price' | 'agent_price' | 'dealer_price' | 'ussd_price' | 'cost_price'
+type PriceRole = 'price' | 'agent_price' | 'dealer_price' | 'cost_price'
 
 const ROLE_LABELS: Record<PriceRole, string> = {
     price: 'General Price',
     agent_price: 'Agent Price',
     dealer_price: 'Dealer Price',
-    ussd_price: 'USSD Price',
     cost_price: 'Cost Price',
 }
 

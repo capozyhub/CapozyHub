@@ -59,8 +59,6 @@ interface PackageFormData {
     agent_price: number
     dealer_price: number
     cost_price: number
-    ussd_price: number | null
-    ussd_enabled: boolean
     description: string
     is_available: boolean
     sort_order: number
@@ -73,8 +71,6 @@ const defaultFormData: PackageFormData = {
     agent_price: 0,
     dealer_price: 0,
     cost_price: 0,
-    ussd_price: null,
-    ussd_enabled: false,
     description: '',
     is_available: true,
     sort_order: 0,
@@ -159,8 +155,6 @@ export default function AdminPackagesPage() {
             agent_price: (pkg as any).agent_price || 0,
             dealer_price: (pkg as any).dealer_price || 0,
             cost_price: (pkg as any).cost_price || 0,
-            ussd_price: (pkg as any).ussd_price ?? null,
-            ussd_enabled: (pkg as any).ussd_enabled ?? false,
             description: pkg.description || '',
             is_available: pkg.is_available ?? false,
             sort_order: pkg.sort_order ?? 0,
@@ -373,17 +367,7 @@ export default function AdminPackagesPage() {
                                                             Dealer: {formatCurrency((pkg as any).dealer_price)}
                                                         </p>
                                                     )}
-                                                    {(pkg as any).ussd_enabled && (pkg as any).ussd_price > 0 && (
-                                                        <p className="text-sm font-medium text-orange-600">
-                                                            USSD: {formatCurrency((pkg as any).ussd_price)}
-                                                        </p>
-                                                    )}
                                                 </div>
-                                                {(pkg as any).ussd_enabled && (
-                                                    <Badge variant="outline" className="text-[10px] border-orange-300 text-orange-600 bg-orange-50 dark:bg-orange-950 self-start">
-                                                        USSD
-                                                    </Badge>
-                                                )}
                                             </div>
                                             <Switch
                                                 checked={pkg.is_available ?? false}
@@ -540,32 +524,6 @@ export default function AdminPackagesPage() {
                                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_available: checked }))}
                             />
                             <Label>Available for purchase (Website)</Label>
-                        </div>
-                        <div className="border rounded-lg p-3 space-y-3 bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    checked={formData.ussd_enabled}
-                                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ussd_enabled: checked }))}
-                                />
-                                <Label className="text-orange-700 dark:text-orange-400 font-semibold">
-                                    Enable on USSD (*713*9939#)
-                                </Label>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs text-orange-700 dark:text-orange-400">USSD Price for non-account users (GHS)</Label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.ussd_price ?? ''}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        ussd_price: e.target.value ? parseFloat(e.target.value) : null
-                                    }))}
-                                    placeholder="0.00"
-                                    className="border-orange-200 focus-visible:ring-orange-400"
-                                />
-                                <p className="text-[10px] text-muted-foreground">Registered users always get their role price. This price applies only to USSD users with no KiNG FLEXY account.</p>
-                            </div>
                         </div>
                     </div>
                     <DialogFooter className="flex-shrink-0 pt-2 border-t">

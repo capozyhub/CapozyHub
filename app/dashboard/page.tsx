@@ -39,9 +39,6 @@ const MtnWhitelistChecker = dynamic(
     { ssr: false },
 )
 
-// NEXT_PUBLIC_ vars inline at build time — keep as a module const.
-const USSD_SHORTCODE = process.env.NEXT_PUBLIC_USSD_SHORTCODE ?? '*713*9939#'
-
 interface DashboardStats {
     totalOrders: number
     completedOrders: number
@@ -235,7 +232,6 @@ export default function DashboardPage() {
                 slides={buildDashboardSlides({
                     role: dbUser?.role,
                     hasShop,
-                    ussdShortcode: USSD_SHORTCODE,
                     announcement: activeAnnouncement,
                     onOpenAnnouncement: reopenAnnouncement,
                     onOpenWhitelistCheck: () => {

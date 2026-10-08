@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SMS_API_ENDPOINTS, SMS_BUSINESS_MODE_NOTICE } from '@/content/sms-api-docs'
-import { USSD_DETAILS } from '@/lib/developer-products'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Method = 'GET' | 'POST'
@@ -31,7 +30,6 @@ const TOC = [
     { id: 'afa', label: 'AFA Registration (v2)', icon: BadgeCheck },
     { id: 'sms', label: 'SMS API', icon: MessageSquare },
     { id: 'utilities', label: 'Utility Bills', icon: Percent },
-    { id: 'ussd', label: 'USSD for Resellers', icon: Smartphone },
     { id: 'tips', label: 'Tips & Recommendations', icon: Lightbulb },
     { id: 'networks', label: 'Networks', icon: Globe },
     { id: 'errors', label: 'Error Codes', icon: AlertCircle },
@@ -1064,7 +1062,7 @@ export default function DevelopersPage() {
                         KiNG FLEXY GH<br /><span className="text-violet-300">Developer API</span>
                     </h1>
                     <p className="text-sm sm:text-lg text-white/75 max-w-xl mb-8">
-                        One API for Ghana digital services: data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bills. Integrate using your wallet balance and agent pricing. Reselling over USSD? That is supported too.
+                        One API for Ghana digital services: data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bills. Integrate using your wallet balance and agent pricing.
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex flex-wrap items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm rounded-xl px-4 py-2.5 overflow-x-auto">
@@ -1637,26 +1635,9 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 10. USSD for Resellers */}
-                        <section id="ussd" className="space-y-5">
-                            <SectionHeading id="ussd" num={10} label="USSD for Resellers" />
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    Many data resellers need USSD for customers without smartphones. Our products are
-                                    available over USSD in two ways, with no extra integration work on your side.
-                                </p>
-                                <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                                    {USSD_DETAILS.map(d => <li key={d}>{d}</li>)}
-                                </ul>
-                                <Link href="/developers/ussd" className="inline-flex text-sm font-semibold text-violet-600 dark:text-violet-400 underline">
-                                    Read more about USSD for resellers
-                                </Link>
-                            </div>
-                        </section>
-
-                        {/* 11. Tips & Recommendations */}
+                        {/* 10. Tips & Recommendations */}
                         <section id="tips" className="space-y-6">
-                            <SectionHeading id="tips" num={11} label="Tips & Recommendations" />
+                            <SectionHeading id="tips" num={10} label="Tips & Recommendations" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 One key type, one purpose — a <IC>standard</IC> key covers data, results checker and
                                 AFA; a <IC>Commission Services</IC> key covers utilities and airtime; an <IC>SMS</IC> key covers SMS. A key
@@ -1735,7 +1716,7 @@ export default function DevelopersPage() {
 
                         {/* 11. Networks */}
                         <section id="networks" className="space-y-5">
-                            <SectionHeading id="networks" num={12} label="Supported Networks" />
+                            <SectionHeading id="networks" num={11} label="Supported Networks" />
                             <DocTable
                                 head={['Network Value', 'Provider', 'Notes']}
                                 rows={[
@@ -1756,7 +1737,7 @@ export default function DevelopersPage() {
 
                         {/* 12. Error Codes */}
                         <section id="errors" className="space-y-5">
-                            <SectionHeading id="errors" num={13} label="Error Codes" />
+                            <SectionHeading id="errors" num={12} label="Error Codes" />
                             <DocTable
                                 head={['Code', 'When it occurs']}
                                 rows={[
@@ -1774,7 +1755,7 @@ export default function DevelopersPage() {
 
                         {/* 13. Code Examples */}
                         <section id="examples" className="space-y-5">
-                            <SectionHeading id="examples" num={14} label="Full Examples" />
+                            <SectionHeading id="examples" num={13} label="Full Examples" />
                             <p className="text-sm text-slate-600 dark:text-slate-300">Complete runnable data purchase example. Select your language.</p>
                             <div className="flex flex-wrap gap-1 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl w-fit">
                                 {LANG_TABS.map(l => (

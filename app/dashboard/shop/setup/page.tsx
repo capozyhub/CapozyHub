@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
     Store, Upload, Phone, Mail, MessageCircle, Palette, Eye, Save,
     Loader2, ExternalLink, ArrowLeft, ChevronDown, ChevronUp, Users,
-    X, Trash2, CheckCircle2, AlertTriangle, Copy, Check, MessageSquare, Smartphone
+    X, Trash2, CheckCircle2, AlertTriangle, Copy, Check, MessageSquare
 } from 'lucide-react'
 import { cn, normalizeWhatsAppNumber } from '@/lib/utils'
 import { toast } from '@/lib/toast'
@@ -143,7 +143,6 @@ const STEPS = [
     { key: 'community', label: 'Community' },
     { key: 'branding', label: 'Branding' },
     { key: 'sms', label: 'SMS' },
-    { key: 'ussd', label: 'USSD' },
 ] as const
 
 const SETUP_PROGRESS_LS_KEY = 'shop-setup-progress'
@@ -193,20 +192,10 @@ export default function ShopSetupPage() {
     const [smsStatus, setSmsStatus] = useState<{ enabled: boolean; activationFee: number; activated: boolean; mainBalance: number; profitBalance: number } | null>(null)
     const [smsLoading, setSmsLoading] = useState(false)
     const [smsPaySource, setSmsPaySource] = useState<'wallet' | 'profit'>('wallet')
-    // USSD step (Step 6) — informational-only until the shop is live: the
-    // activate_shop_ussd RPC requires shop_profiles.is_active, which only
-    // flips true after pricing is submitted and approved (a separate flow
-    // that finishes after this wizard). See Task 5 brief.
-    const [shopIsLive, setShopIsLive] = useState(false)
-    const [ussdInfo, setUssdInfo] = useState<{ fee: number; walletBalance: number; profitBalance: number } | null>(null)
-    const [ussdLoading, setUssdLoading] = useState(false)
-    const [ussdPaySource, setUssdPaySource] = useState<'wallet' | 'profit'>('wallet')
-    // Synchronous in-flight locks for the two paid activations: the *Loading states
-    // only disable their buttons after a re-render, so two rapid taps could
+    // Synchronous in-flight lock for the paid SMS activation: the *Loading state
+    // only disables its button after a re-render, so two rapid taps could
     // otherwise both send a request.
     const smsActivatingRef = useRef(false)
-    const ussdActivatingRef = useRef(false)
-    const [ussdCode, setUssdCode] = useState<string | null>(null)
 
     const [form, setForm] = useState<ShopForm>({
         shop_name: '',
@@ -246,15 +235,6 @@ export default function ShopSetupPage() {
         }).catch(() => { /* step still renders with smsStatus null → shows a retry state */ })
     }, [activeStep, existingShopId])
 
-    // USSD step status — same fetch-on-active pattern as SMS above. Fetched
-    // even when the shop isn't live yet (the GET route is public/best-effort
-    // for balances), so the fee still shows once the shop goes live without
-    // requiring a page reload.
-    useEffect(() => {
-        if (STEPS[activeStep]?.key !== 'ussd' || !existingShopId) return
-        fetch('/api/shop/ussd-activate').then(r => r.json()).then(setUssdInfo).catch(() => { /* step still renders with ussdInfo null → shows loading state */ })
-    }, [activeStep, existingShopId])
-
     const fetchExistingShop = async () => {
         const { data } = await ((supabase as any)
             .from('shop_profiles')
@@ -268,7 +248,6 @@ export default function ShopSetupPage() {
             setLogoPreview(data.logo_url)
             const normalizedWA = normalizeWhatsAppNumber(data.whatsapp_number || '')
             setSavedIsActive(data.is_active ?? true)
-            setShopIsLive(!!data.is_active)
             setForm({
                 shop_name: data.shop_name || '',
                 shop_slug: data.shop_slug || '',
@@ -444,9 +423,9 @@ export default function ShopSetupPage() {
     }
 
     // Fields each step is responsible for persisting on "Continue" — a subset
-    // of the full payload `handleSave` used to send all at once. SMS/USSD steps
-    // don't PUT shop_profiles fields at all (they call their own activation
-    // endpoints directly — see Tasks 4/5), so they're absent here on purpose.
+    // of the full payload `handleSave` used to send all at once. The SMS step
+    // doesn't PUT shop_profiles fields at all (it calls its own activation
+    // endpoint directly), so it's absent here on purpose.
     const STEP_SAVE_FIELDS: Partial<Record<string, () => Record<string, unknown>>> = {
         contact: () => ({
             owner_phone: form.owner_phone.trim(),
@@ -464,7 +443,7 @@ export default function ShopSetupPage() {
 
     const savePartial = async (stepKey: string): Promise<boolean> => {
         const build = STEP_SAVE_FIELDS[stepKey]
-        if (!build) return true // sms/ussd steps: nothing to PUT here
+        if (!build) return true // sms step: nothing to PUT here
         setSaving(true)
         try {
             const res = await fetch('/api/shop/profile', {
@@ -704,36 +683,6 @@ export default function ShopSetupPage() {
         } finally {
             smsActivatingRef.current = false
             setSmsLoading(false)
-        }
-    }
-
-    // ─── USSD activation (Step 6) ─────────────────────────────────────────────
-    // Own loading/disabled state, same rationale as handleEnableSms above.
-    // Only reachable once shopIsLive is true — the JSX below never renders
-    // the button that calls this while the shop isn't live yet, but the RPC
-    // (SHOP_NOT_APPROVED) is the real backstop either way.
-    const handleEnableUssd = async () => {
-        if (ussdActivatingRef.current) return
-        ussdActivatingRef.current = true
-        setUssdLoading(true)
-        try {
-            const res = await fetch('/api/shop/ussd-activate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paidFrom: ussdPaySource }),
-            })
-            const data = await res.json()
-            if (!res.ok) {
-                toast.error(data.error || 'Could not activate USSD.')
-                return
-            }
-            toast.success('USSD activated!')
-            setUssdCode(data.code)
-        } catch {
-            toast.error('Could not activate USSD. Please try again.')
-        } finally {
-            ussdActivatingRef.current = false
-            setUssdLoading(false)
         }
     }
 
@@ -1368,52 +1317,6 @@ export default function ShopSetupPage() {
             </Card>
             )}
 
-            {/* ── STEP 6: USSD Shortcode ──────────────────────────────────────
-                Informational-only until the shop is live: activate_shop_ussd
-                requires shop_profiles.is_active, which only flips true after
-                pricing is submitted and approved — strictly after this wizard
-                finishes. Do not attempt activation earlier; there is no way
-                to trigger it here while shopIsLive is false. */}
-            {activeStep === 5 && (
-            <Card>
-                <SectionHeader title="USSD Shortcode" icon={<Smartphone className="w-4 h-4" />} />
-                <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Give customers a USSD code to order without an app or internet. Optional — you can enable this any time from your dashboard once your shop is live.
-                    </p>
-                    {!shopIsLive ? (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-300">
-                            Your shop needs to be live first — finish this wizard and submit your prices, then come back here (or visit <a href="/dashboard/shop/ussd" className="underline font-semibold">USSD settings</a>) to activate.
-                        </div>
-                    ) : ussdCode ? (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                            Your USSD code is active: {ussdCode}
-                        </div>
-                    ) : !ussdInfo ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            <p className="text-sm">One-time activation fee: <strong>GHS {ussdInfo.fee.toFixed(2)}</strong></p>
-                            <div className="flex gap-2">
-                                <button type="button" onClick={() => setUssdPaySource('wallet')}
-                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', ussdPaySource === 'wallet' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700')}>
-                                    Wallet (GHS {ussdInfo.walletBalance.toFixed(2)})
-                                </button>
-                                <button type="button" onClick={() => setUssdPaySource('profit')}
-                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', ussdPaySource === 'profit' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700')}>
-                                    Profit (GHS {ussdInfo.profitBalance.toFixed(2)})
-                                </button>
-                            </div>
-                            <Button onClick={handleEnableUssd} disabled={ussdLoading} className="w-full">
-                                {ussdLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Activating...</> : 'Enable USSD'}
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            )}
             </motion.div>
             </AnimatePresence>
 
@@ -1474,22 +1377,6 @@ export default function ShopSetupPage() {
                                     className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
                                 >
                                     Request a sender ID →
-                                </Link>
-                            </div>
-                            <div className="rounded-xl border p-3 space-y-2">
-                                <p className="text-xs font-semibold flex items-center justify-between">
-                                    Dial-code ordering (USSD)
-                                    <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">Optional</span>
-                                </p>
-                                <p className="text-[11px] text-muted-foreground">
-                                    Give customers a short dial code to order from your shop without data —
-                                    a one-time paid activation.
-                                </p>
-                                <Link
-                                    href="/dashboard/shop/ussd"
-                                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-                                >
-                                    Set up USSD →
                                 </Link>
                             </div>
                         </div>

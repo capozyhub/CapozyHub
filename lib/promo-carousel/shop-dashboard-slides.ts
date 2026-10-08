@@ -1,15 +1,11 @@
 // lib/promo-carousel/shop-dashboard-slides.ts
 import {
-    Tag, Smartphone, MessageSquare, Receipt, FileText, Settings, Banknote, Share2,
+    Tag, MessageSquare, Receipt, FileText, Settings, Banknote, Share2,
 } from 'lucide-react'
 import type { PromoSlide } from './types'
 
 export interface ShopDashboardSlideContext {
     shopIsLive: boolean
-    ussdActive: boolean
-    ussdCode: string | null
-    ussdShortcode: string
-    activationFee: number
     smsConfirmEnabled: boolean
     utilitiesEnabled: boolean
     ownerRole: string | null | undefined
@@ -33,20 +29,6 @@ export function buildShopDashboardSlides(ctx: ShopDashboardSlideContext): PromoS
             accentColor,
         })
     }
-
-    slides.push({
-        id: 'ussd-status',
-        theme: 'violet',
-        eyebrowIcon: Smartphone,
-        eyebrow: 'USSD',
-        title: ctx.ussdActive && ctx.ussdCode ? 'USSD is active' : 'Activate USSD for your shop',
-        body: ctx.ussdActive && ctx.ussdCode
-            ? `Customers dial ${ctx.ussdShortcode} → ${ctx.ussdCode} to buy from you with no app.`
-            : `Let customers buy via ${ctx.ussdShortcode} — one-time GHS ${ctx.activationFee.toFixed(2)}.`,
-        icon: Smartphone,
-        cta: { label: ctx.ussdActive && ctx.ussdCode ? 'Manage' : 'Set Up', href: '/dashboard/shop/ussd' },
-        accentColor,
-    })
 
     slides.push({
         id: 'sms-status',

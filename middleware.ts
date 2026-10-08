@@ -225,7 +225,6 @@ const rateLimiters = REDIS_CONFIGURED ? {
     shopLookupOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:shopLookupOrders' }),
     shopMyOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:shopMyOrders' }),
     shopDomainSearch: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopDomainSearch' }),
-    shopUssdCode: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(6, '1 m'), prefix: 'kfg:shopUssdCode' }),
     // Logo upload now decodes + resizes + re-encodes server-side, so each call
     // costs real CPU/memory. It previously fell through to `general` (100/min,
     // IP-keyed) — too loose for the new cost, and IP-keying lets one account
@@ -958,9 +957,6 @@ export async function middleware(request: NextRequest) {
             identifier = ip
         } else if (pathname === '/api/shop/my-orders') {
             limiter = rateLimiters.shopMyOrders
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname === '/api/shop/ussd-code') {
-            limiter = rateLimiters.shopUssdCode
             identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
         } else if (pathname === '/api/shop/upload') {
             limiter = rateLimiters.shopUpload

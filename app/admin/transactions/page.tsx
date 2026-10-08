@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 50
 // Canonical wallet_transactions enums (see wallet_transactions_source_check / _type_check).
-const SOURCES = ['all', 'payment', 'purchase', 'airtime', 'refund', 'ussd', 'admin'] as const
+const SOURCES = ['all', 'payment', 'purchase', 'airtime', 'refund', 'admin'] as const
 const TYPES = ['all', 'credit', 'debit'] as const
 
 export default function AdminTransactionsPage() {

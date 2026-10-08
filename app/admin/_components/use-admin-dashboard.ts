@@ -86,7 +86,6 @@ export interface ActivityItem {
 
 export interface EngineStatus {
     autoFulfillmentEnabled: boolean
-    ussdEnabled: boolean
     todayOrders: number
     failedToday: number
     failedRateToday: number

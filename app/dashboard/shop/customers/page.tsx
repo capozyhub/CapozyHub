@@ -15,7 +15,7 @@ import {
 import {
     Users, ArrowLeft, Search, Loader2, RefreshCcw, Copy, Check,
     MessageCircle, Share2, Crown, Clock, ShoppingCart, QrCode,
-    TrendingUp, Lightbulb, Tag, Save, MessageSquare, Smartphone
+    TrendingUp, Lightbulb, Tag, Save, MessageSquare
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 
@@ -29,7 +29,6 @@ interface ShopCustomer {
     total_spent: number
     first_order_at: string | null
     last_order_at: string | null
-    from_ussd?: boolean  // has at least one order placed via the shop's USSD code
 }
 
 type SortKey = 'recent' | 'spend' | 'orders'
@@ -43,7 +42,6 @@ export default function ShopCustomersPage() {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [search, setSearch] = useState('')
     const [sortKey, setSortKey] = useState<SortKey>('recent')
-    const [ussdOnly, setUssdOnly] = useState(false)
     const [copied, setCopied] = useState(false)
 
     // Edit modal
@@ -96,14 +94,12 @@ export default function ShopCustomersPage() {
 
     const filtered = useMemo(() => {
         let list = customers
-        if (ussdOnly) list = list.filter(c => c.from_ussd)
         if (search.trim()) {
             const q = search.trim().toLowerCase()
             list = list.filter(c =>
                 c.phone.includes(q) ||
                 (c.name || '').toLowerCase().includes(q) ||
-                c.tags.some(t => t.toLowerCase().includes(q)) ||
-                (!!c.from_ussd && 'ussd'.includes(q))
+                c.tags.some(t => t.toLowerCase().includes(q))
             )
         }
         return [...list].sort((a, b) => {
@@ -111,9 +107,7 @@ export default function ShopCustomersPage() {
             if (sortKey === 'orders') return b.total_orders - a.total_orders
             return new Date(b.last_order_at || 0).getTime() - new Date(a.last_order_at || 0).getTime()
         })
-    }, [customers, search, sortKey, ussdOnly])
-
-    const ussdCount = useMemo(() => customers.filter(c => c.from_ussd).length, [customers])
+    }, [customers, search, sortKey])
 
     const totals = useMemo(() => ({
         count: customers.length,
@@ -257,20 +251,6 @@ export default function ShopCustomersPage() {
                     />
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* USSD-only filter — surfaces customers who bought via the shop's USSD code */}
-                    <button
-                        onClick={() => setUssdOnly(v => !v)}
-                        title="Show only customers who bought via USSD"
-                        className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap',
-                            ussdOnly
-                                ? 'bg-violet-600 border-violet-600 text-white'
-                                : 'bg-muted border-transparent text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        USSD{ussdCount > 0 ? ` (${ussdCount})` : ''}
-                    </button>
                     <div className="flex bg-muted rounded-lg p-1 w-fit">
                         {([
                             { id: 'recent', label: 'Recent' },
@@ -325,11 +305,6 @@ export default function ShopCustomersPage() {
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-1.5 min-w-0">
                                                 <p className="font-semibold text-sm truncate">{c.name || c.phone}</p>
-                                                {c.from_ussd && (
-                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">
-                                                        <Smartphone className="w-2.5 h-2.5" /> USSD
-                                                    </span>
-                                                )}
                                             </div>
                                             <p className="text-xs text-muted-foreground font-mono">{c.phone}</p>
                                             {c.tags.length > 0 && (

@@ -45,6 +45,11 @@ Public developer API is kept. Renaming it (no v1/v2 in paths, Capozy key prefix,
 
 Each area also removes its cron routes and any `vercel.json` / workflow entries.
 
+## After the removal areas: page-by-page content sweep
+Owner instruction (2026-10-08): once the removal areas are done, go through the product page by page, in order, and delete every piece of content that mentions things we removed (SMS, utility bills, USSD, Hubtel, phone OTP, Google/passkey/PIN login, named suppliers, ...).
+Order: landing page, auth page, terms (and other legal/policy pages), then the remaining pages. Each page is its own reviewable commit.
+Visual identity (Stage 3) follows the logo palette: black, gold, silver/white. Tailwind tokens are set from the logo so the whole UI follows it.
+
 ## Known consequences
 - Data, airtime, AFA and results-checker orders cannot fulfill until a supplier is configured.
 - The trimmed baseline is validated in Stage 4 against the empty Capozy project, together with the Stage 5 money-table checks.

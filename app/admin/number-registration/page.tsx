@@ -343,7 +343,7 @@ export default function NumberRegistrationPage() {
                 <div className="rounded-xl bg-blue-50 dark:bg-blue-900/15 border border-blue-200 dark:border-blue-800/50 p-3 text-sm text-blue-800 dark:text-blue-300">
                     The <b>Whitelist Gate</b> is <b>ON</b> with{' '}
                     <b>{data?.whitelistGateEnabled && data?.bundlePortalWhitelistEnabled ? 'Server 1 and Server 2' : data?.whitelistGateEnabled ? 'Server 1 only' : 'Server 2 only'}</b> active:
-                    MTN purchases across every channel (dashboard, shop, USSD, API) are checked live before being charged, and a number registered on{' '}
+                    MTN purchases across every channel (dashboard, shop, API) are checked live before being charged, and a number registered on{' '}
                     {data?.whitelistGateEnabled && data?.bundlePortalWhitelistEnabled ? 'either active server passes' : 'the active server passes — one registered only on the other server is blocked'}.
                     A number that isn't registered is blocked outright — the buyer is told it has been submitted for registration and to try again soon. This is a separate system from the Registration Gate above and doesn't share any state with it.
                 </div>

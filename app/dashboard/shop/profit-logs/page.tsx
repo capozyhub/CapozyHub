@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
     ArrowLeft, TrendingUp, TrendingDown, Wallet, Loader2, RefreshCcw,
     CheckCircle2, Clock, Banknote, Package, Phone, FileText,
-    MessageSquare, Zap, BarChart3, XCircle, ArrowDownLeft, ArrowUpRight, Smartphone, IdCard, Receipt
+    MessageSquare, Zap, BarChart3, XCircle, ArrowDownLeft, ArrowUpRight, IdCard, Receipt
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 
@@ -24,7 +24,6 @@ interface LedgerEntry {
     status: string
     created_at: string
     balanceAfter: number
-    isUssd?: boolean
 }
 
 interface ShopWallet {
@@ -86,7 +85,6 @@ export default function ShopProfitLogsPage() {
                         amount: o.profit || 0,
                         status: o.status,
                         created_at: o.created_at,
-                        isUssd: o.source === 'ussd' || o.source === 'ussd_shop',
                     })),
                 ...rcOrders
                     .filter((o: any) => EARNING_STATUSES.includes(o.status) && (o.shop_markup || 0) > 0)
@@ -99,7 +97,6 @@ export default function ShopProfitLogsPage() {
                         amount: (o.shop_markup || 0) * (o.quantity || 1),
                         status: o.status,
                         created_at: o.created_at,
-                        isUssd: o.source === 'ussd' || o.source === 'ussd_shop',
                     })),
                 ...(afaOrders || [])
                     .filter((o: any) => EARNING_STATUSES.includes(o.status) && (o.profit || 0) > 0)
@@ -112,7 +109,6 @@ export default function ShopProfitLogsPage() {
                         amount: o.profit || 0,
                         status: o.status,
                         created_at: o.created_at,
-                        isUssd: o.source === 'ussd' || o.source === 'ussd_shop',
                     })),
                 ...withdrawals.map((w: any) => ({
                     id: `wd-${w.id}`,
@@ -385,11 +381,6 @@ export default function ShopProfitLogsPage() {
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     <p className="font-semibold text-sm truncate leading-tight">{entry.label}</p>
-                                                    {entry.isUssd && (
-                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">
-                                                            <Smartphone className="w-2.5 h-2.5" /> USSD
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 {entry.detail && (
                                                     <p className="text-xs text-muted-foreground truncate mt-0.5">{entry.detail}</p>

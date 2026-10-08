@@ -122,12 +122,11 @@ const SYNC_SUPPORTED_SUPPLIERS = new Set<SupplierTag>(['agentportal', 'hendylink
 // Order channel (origin) — a clean 3-way partition for the Channel filter buttons.
 // Actual filtering now happens server-side in /api/admin/fulfillment (see the `channel`
 // query param); this type + list only drive the filter UI and state below.
-type OrderChannel = 'web' | 'shop' | 'ussd'
+type OrderChannel = 'web' | 'shop'
 const CHANNELS: Array<{ key: 'all' | OrderChannel; label: string }> = [
     { key: 'all', label: 'All' },
     { key: 'web', label: 'Web' },
     { key: 'shop', label: 'Shop' },
-    { key: 'ussd', label: 'USSD' },
 ]
 
 export default function FulfillmentPage() {
@@ -2351,11 +2350,6 @@ export default function FulfillmentPage() {
                                                             {order.source === 'api' && (
                                                                 <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-violet-100 text-violet-700 hover:bg-violet-100 border-violet-200">
                                                                     API
-                                                                </Badge>
-                                                            )}
-                                                            {(order.source === 'ussd' || order.source === 'ussd_shop') && (
-                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
-                                                                    USSD
                                                                 </Badge>
                                                             )}
                                                             {/* The Shop pill stays only when the name line is a real

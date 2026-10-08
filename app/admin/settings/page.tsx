@@ -147,15 +147,6 @@ export default function AdminSettingsPage() {
     const [autoFulfillment, setAutoFulfillment] = useState(true)
     const [phoneVerificationEnabled, setPhoneVerificationEnabled] = useState(false)
 
-    // USSD settings
-    const [ussdEnabled, setUssdEnabled] = useState(true)
-    const [ussdDataEnabled, setUssdDataEnabled] = useState(true)
-    const [ussdRcEnabled, setUssdRcEnabled] = useState(true)
-    const [ussdAfaEnabled, setUssdAfaEnabled] = useState(true)
-    const [ussdAfaPrice, setUssdAfaPrice] = useState('15.00')
-    const [ussdMaxRcQty, setUssdMaxRcQty] = useState('3')
-    const [ussdResumeMinutes, setUssdResumeMinutes] = useState('30')
-
     // Landing page states
     const [landingCustomerCount, setLandingCustomerCount] = useState('5,000+')
     const [landingDataPackages, setLandingDataPackages] = useState<LandingDataPackage[]>([EMPTY_PACKAGE()])
@@ -215,13 +206,6 @@ export default function AdminSettingsPage() {
         { key: 'footer_branding_text', value: footerBrandingText },
         { key: 'auto_fulfillment_enabled', value: String(autoFulfillment) },
         { key: 'phone_verification_enabled', value: coerceBool(phoneVerificationEnabled) },
-        { key: 'ussd_enabled', value: String(ussdEnabled) },
-        { key: 'ussd_data_enabled', value: String(ussdDataEnabled) },
-        { key: 'ussd_rc_enabled', value: String(ussdRcEnabled) },
-        { key: 'ussd_afa_enabled', value: String(ussdAfaEnabled) },
-        { key: 'afa_price_ussd', value: ussdAfaPrice },
-        { key: 'ussd_max_rc_quantity', value: ussdMaxRcQty },
-        { key: 'ussd_session_resume_minutes', value: ussdResumeMinutes },
         { key: 'page_access_dashboard', value: String(pageAccessDashboard) },
         { key: 'page_access_data_packages', value: String(pageAccessDataPackages) },
         { key: 'page_access_orders', value: String(pageAccessOrders) },
@@ -248,8 +232,7 @@ export default function AdminSettingsPage() {
         paystackFee, agentPaystackFee, dealerPaystackFee, paystackMinTopup, paystackMaxTopup, mtnAdjustment,
         agentUpgradePrice, afaPriceCustomer, afaPriceAgent, afaPriceDealer, afaCostPrice, smsCostPerSegment, storefrontAfaEnabled, supportEmail, guestStorefrontUrl,
         whatsappGroupLink, whatsappChannelLink, whatsappAdminNumber, whatsappCommunityLink, footerCopyrightText,
-        footerBrandingText, autoFulfillment, phoneVerificationEnabled, ussdEnabled, ussdDataEnabled, ussdRcEnabled,
-        ussdAfaEnabled, ussdAfaPrice, ussdMaxRcQty, ussdResumeMinutes, pageAccessDashboard, pageAccessDataPackages,
+        footerBrandingText, autoFulfillment, phoneVerificationEnabled, pageAccessDashboard, pageAccessDataPackages,
         pageAccessOrders, pageAccessWallet, pageAccessComplaints, pageAccessNotifications, pageAccessProfile,
         pageAccessShop, pageAccessStorefront, pageAccessAirtime, pageAccessResultsChecker, pageAccessUpgrade,
         pageAccessTransactions, pageAccessAfaOrders, pageAccessRecruit, pageAccessCommission, pageAccessSms,
@@ -320,15 +303,6 @@ export default function AdminSettingsPage() {
             setFooterBrandingText(s.footer_branding_text || 'KiNG FLEXY TECHNOLOGIES')
             setAutoFulfillment(s.auto_fulfillment_enabled === 'true')
             setPhoneVerificationEnabled(s.phone_verification_enabled === 'true' || (s.phone_verification_enabled as unknown) === true)
-
-            // USSD settings
-            setUssdEnabled(s.ussd_enabled !== 'false')
-            setUssdDataEnabled(s.ussd_data_enabled !== 'false')
-            setUssdRcEnabled(s.ussd_rc_enabled !== 'false')
-            setUssdAfaEnabled(s.ussd_afa_enabled !== 'false')
-            setUssdAfaPrice(s.afa_price_ussd || '15.00')
-            setUssdMaxRcQty(s.ussd_max_rc_quantity || '3')
-            setUssdResumeMinutes(s.ussd_session_resume_minutes || '30')
 
             const tryParseArray = (raw: unknown, fallback: unknown[]) => {
                 if (Array.isArray(raw)) return raw
@@ -593,7 +567,6 @@ export default function AdminSettingsPage() {
                     <TabsTrigger value="access">Page Access</TabsTrigger>
                     <TabsTrigger value="landing">Landing Page</TabsTrigger>
                     <TabsTrigger value="momo" className="text-indigo-600 font-semibold">📱 MoMo Claims</TabsTrigger>
-                    <TabsTrigger value="ussd" className="text-orange-600 font-semibold">USSD *713*9939#</TabsTrigger>
                 </TabsList>
 
                 {/* ── General ─────────────────────────────────────────────────── */}
@@ -872,107 +845,6 @@ export default function AdminSettingsPage() {
                                 <Plus className="w-4 h-4 mr-1" /> Add Review
                             </Button>
                         </div>
-                    </SettingsPanel>
-                </TabsContent>
-
-                {/* ── USSD ─────────────────────────────────────────────────── */}
-                <TabsContent value="ussd" className="space-y-4 mt-4">
-                    <SettingsPanel
-                        title="USSD Master Control"
-                        description="Global on/off switch for the *713*9939# USSD service"
-                        icon={Phone}
-                    >
-                        <ToggleRow
-                            label="Enable USSD Service"
-                            description="Turn off to disable the entire USSD service (*713*9939#) instantly. Customers will see a maintenance message."
-                            checked={ussdEnabled}
-                            onCheckedChange={setUssdEnabled}
-                            color="emerald"
-                        />
-                    </SettingsPanel>
-
-                    <SettingsPanel
-                        title="USSD Service Menu"
-                        description="Control which services appear on the USSD menu. Disabling a service removes it from the menu and renumbers remaining options automatically."
-                        icon={Zap}
-                    >
-                        <div className="space-y-2">
-                            <ToggleRow
-                                compact
-                                label="Data Bundles"
-                                description="MTN, Telecel, AT-iShare, AT-BigTime bundles"
-                                checked={ussdDataEnabled}
-                                onCheckedChange={setUssdDataEnabled}
-                            />
-                            <ToggleRow
-                                compact
-                                label="Results Checker"
-                                description="WAEC, BECE and other exam PIN vouchers"
-                                checked={ussdRcEnabled}
-                                onCheckedChange={setUssdRcEnabled}
-                            />
-                            <ToggleRow
-                                compact
-                                label="AFA Registration"
-                                description="Agent field assistant application registration"
-                                checked={ussdAfaEnabled}
-                                onCheckedChange={setUssdAfaEnabled}
-                            />
-                        </div>
-                        <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-                                Menu auto-renumbers: if Data Bundles is off, Results Checker becomes option 1, AFA becomes option 2, and so on.
-                            </p>
-                        </div>
-                    </SettingsPanel>
-
-                    <SettingsPanel
-                        title="USSD Pricing & Limits"
-                        description="Pricing and session configuration for USSD users"
-                        icon={CreditCard}
-                    >
-                        <SettingField
-                            label="AFA Registration Fee — USSD Guest Users (GHS)"
-                            hint="Applied to USSD users with no KiNG FLEXY account. Registered users pay their role price."
-                        >
-                            <Input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                value={ussdAfaPrice}
-                                onChange={e => setUssdAfaPrice(e.target.value)}
-                                className="max-w-xs"
-                                placeholder="15.00"
-                            />
-                        </SettingField>
-                        <SettingField
-                            label="Max Results Checker PINs per USSD Transaction"
-                            hint="Maximum number of exam PINs a user can buy in a single USSD session. Users needing more are directed to the website for bulk pricing."
-                        >
-                            <Input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={ussdMaxRcQty}
-                                onChange={e => setUssdMaxRcQty(e.target.value)}
-                                className="max-w-xs"
-                                placeholder="3"
-                            />
-                        </SettingField>
-                        <SettingField
-                            label="Session Resume Window (minutes)"
-                            hint="How long (in minutes) a timed-out session can be resumed. After this window, users must start fresh."
-                        >
-                            <Input
-                                type="number"
-                                min="5"
-                                max="120"
-                                value={ussdResumeMinutes}
-                                onChange={e => setUssdResumeMinutes(e.target.value)}
-                                className="max-w-xs"
-                                placeholder="30"
-                            />
-                        </SettingField>
                     </SettingsPanel>
                 </TabsContent>
 

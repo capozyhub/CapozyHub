@@ -417,8 +417,6 @@ export default function AdminAfaManagementPage() {
                         <SelectContent>
                             <SelectItem value="all">All Sources</SelectItem>
                             <SelectItem value="web">Web</SelectItem>
-                            <SelectItem value="ussd">USSD</SelectItem>
-                            <SelectItem value="ussd_shop">USSD Shop</SelectItem>
                             <SelectItem value="shop">Shop</SelectItem>
                             <SelectItem value="api">API</SelectItem>
                         </SelectContent>
@@ -552,11 +550,6 @@ export default function AdminAfaManagementPage() {
                                                                 <StatusIcon className="w-3 h-3" />
                                                                 {cfg.label}
                                                             </span>
-                                                            {app.source === 'ussd' && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                                    USSD
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-right">
@@ -606,11 +599,6 @@ export default function AdminAfaManagementPage() {
                                                         <StatusIcon className="w-2.5 h-2.5" />
                                                         {cfg.label}
                                                     </span>
-                                                    {app.source === 'ussd' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                            USSD
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                             <Button size="sm" variant="outline" onClick={() => setSelectedApp(app)}>

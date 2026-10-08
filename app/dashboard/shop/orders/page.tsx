@@ -80,21 +80,11 @@ interface ShopFees {
     at: number
 }
 
-// True when an order came in over USSD (data/airtime = 'ussd', RC = 'ussd_shop').
-const isUssdOrder = (source?: string) => source === 'ussd' || source === 'ussd_shop'
-
 // The mirrored `orders` row (or its latest retry descendant, spliced into orders[0] in
 // fetchOrders) is the source of truth for status — shop_orders.status only stays in sync
 // with it for the ORIGINAL order, not across a retry. RC/voucher orders have no mirror,
 // so they fall back to their own status field.
 const effectiveStatus = (order: ShopOrder) => order.orders?.[0]?.status || order.status
-
-// Small violet pill marking a USSD order in the owner's order views.
-const UssdTag = () => (
-    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
-        <Smartphone className="w-2.5 h-2.5" /> USSD
-    </span>
-)
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
     pending: { label: 'Pending', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400', icon: Clock },
@@ -155,7 +145,8 @@ export default function ShopOrdersPage() {
     // Filter state
     const [filterStatus, setFilterStatus] = useState<string>('all')
     const [filterNetwork, setFilterNetwork] = useState<string>('all')
-    const [filterSource, setFilterSource] = useState<'all' | 'storefront' | 'ussd'>('all')
+    // Source filter UI removed (storefront is the only sales channel); kept at 'all' for the query plumbing.
+    const [filterSource] = useState<'all' | 'storefront' | 'ussd'>('all')
     const [filterDate, setFilterDate] = useState<'today' | '7d' | '30d' | 'all'>('today')
     const [utilityBillerFilter, setUtilityBillerFilter] = useState<'all' | UtilityBiller>('all')
     const [searchPhone, setSearchPhone] = useState('')
@@ -910,20 +901,6 @@ export default function ShopOrdersPage() {
                             )}
                         </select>
 
-                        {/* Source Filter — hidden on afa tab (no USSD/storefront split yet) */}
-                        {activeTab !== 'afa' && (
-                        <select
-                            title="Filter by Source"
-                            aria-label="Filter by Source"
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
-                            value={filterSource}
-                            onChange={(e) => setFilterSource(e.target.value as any)}
-                        >
-                            <option value="all">All Sources</option>
-                            <option value="storefront">Storefront</option>
-                            <option value="ussd">USSD</option>
-                        </select>
-                        )}
                     </div>
                 </div>
             </div>
@@ -1029,7 +1006,6 @@ export default function ShopOrdersPage() {
                                                         ) : (
                                                             <span>{order.network} {order.package_size}</span>
                                                         )}
-                                                        {isUssdOrder(order.source) && <UssdTag />}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-medium">{formatCurrency(order.selling_price)}</td>
@@ -1169,7 +1145,6 @@ export default function ShopOrdersPage() {
                                                     ) : (
                                                         <>{order.network} {order.package_size}</>
                                                     )}
-                                                    {isUssdOrder(order.source) && <UssdTag />}
                                                 </p>
                                                 <p className="text-xs font-mono text-muted-foreground mt-0.5">{order.guest_phone}</p>
                                             </div>

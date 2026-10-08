@@ -203,14 +203,9 @@ export default function ShopDomainDiscoveryPage() {
                     <div className="mb-5 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl flex items-start gap-2">
                         <Info className="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
-                            <strong>Exact match required.</strong> Enter the complete shop name, the full shop link, the owner&apos;s full 10-digit phone number e.g. 024XXXXXXX, or the shop&apos;s 4-digit code. Partial entries will not return results.
+                            <strong>Exact match required.</strong> Enter the complete shop name, the full shop link, or the owner&apos;s full 10-digit phone number e.g. 024XXXXXXX. Partial entries will not return results.
                         </p>
                     </div>
-
-                    {/* USSD shop-code note */}
-                    <p className="text-xs text-gray-400 dark:text-slate-500 font-medium text-center mb-5">
-                        Know your shop&apos;s 4-digit USSD code (e.g. from *713*9939#)? Enter it above to go straight to that shop.
-                    </p>
 
                     {/* Locked-out state */}
                     {isLockedOut ? (

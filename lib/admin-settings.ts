@@ -9,7 +9,6 @@
 /** Settings keys that may be flipped via /api/admin/settings/toggle (admin-only). */
 export const CRITICAL_TOGGLE_KEYS = [
     'auto_fulfillment_enabled',
-    'ussd_enabled',
     'phone_verification_enabled',
     'page_access_storefront',
     'mtn_express_delivery_enabled',
@@ -45,10 +44,6 @@ export const TOGGLE_META: Record<ToggleKey, { label: string; description: string
     auto_fulfillment_enabled: {
         label: 'Auto-Fulfillment',
         description: 'Automatically process data orders via fulfillment APIs',
-    },
-    ussd_enabled: {
-        label: 'USSD Service',
-        description: 'Master switch for *713*9939# USSD service',
     },
     phone_verification_enabled: {
         label: 'Phone Verification',

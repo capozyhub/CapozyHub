@@ -12,7 +12,7 @@ import {
     Store, Wallet, TrendingUp, ShoppingCart, ArrowRight,
     Settings, Tag, Banknote, Clock, CheckCircle2, XCircle,
     AlertCircle, ExternalLink, Copy, Check, RefreshCcw, Crown,
-    MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Smartphone, Receipt
+    MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Receipt
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
@@ -87,11 +87,6 @@ export default function ShopDashboardPage() {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [copied, setCopied] = useState(false)
 
-    // USSD state
-    const [ussdCode, setUssdCode]           = useState<string | null>(null)
-    const [ussdActive, setUssdActive]       = useState(false)
-    const [activationFee, setActivationFee] = useState<number>(50)
-
     // Customer order-confirmation SMS toggle (per shop, defaults enabled)
     const [smsConfirmEnabled, setSmsConfirmEnabled] = useState(true)
     const [savingSmsToggle, setSavingSmsToggle]     = useState(false)
@@ -147,22 +142,9 @@ export default function ShopDashboardPage() {
             }
 
             setShop(shopData)
-            setUssdCode(shopData?.ussd_code ?? null)
-            setUssdActive(shopData?.ussd_active ?? false)
             setSmsConfirmEnabled(shopData?.sms_order_confirmation_enabled !== false)
             setUtilitiesEnabled(shopData?.utilities_enabled === true)
             setUtilitySmsEnabled(shopData?.utility_sms_confirmation_enabled !== false)
-
-            // Fetch USSD activation fee
-            try {
-                const feeRes = await fetch('/api/shop/ussd-activate')
-                if (feeRes.ok) {
-                    const { fee } = await feeRes.json()
-                    setActivationFee(fee)
-                }
-            } catch (_) {
-                // non-critical — keep default fee
-            }
         }
 
         // --- Stage 2: Fetch secondary data (wallet, orders) with allSettled ---
@@ -460,8 +442,6 @@ export default function ShopDashboardPage() {
     const isPending = shop.approval_status === 'pending'
     const shopIsLive = shop.approval_status === 'approved' && shop.pricing_status === 'approved'
 
-    const ussdShortcode = process.env.NEXT_PUBLIC_USSD_SHORTCODE ?? '*713*9939#'
-
     // Quick links — every shop page reachable from the dashboard hub.
     const quickLinks: { href: string; label: string; icon: any; external?: boolean }[] = [
         { href: '/dashboard/shop/orders', label: 'Orders', icon: ShoppingCart },
@@ -470,7 +450,6 @@ export default function ShopDashboardPage() {
         { href: '/dashboard/shop/customers', label: 'Customers', icon: Users },
         { href: '/dashboard/shop/profit-logs', label: 'Profit Logs', icon: FileText },
         { href: '/dashboard/shop/sms', label: 'SMS', icon: MessageSquare },
-        { href: '/dashboard/shop/ussd', label: 'USSD', icon: Smartphone },
         { href: '/dashboard/shop/setup', label: 'Settings', icon: Settings },
         ...(shopIsLive ? [{ href: shopUrl, label: 'Storefront', icon: ExternalLink, external: true }] : []),
     ]
@@ -544,10 +523,6 @@ export default function ShopDashboardPage() {
             <PromoCarousel
                 slides={buildShopDashboardSlides({
                     shopIsLive,
-                    ussdActive,
-                    ussdCode,
-                    ussdShortcode,
-                    activationFee,
                     smsConfirmEnabled,
                     utilitiesEnabled,
                     ownerRole: dbUser?.role,
@@ -716,11 +691,6 @@ export default function ShopDashboardPage() {
                                                 <div className="min-w-0">
                                                     <p className="font-semibold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
                                                         <span className="truncate">{order.is_rc ? `${order.quantity}x ${order.type_name}` : `${order.network} ${order.package_size}`}</span>
-                                                        {(order.source === 'ussd' || order.source === 'ussd_shop') && (
-                                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">
-                                                                <Smartphone className="w-2.5 h-2.5" /> USSD
-                                                            </span>
-                                                        )}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{order.guest_phone}</p>
                                                 </div>

@@ -6,7 +6,6 @@ import {
     DEVELOPER_PRODUCTS,
     KEY_INFO,
     SITE,
-    USSD_DETAILS,
     getProduct,
 } from '@/lib/developer-products'
 
@@ -100,25 +99,6 @@ export default async function DeveloperProductPage({ params }: { params: Promise
                         </pre>
                     </section>
                 )}
-
-                {p.slug === 'ussd' ? (
-                    <section className="space-y-3">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">How USSD works on KiNG FLEXY GH</h2>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                            {USSD_DETAILS.map(d => <li key={d}>{d}</li>)}
-                        </ul>
-                    </section>
-                ) : p.ussd ? (
-                    <section className="space-y-2">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Also on USSD</h2>
-                        <p className="text-sm text-slate-700 dark:text-slate-300">{p.ussd}</p>
-                        <p className="text-sm">
-                            <Link href="/developers/ussd" className="text-violet-600 dark:text-violet-400 underline">
-                                More about USSD for resellers
-                            </Link>
-                        </p>
-                    </section>
-                ) : null}
 
                 <section className="space-y-3">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Get started</h2>

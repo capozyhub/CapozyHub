@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Image from 'next/image'
@@ -85,8 +85,6 @@ interface ShopData {
     airtime_fee_telecel?: number
     airtime_fee_at?: number
     mashup_fee_percent?: number
-    ussd_code?: string | null
-    ussd_active?: boolean
     afa_selling_price?: number | null
     paystack_fee_percent?: number | null
 }
@@ -133,67 +131,6 @@ const networkColors: Record<string, { bgClass: string; textClass: string; border
 
 const QUICK_AMOUNTS = [1, 2, 5, 10, 20, 50, 100]
 
-
-function UssdStorefrontGuide({ code, shortcode, shopName }: { code: string; shortcode: string; shopName: string }) {
-    const [copied, setCopied] = useState(false)
-    const steps = [
-        <>Dial <span className="font-mono font-bold tracking-wide text-gray-900 dark:text-white">{shortcode}</span> on any phone</>,
-        <>Enter shop code <span className="font-mono font-bold tracking-widest bg-[var(--brand-color)]/10 text-[var(--brand-color)] px-1.5 py-0.5 rounded">{code}</span></>,
-        <>Choose <span className="font-semibold">Data Bundles</span> or <span className="font-semibold">Results Checker</span></>,
-        <>Pay with <span className="font-semibold">Mobile Money</span> — instant delivery</>,
-    ]
-
-    return (
-        <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-950 p-5 shadow-sm">
-            <div className="flex items-center gap-2.5 mb-1">
-                <div className="shrink-0 w-9 h-9 rounded-full bg-[var(--brand-color)]/10 flex items-center justify-center">
-                    <Smartphone className="w-4 h-4 text-[var(--brand-color)]" />
-                </div>
-                <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                        No internet? Shop on USSD
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-tight">
-                        Buy from {shopName} on any phone — no app, no data.
-                    </p>
-                </div>
-            </div>
-
-            <ol className="mt-4 space-y-2.5">
-                {steps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--brand-color)] text-white text-xs font-bold flex items-center justify-center">
-                            {i + 1}
-                        </span>
-                        <span className="pt-0.5 leading-relaxed">{step}</span>
-                    </li>
-                ))}
-            </ol>
-
-            <button
-                type="button"
-                onClick={() => {
-                    navigator.clipboard?.writeText(code)
-                        .then(() => {
-                            setCopied(true)
-                            toast.success('Shop code copied')
-                            setTimeout(() => setCopied(false), 1800)
-                        })
-                        .catch(() => toast.error('Could not copy — long-press the code to copy'))
-                }}
-                aria-label={`Copy shop USSD code ${code}`}
-                className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-zinc-900 py-2.5 px-3 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-[0.99] transition-all"
-            >
-                <span className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-200">{shortcode}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-mono text-sm font-bold tracking-widest text-[var(--brand-color)]">{code}</span>
-                {copied
-                    ? <Check className="w-4 h-4 text-green-600 ml-1 shrink-0" />
-                    : <Copy className="w-4 h-4 text-muted-foreground ml-1 shrink-0" />}
-            </button>
-        </div>
-    )
-}
 
 type BundlePreference = 'balanced' | 'data'
 
@@ -1025,15 +962,6 @@ export default function ShopStorefront({
                         </a>
                     )}
                 </div>
-
-                {/* ── USSD Storefront Guide — only shown when shop has an active USSD code ── */}
-                {shop.ussd_active && shop.ussd_code && (
-                    <UssdStorefrontGuide
-                        code={shop.ussd_code}
-                        shortcode={process.env.NEXT_PUBLIC_USSD_SHORTCODE ?? '*713*9939#'}
-                        shopName={shop.shop_name}
-                    />
-                )}
 
             {/* ── Product Selector (Card Grid) ── */}
                 <div ref={productSectionRef}>

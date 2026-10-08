@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { SITE, API_BASE } from '@/lib/developer-products'
 
-const TITLE = 'Developer API Ghana — Data, Airtime, SMS, Results Checker, AFA, Utility Bills & USSD | KiNG FLEXY GH'
+const TITLE = 'Developer API Ghana — Data, Airtime, SMS, Results Checker, AFA & Utility Bills | KiNG FLEXY GH'
 const DESCRIPTION =
-    'Public REST API for Ghana digital services: MTN, Telecel and AirtelTigo data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bill payments (ECG, Ghana Water, DStv, GOtv, StarTimes). Resellers can also sell over USSD. OpenAPI spec included.'
+    'Public REST API for Ghana digital services: MTN, Telecel and AirtelTigo data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bill payments (ECG, Ghana Water, DStv, GOtv, StarTimes). OpenAPI spec included.'
 
 export const metadata: Metadata = {
     title: TITLE,

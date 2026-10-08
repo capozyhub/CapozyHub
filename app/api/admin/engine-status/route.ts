@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         const supabase = createServerClient()
 
         const [settingsRes, todayRes, failedTodayRes, supplier] = await Promise.all([
-            supabase.from('admin_settings').select('key, value').in('key', ['auto_fulfillment_enabled', 'ussd_enabled']),
+            supabase.from('admin_settings').select('key, value').in('key', ['auto_fulfillment_enabled']),
             supabase.from('orders').select('id', { count: 'exact', head: true }).gte('created_at', new Date().toISOString().split('T')[0]),
             supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', new Date().toISOString().split('T')[0]),
             fetchSupplierBalance().catch(() => ({ success: false as const })),
@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             autoFulfillmentEnabled: settings.auto_fulfillment_enabled === 'true',
-            ussdEnabled: settings.ussd_enabled !== 'false',
             todayOrders: todayCount,
             failedToday,
             failedRateToday,

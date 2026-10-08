@@ -14,7 +14,6 @@ import { CRITICAL_TOGGLE_KEYS, MONEY_CONFIG_KEYS, TOGGLE_META, type ToggleKey } 
 // Per-key default when the setting row is absent (mirrors /admin/settings parsing).
 const DEFAULT_ON: Record<ToggleKey, boolean> = {
     auto_fulfillment_enabled: false,
-    ussd_enabled: true,
     phone_verification_enabled: false,
     page_access_storefront: true,
     mtn_express_delivery_enabled: false,

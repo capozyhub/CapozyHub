@@ -4,7 +4,6 @@
 
 export const API_BASE = 'https://api.kingflexygh.com/api/v2'
 export const SITE = 'https://kingflexygh.com'
-export const USSD_SHORTCODE = process.env.NEXT_PUBLIC_USSD_SHORTCODE ?? '*713*9939#'
 
 export type KeyType = 'standard' | 'commission' | 'sms'
 
@@ -29,7 +28,6 @@ export interface DeveloperProduct {
     keyType: KeyType | null
     endpoints: ProductEndpoint[]
     curl: string | null
-    ussd: string | null
     keywords: string[]
 }
 
@@ -43,8 +41,6 @@ function curlPost(path: string, key: string, body: object): string {
         `  -d '${q(JSON.stringify(body, null, 2))}'`,
     ].join('\n')
 }
-
-const USSD_ALL_PRODUCTS = `Customers can also buy this on USSD by dialling ${USSD_SHORTCODE}. Shop owners can activate their own USSD code branded with their shop name from Dashboard > Shop > USSD.`
 
 export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
     {
@@ -70,7 +66,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             recipient: '0551617309',
             reference: 'order-1001',
         }),
-        ussd: USSD_ALL_PRODUCTS,
         keywords: ['data bundle API Ghana', 'MTN data API', 'Telecel data API', 'AirtelTigo data API', 'bulk data API Ghana', 'data reseller API'],
     },
     {
@@ -93,7 +88,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             amount: 10,
             reference: 'airtime-1001',
         }),
-        ussd: USSD_ALL_PRODUCTS,
         keywords: ['airtime API Ghana', 'VTU API Ghana', 'MTN airtime API', 'airtime top-up API'],
     },
     {
@@ -116,7 +110,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             quantity: 1,
             reference: 'rc-1001',
         }),
-        ussd: USSD_ALL_PRODUCTS,
         keywords: ['results checker API Ghana', 'WAEC checker API', 'BECE checker API', 'WASSCE result checker API'],
     },
     {
@@ -143,7 +136,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             region: 'Greater Accra',
             location: 'Madina',
         }),
-        ussd: USSD_ALL_PRODUCTS,
         keywords: ['AFA registration API Ghana', 'MTN AFA API', 'AFA agent registration Ghana'],
     },
     {
@@ -167,7 +159,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             recipients: ['0551617309'],
             reference: 'sms-1001',
         }),
-        ussd: null,
         keywords: ['bulk SMS API Ghana', 'SMS API Ghana', 'OTP SMS API Ghana', 'transactional SMS Ghana'],
     },
     {
@@ -191,22 +182,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             amount: 50,
             reference: 'bill-1001',
         }),
-        ussd: USSD_ALL_PRODUCTS,
         keywords: ['utility bill API Ghana', 'ECG bill payment API', 'Ghana Water API', 'DStv payment API Ghana', 'GOtv API', 'StarTimes API'],
-    },
-    {
-        slug: 'ussd',
-        name: 'USSD for Resellers',
-        title: 'USSD for Data Resellers in Ghana — Your Own Branded USSD Code',
-        description:
-            `Resellers on KiNG FLEXY GH can sell data bundles, mashup, airtime, results checkers, AFA registrations and utility bills over USSD. Customers dial ${USSD_SHORTCODE}, or a shop owner activates their own USSD code branded in their shop name.`,
-        intro:
-            `Many data resellers need USSD because their customers do not use smartphones or apps. KiNG FLEXY GH supports USSD for its products in two ways: the shared shortcode ${USSD_SHORTCODE}, and a USSD code each shop owner can activate and brand in their own name.`,
-        keyType: null,
-        endpoints: [],
-        curl: null,
-        ussd: null,
-        keywords: ['USSD data reseller Ghana', 'sell data on USSD Ghana', 'branded USSD code Ghana', 'USSD shop Ghana'],
     },
 ]
 
@@ -214,19 +190,12 @@ export function getProduct(slug: string): DeveloperProduct | undefined {
     return DEVELOPER_PRODUCTS.find(p => p.slug === slug)
 }
 
-export const USSD_DETAILS: string[] = [
-    `Shared shortcode: customers dial ${USSD_SHORTCODE} and can buy data bundles, mashup, airtime, WAEC/BECE results checkers, MTN AFA registration and utility bills.`,
-    'Your own branded USSD code: a shop owner activates USSD for their shop from Dashboard > Shop > USSD, then customises the code and brands it in their own name to share with customers.',
-    'USSD is a dashboard and reseller feature. It is not exposed as a developer API endpoint.',
-    'SMS sending is API and dashboard only and is not sold over USSD.',
-]
-
 export function llmsTxt(): string {
     const lines: string[] = []
     lines.push('# KiNG FLEXY GH')
     lines.push('')
     lines.push(
-        '> KiNG FLEXY GH (KiNG FLEXY TECHNOLOGIES LTD) is a Ghana digital services platform and developer API: MTN, Telecel and AirtelTigo data bundles, airtime, WAEC/BECE results checker vouchers, MTN AFA registration, utility bill payments (ECG, Ghana Water, DStv, GOtv, StarTimes), and bulk SMS. Resellers can also sell these over USSD. Ghana only.',
+        '> KiNG FLEXY GH (KiNG FLEXY TECHNOLOGIES LTD) is a Ghana digital services platform and developer API: MTN, Telecel and AirtelTigo data bundles, airtime, WAEC/BECE results checker vouchers, MTN AFA registration, utility bill payments (ECG, Ghana Water, DStv, GOtv, StarTimes), and bulk SMS. Ghana only.',
     )
     lines.push('')
     lines.push('## API')
@@ -243,10 +212,6 @@ export function llmsTxt(): string {
     for (const p of DEVELOPER_PRODUCTS) {
         lines.push(`- [${p.name}](${SITE}/developers/${p.slug}): ${p.description}`)
     }
-    lines.push('')
-    lines.push('## USSD')
-    lines.push('')
-    for (const d of USSD_DETAILS) lines.push(`- ${d}`)
     lines.push('')
     lines.push('## Getting an API key')
     lines.push('')

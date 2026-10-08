@@ -671,7 +671,6 @@ export default function AdminResultsCheckerPage() {
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{order.reference_code}</span>
                                                 <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{order.status}</span>
-                                                {order.source === 'ussd' && <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">USSD</span>}
                                             </div>
                                             <p className="font-bold text-gray-900 dark:text-white text-sm">{order.quantity}× {order.type_name}</p>
                                             <p className="text-xs text-gray-500 font-medium">
@@ -857,22 +856,6 @@ export default function AdminResultsCheckerPage() {
                                             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 font-bold text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 outline-none transition-all" />
                                     </div>
                                 ))}
-
-                                {/* USSD Price */}
-                                <div className="col-span-2 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 p-3">
-                                    <label className="block text-xs font-bold text-orange-600 uppercase mb-1.5">USSD Price — *713*9939# (GH₵)</label>
-                                    <input
-                                        type="number"
-                                        title="USSD Price"
-                                        placeholder="Leave empty to use Customer Price"
-                                        step="0.5"
-                                        min="0"
-                                        value={(editingType as any).ussd_price ?? ''}
-                                        onChange={e => setEditingType({...editingType, ussd_price: e.target.value ? parseFloat(e.target.value) : null} as any)}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-orange-200 dark:border-orange-700 bg-white dark:bg-gray-800 font-bold text-sm focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 outline-none transition-all"
-                                    />
-                                    <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1.5">Price for USSD users. Leave empty to fall back to Customer Price.</p>
-                                </div>
 
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Display Order</label>

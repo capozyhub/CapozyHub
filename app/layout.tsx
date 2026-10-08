@@ -25,7 +25,7 @@ const inter = Inter({
 export const metadata: Metadata = {
     metadataBase: new URL('https://kingflexygh.com'),
     title: 'KiNG FLEXY GH - Powering Digital Services in Ghana',
-    description: 'Buy affordable MTN, Telecel, and AirtelTigo data bundles, airtime, and mashup online in Ghana. Instantly purchase WAEC & BECE Results Checker vouchers, pay utility bills, send bulk SMS, complete MTN AFA Registrations, sell over USSD, and integrate our Developer API for data, airtime, SMS, results checkers, AFA and bills. Fast, secure, and reliable digital solutions — KiNG FLEXY GH, Powering Digital Services in Ghana.',
+    description: 'Buy affordable MTN, Telecel, and AirtelTigo data bundles, airtime, and mashup online in Ghana. Instantly purchase WAEC & BECE Results Checker vouchers, pay utility bills, send bulk SMS, complete MTN AFA Registrations, and integrate our Developer API for data, airtime, SMS, results checkers, AFA and bills. Fast, secure, and reliable digital solutions — KiNG FLEXY GH, Powering Digital Services in Ghana.',
     keywords: [
         // Brand
         'KiNG FLEXY GH', 'King Flexy Technologies', 'kingflexygh.com',
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
         'airtime API Ghana', 'results checker API', 'digital services API Ghana',
         'reseller platform Ghana', 'bulk data API Ghana',
         'bulk SMS API Ghana', 'utility bill payment API Ghana', 'data bundle API Ghana',
-        'AFA registration API Ghana', 'USSD data reseller Ghana', 'sell data on USSD Ghana',
+        'AFA registration API Ghana',
         // General
         'digital services Ghana', 'online digital platform Ghana', 'data reseller Ghana',
         'Ghana fintech', 'instant delivery Ghana'
@@ -116,7 +116,7 @@ export default function RootLayout({
                             "alternateName": "KiNG FLEXY GH",
                             "url": "https://kingflexygh.com/",
                             "logo": "https://kingflexygh.com/logo.png",
-                            "description": "Powering Digital Services in Ghana. Buy data bundles, airtime, mashup, WAEC Results Checker vouchers, utility bills, bulk SMS and MTN AFA Registrations, sell over USSD, and integrate our Developer API.",
+                            "description": "Powering Digital Services in Ghana. Buy data bundles, airtime, mashup, WAEC Results Checker vouchers, utility bills, bulk SMS and MTN AFA Registrations, and integrate our Developer API.",
                             "areaServed": "GH",
                             "hasOfferCatalog": {
                                 "@type": "OfferCatalog",
@@ -128,7 +128,6 @@ export default function RootLayout({
                                     ['AFA Registration API', 'afa-registration'],
                                     ['SMS API', 'sms'],
                                     ['Utility Bills API', 'utility-bills'],
-                                    ['USSD for Resellers', 'ussd'],
                                 ].map(([name, slug]) => ({
                                     "@type": "Offer",
                                     "itemOffered": {
