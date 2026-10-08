@@ -18,7 +18,13 @@ const redis = new Redis({
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Created on first use, not at import: `new Resend(undefined)` throws, which used to
+// crash `next build` (page-data collection imports every route) whenever the key was unset.
+let resendClient: Resend | null = null
+function getResend(): Resend {
+    if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY)
+    return resendClient
+}
 const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY || '' })
 
 // Initialize API instance with API key
@@ -110,7 +116,7 @@ export async function sendResendEmail(options: SendEmailOptions, senderEmail: st
     }
 
     try {
-        const data = await resend.emails.send({
+        const data = await getResend().emails.send({
             from: `KiNG FLEXY GH <${senderEmail}>`,
             to: options.toName ? `${options.toName} <${options.to}>` : options.to,
             subject: options.subject,
