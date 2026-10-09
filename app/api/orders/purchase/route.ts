@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { generateReferenceCode } from '@/lib/utils'
-import { sendOrderSuccessSMS, sendAdminAgentOrderAlert } from '@/lib/sms-service'
-import { resolveOwnConfirmationSender } from '@/lib/sms-confirmation-sender'
 import { waitUntil } from '@vercel/functions'
 import { triggerFulfillment } from '@/lib/fulfillment-trigger'
 import { shouldAutoFulfill, isMashupCategory } from '@/lib/mashup'
@@ -122,7 +120,6 @@ export async function POST(request: NextRequest) {
         const { buyer } = buyerResult
 
         const pricingRole = effectiveRoleFromExpiry(buyer.role, buyer.agent_expires_at, buyer.dealer_expires_at)
-        const isAgent = pricingRole === 'agent' || pricingRole === 'dealer'
 
         // A sub-agent buys at the price their recruiter set; the recruiter earns the markup.
         // Eligibility is read live, so a pending or suspended sub, or one whose recruiter is
@@ -235,26 +232,8 @@ export async function POST(request: NextRequest) {
 
                 const firstName = buyer.first_name || 'Customer'
 
-                // Confirmation SMS to the account holder, unless they opted out.
-                const accountHolderPhone = buyer.phone_number
-                if (accountHolderPhone && buyer.order_success_sms_enabled !== false && !queueDecision.queue) {
-                    const ownSender = await resolveOwnConfirmationSender(supabase, userId)
-                    await sendOrderSuccessSMS(accountHolderPhone, {
-                        network: p.network,
-                        size: p.size,
-                        price: priceToCharge,
-                        recipientNumber: recipient,
-                        currentBalance: newBalance,
-                        sender: ownSender ?? undefined,
-                    }).catch((err: Error) => console.error('[Purchase] Confirmation SMS failed:', err))
-                }
-
-                if (isAgent) {
-                    await sendAdminAgentOrderAlert().catch((err: Error) => console.error('[Purchase] Admin agent alert failed:', err))
-                }
-
                 if (queueDecision.queue) {
-                    console.log(`[Purchase] Order ${order.id} QUEUED for MTN number registration: fulfilment and SMS held`)
+                    console.log(`[Purchase] Order ${order.id} QUEUED for MTN number registration: fulfilment held`)
                 } else if (autoFulfil) {
                     await triggerFulfillment(order.id, p.network, {
                         email: buyer.email || 'Unknown',

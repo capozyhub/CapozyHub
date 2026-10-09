@@ -6,7 +6,6 @@ import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
 import { resolveOrderQueueing } from '@/lib/number-registration'
 import { checkMtnWhitelistGateBatch } from '@/lib/mtn-whitelist-gate'
-import { resolveOwnConfirmationSender } from '@/lib/sms-confirmation-sender'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
@@ -223,22 +222,19 @@ export async function POST(request: NextRequest) {
             action_url: '/dashboard/my-orders',
         })
 
-        // Background: SMS, fulfilment and one combined alert for the admins.
+        // Background: fulfilment and one combined alert for the admins.
         const userName = `${buyer.first_name || ''} ${buyer.last_name || ''}`.trim() || 'Customer'
         const userEmail = buyer.email || 'Unknown'
-        const smsEnabled = buyer.order_success_sms_enabled !== false
 
         waitUntil((async () => {
-            // Queued orders (unregistered MTN numbers) are held: no SMS, no dispatch.
+            // Queued orders (unregistered MTN numbers) are held: no dispatch.
             const dispatchable = createdOrders.filter(o => o.status !== 'queued')
             const queuedCount = createdOrders.length - dispatchable.length
             if (queuedCount > 0) {
                 console.log(`[BulkPurchase] ${queuedCount}/${createdOrders.length} orders QUEUED for MTN number registration: fulfilment held`)
             }
-            // The buyer's own approved sender, resolved once for the whole batch.
-            const ownSender = smsEnabled ? await resolveOwnConfirmationSender(supabase, userId) : null
             const results = await Promise.allSettled(
-                dispatchable.map(order => processOrderNotifications(order, { email: userEmail, name: userName }, smsEnabled, ownSender)),
+                dispatchable.map(order => dispatchOrder(order, { email: userEmail, name: userName })),
             )
 
             const exceptions = results
@@ -274,28 +270,6 @@ export async function POST(request: NextRequest) {
         console.error('Bulk purchase error:', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
-}
-
-/** Per-order work after the response: SMS to the recipient first, then fulfilment. */
-async function processOrderNotifications(
-    order: { id: string; reference_code: string; network: string; phone_number: string; size: string },
-    user: { email: string; name: string },
-    sendSms: boolean,
-    ownSender: string | null,
-): Promise<FulfillmentOutcome> {
-    // An SMS failure never prevents fulfilment.
-    if (sendSms) {
-        const { sendOrderSuccessSMS } = await import('@/lib/sms-service')
-        await sendOrderSuccessSMS(order.phone_number, {
-            recipientNumber: order.phone_number,
-            network: order.network,
-            size: order.size,
-            price: 0,
-            currentBalance: 0,
-            sender: ownSender ?? undefined,
-        }).catch(err => console.error(`[BulkOrder] SMS error for ${order.phone_number}:`, err))
-    }
-    return dispatchOrder(order, user)
 }
 
 /**
