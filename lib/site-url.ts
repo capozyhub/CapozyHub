@@ -1,12 +1,12 @@
-const DEFAULT_SITE_URL = 'https://kingflexygh.com'
+const DEFAULT_SITE_URL = 'https://capozygh.com'
 // De-branded sub-agent storefront + invite domain. Single source of truth: set
 // NEXT_PUBLIC_STORE_URL once and the invite-link builder, both origin allowlists
 // (this file + middleware.ts) and the middleware host router all follow.
-const DEFAULT_STORE_URL = 'https://store.kingflexygh.com'
+const DEFAULT_STORE_URL = 'https://store.capozygh.com'
 // Sub-agent login subdomain (spec 2026-09-14). Single source of truth: set
 // NEXT_PUBLIC_AGENT_URL once; the origin allowlist follows so POST routes
 // guarded by hasTrustedRequestOrigin accept agent.* requests.
-const DEFAULT_AGENT_URL = 'https://agent.kingflexygh.com'
+const DEFAULT_AGENT_URL = 'https://agent.capozygh.com'
 const LOCAL_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -71,10 +71,12 @@ export function getAllowedAppOrigins() {
         process.env.NEXT_PUBLIC_SITE_URL,
         process.env.NEXT_PUBLIC_APP_URL,
         DEFAULT_SITE_URL,
-        'https://www.kingflexygh.com',
-        'https://shop.kingflexygh.com',
-        'https://preview.kingflexygh.com',
-        // De-branded store domain (env-driven, default store.kingflexygh.com) so
+        'https://www.capozygh.com',
+        'https://shop.capozygh.com',
+        'https://preview.capozygh.com',
+        // The project's own Vercel production alias (explicit, never a wildcard).
+        'https://capozyhub.vercel.app',
+        // De-branded store domain (env-driven, default store.capozygh.com) so
         // POST routes guarded by hasTrustedRequestOrigin accept store.* requests.
         getStoreUrl(),
         // Sub-agent login origin so agent.* can POST to auth routes guarded by

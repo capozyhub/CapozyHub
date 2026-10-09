@@ -40,17 +40,19 @@ const API_FAIL_CLOSED_SUFFIXES: ReadonlySet<string> = new Set([
 // NEVER add a wildcard (*) here. Never reflect the raw Origin.
 // ============================================================
 // De-branded sub-agent store domain. Single source of truth: NEXT_PUBLIC_STORE_URL
-// (default store.kingflexygh.com) drives BOTH the CORS allowlist below AND the host
+// (default store.capozygh.com) drives BOTH the CORS allowlist below AND the host
 // router further down — change the env var once and both follow, no code edit.
-const STORE_ORIGIN = (process.env.NEXT_PUBLIC_STORE_URL || 'https://store.kingflexygh.com').replace(/\/+$/, '')
-const STORE_HOST = (() => { try { return new URL(STORE_ORIGIN).host } catch { return 'store.kingflexygh.com' } })()
+const STORE_ORIGIN = (process.env.NEXT_PUBLIC_STORE_URL || 'https://store.capozygh.com').replace(/\/+$/, '')
+const STORE_HOST = (() => { try { return new URL(STORE_ORIGIN).host } catch { return 'store.capozygh.com' } })()
 
 const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
-    'https://kingflexygh.com',
-    'https://www.kingflexygh.com',
-    'https://shop.kingflexygh.com',
-    'https://agent.kingflexygh.com',
-    'https://preview.kingflexygh.com',
+    'https://capozygh.com',
+    'https://www.capozygh.com',
+    'https://shop.capozygh.com',
+    'https://agent.capozygh.com',
+    'https://preview.capozygh.com',
+    // The project's own Vercel production alias (one explicit origin, never a wildcard).
+    'https://capozyhub.vercel.app',
     STORE_ORIGIN,
 ])
 
@@ -407,16 +409,16 @@ export async function middleware(request: NextRequest) {
 
     const hostname = request.headers.get('host') || ''
 
-    // === API HOST CONFINEMENT (api.kingflexygh.com) ===
+    // === API HOST CONFINEMENT (api.capozygh.com) ===
     // The API host serves ONLY the public developer API (/api/v2/**) — NOT
     // the whole /api/** surface. The original check here
     // only redirected non-/api/ PAGE paths, which left every INTERNAL route
     // (/api/admin/*, /api/cron/*, /api/user/*, /api/webhooks/*, /api/shop/*,
     // etc.) reachable on this host too. That matters because auth cookies are
-    // scoped to .kingflexygh.com (see lib/cookie-domain.ts) — Vercel doesn't
+    // scoped to .capozygh.com (see lib/cookie-domain.ts) — Vercel doesn't
     // silently make a second hostname resolve, but once the owner points DNS
     // at it (done 2026-08-27+), a logged-in admin's browser sends its session
-    // cookie to api.kingflexygh.com exactly as it would to kingflexygh.com,
+    // cookie to api.capozygh.com exactly as it would to capozygh.com,
     // and subdomains of the same site are NOT blocked from each other by
     // SameSite=Lax. That is the same admin-login-phishing shape the comment
     // below already describes for the de-branded store host, just for a host
@@ -424,10 +426,10 @@ export async function middleware(request: NextRequest) {
     // public API paths closes it. 307 (temporary), not 301, so no browser
     // pins the redirect.
     if (hostname === API_V2_HOST && !isDevApi) {
-        return NextResponse.redirect(new URL(pathname + request.nextUrl.search, 'https://kingflexygh.com'), 307)
+        return NextResponse.redirect(new URL(pathname + request.nextUrl.search, 'https://capozygh.com'), 307)
     }
 
-    const isShopSubdomain = hostname.startsWith('shop.') || hostname === 'shop.kingflexygh.com'
+    const isShopSubdomain = hostname.startsWith('shop.') || hostname === 'shop.capozygh.com'
 
     if (isShopSubdomain) {
         const pathname = request.nextUrl.pathname
@@ -439,7 +441,7 @@ export async function middleware(request: NextRequest) {
 
         // Redirect auth and dashboard attempts back to main domain
         if (pathname.startsWith('/auth') || pathname.startsWith('/dashboard') || pathname.startsWith('/download')) {
-            return NextResponse.redirect(new URL(pathname, 'https://kingflexygh.com'))
+            return NextResponse.redirect(new URL(pathname, 'https://capozygh.com'))
         }
 
         // Never rewrite API routes or Next.js internals — they must reach their real
@@ -465,7 +467,7 @@ export async function middleware(request: NextRequest) {
         // API routes and static assets fall through to existing middleware naturally
     }
 
-    // === DE-BRANDED STORE DOMAIN ROUTING (store.kingflexygh.com) ===
+    // === DE-BRANDED STORE DOMAIN ROUTING (store.capozygh.com) ===
     // The store host must NEVER render the main app/marketing/admin. It serves ONLY:
     //   /               → neutral partner portal (rewritten to /join)
     //   /join, /join/*  → owner-branded sub-agent onboarding
@@ -477,7 +479,7 @@ export async function middleware(request: NextRequest) {
     if (isStoreSubdomain) {
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
             || pathname.startsWith('/auth') || pathname.startsWith('/download')) {
-            return NextResponse.redirect(new URL(pathname + request.nextUrl.search, 'https://kingflexygh.com'))
+            return NextResponse.redirect(new URL(pathname + request.nextUrl.search, 'https://capozygh.com'))
         }
 
         const isApiOrInternal = pathname.startsWith('/api/') || pathname.startsWith('/_next/')
@@ -505,11 +507,11 @@ export async function middleware(request: NextRequest) {
         // API routes and static assets fall through to existing middleware naturally.
     }
 
-    // === AGENT SUBDOMAIN (agent.kingflexygh.com) — sub-agent login (spec 2026-09-14) ===
+    // === AGENT SUBDOMAIN (agent.capozygh.com) — sub-agent login (spec 2026-09-14) ===
     // Unlike store.*, this is a first-party branded surface with no
     // de-branding concern, so ONLY /auth gets a dedicated page here — everything
     // else (notably /dashboard) falls through to the SAME app unmodified, since
-    // the session cookie is already domain-scoped to .kingflexygh.com. No
+    // the session cookie is already domain-scoped to .capozygh.com. No
     // /agent-domain rewrite mirror exists or is needed.
     // KNOWN MINOR (final-review, 2026-09-14): this rewrite returns before
     // `authUser` is resolved (that Supabase call happens later in this
@@ -522,7 +524,7 @@ export async function middleware(request: NextRequest) {
     // Cosmetic only — the same session cookie already works there, so a
     // logged-in user who submits the (redundant) form or navigates to
     // /dashboard manually is unaffected.
-    const AGENT_HOST = (() => { try { return new URL(process.env.NEXT_PUBLIC_AGENT_URL || 'https://agent.kingflexygh.com').host } catch { return 'agent.kingflexygh.com' } })()
+    const AGENT_HOST = (() => { try { return new URL(process.env.NEXT_PUBLIC_AGENT_URL || 'https://agent.capozygh.com').host } catch { return 'agent.capozygh.com' } })()
     const isAgentSubdomain = hostname === AGENT_HOST || hostname.startsWith('agent.')
     if (isAgentSubdomain && (pathname === '/auth' || pathname === '/auth/')) {
         const url = request.nextUrl.clone()
@@ -531,15 +533,15 @@ export async function middleware(request: NextRequest) {
     }
 
     // === REDIRECT OLD SHOP LINKS TO SUBDOMAIN ===
-    // kingflexygh.com/shop/my-shop → shop.kingflexygh.com/my-shop
+    // capozygh.com/shop/my-shop → shop.capozygh.com/my-shop
     // ONLY on the real production apex — NEVER on Vercel previews or localhost,
     // where there is no shop.* subdomain, so /shop/<slug> must render directly
     // (otherwise previews bounce to production).
-    const isProdApex = hostname === 'kingflexygh.com' || hostname === 'www.kingflexygh.com'
+    const isProdApex = hostname === 'capozygh.com' || hostname === 'www.capozygh.com'
     if (isProdApex && pathname.startsWith('/shop/')) {
         const slug = pathname.replace(/^\/shop\//, '')
         if (slug) {
-            const subdomainUrl = new URL(`https://shop.kingflexygh.com/${slug}`)
+            const subdomainUrl = new URL(`https://shop.capozygh.com/${slug}`)
             // Preserve any query string (e.g., ?error=payment_failed)
             subdomainUrl.search = request.nextUrl.search
             // 307 (temporary), not 301 — a permanent redirect gets cached by the
@@ -1095,7 +1097,7 @@ export async function middleware(request: NextRequest) {
 
     // ── One-time cookie-domain migration (kfg_cd1) ──────────────────────────
     // Pre-existing sessions have host-scoped sb-* cookies. Once cookieOptions
-    // adds Domain=.kingflexygh.com, a token refresh would create a SECOND
+    // adds Domain=.capozygh.com, a token refresh would create a SECOND
     // cookie with the same name; browsers send the older host-scoped one first,
     // shadowing the fresh token and breaking auth. So, exactly once per browser:
     // delete each host-scoped sb-* cookie (raw header — ResponseCookies dedupes
@@ -1113,7 +1115,7 @@ export async function middleware(request: NextRequest) {
     // further `.cookies.set()` can run after this block.
     const migrationDomain = getAuthCookieDomain()
     // Host-gate: the prod build also serves *.vercel.app aliases. On those
-    // hosts, the Domain=.kingflexygh.com re-issue below is REJECTED by the
+    // hosts, the Domain=.capozygh.com re-issue below is REJECTED by the
     // browser (domain mismatch) but the raw host-scoped DELETIONS are still
     // accepted — destroying that alias's session while marking it migrated.
     // Only run when the request host actually belongs to the cookie domain.
