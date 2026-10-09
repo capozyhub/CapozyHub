@@ -294,23 +294,8 @@ export default function HomeClient({
         }
     }, [router])
 
-    // PWA (installed app) users should land on the auth page on a cold start,
-    // but NOT when they explicitly navigate here (e.g. Home button from /auth).
-    // sessionStorage flag distinguishes cold-open from in-app navigation.
-    // Middleware will silently redirect them to /dashboard if they already have a valid session.
-    // navigator.standalone covers iOS Safari; display-mode: standalone covers Chrome/Android PWA.
-    useEffect(() => {
-        const isStandalone =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            (window.navigator as any).standalone === true
-        if (isStandalone) {
-            const hasVisited = sessionStorage.getItem('kf_pwa_visited')
-            if (!hasVisited) {
-                sessionStorage.setItem('kf_pwa_visited', '1')
-                router.replace('/auth')
-            }
-        }
-    }, [router])
+    // The installed app opens on /auth because the manifest's start_url is /auth, so this
+    // page never redirects: the landing page stays reachable from inside the app.
 
     useEffect(() => {
         setCountTarget(parseCustomerCountTarget(landingCustomerCountRaw))

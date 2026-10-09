@@ -13,6 +13,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 export function ThemeToggle({ brandName }: { brandName?: string }) {
     const { theme, setTheme } = useTheme()
@@ -80,7 +81,7 @@ export function ThemeToggle({ brandName }: { brandName?: string }) {
                     })}
                 </div>
                 <div className="bg-muted/30 p-4 text-[10px] text-center text-muted-foreground font-medium uppercase tracking-widest border-t">
-                    {brandName || 'KiNG FLEXY TECHNOLOGIES'} • UI PRESET
+                    {brandName || BRAND.name} • UI PRESET
                 </div>
             </DialogContent>
         </Dialog>

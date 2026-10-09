@@ -10,6 +10,7 @@
 // =============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { BRAND } from '@/lib/brand'
 
 export interface BrandContext {
     /** true when the viewer is a sub-agent → hide all KiNG FLEXY chrome. */
@@ -26,7 +27,7 @@ export interface BrandContext {
 
 export const PLATFORM_BRAND: BrandContext = {
     debranded: false,
-    name: 'KiNG FLEXY GH',
+    name: BRAND.name,
     logoUrl: null,
     accent: '#2563eb',
     poweredBy: '',

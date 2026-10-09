@@ -391,40 +391,22 @@
     display: none;
   }
 
-  /* ── BrandLoader pulse widget ── */
-  .kfg-pulse-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* ── BrandLoader: the logo curve drawing itself, on repeat ── */
+  .cz-loader-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: cz-loader-draw 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite;
   }
-  .kfg-ring {
-    position: absolute;
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    border: 1.5px solid #F6C30F;
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0;
-    animation: kfg-ring-out 2.2s cubic-bezier(0, .55, .45, 1) infinite;
+  @keyframes cz-loader-draw {
+    0%   { stroke-dashoffset: 1; opacity: 1; }
+    58%  { stroke-dashoffset: 0; opacity: 1; }
+    84%  { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
   }
-  .kfg-ring:nth-child(1) { animation-delay: 0s; }
-  .kfg-ring:nth-child(2) { animation-delay: 0.48s; }
-  .kfg-ring:nth-child(3) { animation-delay: 0.96s; }
-  .kfg-ring:nth-child(4) { animation-delay: 1.44s; }
-  @keyframes kfg-ring-out {
-    0%   { transform: translate(-50%, -50%) scale(1);   opacity: .95; }
-    100% { transform: translate(-50%, -50%) scale(6.5); opacity: 0; }
-  }
-  .kfg-core {
-    border-radius: 50%;
-    background: #F6C30F;
-    position: relative;
-    z-index: 2;
-    animation: kfg-core-pulse 2.2s ease-in-out infinite;
-  }
-  @keyframes kfg-core-pulse {
-    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 3px rgba(246,195,15,.15), 0 0 20px rgba(246,195,15,.5); }
-    50%       { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(246,195,15,.12), 0 0 28px rgba(246,195,15,.6); }
+  .cz-loader-word { animation: cz-loader-word 1.9s ease-in-out infinite; }
+  @keyframes cz-loader-word {
+    0%, 100% { opacity: 0.55; }
+    60%, 84% { opacity: 1; }
   }
   @keyframes kfg-fade-in {
     from { opacity: 0; }
@@ -432,10 +414,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .kfg-ring { animation: none; opacity: 0.3; }
-    .kfg-core { animation: none; }
+    .cz-loader-draw { animation: none; stroke-dashoffset: 0; }
+    .cz-loader-word { animation: none; }
   }
-
   /* Page-ready splash loader — opacity/pointer-events driven by Tailwind classes */
   .page-ready-loader {
     position: fixed;
@@ -763,17 +744,25 @@
   }
 }
 
-@keyframes kf-toast-in {
-  from { opacity: 0; transform: translateX(24px) scale(0.94); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
+@keyframes cz-toast-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes kf-ring-draw {
-  to { stroke-dashoffset: 0; }
+@keyframes cz-toast-bar {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
-@keyframes kf-bar-fill {
-  from { width: 0%; }
-  to   { width: 100%; }
+@keyframes cz-toast-check {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
 }
+.cz-toast-check { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cz-toast-check 0.45s 0.2s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .cz-toast { animation: none !important; }
+  .cz-toast-check { animation: none; stroke-dashoffset: 0; }
+}
+html[data-perf='lite'] .cz-toast { animation: none !important; }
+html[data-perf='lite'] .cz-toast-check { animation: none; stroke-dashoffset: 0; }
 
 /* ── Lightweight mode ───────────────────────────────────────────────────────
    Soft shadows and blur are the expensive part of the neumorphic/clay look. Phones get

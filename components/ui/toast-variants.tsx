@@ -1,142 +1,128 @@
 'use client'
 
 import { toast as sonnerToast } from 'sonner'
+import { BRAND } from '@/lib/brand'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
-const TYPE_COLORS: Record<ToastType, {
-  bandBg: string   // solid opaque background for the left icon band
-  bandBorder: string // right-side separator of the band
-  stroke: string   // progress bar + card outer border accent
-  border: string   // card outer border (subtle type tint)
-  shadow: string   // card glow (subtle type tint)
-}> = {
-  success: { bandBg: '#16a34a', bandBorder: '#15803d', stroke: '#4ade80', border: 'rgba(74,222,128,0.30)',  shadow: 'rgba(74,222,128,0.06)'  },
-  error:   { bandBg: '#dc2626', bandBorder: '#b91c1c', stroke: '#f87171', border: 'rgba(248,113,113,0.30)', shadow: 'rgba(248,113,113,0.06)' },
-  info:    { bandBg: '#2563eb', bandBorder: '#1d4ed8', stroke: '#60a5fa', border: 'rgba(96,165,250,0.30)',  shadow: 'rgba(96,165,250,0.06)'  },
-  warning: { bandBg: '#d97706', bandBorder: '#b45309', stroke: '#fbbf24', border: 'rgba(251,191,36,0.30)',  shadow: 'rgba(251,191,36,0.06)'  },
+/*
+ * One raised clay card for every toast. The badge on the left carries the type:
+ * success is the brand gold (the check draws itself), the rest stay in their own
+ * colours so an error never reads as good news. The thin bar at the bottom is the
+ * time left before the toast closes.
+ */
+const TYPES: Record<ToastType, { badge: string; ink: string; bar: string; label: string }> = {
+  success: {
+    badge: 'linear-gradient(145deg, #FEE21C 0%, #F6C30F 45%, #F6A900 100%)',
+    ink: '#3A2600',
+    bar: 'linear-gradient(90deg, #F6A900, #FEE21C)',
+    label: 'Success',
+  },
+  error: {
+    badge: 'linear-gradient(145deg, #FF8A80 0%, #E5383B 55%, #B71C1C 100%)',
+    ink: '#FFFFFF',
+    bar: 'linear-gradient(90deg, #B71C1C, #FF8A80)',
+    label: 'Error',
+  },
+  info: {
+    badge: 'linear-gradient(145deg, #F4F4F4 0%, #C2C2C2 55%, #8E8E8E 100%)',
+    ink: '#1A1A1A',
+    bar: 'linear-gradient(90deg, #8E8E8E, #E8E8E8)',
+    label: 'Notice',
+  },
+  warning: {
+    badge: 'linear-gradient(145deg, #FFB067 0%, #F2711C 55%, #C2410C 100%)',
+    ink: '#FFFFFF',
+    bar: 'linear-gradient(90deg, #C2410C, #FFB067)',
+    label: 'Warning',
+  },
 }
 
-// color prop lets the left band pass '#ffffff' for icon-on-solid-bg contrast
-function TypeIcon({ type, size = 18, color }: { type: ToastType; size?: number; color?: string }) {
-  const c = color ?? TYPE_COLORS[type].stroke
+function Glyph({ type, color }: { type: ToastType; color: string }) {
+  const common = { stroke: color, strokeWidth: 2.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
       {type === 'success' && (
-        <path d="M5 13l4 4L19 7" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 12.5l4.5 4.5L19 7.5" {...common} pathLength={1} className="cz-toast-check" />
       )}
-      {type === 'error' && (
-        <path d="M18 6L6 18M6 6l12 12" stroke={c} strokeWidth="2.5" strokeLinecap="round" />
-      )}
-      {type === 'info' && (
-        <path d="M12 8v4m0 4h.01" stroke={c} strokeWidth="2.5" strokeLinecap="round" />
-      )}
-      {type === 'warning' && (
-        <path
-          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-          stroke={c}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
+      {type === 'error' && <path d="M17 7L7 17M7 7l10 10" {...common} />}
+      {type === 'info' && <path d="M12 11v6m0-10h.01" {...common} />}
+      {type === 'warning' && <path d="M12 7v6m0 4h.01" {...common} />}
     </svg>
   )
 }
 
-// ---------------------------------------------------------------------------
-// SplitPanelToast — used for ALL toast types (success, error, info, warning)
-// Right panel background + text uses the active CSS theme (light / dark).
-// Left icon band keeps the type-color tint which works on any background.
-// ---------------------------------------------------------------------------
-
-interface SplitPanelToastProps {
+interface BrandToastProps {
   id: string | number
   title: string
   type: ToastType
   duration: number
-  /** Small uppercase label above the message. Defaults to the platform brand;
-   *  the storefront overrides it with the shop's own name (white-label). */
+  /** Name shown above the message. Defaults to the platform brand; the storefront
+   *  overrides it with the shop's own name (white-label). */
   brand?: string
 }
 
-export function SplitPanelToast({ id, title, type, duration, brand = 'KiNG FLEXY' }: SplitPanelToastProps) {
-  const colors = TYPE_COLORS[type]
+export function BrandToast({ id, title, type, duration, brand = BRAND.name }: BrandToastProps) {
+  const t = TYPES[type]
 
   return (
     <div
+      role={type === 'error' ? 'alert' : 'status'}
+      className="cz-toast"
       style={{
         position: 'relative',
         display: 'flex',
-        width: '380px',
+        alignItems: 'center',
+        gap: '12px',
+        width: '372px',
         maxWidth: 'calc(100vw - 32px)',
-        borderRadius: '14px',
+        padding: '12px 44px 14px 12px',
+        borderRadius: '20px',
         overflow: 'hidden',
-        /* Type-color outer border provides the accent ring */
-        border: `1px solid ${colors.border}`,
-        /*
-         * Shadow: subtle depth (works in both themes) + faint type-color glow.
-         * Avoid rgba(0,0,0,>0.2) — too harsh in light mode.
-         */
-        boxShadow: `0 2px 4px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.10), 0 0 20px ${colors.shadow}`,
-        animation: 'kf-toast-in 0.4s cubic-bezier(0.16,1,0.3,1) both',
+        background: 'hsl(var(--card))',
+        color: 'hsl(var(--card-foreground))',
+        boxShadow: 'var(--neu-out)',
+        animation: 'cz-toast-in 0.45s cubic-bezier(0.16,1,0.3,1) both',
       }}
     >
-      {/* Left icon band — solid opaque type color, white icon for guaranteed contrast */}
       <div
         style={{
-          width: '60px',
+          width: '44px',
+          height: '44px',
           flexShrink: 0,
-          background: colors.bandBg,
-          borderRight: `1px solid ${colors.bandBorder}`,
+          borderRadius: '14px',
+          background: t.badge,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          boxShadow:
+            'inset 0 2px 3px rgba(255,255,255,0.55), inset 0 -3px 5px rgba(0,0,0,0.22), 0 4px 8px rgba(0,0,0,0.18)',
         }}
       >
-        <TypeIcon type={type} size={22} color="#ffffff" />
+        <Glyph type={type} color={t.ink} />
       </div>
 
-      {/* Right text panel — inherits active theme via CSS variables */}
-      <div
-        style={{
-          flex: 1,
-          background: 'hsl(var(--card))',
-          padding: '11px 38px 11px 13px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: '2px',
-          minWidth: 0,
-        }}
-      >
-        {/* App label — uses muted foreground, readable in both themes */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
         <span
           style={{
-            fontSize: '9px',
-            fontWeight: 700,
-            letterSpacing: '0.13em',
-            textTransform: 'uppercase',
+            fontFamily: 'var(--font-display), system-ui, sans-serif',
+            fontSize: '12px',
+            fontWeight: 600,
             color: 'hsl(var(--muted-foreground))',
-            lineHeight: 1,
-            userSelect: 'none',
+            lineHeight: 1.2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '100%',
           }}
         >
-          {brand}
+          {t.label} · {brand}
         </span>
-
-        {/* Message — uses card-foreground: dark text on light, light text on dark */}
         <span
           style={{
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontSize: '13px',
+            fontFamily: 'var(--font-body), system-ui, sans-serif',
+            fontSize: '14px',
             fontWeight: 600,
-            color: 'hsl(var(--card-foreground))',
-            lineHeight: 1.4,
+            lineHeight: 1.35,
             wordBreak: 'break-word',
           }}
         >
@@ -144,51 +130,46 @@ export function SplitPanelToast({ id, title, type, duration, brand = 'KiNG FLEXY
         </span>
       </div>
 
-      {/* Close button — uses muted/border variables, correct in both themes */}
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); sonnerToast.dismiss(id) }}
+        aria-label="Dismiss"
         style={{
           position: 'absolute',
-          top: '9px',
-          right: '9px',
-          background: 'hsl(var(--muted))',
-          border: '1px solid hsl(var(--border))',
-          borderRadius: '6px',
+          top: '10px',
+          right: '10px',
+          width: '24px',
+          height: '24px',
+          borderRadius: '8px',
+          border: 'none',
+          background: 'hsl(var(--background))',
+          boxShadow: 'var(--neu-in)',
           color: 'hsl(var(--muted-foreground))',
           cursor: 'pointer',
-          padding: '3px',
-          lineHeight: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flexShrink: 0,
+          padding: 0,
         }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--foreground))'
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = 'hsl(var(--muted-foreground))'
-        }}
-        aria-label="Dismiss"
       >
-        <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+        <svg width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
       </button>
 
-      {/* Progress bar — fills over ANIM_DURATION ms then toast auto-dismisses */}
       <div
+        aria-hidden="true"
         style={{
           position: 'absolute',
-          bottom: 0,
-          left: 0,
+          left: '12px',
+          right: '12px',
+          bottom: '5px',
           height: '3px',
-          width: '0%',
-          background: colors.stroke,
-          boxShadow: `0 0 6px ${colors.stroke}`,
-          '--kf-dur': `${duration}ms`,
-          animation: 'kf-bar-fill var(--kf-dur) linear forwards',
-        } as React.CSSProperties & { '--kf-dur': string }}
+          borderRadius: '3px',
+          background: t.bar,
+          transformOrigin: 'left center',
+          animation: `cz-toast-bar ${duration}ms linear forwards`,
+        }}
       />
     </div>
   )

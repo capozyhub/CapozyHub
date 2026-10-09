@@ -13,7 +13,7 @@ export async function GET(request: Request) {
             name: `${BRAND.name} - Data Bundles & Airtime`,
             short_name: BRAND.name,
             description: 'Buy affordable MTN, Telecel, and AirtelTigo data bundles & airtime online in Ghana.',
-            start_url: '/',
+            start_url: '/auth',
             display: 'standalone',
             background_color: '#000000',
             theme_color: '#000000',
