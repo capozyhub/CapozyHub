@@ -101,7 +101,7 @@ export function StatCards({ stats }: { stats: PageStats }) {
                                     </p>
                                     <p className="text-lg sm:text-xl font-black text-white truncate">{card.value}</p>
                                 </div>
-                                <div className="w-9 h-9 rounded-xl bg-white/20 flex-shrink-0 flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-xl bg-card/20 flex-shrink-0 flex items-center justify-center">
                                     <card.icon className="w-4 h-4 text-white" />
                                 </div>
                             </div>

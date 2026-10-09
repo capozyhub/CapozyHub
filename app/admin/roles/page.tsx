@@ -405,12 +405,12 @@ export default function RoleManagementPage() {
     }, [agents, dealers, roleFilter, statusFilter, searchTerm])
 
     const statCards = [
-        { label: 'Total Agents', value: stats.totalAgents, Icon: Crown, iconColor: 'text-amber-500', numColor: 'text-slate-900 dark:text-slate-100', bg: 'bg-amber-500' },
+        { label: 'Total Agents', value: stats.totalAgents, Icon: Crown, iconColor: 'text-amber-500', numColor: 'text-foreground', bg: 'bg-amber-500' },
         { label: 'Active Agents', value: stats.activeAgents, Icon: ShieldCheck, iconColor: 'text-emerald-500', numColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500' },
-        { label: 'Expiring ≤7d', value: stats.agentExpiring, Icon: AlertTriangle, iconColor: 'text-orange-500', numColor: stats.agentExpiring > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400 dark:text-slate-600', bg: 'bg-orange-500' },
-        { label: 'Total Dealers', value: stats.totalDealers, Icon: Gem, iconColor: 'text-violet-500', numColor: 'text-slate-900 dark:text-slate-100', bg: 'bg-violet-500' },
+        { label: 'Expiring ≤7d', value: stats.agentExpiring, Icon: AlertTriangle, iconColor: 'text-orange-500', numColor: stats.agentExpiring > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground', bg: 'bg-orange-500' },
+        { label: 'Total Dealers', value: stats.totalDealers, Icon: Gem, iconColor: 'text-violet-500', numColor: 'text-foreground', bg: 'bg-violet-500' },
         { label: 'Active Dealers', value: stats.activeDealers, Icon: TrendingUp, iconColor: 'text-violet-500', numColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500' },
-        { label: 'Expiring ≤14d', value: stats.dealerExpiring, Icon: Timer, iconColor: 'text-red-500', numColor: stats.dealerExpiring > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-slate-600', bg: 'bg-red-500' },
+        { label: 'Expiring ≤14d', value: stats.dealerExpiring, Icon: Timer, iconColor: 'text-red-500', numColor: stats.dealerExpiring > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground', bg: 'bg-red-500' },
     ]
 
     return (
@@ -418,11 +418,11 @@ export default function RoleManagementPage() {
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                        <Users className="w-5 h-5 text-muted-foreground" />
                         Role Management
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                         Manage agent and dealer roles, pricing, and promotions.
                     </p>
                 </div>
@@ -443,15 +443,15 @@ export default function RoleManagementPage() {
                 {statCards.map(({ label, value, Icon, iconColor, numColor, bg }) => (
                     <div
                         key={label}
-                        className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-3.5"
+                        className="relative overflow-hidden rounded-xl border border-border dark:border-border/60 bg-card p-3.5"
                     >
                         <div className={cn('absolute inset-0 opacity-[0.04] dark:opacity-[0.07]', bg)} />
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight">{label}</span>
+                            <span className="text-[11px] font-medium text-muted-foreground leading-tight">{label}</span>
                             <Icon className={cn('w-3.5 h-3.5 shrink-0', iconColor)} />
                         </div>
                         <div className={cn('text-2xl font-bold tabular-nums', numColor)}>
-                            {loading ? <span className="text-slate-300 dark:text-slate-700">—</span> : value}
+                            {loading ? <span className="text-muted-foreground/70 ">—</span> : value}
                         </div>
                     </div>
                 ))}
@@ -464,10 +464,10 @@ export default function RoleManagementPage() {
                 <div className="space-y-4">
 
                     {/* Pricing Card */}
-                    <Card className="border-slate-200 dark:border-slate-700/60 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 rounded-t-xl">
+                    <Card className="border-border dark:border-border/60 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-border dark:border-border/60 bg-muted/60 dark:bg-muted/30 rounded-t-xl">
                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <Tag className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                                <Tag className="w-4 h-4 text-muted-foreground" />
                                 Upgrade Pricing
                             </CardTitle>
                             <CardDescription className="text-xs">Set costs for each membership tier.</CardDescription>
@@ -476,7 +476,7 @@ export default function RoleManagementPage() {
                             <div className="grid grid-cols-2 gap-2">
                                 {([['3d', '3 Days'], ['14d', '14 Days'], ['30d', '30 Days']] as const).map(([key, label]) => (
                                     <div key={key} className="space-y-1">
-                                        <Label className="text-[11px] text-slate-500 dark:text-slate-400">{label} (GHS)</Label>
+                                        <Label className="text-[11px] text-muted-foreground">{label} (GHS)</Label>
                                         <Input
                                             type="number"
                                             value={prices[key]}
@@ -486,7 +486,7 @@ export default function RoleManagementPage() {
                                     </div>
                                 ))}
                                 <div className="space-y-1">
-                                    <Label className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
                                         <ShieldCheck className="w-3 h-3 text-brand-700" /> Permanent (GHS)
                                     </Label>
                                     <Input
@@ -497,10 +497,10 @@ export default function RoleManagementPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="pt-1 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+                            <div className="pt-1 border-t border-border dark:border-border/60 space-y-2">
                                 <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest">Dealer Plans</p>
                                 <div className="space-y-1">
-                                    <Label className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
                                         <Gem className="w-3 h-3 text-violet-400" /> Dealer 1-Month (GHS)
                                     </Label>
                                     <Input
@@ -511,7 +511,7 @@ export default function RoleManagementPage() {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
                                         <Gem className="w-3 h-3 text-violet-500" /> Dealer 3-Month (GHS)
                                     </Label>
                                     <Input
@@ -522,7 +522,7 @@ export default function RoleManagementPage() {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
                                         <Gem className="w-3 h-3 text-violet-600" /> Dealer 6-Month (GHS)
                                     </Label>
                                     <Input
@@ -539,12 +539,12 @@ export default function RoleManagementPage() {
                                     checked={showStrikethrough}
                                     onCheckedChange={v => setShowStrikethrough(v as boolean)}
                                 />
-                                <Label htmlFor="strike" className="text-[11px] text-slate-600 dark:text-slate-400 cursor-pointer">
+                                <Label htmlFor="strike" className="text-[11px] text-muted-foreground cursor-pointer">
                                     Show old prices with strikethrough
                                 </Label>
                             </div>
                             <Button
-                                className="w-full h-9 text-sm font-medium bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+                                className="w-full h-9 text-sm font-medium bg-card hover:bg-muted dark:text-foreground dark:hover:bg-muted"
                                 onClick={handleSavePrices}
                                 disabled={isSavingPrices}
                             >
@@ -557,17 +557,17 @@ export default function RoleManagementPage() {
                     </Card>
 
                     {/* Assign Role Card */}
-                    <Card className="border-slate-200 dark:border-slate-700/60 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 rounded-t-xl">
+                    <Card className="border-border dark:border-border/60 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-border dark:border-border/60 bg-muted/60 dark:bg-muted/30 rounded-t-xl">
                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <UserPlus className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                                <UserPlus className="w-4 h-4 text-muted-foreground" />
                                 Assign Role
                             </CardTitle>
                             <CardDescription className="text-xs">Grant agent or dealer access to any user.</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4 space-y-3">
                             {/* Role toggle */}
-                            <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                            <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted">
                                 {(['agent', 'dealer'] as const).map(r => (
                                     <button
                                         key={r}
@@ -575,8 +575,8 @@ export default function RoleManagementPage() {
                                         className={cn(
                                             'py-1.5 rounded-md text-xs font-medium transition-all',
                                             assignRole === r
-                                                ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-slate-100'
-                                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                                ? 'bg-card shadow-sm text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70'
                                         )}
                                     >
                                         {r === 'agent' ? (
@@ -595,7 +595,7 @@ export default function RoleManagementPage() {
                             {/* Duration picker (agent only) */}
                             {assignRole === 'agent' && (
                                 <div className="space-y-1.5">
-                                    <Label className="text-[11px] text-slate-500 dark:text-slate-400">Duration</Label>
+                                    <Label className="text-[11px] text-muted-foreground">Duration</Label>
                                     <div className="grid grid-cols-2 gap-1.5">
                                         {(['3d', '14d', '30d', 'permanent'] as const).map(d => (
                                             <button
@@ -607,7 +607,7 @@ export default function RoleManagementPage() {
                                                         ? d === 'permanent'
                                                             ? 'bg-brand-600 text-black border-brand-600'
                                                             : 'bg-amber-500 text-white border-amber-500'
-                                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900'
+                                                        : 'border-border text-muted-foreground hover:border-border dark:hover:border-border bg-card'
                                                 )}
                                             >
                                                 {DURATION_LABELS[d]}
@@ -625,23 +625,23 @@ export default function RoleManagementPage() {
 
                             {/* User search */}
                             {selectedAssignUser ? (
-                                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-3 py-2.5">
+                                <div className="flex items-center justify-between bg-muted/50 dark:bg-muted/60 border border-border dark:border-border/60 rounded-lg px-3 py-2.5">
                                     <div>
-                                        <p className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                                        <p className="text-xs font-medium text-foreground">
                                             {selectedAssignUser.first_name} {selectedAssignUser.last_name}
                                         </p>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{selectedAssignUser.email}</p>
+                                        <p className="text-[11px] text-muted-foreground">{selectedAssignUser.email}</p>
                                     </div>
                                     <button
                                         onClick={() => { setSelectedAssignUser(null); setAssignSearchQ('') }}
                                         aria-label="Remove selected user"
                                     >
-                                        <X className="w-3.5 h-3.5 text-slate-400 hover:text-red-500 transition-colors" />
+                                        <X className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500 transition-colors" />
                                     </button>
                                 </div>
                             ) : (
                                 <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                                     <Input
                                         placeholder={assignRole === 'dealer' ? 'Search lifetime agents…' : 'Search users…'}
                                         value={assignSearchQ}
@@ -649,26 +649,26 @@ export default function RoleManagementPage() {
                                         className="pl-8 h-9 text-xs"
                                     />
                                     {isSearchingAssign && (
-                                        <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-slate-400" />
+                                        <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-muted-foreground" />
                                     )}
                                     {assignResults.length > 0 && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
+                                        <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
                                             {assignResults.map(u => (
                                                 <button
                                                     key={u.id}
-                                                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors border-b border-slate-100 dark:border-slate-700/60 last:border-0"
+                                                    className="w-full text-left px-3 py-2 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors border-b border-border dark:border-border/60 last:border-0"
                                                     onClick={() => { setSelectedAssignUser(u); setAssignSearchQ(''); setAssignResults([]) }}
                                                 >
-                                                    <p className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                                                    <p className="text-xs font-medium text-foreground">
                                                         {u.first_name} {u.last_name}
                                                     </p>
-                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{u.email}</p>
+                                                    <p className="text-[11px] text-muted-foreground">{u.email}</p>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
                                     {assignSearchQ && !isSearchingAssign && assignResults.length === 0 && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg px-3 py-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                        <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-lg shadow-lg px-3 py-2.5 text-[11px] text-muted-foreground">
                                             No users found for "{assignSearchQ}"
                                         </div>
                                     )}
@@ -697,11 +697,11 @@ export default function RoleManagementPage() {
                 </div>
 
                 {/* ── RIGHT PANEL — User Table ── */}
-                <Card className="lg:col-span-2 border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col min-h-[500px]">
+                <Card className="lg:col-span-2 border-border dark:border-border/60 shadow-sm flex flex-col min-h-[500px]">
                     {/* Filter bar */}
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-700/60 space-y-3">
+                    <div className="p-4 border-b border-border dark:border-border/60 space-y-3">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name or email…"
                                 value={searchTerm}
@@ -719,14 +719,14 @@ export default function RoleManagementPage() {
                                         className={cn(
                                             'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
                                             roleFilter === val
-                                                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                ? 'bg-card text-white dark:text-foreground'
+                                                : 'bg-muted text-muted-foreground hover:bg-muted dark:hover:bg-muted'
                                         )}
                                     >
                                         {label}
                                     </button>
                                 ))}
-                                <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+                                <span className="text-foreground select-none">|</span>
                                 {/* Status chips */}
                                 {([
                                     ['all', 'All Status', ''],
@@ -740,15 +740,15 @@ export default function RoleManagementPage() {
                                         className={cn(
                                             'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
                                             statusFilter === val
-                                                ? (activeClass || 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900')
-                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                ? (activeClass || 'bg-card text-white dark:text-foreground')
+                                                : 'bg-muted text-muted-foreground hover:bg-muted dark:hover:bg-muted'
                                         )}
                                     >
                                         {label}
                                     </button>
                                 ))}
                             </div>
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums">
+                            <span className="text-[11px] text-muted-foreground tabular-nums">
                                 {displayedUsers.length} user{displayedUsers.length !== 1 ? 's' : ''}
                             </span>
                         </div>
@@ -757,12 +757,12 @@ export default function RoleManagementPage() {
                     <CardContent className="p-0 flex-1">
                         {loading ? (
                             <div className="flex items-center justify-center py-24">
-                                <Loader2 className="w-6 h-6 animate-spin text-slate-300 dark:text-slate-600" />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70 " />
                             </div>
                         ) : displayedUsers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-24 space-y-3">
-                                <Users className="w-10 h-10 text-slate-200 dark:text-slate-700" />
-                                <p className="text-sm text-slate-400 dark:text-slate-500">No users match your filters.</p>
+                                <Users className="w-10 h-10 text-foreground " />
+                                <p className="text-sm text-muted-foreground">No users match your filters.</p>
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -778,15 +778,15 @@ export default function RoleManagementPage() {
                                 <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full text-xs">
                                         <thead>
-                                            <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/60">
-                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 dark:text-slate-400">User</th>
-                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 dark:text-slate-400">Role</th>
-                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 dark:text-slate-400">Status</th>
-                                                <th className="px-5 py-3 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400">Days Left</th>
-                                                <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                                            <tr className="bg-muted/80 dark:bg-muted/40 border-b border-border dark:border-border/60">
+                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-muted-foreground">User</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-muted-foreground">Role</th>
+                                                <th className="px-5 py-3 text-left text-[11px] font-medium text-muted-foreground">Status</th>
+                                                <th className="px-5 py-3 text-center text-[11px] font-medium text-muted-foreground">Days Left</th>
+                                                <th className="px-5 py-3 text-right text-[11px] font-medium text-muted-foreground">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700/40">
+                                        <tbody className="divide-y divide-border dark:divide-border/40">
                                             {displayedUsers.map(user => {
                                                 const days = getDaysLeft(user)
                                                 const status = getUserStatus(user)
@@ -794,7 +794,7 @@ export default function RoleManagementPage() {
                                                 return (
                                                     <tr
                                                         key={`${user.role}-${user.id}`}
-                                                        className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                                                        className="hover:bg-muted/60 dark:hover:bg-muted/30 transition-colors"
                                                     >
                                                         <td className="px-5 py-3.5">
                                                             <div className="flex items-center gap-2.5">
@@ -806,7 +806,7 @@ export default function RoleManagementPage() {
                                                                 </div>
                                                                 <div>
                                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                                        <p className="font-medium text-slate-900 dark:text-slate-100">
+                                                                        <p className="font-medium text-foreground">
                                                                             {user.first_name} {user.last_name}
                                                                         </p>
                                                                         {user.auto_upgrade_enabled && (
@@ -816,7 +816,7 @@ export default function RoleManagementPage() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{user.email}</p>
+                                                                    <p className="text-[11px] text-muted-foreground">{user.email}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -855,11 +855,11 @@ export default function RoleManagementPage() {
                                                                     <>
                                                                         <span className={cn(
                                                                             'text-sm font-bold tabular-nums',
-                                                                            days <= 7 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100'
+                                                                            days <= 7 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
                                                                         )}>
                                                                             {days}
                                                                         </span>
-                                                                        <div className="w-14 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                                        <div className="w-14 h-1 bg-muted rounded-full overflow-hidden">
                                                                             <svg width="100%" height="100%" preserveAspectRatio="none">
                                                                                 <rect width={width} height="100%" className={colorClass} />
                                                                             </svg>
@@ -932,7 +932,7 @@ export default function RoleManagementPage() {
                                         return (
                                             <div
                                                 key={`${user.role}-${user.id}`}
-                                                className="border border-slate-200 dark:border-slate-700/60 rounded-xl p-4 bg-white dark:bg-slate-900 space-y-3"
+                                                className="border border-border dark:border-border/60 rounded-xl p-4 bg-card space-y-3"
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -943,10 +943,10 @@ export default function RoleManagementPage() {
                                                             {(user.first_name?.[0] || '?').toUpperCase()}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                                            <p className="text-sm font-medium text-foreground truncate">
                                                                 {user.first_name} {user.last_name}
                                                             </p>
-                                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                                                            <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 shrink-0">
@@ -966,14 +966,14 @@ export default function RoleManagementPage() {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-2">
-                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Days left</span>
+                                                <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
+                                                    <span className="text-[11px] text-muted-foreground">Days left</span>
                                                     {days === null ? (
                                                         <span className="text-xs font-medium text-brand-700 dark:text-brand-400">∞ Lifetime</span>
                                                     ) : (
                                                         <span className={cn(
                                                             'text-sm font-bold tabular-nums',
-                                                            days <= 7 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-slate-100'
+                                                            days <= 7 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
                                                         )}>
                                                             {days}d
                                                         </span>
@@ -1052,7 +1052,7 @@ export default function RoleManagementPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
-                        <Label className="text-xs text-slate-500 dark:text-slate-400">Days to Add</Label>
+                        <Label className="text-xs text-muted-foreground">Days to Add</Label>
                         <Input
                             type="number"
                             value={extendDays}
@@ -1093,7 +1093,7 @@ export default function RoleManagementPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
-                        <Label className="text-xs text-slate-500 dark:text-slate-400">Days to Reduce</Label>
+                        <Label className="text-xs text-muted-foreground">Days to Reduce</Label>
                         <Input
                             type="number"
                             value={reduceDays}

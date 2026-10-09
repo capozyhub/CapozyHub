@@ -14,8 +14,8 @@ export function NotifIcon({ type }: { type: string }) {
         case 'role_upgrade':       return <Shield className="w-4 h-4 text-violet-500" />
         case 'welcome':            return <PartyPopper className="w-4 h-4 text-pink-500" />
         case 'announcement':       return <Megaphone className="w-4 h-4 text-brand-700" />
-        case 'system':             return <Settings className="w-4 h-4 text-slate-500" />
-        default:                   return <Bell className="w-4 h-4 text-gray-400" />
+        case 'system':             return <Settings className="w-4 h-4 text-muted-foreground" />
+        default:                   return <Bell className="w-4 h-4 text-muted-foreground" />
     }
 }
 
@@ -28,7 +28,7 @@ export function iconBg(type: string): string {
         case 'role_upgrade':       return 'bg-violet-100 dark:bg-violet-900/30'
         case 'welcome':            return 'bg-pink-100 dark:bg-pink-900/30'
         case 'announcement':       return 'bg-brand-100 dark:bg-brand-900/30'
-        case 'system':             return 'bg-slate-100 dark:bg-slate-800'
-        default:                   return 'bg-gray-100 dark:bg-gray-800'
+        case 'system':             return 'bg-muted'
+        default:                   return 'bg-muted'
     }
 }

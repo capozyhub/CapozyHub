@@ -165,7 +165,7 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
             placeholder="Write your announcement… line breaks are preserved."
             className={fullscreen
                 ? 'w-full h-full resize-none bg-transparent text-base leading-relaxed outline-none'
-                : 'w-full min-h-[120px] max-h-[320px] resize-none rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-sm leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-primary/40'}
+                : 'w-full min-h-[120px] max-h-[320px] resize-none rounded-lg border border-border bg-transparent px-3 py-2 text-sm leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-primary/40'}
         />
     )
 
@@ -241,7 +241,7 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
                         <button
                             type="button"
                             onClick={() => { setShowSecond(false); setCta2Label(''); setCta2Url('') }}
-                            className="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-muted-foreground hover:text-foreground"
+                            className="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-card border border-border text-muted-foreground hover:text-foreground"
                             aria-label="Remove second button"
                         >
                             <X className="w-3 h-3" />
@@ -254,7 +254,7 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
                 )}
 
                 {/* Send push */}
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
                     <div className="flex items-center gap-2">
                         <Bell className="w-4 h-4 text-primary" />
                         <div>
@@ -267,7 +267,7 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
 
                 {/* Schedule */}
                 {showSchedule && (
-                    <div className="space-y-1.5 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                    <div className="space-y-1.5 rounded-lg border border-border p-3">
                         <Label className="text-[11px] font-medium text-muted-foreground">Publish at</Label>
                         <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} className="text-sm" />
                     </div>
@@ -320,8 +320,8 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
 
             {/* ── Fullscreen message editor ── */}
             {fullscreen && (
-                <div className="fixed inset-0 z-[120] flex flex-col bg-white dark:bg-gray-950">
-                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-4 py-3">
+                <div className="fixed inset-0 z-[120] flex flex-col bg-card ">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
                         <span className="text-sm font-semibold">Edit message</span>
                         <div className="flex items-center gap-3">
                             <span className="text-[11px] tabular-nums text-muted-foreground">{message.length}/{MESSAGE_MAX}</span>

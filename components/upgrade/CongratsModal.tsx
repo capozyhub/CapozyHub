@@ -71,7 +71,7 @@ export default function CongratsModal({ onClose, onBrowsePackages }: CongratsMod
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                    className="absolute top-4 right-4 p-2 rounded-full bg-card/20 hover:bg-card/30 transition-colors"
                     aria-label="Close dialog"
                     title="Close"
                 >
@@ -100,7 +100,7 @@ export default function CongratsModal({ onClose, onBrowsePackages }: CongratsMod
                 </div>
 
                 {/* Features List */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 sm:p-6 mb-5 border-2 border-white/20">
+                <div className="bg-card/10 backdrop-blur-sm rounded-2xl p-5 sm:p-6 mb-5 border-2 border-white/20">
                     <h3 className="text-lg sm:text-xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">
                         <Crown className="w-5 h-5" />
                         Your Premium Benefits
@@ -132,7 +132,7 @@ export default function CongratsModal({ onClose, onBrowsePackages }: CongratsMod
                 <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                         onClick={onBrowsePackages}
-                        className="flex-1 h-12 bg-white text-amber-600 hover:bg-amber-50 font-semibold text-base rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg"
+                        className="flex-1 h-12 bg-card text-amber-600 hover:bg-amber-50 font-semibold text-base rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg"
                     >
                         <Sparkles className="w-4 h-4 mr-2" />
                         Browse Your New Packages
@@ -140,7 +140,7 @@ export default function CongratsModal({ onClose, onBrowsePackages }: CongratsMod
                     <Button
                         onClick={handleClose}
                         variant="outline"
-                        className="sm:w-auto h-12 bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold px-6 rounded-xl"
+                        className="sm:w-auto h-12 bg-transparent border-2 border-white text-white hover:bg-card/10 font-bold px-6 rounded-xl"
                     >
                         Close
                     </Button>

@@ -105,13 +105,13 @@ export default function AdminTopUpPage() {
 
             {/* Tab Switcher — centered, large */}
             <div className="flex justify-center">
-                <div className="flex gap-1 bg-slate-100 dark:bg-slate-900 rounded-2xl p-1.5 w-full sm:w-auto">
+                <div className="flex gap-1 bg-muted rounded-2xl p-1.5 w-full sm:w-auto">
                     <button
                         onClick={() => handleTabChange('topup')}
                         className={cn(
                             'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'topup'
-                                ? 'bg-white dark:bg-slate-800 shadow-md text-yellow-600 dark:text-yellow-400'
+                                ? 'bg-card shadow-md text-yellow-600 dark:text-yellow-400'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -123,7 +123,7 @@ export default function AdminTopUpPage() {
                         className={cn(
                             'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all relative flex-1 sm:flex-auto justify-center',
                             activeTab === 'settlements'
-                                ? 'bg-white dark:bg-slate-800 shadow-md text-red-600 dark:text-red-400'
+                                ? 'bg-card shadow-md text-red-600 dark:text-red-400'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -140,7 +140,7 @@ export default function AdminTopUpPage() {
                         className={cn(
                             'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'history'
-                                ? 'bg-white dark:bg-slate-800 shadow-md text-brand-700 dark:text-brand-400'
+                                ? 'bg-card shadow-md text-brand-700 dark:text-brand-400'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -163,7 +163,7 @@ export default function AdminTopUpPage() {
                                     'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
                                     roleFilter === f.value
                                         ? 'bg-yellow-500 text-white border-yellow-500 shadow'
-                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-yellow-400 text-muted-foreground'
+                                        : 'bg-card border-border hover:border-yellow-400 text-muted-foreground'
                                 )}
                             >
                                 {f.label}
@@ -184,7 +184,7 @@ export default function AdminTopUpPage() {
                     </div>
 
                     {/* User Selector */}
-                    <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+                    <Card className="border-border shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <UserSelector
                                 roleFilter={roleFilter}
@@ -196,7 +196,7 @@ export default function AdminTopUpPage() {
                     </Card>
 
                     {/* Top-Up Form */}
-                    <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+                    <Card className="border-border shadow-sm">
                         <CardContent className="p-4 sm:p-6">
                             <TopUpForm
                                 selectedUser={selectedUser}
@@ -211,7 +211,7 @@ export default function AdminTopUpPage() {
             )}
 
             {activeTab === 'settlements' && (
-                <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+                <Card className="border-border shadow-sm">
                     <CardContent className="p-4 sm:p-6">
                         <SettlementsTab onDebtChange={fetchStats} />
                     </CardContent>
@@ -219,7 +219,7 @@ export default function AdminTopUpPage() {
             )}
 
             {activeTab === 'history' && (
-                <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+                <Card className="border-border shadow-sm">
                     <CardContent className="p-4 sm:p-6">
                         <CreditsHistoryTab />
                     </CardContent>

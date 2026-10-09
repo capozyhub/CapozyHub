@@ -43,7 +43,7 @@ function StatusBadge({ a, showing }: { a: SystemAnnouncement; showing: boolean }
         // "Showing" = the row that actually pops on its surface; a shadowed active row
         // (a newer one wins the same surface) is flagged so the admin isn't misled.
         return showing
-            ? <Badge className="text-[10px] font-medium bg-green-600 hover:bg-green-600">Showing</Badge>
+            ? <Badge className="text-[10px] font-medium clay clay-green">Showing</Badge>
             : <Badge variant="outline" className="text-[10px] font-medium text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800">Active · hidden</Badge>
     }
     return <Badge variant="secondary" className="text-[10px] font-medium">Off</Badge>
@@ -152,11 +152,11 @@ export function HistoryTab({ announcements, loading, onEdit, onDuplicate, onRefr
                         const hasCta = !!(ctas.primary || ctas.secondary)
                         const busy = busyId === a.id
                         return (
-                            <div key={a.id} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40 p-3">
+                            <div key={a.id} className="rounded-lg border border-border bg-muted/60 dark:bg-muted/40 p-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                            <h4 className="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{a.title}</h4>
+                                            <h4 className="truncate text-sm font-medium text-foreground">{a.title}</h4>
                                             {hasCta && <Link2 className="w-3.5 h-3.5 shrink-0 text-primary" aria-label="Has action button" />}
                                         </div>
                                         <p className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">{a.message}</p>
@@ -170,7 +170,7 @@ export function HistoryTab({ announcements, loading, onEdit, onDuplicate, onRefr
                                     </div>
                                 </div>
 
-                                <div className="mt-2.5 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-2">
+                                <div className="mt-2.5 flex items-center justify-between border-t border-border pt-2">
                                     <div className="flex items-center gap-2">
                                         <Switch
                                             checked={a.is_active ?? false}
@@ -202,8 +202,8 @@ export function HistoryTab({ announcements, loading, onEdit, onDuplicate, onRefr
             {confirmDelete && (
                 <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
-                    <div className="relative w-full max-w-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-xl">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Delete announcement?</h3>
+                    <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-xl">
+                        <h3 className="text-base font-semibold text-foreground">Delete announcement?</h3>
                         <p className="mt-1 text-[13px] text-muted-foreground">
                             “{confirmDelete.title}” will be permanently removed. This can’t be undone.
                         </p>

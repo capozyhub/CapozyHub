@@ -171,11 +171,11 @@ function UpgradePageInner() {
             popular: false,
             tier: 'bronze',
             color: 'border-[#C0C0C0] dark:border-gray-500',
-            buttonClass: 'bg-gradient-to-r from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 text-gray-800 shadow-sm',
+            buttonClass: 'bg-gradient-to-r from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 text-foreground shadow-sm',
             badgeText: 'STARTER',
             badgeColor: 'from-gray-300 to-gray-400',
-            priceColor: 'text-gray-600 dark:text-gray-300',
-            bgClass: 'bg-slate-50 dark:bg-slate-900'
+            priceColor: 'text-muted-foreground ',
+            bgClass: 'bg-muted/50 '
         },
         {
             id: '14d',
@@ -215,11 +215,11 @@ function UpgradePageInner() {
             oldPrice: oldPrices['permanent'],
             popular: false,
             tier: 'elite',
-            color: 'border-slate-800 ring-2 ring-slate-800/30 dark:border-slate-500 dark:ring-slate-500/30',
+            color: 'border-border ring-2 ring-border/30 dark:border-slate-500 dark:ring-slate-500/30',
             buttonClass: 'bg-gradient-to-r from-slate-900 via-slate-800 to-black hover:from-black hover:to-slate-900 shadow-xl shadow-slate-900/40 text-yellow-500',
             badgeText: 'LIFETIME ELITE',
             badgeColor: 'from-slate-800 to-black',
-            priceColor: 'text-slate-900 dark:text-slate-100',
+            priceColor: 'text-foreground',
             bgClass: 'bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800'
         }
     ]
@@ -378,8 +378,8 @@ function UpgradePageInner() {
                                         )}
 
                                         <div className="text-center mb-3 space-y-0.5">
-                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-yellow-50/50 dark:border-yellow-900/50 pb-1.5">{tier.name}</h3>
-                                            <p className="text-gray-400 dark:text-gray-500 text-xs font-bold pt-0.5">{tier.duration}</p>
+                                            <h3 className="text-lg sm:text-xl font-bold text-foreground border-b-2 border-yellow-50/50 dark:border-yellow-900/50 pb-1.5">{tier.name}</h3>
+                                            <p className="text-muted-foreground text-xs font-bold pt-0.5">{tier.duration}</p>
                                         </div>
 
                                         <div className="text-center mb-4 flex flex-col items-center justify-center gap-0.5">
@@ -424,7 +424,7 @@ function UpgradePageInner() {
                                                                 isComingSoon ? "text-yellow-500 dark:text-yellow-400" : "text-green-500 dark:text-green-400"
                                                             )} />
                                                         </div>
-                                                        <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug">{feature}</span>
+                                                        <span className="text-xs sm:text-sm font-bold text-foreground/80 leading-snug">{feature}</span>
                                                     </div>
                                                 )
                                             })}
@@ -449,12 +449,12 @@ function UpgradePageInner() {
 
                             {/* Wallet payment info banner */}
                             <div className="w-full max-w-3xl">
-                                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 sm:p-10 border-2 border-[#EEEEEE] dark:border-slate-800 shadow-[0_8px_30px_rgba(238,238,238,0.8)] dark:shadow-none flex flex-col items-center text-center space-y-6">
+                                <div className="bg-card/60 backdrop-blur-xl rounded-2xl p-6 sm:p-10 border-2 border-[#EEEEEE] dark:border-border shadow-[0_8px_30px_rgba(238,238,238,0.8)] dark:shadow-none flex flex-col items-center text-center space-y-6">
                                     <div className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-yellow-100/50 dark:bg-yellow-900/30 px-4 py-1.5 rounded-full border border-yellow-200/50 dark:border-yellow-800/50">
                                         <Zap className="w-5 h-5 fill-current" />
                                         <span className="text-xs font-bold uppercase tracking-[0.2em]">INSTANT · SECURE · FROM WALLET</span>
                                     </div>
-                                    <p className="text-base text-gray-500 dark:text-gray-400 font-bold leading-relaxed max-w-xl">
+                                    <p className="text-base text-muted-foreground font-bold leading-relaxed max-w-xl">
                                         Upgrades are now powered by your Flexy-Wallet — instant activation, no external payment page needed. Keep your wallet topped up and enable Auto-Upgrade to never miss a renewal.
                                     </p>
                                 </div>

@@ -17,9 +17,9 @@ export function RevenueTrendChart({ trends }: { trends: AdminTrends | null }) {
             </div>
 
             {!trends ? (
-                <div className="h-64 animate-pulse rounded-xl bg-zinc-100 dark:bg-white/5" />
+                <div className="h-64 animate-pulse rounded-xl bg-muted dark:bg-card/5" />
             ) : data.length === 0 ? (
-                <div className="h-64 flex items-center justify-center text-sm text-zinc-400">No data in this period</div>
+                <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">No data in this period</div>
             ) : (
                 <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">

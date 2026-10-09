@@ -174,7 +174,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                         <div
                             key={s.id}
                             className={cn(
-                                'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-500',
+                                'bg-card border border-border rounded-xl p-4 transition-all duration-500',
                                 isSettled && 'bg-green-50 dark:bg-green-900/20 border-green-300 opacity-60'
                             )}
                         >
@@ -205,7 +205,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
 
                             {/* Settlement Row */}
                             {!isSettled && s.status !== 'settled' && (
-                                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
                                     <Input
                                         type="number"
                                         inputMode="decimal"
@@ -219,7 +219,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                     <select
                                         value={payMethods[s.id] || 'MoMo'}
                                         onChange={e => setPayMethods(prev => ({ ...prev, [s.id]: e.target.value }))}
-                                        className="text-sm border rounded-lg px-2 py-2 bg-white dark:bg-slate-900 h-10"
+                                        className="text-sm border rounded-lg px-2 py-2 bg-card h-10"
                                         title="Select payment method"
                                     >
                                         {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
@@ -228,7 +228,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                         size="sm"
                                         onClick={() => handleSettle(s)}
                                         disabled={settling[s.id]}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                                        className="font-bold clay clay-green"
                                     >
                                         {settling[s.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
                                         Mark Paid

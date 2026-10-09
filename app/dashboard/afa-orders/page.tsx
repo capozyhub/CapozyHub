@@ -351,7 +351,7 @@ export default function AFAOrdersPage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6 pb-10">
+        <div className="space-y-5">
 
             {/* ── Hero Header ── */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600 p-6 sm:p-8 text-white shadow-xl">
@@ -366,8 +366,8 @@ export default function AFAOrdersPage() {
                         <strong className="text-white">One registration per person</strong> — membership is permanent.
                     </p>
                 </div>
-                <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
-                <div className="absolute -bottom-6 -right-16 w-56 h-56 rounded-full bg-white/5" />
+                <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-card/10" />
+                <div className="absolute -bottom-6 -right-16 w-56 h-56 rounded-full bg-card/5" />
             </div>
 
             {/* ── Tab Navigation ── */}

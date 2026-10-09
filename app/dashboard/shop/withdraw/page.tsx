@@ -523,7 +523,7 @@ export default function ShopWithdrawPage() {
                             <Shield className="w-4 h-4 text-emerald-600" />
                             <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Payout Breakdown</p>
                         </div>
-                        <div className="p-4 bg-white dark:bg-card space-y-3 text-sm">
+                        <div className="p-4 bg-card space-y-3 text-sm">
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Withdrawal Amount</span>
                                 <span className="font-semibold tabular-nums">{amountNum > 0 ? formatCurrency(amountNum) : '—'}</span>
@@ -584,7 +584,7 @@ export default function ShopWithdrawPage() {
                                 className={cn(
                                     'flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all',
                                     paymentType === 'momo'
-                                        ? 'bg-white dark:bg-card shadow-sm text-foreground'
+                                        ? 'bg-card shadow-sm text-foreground'
                                         : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
@@ -604,7 +604,7 @@ export default function ShopWithdrawPage() {
                                 className={cn(
                                     'flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all',
                                     paymentType === 'bank'
-                                        ? 'bg-white dark:bg-card shadow-sm text-foreground'
+                                        ? 'bg-card shadow-sm text-foreground'
                                         : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
@@ -669,7 +669,7 @@ export default function ShopWithdrawPage() {
                                             'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
                                             selectedSavedId === d.id ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
                                         )}>
-                                            {selectedSavedId === d.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                                            {selectedSavedId === d.id && <div className="w-2 h-2 rounded-full bg-card" />}
                                         </div>
                                     </button>
                                 ))}
@@ -696,7 +696,7 @@ export default function ShopWithdrawPage() {
                                         'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
                                         selectedSavedId === 'manual' ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
                                     )}>
-                                        {selectedSavedId === 'manual' && <div className="w-2 h-2 rounded-full bg-white" />}
+                                        {selectedSavedId === 'manual' && <div className="w-2 h-2 rounded-full bg-card" />}
                                     </div>
                                 </button>
                             </div>
@@ -795,7 +795,7 @@ export default function ShopWithdrawPage() {
                                         {(!verifiedName || validationError) && (
                                             <Button 
                                                 size="sm" 
-                                                className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold px-3 uppercase tracking-wide transition-all"
+                                                className="h-7 text-[11px] font-bold px-3 uppercase tracking-wide transition-all clay clay-green"
                                                 onClick={() => triggerValidation(momoNumber, network || '', selectedBankId || undefined)}
                                                 disabled={validating || !momoNumber || !network}
                                                 type="button"
@@ -888,7 +888,7 @@ export default function ShopWithdrawPage() {
                                     <div className="grid grid-cols-3 gap-2 text-xs">
                                         <div>
                                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Network</p>
-                                            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[d.network] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300')}>
+                                            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[d.network] || 'bg-muted text-foreground/80 ')}>
                                                 {d.network}
                                             </span>
                                         </div>
@@ -933,7 +933,7 @@ export default function ShopWithdrawPage() {
                     <Button
                         onClick={handleSubmit}
                         disabled={!canSubmit}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 font-bold gap-2 text-base shadow-lg shadow-emerald-600/20"
+                        className="w-full h-12 font-bold gap-2 text-base shadow-emerald-600/20 clay clay-green"
                     >
                         {submitting ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -997,7 +997,7 @@ export default function ShopWithdrawPage() {
                                                     <td className="px-4 py-3 text-xs">{row.account_name}</td>
                                                     <td className="px-4 py-3">
                                                         {row.network && (
-                                                            <span className={cn('inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[row.network as Network] || 'bg-gray-100 text-gray-700')}>
+                                                            <span className={cn('inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[row.network as Network] || 'bg-muted text-foreground/80')}>
                                                                 {row.network}
                                                             </span>
                                                         )}
@@ -1063,7 +1063,7 @@ export default function ShopWithdrawPage() {
                                                 <div>
                                                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Network</p>
                                                     {row.network ? (
-                                                        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block', NETWORK_COLORS[row.network as Network] || 'bg-gray-100 text-gray-700')}>
+                                                        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block', NETWORK_COLORS[row.network as Network] || 'bg-muted text-foreground/80')}>
                                                             {row.network}
                                                         </span>
                                                     ) : (
@@ -1158,7 +1158,7 @@ export default function ShopWithdrawPage() {
                                 Notice: The account name will be auto-verified before saving.
                             </p>
                             <Button
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                                className="w-full gap-2 clay clay-green"
                                 onClick={handleAddSavedDetail}
                                 disabled={addingDetail}
                             >

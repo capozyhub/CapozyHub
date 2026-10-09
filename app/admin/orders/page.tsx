@@ -883,7 +883,7 @@ export default function AdminOrdersPage() {
                                     <div className="flex items-center gap-2">
                                         {getStatusBadge(order)}
                                         {order.payment_status === 'refunded' && order.status !== 'failed' && order.status !== 'refunded' ? (
-                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500">
+                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground">
                                                 No actions
                                             </Badge>
                                         ) : (
@@ -950,7 +950,7 @@ export default function AdminOrdersPage() {
 
                 <CardFooter className="p-4 pt-2 border-t flex-shrink-0 gap-2">
                     <Button
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        className="flex-1 clay clay-green"
                         size="sm"
                         onClick={() => onUpdateBatchStatus('completed')}
                         disabled={isUpdating}
@@ -1074,7 +1074,7 @@ export default function AdminOrdersPage() {
                     <Button
                         onClick={handleExportExcel}
                         variant="default"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                        className="border-none clay clay-green"
                         disabled={isDownloading}
                     >
                         {isDownloading ? (
@@ -1168,8 +1168,8 @@ export default function AdminOrdersPage() {
                                     </CardHeader>
                                     <CardContent className="space-y-4 pt-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                                                <User className="w-4 h-4 text-slate-500" />
+                                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                                <User className="w-4 h-4 text-muted-foreground" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-1.5 flex-wrap">

@@ -422,7 +422,7 @@ export default function ShopDashboardPage() {
                     </p>
                 </div>
                 <Link href="/dashboard/shop/setup">
-                    <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                    <Button size="lg" className="gap-2 clay clay-green">
                         <Store className="w-5 h-5" />
                         Create My Shop
                     </Button>
@@ -464,14 +464,14 @@ export default function ShopDashboardPage() {
     return (
         <div className="space-y-5 pb-20 md:pb-6">
             {/* ── Header ── */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-950 p-4 sm:p-5">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-800/50">
                             <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 dark:text-white truncate">{shop.shop_name}</h1>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">{shop.shop_name}</h1>
                             <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                                 <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full', statusConfig[shop.approval_status]?.color)}>
                                     <StatusIcon className="w-3 h-3" />
@@ -505,11 +505,11 @@ export default function ShopDashboardPage() {
                     <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-emerald-50/60 dark:bg-emerald-950/20 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
                         <span className="text-xs font-mono text-emerald-800 dark:text-emerald-300 truncate flex-1 px-2 py-1.5">{shopUrl}</span>
                         <div className="flex items-center gap-2">
-                            <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 sm:flex-none h-9 bg-white dark:bg-zinc-900 text-emerald-600 gap-1.5 rounded-lg font-semibold">
+                            <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 sm:flex-none h-9 bg-card text-emerald-600 gap-1.5 rounded-lg font-semibold">
                                 {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy'}
                             </Button>
                             <a href={shopUrl} target="_blank" rel="noopener noreferrer" title="Open Shop" aria-label="Open Shop">
-                                <Button size="sm" className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                                <Button size="sm" className="h-9 rounded-lg clay clay-green"><ExternalLink className="w-3.5 h-3.5" /></Button>
                             </a>
                         </div>
                     </div>
@@ -534,9 +534,9 @@ export default function ShopDashboardPage() {
             <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2">
                 {quickLinks.map(({ href, label, icon: Icon, external }) => {
                     const inner = (
-                        <span className="flex flex-col items-center justify-center gap-1.5 w-full h-full py-3 px-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-950 shadow-sm transition-all duration-150 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 active:scale-95 active:shadow-inner">
+                        <span className="flex flex-col items-center justify-center gap-1.5 w-full h-full py-3 px-1 rounded-xl border border-border bg-card shadow-sm transition-all duration-150 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 active:scale-95 active:shadow-inner">
                             <Icon className="w-4.5 h-4.5 w-[18px] h-[18px] text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 leading-none">{label}</span>
+                            <span className="text-[11px] font-semibold text-foreground/80 leading-none">{label}</span>
                         </span>
                     )
                     if (external) {
@@ -549,12 +549,12 @@ export default function ShopDashboardPage() {
             {/* ── Stats ── */}
             <div className={cn('space-y-2.5 transition-opacity duration-300', (isPending || isFiltering) && 'opacity-50 pointer-events-none')}>
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                         <TrendingUp className="w-4 h-4 text-emerald-500" /> Performance
                     </h3>
-                    <div className="flex bg-gray-100 dark:bg-zinc-900 rounded-lg p-0.5">
+                    <div className="flex bg-muted rounded-lg p-0.5">
                         {(['all', 'today', '7d', '30d'] as const).map((f) => (
-                            <button key={f} onClick={() => setFilter(f)} className={cn('px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all', filter === f ? 'bg-white dark:bg-zinc-800 shadow-sm text-emerald-600' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+                            <button key={f} onClick={() => setFilter(f)} className={cn('px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all', filter === f ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70')}>
                                 {f === 'all' ? 'All' : f === 'today' ? 'Today' : f.toUpperCase()}
                             </button>
                         ))}
@@ -563,13 +563,13 @@ export default function ShopDashboardPage() {
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                     {statCards.map(({ label, value, accent, icon: Icon }) => (
-                        <Card key={label} className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
+                        <Card key={label} className="bg-card border border-border rounded-xl shadow-sm">
                             <CardContent className="p-3.5">
                                 <div className="flex items-center gap-1.5 mb-1">
                                     <Icon className={cn('w-3.5 h-3.5', accent)} />
-                                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</p>
+                                    <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
                                 </div>
-                                <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{value}</p>
+                                <p className="text-lg font-bold text-foreground tabular-nums">{value}</p>
                             </CardContent>
                         </Card>
                     ))}
@@ -587,13 +587,13 @@ export default function ShopDashboardPage() {
                             <span>Withdrawn: {formatCurrency(wallet?.total_withdrawn || 0)}</span>
                         </div>
                         <Link href="/dashboard/shop/withdraw" className="block mt-4">
-                            <Button size="sm" className="w-full bg-white text-emerald-700 hover:bg-emerald-50 font-semibold rounded-lg h-10">
+                            <Button size="sm" className="w-full bg-card text-emerald-700 hover:bg-emerald-50 font-semibold rounded-lg h-10">
                                 Withdraw Earnings <ArrowRight className="w-4 h-4 ml-1.5" />
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+                    <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
                         <div className="flex items-center gap-2 font-semibold text-sm"><MessageCircle className="w-4 h-4 text-emerald-600" /> Storefront Notice</div>
                         {adminAnnActive && (
                             <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs rounded-lg flex items-center gap-2">
@@ -601,20 +601,20 @@ export default function ShopDashboardPage() {
                                 A system-wide admin announcement is active. Your notice is temporarily disabled.
                             </div>
                         )}
-                        <textarea title="Storefront Notice" placeholder="Enter your storefront notice here..." className="w-full min-h-[90px] p-3 text-sm rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none" value={annMsg} onChange={(e) => setAnnMsg(e.target.value)} disabled={adminAnnActive} />
-                        <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg h-9 font-semibold" onClick={handleSaveAnnouncement} disabled={adminAnnActive || isSavingAnn || !annMsg.trim()}>
+                        <textarea title="Storefront Notice" placeholder="Enter your storefront notice here..." className="w-full min-h-[90px] p-3 text-sm rounded-lg border border-border bg-muted/50 focus:ring-1 focus:ring-emerald-500 focus:outline-none" value={annMsg} onChange={(e) => setAnnMsg(e.target.value)} disabled={adminAnnActive} />
+                        <Button size="sm" className="w-full rounded-lg h-9 font-semibold clay clay-green" onClick={handleSaveAnnouncement} disabled={adminAnnActive || isSavingAnn || !annMsg.trim()}>
                             {isSavingAnn ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Notice'}
                         </Button>
                     </div>
 
                     {/* Customer SMS confirmation toggle */}
-                    <div id="sms-confirm-toggle" className="scroll-mt-24 bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+                    <div id="sms-confirm-toggle" className="scroll-mt-24 bg-card rounded-2xl border border-border p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 font-semibold text-sm">
                                     <MessageSquare className="w-4 h-4 text-emerald-600" /> Customer order SMS
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Text customers a confirmation each time they order from your shop.
                                 </p>
                             </div>
@@ -628,13 +628,13 @@ export default function ShopDashboardPage() {
                     </div>
 
                     {/* Utility bills storefront toggle */}
-                    <div id="bill-pay-toggle" className="scroll-mt-24 bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+                    <div id="bill-pay-toggle" className="scroll-mt-24 bg-card rounded-2xl border border-border p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 font-semibold text-sm">
                                     <Receipt className="w-4 h-4 text-emerald-600" /> Utility bills on my storefront
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Let customers pay ECG, Ghana Water, DSTV, GOtv and StarTimes bills from your shop.
                                 </p>
                             </div>
@@ -646,12 +646,12 @@ export default function ShopDashboardPage() {
                             />
                         </div>
                         {utilitiesEnabled && (
-                            <div className="flex items-start justify-between gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                            <div className="flex items-start justify-between gap-3 mt-3 pt-3 border-t border-border">
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 font-semibold text-sm">
                                         <MessageSquare className="w-4 h-4 text-emerald-600" /> Utility bill completion SMS
                                     </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         Text the customer when their bill payment completes, from your own sender — uses your SMS credits.
                                     </p>
                                 </div>
@@ -667,8 +667,8 @@ export default function ShopDashboardPage() {
                 </div>
 
                 <div className="lg:col-span-8">
-                    <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col">
-                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <div className="bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
+                        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                             <h3 className="font-semibold text-sm">Recent Activity</h3>
                             <Link href="/dashboard/shop/orders" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
                                 View all <ArrowRight className="w-3 h-3" />
@@ -677,26 +677,26 @@ export default function ShopDashboardPage() {
                         <div className="flex-1 overflow-y-auto max-h-[440px] p-3">
                             {recentOrders.length === 0 ? (
                                 <div className="h-[240px] flex flex-col items-center justify-center text-center">
-                                    <Tag className="w-10 h-10 text-gray-200 dark:text-gray-700 mb-3" />
-                                    <p className="text-gray-500 text-sm">No sales yet. Share your link to start earning!</p>
+                                    <Tag className="w-10 h-10 text-foreground mb-3" />
+                                    <p className="text-muted-foreground text-sm">No sales yet. Share your link to start earning!</p>
                                 </div>
                             ) : (
                                 <div className="space-y-1">
                                     {recentOrders.slice(0, 30).map((order) => (
-                                        <div key={order.id} className="px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center justify-between gap-3">
+                                        <div key={order.id} className="px-3 py-2.5 rounded-xl hover:bg-muted/50 dark:hover:bg-muted/50 flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <div className={cn('w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs flex-shrink-0', order.is_rc ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400')}>
                                                     {order.is_rc ? 'RC' : order.network?.charAt(0) || 'D'}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="font-semibold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                                                    <p className="font-semibold text-sm text-foreground truncate flex items-center gap-1.5">
                                                         <span className="truncate">{order.is_rc ? `${order.quantity}x ${order.type_name}` : `${order.network} ${order.package_size}`}</span>
                                                     </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{order.guest_phone}</p>
+                                                    <p className="text-xs text-muted-foreground">{order.guest_phone}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0">
-                                                <p className="font-semibold text-sm text-gray-900 dark:text-white tabular-nums">{formatCurrency(order.selling_price)}</p>
+                                                <p className="font-semibold text-sm text-foreground tabular-nums">{formatCurrency(order.selling_price)}</p>
                                                 <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatCurrency(order.profit)}</p>
                                             </div>
                                         </div>

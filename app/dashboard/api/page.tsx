@@ -153,11 +153,11 @@ function StatCard({
         red: { iconBg: 'bg-red-500/10', iconText: 'text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400' },
         amber: { iconBg: 'bg-amber-500/10', iconText: 'text-amber-600 dark:text-amber-400', text: 'text-amber-600 dark:text-amber-400' },
         sky: { iconBg: 'bg-brand-500/10', iconText: 'text-brand-700 dark:text-brand-400', text: 'text-brand-700 dark:text-brand-400' },
-        slate: { iconBg: 'bg-slate-200 dark:bg-slate-700/60', iconText: 'text-slate-600 dark:text-slate-300', text: 'text-slate-900 dark:text-white' },
+        slate: { iconBg: 'bg-muted dark:bg-muted/60', iconText: 'text-muted-foreground ', text: 'text-foreground' },
     }[accent]
 
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 min-w-0">
+        <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 min-w-0">
             <div className="flex items-start gap-2 sm:gap-2.5">
                 <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center flex-shrink-0', accents.iconBg)}>
                     <Icon className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4', accents.iconText)} />
@@ -165,10 +165,10 @@ function StatCard({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                         {pulse && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />}
-                        <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{label}</p>
+                        <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
                     </div>
                     <p className={cn('text-sm sm:text-base lg:text-lg font-semibold mt-0.5 tabular-nums whitespace-nowrap', accents.text)}>{value}</p>
-                    {sub && <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{sub}</p>}
+                    {sub && <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
                 </div>
             </div>
         </div>
@@ -194,7 +194,7 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
             onClick={copy}
             className={cn(
                 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                'bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white',
+                'bg-card/10 hover:bg-card/20 text-muted-foreground/70 hover:text-white',
                 className
             )}
         >
@@ -207,15 +207,15 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
 // ── Code Block ───────────────────────────────────────────────────────────────
 function CodeBlock({ code, label }: { code: string; label?: string }) {
     return (
-        <div className="rounded-xl overflow-hidden border border-slate-700/60">
+        <div className="rounded-xl overflow-hidden border border-border/60">
             {label && (
-                <div className="flex items-center justify-between px-4 py-2 bg-slate-800/80 border-b border-slate-700/60">
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{label}</span>
+                <div className="flex items-center justify-between px-4 py-2 bg-muted/80 border-b border-border/60">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</span>
                     <CopyButton text={code} />
                 </div>
             )}
-            <div className="bg-slate-900 p-4 overflow-x-auto">
-                <pre className="text-[13px] font-mono text-slate-200 leading-relaxed whitespace-pre">{code}</pre>
+            <div className="bg-card p-4 overflow-x-auto">
+                <pre className="text-[13px] font-mono text-foreground leading-relaxed whitespace-pre">{code}</pre>
             </div>
         </div>
     )
@@ -260,12 +260,12 @@ export default function ApiDashboardPage() {
         return (
             <div className="w-full">
                 <PageHeader />
-                <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center max-w-xl mx-auto">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                        <Shield className="w-8 h-8 text-slate-400" />
+                <div className="mt-6 rounded-2xl border border-border bg-card p-10 text-center max-w-xl mx-auto">
+                    <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                        <Shield className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">API Temporarily Unavailable</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">The Developer API is currently disabled by an administrator. Please check back soon.</p>
+                    <h2 className="text-lg font-semibold text-foreground mb-2">API Temporarily Unavailable</h2>
+                    <p className="text-sm text-muted-foreground">The Developer API is currently disabled by an administrator. Please check back soon.</p>
                 </div>
             </div>
         )
@@ -286,8 +286,8 @@ export default function ApiDashboardPage() {
                     <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
                         <Zap className="w-8 h-8 text-amber-500" />
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{rolesText} Account Required</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto">
+                    <h2 className="text-lg font-semibold text-foreground mb-2">{rolesText} Account Required</h2>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
                         The Developer API is available to {rolesText.toLowerCase()} accounts only. Upgrade your account to unlock API access.
                     </p>
                     {showUpgrade && (
@@ -318,13 +318,13 @@ export default function ApiDashboardPage() {
                         <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Developer API</h1>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">Integrate data purchases into your applications</p>
+                        <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">Developer API</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">Integrate data purchases into your applications</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     <a href="/developers" target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:bg-muted/50 dark:hover:bg-muted transition-colors"
                     >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span className="hidden xs:inline">API Docs</span>
@@ -349,13 +349,13 @@ export default function ApiDashboardPage() {
                 <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-slate-500" />
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Your API Usage</h2>
+                            <Activity className="w-4 h-4 text-muted-foreground" />
+                            <h2 className="text-sm font-semibold text-foreground">Your API Usage</h2>
                         </div>
                         {stats.week_orders > 0 && (
-                            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                                <span className="font-semibold text-slate-700 dark:text-slate-300">{stats.week_orders}</span> orders ·{' '}
-                                <span className="font-semibold text-slate-700 dark:text-slate-300">GH₵ {stats.week_spent.toFixed(2)}</span> spent this week
+                            <p className="text-[11px] sm:text-xs text-muted-foreground">
+                                <span className="font-semibold text-foreground/80 ">{stats.week_orders}</span> orders ·{' '}
+                                <span className="font-semibold text-foreground/80 ">GH₵ {stats.week_spent.toFixed(2)}</span> spent this week
                             </p>
                         )}
                     </div>
@@ -439,32 +439,32 @@ export default function ApiDashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
                 {/* Connection Details */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-                        <Wifi className="w-5 h-5 text-slate-500" />
-                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Connection Details</h2>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+                        <Wifi className="w-5 h-5 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold text-foreground">Connection Details</h2>
                     </div>
                     <div className="p-5 space-y-4">
                         <div>
-                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Base URL</p>
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Base URL</p>
                             <CodeBlock code="https://api.kingflexygh.com/api/v2" />
                         </div>
                         <div>
-                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Authentication Header</p>
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Authentication Header</p>
                             <CodeBlock code="Authorization: YOUR_API_KEY" />
                         </div>
                     </div>
                 </div>
 
                 {/* Quick Start */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-                        <Terminal className="w-5 h-5 text-slate-500" />
-                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Quick Start — Purchase Data</h2>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+                        <Terminal className="w-5 h-5 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold text-foreground">Quick Start — Purchase Data</h2>
                     </div>
                     <div className="p-5 space-y-4">
                         {/* Language tabs */}
-                        <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+                        <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-xl w-fit">
                             {QUICK_START_TABS.map(tab => (
                                 <button
                                     key={tab}
@@ -472,8 +472,8 @@ export default function ApiDashboardPage() {
                                     className={cn(
                                         'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
                                         activeTab === tab
-                                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                            ? 'bg-card text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70'
                                     )}
                                 >
                                     {tab}
@@ -481,7 +481,7 @@ export default function ApiDashboardPage() {
                             ))}
                         </div>
                         <CodeBlock code={QUICK_START_CODE[activeTab]} label={activeTab} />
-                        <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
+                        <p className="text-xs text-muted-foreground pt-1">
                             Replace <code className="font-mono text-violet-600 dark:text-violet-400">YOUR_API_KEY</code> with your actual key. See the full reference below.
                         </p>
                     </div>
@@ -504,18 +504,18 @@ const COMMISSION_KEY_PLACEHOLDER = 'kf_cs_live_your_commission_key_here'
 
 function ApiRefTable({ head, rows }: { head: string[]; rows: (string | React.ReactNode)[][] }) {
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="rounded-2xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/50">
-                            {head.map(h => <th key={h} className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{h}</th>)}
+                        <tr className="bg-muted/50">
+                            {head.map(h => <th key={h} className="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-widest">{h}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-border">
                         {rows.map((row, i) => (
-                            <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                                {row.map((cell, j) => <td key={j} className="px-5 py-3 text-slate-700 dark:text-slate-300">{cell}</td>)}
+                            <tr key={i} className="hover:bg-muted/60 dark:hover:bg-muted/30 transition-colors">
+                                {row.map((cell, j) => <td key={j} className="px-5 py-3 text-foreground/80 ">{cell}</td>)}
                             </tr>
                         ))}
                     </tbody>
@@ -691,16 +691,16 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
         <div className="space-y-6 w-full">
             {/* Section header */}
             <div className="flex items-center gap-3 pt-2">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="flex-1 h-px bg-muted" />
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border">
                     <BookOpen className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">API Reference</span>
+                    <span className="text-sm font-bold text-foreground/80 ">API Reference</span>
                 </div>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 h-px bg-muted" />
             </div>
 
             {/* Tab bar — one tab per key type, plus Webhooks */}
-            <div className="flex flex-wrap items-center justify-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-fit mx-auto">
+            <div className="flex flex-wrap items-center justify-center gap-1 p-1 bg-muted rounded-2xl w-fit mx-auto">
                 {REF_TABS.map(tab => (
                     <button
                         key={tab.key}
@@ -708,8 +708,8 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
                         className={cn(
                             'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150',
                             activeTab === tab.key
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70'
                         )}
                     >
                         <tab.icon className="w-4 h-4" />
@@ -721,18 +721,18 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
             {/* Mobile TOC toggle */}
             <button
                 onClick={() => setMobileTocOpen(o => !o)}
-                className="lg:hidden flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                className="lg:hidden flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm font-semibold text-foreground/80 "
             >
                 <span className="flex items-center gap-2"><Menu className="w-4 h-4" /> On this page</span>
                 {mobileTocOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
             {mobileTocOpen && (
-                <nav className="lg:hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
+                <nav className="lg:hidden rounded-xl border border-border bg-card p-2">
                     {REF_TOC[activeTab].map(item => (
                         <button
                             key={item.id}
                             onClick={() => { scrollToSection(item.id); setMobileTocOpen(false) }}
-                            className="block w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            className="block w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted dark:hover:bg-muted"
                         >
                             {item.label}
                         </button>
@@ -742,13 +742,13 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
 
             {/* Sidebar (desktop, always open) + content */}
             <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 items-start">
-                <nav className="hidden lg:block sticky top-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
-                    <p className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest">On this page</p>
+                <nav className="hidden lg:block sticky top-6 rounded-2xl border border-border bg-card p-2">
+                    <p className="px-3 py-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">On this page</p>
                     {REF_TOC[activeTab].map(item => (
                         <button
                             key={item.id}
                             onClick={() => scrollToSection(item.id)}
-                            className="block w-full text-left px-3 py-1.5 rounded-lg text-[13px] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors"
+                            className="block w-full text-left px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground hover:bg-muted dark:hover:bg-muted hover:text-foreground dark:hover:text-white transition-colors"
                         >
                             {item.label}
                         </button>
@@ -768,14 +768,14 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
 function StandardApiTab() {
     return (
         <>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
                 5 endpoints for buying data bundles. Replace <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">kf_live_your_api_key_here</code> with your actual standard key.
             </p>
 
             {/* Base URL strip */}
-            <div id="ref-std-baseurl" className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3.5 flex-wrap scroll-mt-6">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Base URL</span>
-                <code className="text-sm font-mono text-slate-800 dark:text-slate-100 flex-1">{API_BASE}</code>
+            <div id="ref-std-baseurl" className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3.5 flex-wrap scroll-mt-6">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Base URL</span>
+                <code className="text-sm font-mono text-foreground flex-1">{API_BASE}</code>
                 <ApiCopyBtn text={API_BASE} />
             </div>
 
@@ -891,8 +891,8 @@ function StandardApiTab() {
             {/* Networks + Errors in 2 columns */}
             <div id="ref-std-meta" className="grid grid-cols-1 lg:grid-cols-2 gap-5 scroll-mt-6">
                 <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-slate-400" /> Supported Networks
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" /> Supported Networks
                     </h3>
                     <ApiRefTable
                         head={['Value', 'Provider']}
@@ -903,7 +903,7 @@ function StandardApiTab() {
                             [<code key="at2" className="font-mono text-violet-600 dark:text-violet-400 text-xs">"AT-BigTime"</code>, 'AirtelTigo BigTime'],
                         ]}
                     />
-                    <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pt-1">Number → Network Prefixes</p>
+                    <p className="text-sm font-bold text-foreground flex items-center gap-2 pt-1">Number → Network Prefixes</p>
                     <ApiRefTable
                         head={['Network', 'Prefixes']}
                         rows={[
@@ -919,8 +919,8 @@ function StandardApiTab() {
                     </p>
                 </div>
                 <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-slate-400" /> Error Codes
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-muted-foreground" /> Error Codes
                     </h3>
                     <ApiRefTable
                         head={['Code', 'Meaning']}
@@ -931,8 +931,8 @@ function StandardApiTab() {
                             [<span key="404" className="font-mono font-bold text-red-500 text-xs">404</span>, 'Package or order not found'],
                             [<span key="409" className="font-mono font-bold text-amber-500 text-xs">409</span>, 'Duplicate reference'],
                             [<span key="429" className="font-mono font-bold text-amber-500 text-xs">429</span>, 'Rate limit exceeded'],
-                            [<span key="500" className="font-mono font-bold text-slate-400 text-xs">500</span>, 'Server error'],
-                            [<span key="503" className="font-mono font-bold text-slate-400 text-xs">503</span>, 'API disabled by admin'],
+                            [<span key="500" className="font-mono font-bold text-muted-foreground text-xs">500</span>, 'Server error'],
+                            [<span key="503" className="font-mono font-bold text-muted-foreground text-xs">503</span>, 'API disabled by admin'],
                         ]}
                     />
                 </div>
@@ -946,37 +946,37 @@ function CommissionApiTab() {
         <>
             <div id="ref-com-intro" className="scroll-mt-6 space-y-4">
             <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 h-px bg-muted" />
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700/40">
                     <Percent className="w-4 h-4 text-violet-500" />
                     <span className="text-sm font-bold text-violet-700 dark:text-violet-300">Utility Bills (Commission)</span>
                 </div>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 h-px bg-muted" />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                     Pay ECG, Ghana Water, DSTV, GOtv, or StarTimes bills — or send MTN, Telecel, or AT airtime — at face value on
                     behalf of your customers, and earn a share of KiNG FLEXY GH's provider commission on every transaction. This is a
                     separate product from the Data API above: the endpoints below only accept a{' '}
-                    <strong className="text-slate-800 dark:text-slate-200">Commission Services key</strong> (prefix{' '}
+                    <strong className="text-foreground">Commission Services key</strong> (prefix{' '}
                     <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">kf_cs_live_...</code>), and reject a standard key
-                    with <code className="font-mono text-slate-500 text-xs">403</code>. The reverse is also true — a Commission Services key is
-                    rejected with <code className="font-mono text-slate-500 text-xs">403</code> on every other <code className="font-mono text-slate-500 text-xs">/api/v2/*</code> endpoint (packages, data purchases, wallet, SMS, etc.).
+                    with <code className="font-mono text-muted-foreground text-xs">403</code>. The reverse is also true — a Commission Services key is
+                    rejected with <code className="font-mono text-muted-foreground text-xs">403</code> on every other <code className="font-mono text-muted-foreground text-xs">/api/v2/*</code> endpoint (packages, data purchases, wallet, SMS, etc.).
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Getting a Commission Services key</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <div className="rounded-xl bg-muted/50 p-4">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Getting a Commission Services key</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                             Generate one from the Commission Services Key card above — no shop required. Your commission is paid into a
                             dedicated <strong>Commission Wallet</strong> (separate from shop earnings), viewable and withdrawable from{' '}
                             <a href="/dashboard/commission" className="underline">Dashboard → Commission</a>. Like the standard key, a new
                             commission key starts <code className="font-mono text-[11px]">pending</code> and needs admin approval before it works.
                         </p>
                     </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">How the money moves</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <div className="rounded-xl bg-muted/50 p-4">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">How the money moves</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                             The bill's face value is debited from your <strong>main wallet</strong> when you call <code className="font-mono text-[11px]">POST /pay</code>.
                             Once the order reaches <code className="font-mono text-[11px]">completed</code>, your{' '}
                             <code className="font-mono text-[11px]">commission_share_percent</code> cut of the platform's commission is credited
@@ -1069,12 +1069,12 @@ function CommissionApiTab() {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 h-px bg-muted" />
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700/40">
                     <Wifi className="w-4 h-4 text-violet-500" />
                     <span className="text-sm font-bold text-violet-700 dark:text-violet-300">Airtime (Commission)</span>
                 </div>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 h-px bg-muted" />
             </div>
 
             <div id="ref-com-airtime-purchase" className="scroll-mt-6">
@@ -1120,8 +1120,8 @@ function CommissionApiTab() {
             {/* Rate limits + Errors in 2 columns */}
             <div id="ref-com-meta" className="grid grid-cols-1 lg:grid-cols-2 gap-5 scroll-mt-6">
                 <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-slate-400" /> Rate Limits (per key)
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-muted-foreground" /> Rate Limits (per key)
                     </h3>
                     <ApiRefTable
                         head={['Endpoint', 'Limit']}
@@ -1137,8 +1137,8 @@ function CommissionApiTab() {
                     />
                 </div>
                 <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-slate-400" /> Error Codes
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-muted-foreground" /> Error Codes
                     </h3>
                     <ApiRefTable
                         head={['Code', 'Meaning']}
@@ -1149,8 +1149,8 @@ function CommissionApiTab() {
                             [<span key="u404" className="font-mono font-bold text-red-500 text-xs">404</span>, 'Account/meter/smartcard not found (lookup), or order not found (status)'],
                             [<span key="u409" className="font-mono font-bold text-amber-500 text-xs">409</span>, 'Duplicate order — same biller + account + amount resent within 30s without a reference (utilities), or reference already in use (airtime)'],
                             [<span key="u429" className="font-mono font-bold text-amber-500 text-xs">429</span>, 'Rate limit exceeded — see limits above'],
-                            [<span key="u502" className="font-mono font-bold text-slate-400 text-xs">502</span>, 'Billing provider temporarily unreachable — retry shortly (lookup only)'],
-                            [<span key="u503" className="font-mono font-bold text-slate-400 text-xs">503</span>, 'Utility bills, or this specific biller, currently disabled by an admin — for a disabled airtime network see 400 above'],
+                            [<span key="u502" className="font-mono font-bold text-muted-foreground text-xs">502</span>, 'Billing provider temporarily unreachable — retry shortly (lookup only)'],
+                            [<span key="u503" className="font-mono font-bold text-muted-foreground text-xs">503</span>, 'Utility bills, or this specific biller, currently disabled by an admin — for a disabled airtime network see 400 above'],
                         ]}
                     />
                 </div>
@@ -1172,15 +1172,15 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
     return (
         <>
             <div id="ref-wh-intro" className="scroll-mt-6 space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                     A webhook is a single HTTPS POST we send to your own server the instant an order you placed reaches a
                     final state — <code className="font-mono text-xs">completed</code> or <code className="font-mono text-xs">failed</code>.
                     It replaces polling <code className="font-mono text-xs">GET /orders/{'{reference}'}</code> in a loop:
                     configure a URL once below, and every relevant order notifies you as it resolves.
                 </p>
-                <div className="flex items-start gap-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4">
+                <div className="flex items-start gap-3 rounded-xl bg-muted/50 border border-border p-4">
                     <Webhook className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                         Webhooks are configured <strong>per key</strong>, not per product — the Standard key's webhook covers data,
                         result checker and AFA orders together; the Commission key's webhook covers both utility bill payments and airtime purchases.
                         Delivery is fire-and-forget with one automatic retry; if both attempts fail, keep polling the status endpoint
@@ -1190,19 +1190,19 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
             </div>
 
             <div id="ref-wh-config" className="scroll-mt-6 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Configure your endpoint</h3>
+                <h3 className="text-sm font-bold text-foreground">Configure your endpoint</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {standardKey ? (
                         <WebhookConfigCard keyType="standard" />
                     ) : (
-                        <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-5 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center text-center">
+                        <div className="rounded-2xl border border-dashed border-border p-5 text-xs text-muted-foreground flex items-center justify-center text-center">
                             Generate a Standard API key above to configure its webhook.
                         </div>
                     )}
                     {commissionKey ? (
                         <WebhookConfigCard keyType="commission" />
                     ) : (
-                        <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-5 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center text-center">
+                        <div className="rounded-2xl border border-dashed border-border p-5 text-xs text-muted-foreground flex items-center justify-center text-center">
                             Generate a Commission Services key above to configure its webhook.
                         </div>
                     )}
@@ -1210,7 +1210,7 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
             </div>
 
             <div id="ref-wh-events" className="scroll-mt-6 space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Event types</h3>
+                <h3 className="text-sm font-bold text-foreground">Event types</h3>
                 <ApiRefTable
                     head={['product', 'Fires for', 'Key used']}
                     rows={WEBHOOK_PRODUCTS.map(p => [
@@ -1219,7 +1219,7 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
                         p.via === 'standard' ? 'Standard' : 'Commission',
                     ])}
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted-foreground">
                     Every event's <code className="font-mono">event</code> field is one of{' '}
                     <code className="font-mono text-violet-600 dark:text-violet-400">"order.completed"</code> or{' '}
                     <code className="font-mono text-violet-600 dark:text-violet-400">"order.failed"</code> — use{' '}
@@ -1228,16 +1228,16 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
             </div>
 
             <div id="ref-wh-payload" className="scroll-mt-6 space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Payload shape</h3>
+                <h3 className="text-sm font-bold text-foreground">Payload shape</h3>
                 <CodeBlock label="POST to your webhook URL" code={`{\n  "event": "order.completed",\n  "product": "data",\n  "reference": "order_001",\n  "status": "completed",\n  "timestamp": "2026-08-31T10:15:00.000Z",\n  "detail": {\n    "network": "MTN",\n    "size": "5GB"\n  }\n}`} />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted-foreground">
                     <code className="font-mono">reference</code> is the same value you sent (or that was echoed back) when placing
                     the order — use it to look up your own record. <code className="font-mono">detail</code> varies by product and
                     is not present on every event; treat it as supplementary, and treat the earlier{' '}
                     <code className="font-mono">GET /orders/{'{reference}'}</code> response as the source of truth if it's ever
                     ambiguous.
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                     For <strong>airtime</strong> and <strong>utility bills</strong> specifically, an{' '}
                     <code className="font-mono">"order.failed"</code> event's <code className="font-mono">detail</code> can also
                     include <code className="font-mono">reason_code</code> (one of{' '}
@@ -1249,7 +1249,7 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
                     <code className="font-mono">new_balance</code> — and the event's outer{' '}
                     <code className="font-mono">status</code> field is <code className="font-mono">"refunded"</code> instead of{' '}
                     <code className="font-mono">"failed"</code>.{' '}
-                    <strong className="text-slate-700 dark:text-slate-300">
+                    <strong className="text-foreground/80 ">
                         Your webhook handler should treat both "failed" and "refunded" as terminal failure states
                     </strong>{' '}
                     — checking only for "failed" will silently miss orders we've already refunded.
@@ -1257,11 +1257,11 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
             </div>
 
             <div id="ref-wh-verify" className="scroll-mt-6 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Verifying signatures</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <h3 className="text-sm font-bold text-foreground">Verifying signatures</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
                     Every delivery carries an <code className="font-mono">X-KFT-Signature</code> header — the HMAC-SHA256 of the exact
                     raw request body, keyed with the signing secret you were shown once when you saved the webhook URL above.
-                    <strong className="text-slate-700 dark:text-slate-300"> Always verify it before trusting a payload</strong> — anyone
+                    <strong className="text-foreground/80 "> Always verify it before trusting a payload</strong> — anyone
                     who learns your webhook URL can otherwise POST a fake "completed" event to it.
                 </p>
                 <EndpointSampleTabs samples={SIGNATURE_VERIFY_SAMPLES} />
@@ -1279,7 +1279,7 @@ function EndpointSampleTabs({ samples }: { samples: Record<ApiLangTab, string> }
     const [tab, setTab] = useState<ApiLangTab>(langs[0])
     return (
         <div className="space-y-3">
-            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+            <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-xl w-fit">
                 {langs.map(l => (
                     <button
                         key={l}
@@ -1287,8 +1287,8 @@ function EndpointSampleTabs({ samples }: { samples: Record<ApiLangTab, string> }
                         className={cn(
                             'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
                             tab === l
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70'
                         )}
                     >
                         {l}
@@ -1307,8 +1307,8 @@ function PageHeader() {
                 <Code2 className="w-6 h-6 text-white" />
             </div>
             <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Developer API</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Integrate data purchases into your applications</p>
+                <h1 className="text-xl font-bold text-foreground tracking-tight">Developer API</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">Integrate data purchases into your applications</p>
             </div>
         </div>
     )

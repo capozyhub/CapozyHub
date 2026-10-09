@@ -555,7 +555,7 @@ export default function SmsContactsPage() {
                             </div>
                             <Button
                                 onClick={openCreateDialog}
-                                className="h-10 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                                className="h-10 shrink-0 font-semibold gap-1.5 clay clay-green"
                             >
                                 <Plus className="w-4 h-4" /> New Group
                             </Button>
@@ -594,7 +594,7 @@ export default function SmsContactsPage() {
                                     </div>
                                     <Button
                                         onClick={openCreateDialog}
-                                        className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                                        className="h-11 font-semibold gap-1.5 clay clay-green"
                                     >
                                         <Plus className="w-4 h-4" /> Create your first group
                                     </Button>
@@ -787,7 +787,7 @@ export default function SmsContactsPage() {
                                                 <Button
                                                     onClick={handleAddContact}
                                                     disabled={savingContact || !addPhone.trim()}
-                                                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                                                    className="flex-1 h-11 font-semibold gap-1.5 clay clay-green"
                                                 >
                                                     {savingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                                     Add to group
@@ -939,7 +939,7 @@ export default function SmsContactsPage() {
                         <Button
                             onClick={handleCreateGroup}
                             disabled={savingGroup || !formName.trim()}
-                            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-10 gap-1.5 clay clay-green"
                         >
                             {savingGroup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                             Create Group
@@ -989,7 +989,7 @@ export default function SmsContactsPage() {
                         <Button
                             onClick={handleRenameGroup}
                             disabled={savingGroup || !formName.trim()}
-                            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-10 gap-1.5 clay clay-green"
                         >
                             {savingGroup ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
                             Save Changes

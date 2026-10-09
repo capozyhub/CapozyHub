@@ -70,7 +70,7 @@ function StepDot({ state }: { state: StepState }) {
             </span>
         )
     }
-    return <span className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-700 shrink-0" />
+    return <span className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
 }
 
 function MiniTimeline({ order }: { order: UtilityOrderRow }) {
@@ -93,7 +93,7 @@ function MiniTimeline({ order }: { order: UtilityOrderRow }) {
                                 'h-0.5 w-4 sm:w-6 rounded-full shrink-0',
                                 step.state === 'done' || step.state === 'active' || step.state === 'failed' || step.state === 'refunded'
                                     ? 'bg-slate-300 dark:bg-slate-600'
-                                    : 'bg-slate-200 dark:bg-slate-800'
+                                    : 'bg-muted'
                             )}
                         />
                     )}
@@ -105,7 +105,7 @@ function MiniTimeline({ order }: { order: UtilityOrderRow }) {
                             step.state === 'active' && 'text-brand-700 dark:text-brand-400 font-medium animate-pulse',
                             step.state === 'failed' && 'text-red-600 dark:text-red-400 font-medium',
                             step.state === 'refunded' && 'text-purple-600 dark:text-purple-400 font-medium',
-                            step.state === 'idle' && 'text-slate-400 dark:text-slate-500'
+                            step.state === 'idle' && 'text-muted-foreground'
                         )}
                     >
                         {step.label}

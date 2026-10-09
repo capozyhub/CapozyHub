@@ -41,7 +41,7 @@ const roleColors: Record<string, string> = {
     'sub-admin': 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
     agent: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
     dealer: 'bg-violet-100 text-violet-800 dark:bg-violet-900/20 dark:text-violet-400',
-    customer: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    customer: 'bg-muted text-muted-foreground ',
 }
 
 export default function AdminShopsPage() {
@@ -169,7 +169,7 @@ export default function AdminShopsPage() {
                             'flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border',
                             filterStatus === status
                                 ? 'bg-emerald-600 text-white border-emerald-600'
-                                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+                                : 'bg-card text-muted-foreground border-border'
                         )}
                     >
                         {status === 'all' ? 'All' : statusConfig[status].label}
@@ -228,7 +228,7 @@ export default function AdminShopsPage() {
                                                         shop.pricing_status === 'approved' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400' :
                                                             shop.pricing_status === 'pending_review' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' :
                                                                 shop.pricing_status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-                                                                    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                                    'bg-muted text-muted-foreground '
                                                     )}>
                                                         <Tag className="w-3 h-3" />
                                                         {shop.pricing_status === 'approved' ? 'Pricing ✓' :
@@ -261,7 +261,7 @@ export default function AdminShopsPage() {
                                                 <>
                                                     <Button
                                                         size="sm"
-                                                        className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white gap-1"
+                                                        className="h-8 text-xs gap-1 clay clay-green"
                                                         onClick={(e) => handleProfileAction(shop.id, 'approved', e)}
                                                         disabled={!!actioning}
                                                     >

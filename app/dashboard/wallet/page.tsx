@@ -559,7 +559,7 @@ function WalletContent() {
     }
 
     return (
-        <div className="space-y-4 max-w-2xl mx-auto">
+        <div className="space-y-5">
 
             {/* Wallet Balance Card */}
             <div
@@ -1020,45 +1020,45 @@ function WalletContent() {
 
             {/* Success Summary Modal */}
             <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-                <DialogContent className="sm:max-w-sm p-0 overflow-hidden border-0 shadow-2xl rounded-2xl bg-white dark:bg-slate-900" aria-describedby={undefined}>
+                <DialogContent className="sm:max-w-sm p-0 overflow-hidden border-0 shadow-2xl rounded-2xl bg-card" aria-describedby={undefined}>
                     {successClaimData && (
                         <div className="flex flex-col w-full">
                             <div className="bg-emerald-500 px-6 py-8 flex flex-col items-center justify-center text-center">
-                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
+                                <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mb-4 shadow-lg">
                                     <CheckCircle2 className="w-10 h-10 text-emerald-500" />
                                 </div>
                                 <DialogTitle className="text-white text-2xl font-black m-0 mb-1">Claim Successful</DialogTitle>
                                 <p className="text-emerald-50 text-sm font-medium">Wallet credited instantly</p>
                             </div>
 
-                            <div className="p-6 divide-y divide-slate-100 dark:divide-slate-800">
+                            <div className="p-6 divide-y divide-border">
                                 <div className="flex justify-between py-3 text-sm">
-                                    <span className="text-slate-600 dark:text-slate-300">Transaction ID</span>
-                                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">#{successClaimData.transaction_id}</span>
+                                    <span className="text-muted-foreground ">Transaction ID</span>
+                                    <span className="font-mono font-bold text-foreground">#{successClaimData.transaction_id}</span>
                                 </div>
                                 <div className="flex justify-between py-3 text-sm">
-                                    <span className="text-slate-600 dark:text-slate-300">Amount Sent</span>
-                                    <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(successClaimData.amount)}</span>
+                                    <span className="text-muted-foreground ">Amount Sent</span>
+                                    <span className="font-medium text-foreground">{formatCurrency(successClaimData.amount)}</span>
                                 </div>
                                 {successClaimData.fee_amount > 0 && (
                                     <div className="flex justify-between py-3 text-sm">
-                                        <span className="text-slate-600 dark:text-slate-300">Fee ({successClaimData.fee_percent}%)</span>
+                                        <span className="text-muted-foreground ">Fee ({successClaimData.fee_percent}%)</span>
                                         <span className="font-medium text-rose-600">-{formatCurrency(successClaimData.fee_amount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between py-4 text-base">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">Amount Credited</span>
+                                    <span className="font-bold text-foreground">Amount Credited</span>
                                     <span className="font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(successClaimData.net_amount)}</span>
                                 </div>
-                                <div className="flex justify-between py-4 text-base bg-slate-50 dark:bg-slate-800/50 -mx-6 px-6 mt-2 border-t border-slate-100 dark:border-slate-800">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">New Balance</span>
-                                    <span className="font-black text-[#0B1F3A] dark:text-white">{formatCurrency(successClaimData.new_balance)}</span>
+                                <div className="flex justify-between py-4 text-base bg-muted/50 -mx-6 px-6 mt-2 border-t border-border">
+                                    <span className="font-bold text-foreground">New Balance</span>
+                                    <span className="font-black text-[#0B1F3A] dark:text-foreground">{formatCurrency(successClaimData.new_balance)}</span>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700">
+                            <div className="p-4 bg-muted/50 dark:bg-muted/80 border-t border-border">
                                 <Button
-                                    className="w-full bg-slate-800 hover:bg-slate-900 text-white h-12 rounded-xl font-bold"
+                                    className="w-full bg-muted hover:bg-card text-white h-12 rounded-xl font-bold"
                                     onClick={() => setIsSuccessModalOpen(false)}
                                 >
                                     Done

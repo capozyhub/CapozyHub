@@ -1190,7 +1190,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">GH-DATA</p>
@@ -1200,12 +1200,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchGHBalance} disabled={isLoadingGHBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingGHBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncGhData} disabled={isSyncingGhData || ghdataSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingGhData ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{ghdataSyncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1219,7 +1219,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">CodeCraft</p>
@@ -1229,12 +1229,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchCCBalance} disabled={isLoadingCCBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingCCBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncCodecraft} disabled={isSyncing || syncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncing ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{syncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1248,7 +1248,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">DaKazina</p>
@@ -1258,12 +1258,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchDKBalance} disabled={isLoadingDKBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingDKBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncDakazina} disabled={isSyncingDakazina || dakazinaSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingDakazina ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{dakazinaSyncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1277,7 +1277,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">Xpress</p>
@@ -1287,12 +1287,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchXPBalance} disabled={isLoadingXPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingXPBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncXpress} disabled={isSyncingXpress || xpressSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingXpress ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{xpressSyncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1306,7 +1306,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">AgentPortal</p>
@@ -1316,12 +1316,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchAPBalance} disabled={isLoadingAPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingAPBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncAgentPortal} disabled={isSyncingAgentPortal || agentportalSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingAgentPortal ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{agentportalSyncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1335,7 +1335,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">Bundle Portal</p>
@@ -1345,7 +1345,7 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchBundlePortalBalance} disabled={isLoadingBPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingBPBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
@@ -1359,7 +1359,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">HendyLinks</p>
@@ -1369,12 +1369,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchHendyLinksBalance} disabled={isLoadingHLBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingHLBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncHendyLinks} disabled={isSyncingHendyLinks || hendylinksSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingHendyLinks ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>{hendylinksSyncCooldown ? 'Wait' : 'Sync'}</span>
                                 </Button>
@@ -1391,7 +1391,7 @@ export default function FulfillmentPage() {
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-white/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
                                     <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">SPFastIT</p>
@@ -1401,12 +1401,12 @@ export default function FulfillmentPage() {
                             </p>
                             <div className="flex gap-1.5">
                                 <Button onClick={fetchSFBalance} disabled={isLoadingSFBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingSFBalance ? 'animate-spin' : ''}`} />
                                     <span>Bal</span>
                                 </Button>
                                 <Button onClick={handleSyncSpfastit} disabled={isSyncingSpfastit || spfastitSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
+                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
                                     {isSyncingSpfastit ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
                                     <span>Sync</span>
                                 </Button>
@@ -1552,7 +1552,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.networks[net] ? 'text-emerald-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.networks[net] ? 'text-emerald-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1581,7 +1581,7 @@ export default function FulfillmentPage() {
                         <CardContent className="p-3 md:p-4 flex items-center justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <Activity className={`w-3.5 h-3.5 shrink-0 ${mtnExpressEnabled ? 'text-amber-500' : 'text-gray-400'}`} />
+                                    <Activity className={`w-3.5 h-3.5 shrink-0 ${mtnExpressEnabled ? 'text-amber-500' : 'text-muted-foreground'}`} />
                                     <span className="font-semibold text-xs md:text-sm">MTN Express Delivery</span>
                                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">DataKazina · MTN only</span>
                                 </div>
@@ -1612,7 +1612,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.codecraft_networks[net] ? 'text-brand-700' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.codecraft_networks[net] ? 'text-brand-700' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1677,7 +1677,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.xpress_networks[net] ? 'text-violet-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.xpress_networks[net] ? 'text-violet-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1715,7 +1715,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.ghdata_networks[net] ? 'text-amber-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.ghdata_networks[net] ? 'text-amber-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1753,7 +1753,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.agentportal_networks[net] ? 'text-rose-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.agentportal_networks[net] ? 'text-rose-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1825,7 +1825,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${!bpSupported ? 'text-gray-400' : (bpEnabled ? 'text-fuchsia-500' : 'text-gray-400')}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${!bpSupported ? 'text-muted-foreground' : (bpEnabled ? 'text-fuchsia-500' : 'text-muted-foreground')}`} />
                                             <span className={`font-semibold text-xs md:text-sm ${!bpSupported ? 'text-muted-foreground' : ''}`}>{net}</span>
                                         </div>
                                         <Button
@@ -1898,7 +1898,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.hendylinks_networks[net] ? 'text-teal-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.hendylinks_networks[net] ? 'text-teal-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -1963,7 +1963,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.atishare_console_networks[net] ? 'text-brand-700' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.atishare_console_networks[net] ? 'text-brand-700' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -2000,7 +2000,7 @@ export default function FulfillmentPage() {
                                 <CardContent className="p-3 md:p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.spfastit_networks[net] ? 'text-orange-500' : 'text-gray-400'}`} />
+                                            <Activity className={`w-3.5 h-3.5 ${settings.spfastit_networks[net] ? 'text-orange-500' : 'text-muted-foreground'}`} />
                                             <span className="font-semibold text-xs md:text-sm">{net}</span>
                                         </div>
                                         <Button
@@ -2239,7 +2239,7 @@ export default function FulfillmentPage() {
                                 <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reprocess
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-green-600 hover:bg-green-700 font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold clay clay-green" disabled={isUpdating || isRefulfilling}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>

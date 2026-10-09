@@ -84,7 +84,7 @@ export function WebsiteRequestBanner({ activeRequest }: { activeRequest: ActiveW
                 {HIGHLIGHTS.map(item => (
                     <span
                         key={item}
-                        className="rounded-full border border-brand-200/70 bg-white/70 px-2.5 py-1 text-[11px] font-medium text-brand-900 dark:border-brand-900/50 dark:bg-brand-950/40 dark:text-brand-200"
+                        className="rounded-full border border-brand-200/70 bg-card/70 px-2.5 py-1 text-[11px] font-medium text-brand-900 dark:border-brand-900/50 dark:bg-brand-950/40 dark:text-brand-200"
                     >
                         {item}
                     </span>

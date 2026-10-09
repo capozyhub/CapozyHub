@@ -518,7 +518,7 @@ export default function ShopSmsPage() {
                     onClick={() => setPaySource(s.id)}
                     className={cn(
                         'flex-1 flex flex-col items-center justify-center gap-0 h-11 rounded-lg text-xs font-semibold transition-all px-2',
-                        paySource === s.id ? 'bg-white dark:bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground',
+                        paySource === s.id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground',
                     )}
                 >
                     <span className="flex items-center gap-1"><Wallet className="w-3 h-3" />{s.label}</span>
@@ -713,7 +713,7 @@ export default function ShopSmsPage() {
                                 <Button
                                     onClick={handleSenderRequest}
                                     disabled={submittingSender || senderInput.trim().length < 3 || !/^[A-Za-z0-9 ]*$/.test(senderInput)}
-                                    className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 shrink-0"
+                                    className="h-10 font-semibold gap-1.5 shrink-0 clay clay-green"
                                 >
                                     {submittingSender ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                                     {approvedSender ? 'Replace' : 'Request'}
@@ -749,8 +749,8 @@ export default function ShopSmsPage() {
             {/* ── Feature disabled ── */}
             {!status.enabled && (
                 <div className="text-center py-16 space-y-3">
-                    <div className="w-14 h-14 mx-auto rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <Lock className="w-6 h-6 text-gray-400" />
+                    <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center">
+                        <Lock className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="font-semibold">SMS is temporarily unavailable</p>
                     <p className="text-sm text-muted-foreground">The admin has disabled this feature. Check back later.</p>
@@ -806,7 +806,7 @@ export default function ShopSmsPage() {
                             <Button
                                 onClick={handleActivate}
                                 disabled={activating || activeBalance < status.activationFee}
-                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2"
+                                className="w-full h-12 font-semibold gap-2 clay clay-green"
                             >
                                 {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                                 {activating ? 'Activating...' : `Activate for ${formatCurrency(status.activationFee)}`}
@@ -901,7 +901,7 @@ export default function ShopSmsPage() {
                                                 size="sm"
                                                 onClick={() => setBuyModal(b)}
                                                 disabled={purchasingId === b.id || !canAfford}
-                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1 px-2"
+                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs font-semibold gap-1 px-2 clay clay-green"
                                             >
                                                 {purchasingId === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                                                 Buy
@@ -1118,7 +1118,7 @@ export default function ShopSmsPage() {
                                             <Smartphone className="w-3 h-3 text-muted-foreground" />
                                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Recipient preview</p>
                                         </div>
-                                        <div className="bg-white dark:bg-zinc-900 rounded-xl p-3 shadow-inner min-h-[52px] flex items-start">
+                                        <div className="bg-card rounded-xl p-3 shadow-inner min-h-[52px] flex items-start">
                                             {previewMessage.trim() ? (
                                                 <div className="inline-block bg-green-500 text-white text-xs px-2.5 py-2 rounded-2xl rounded-tl-sm max-w-[85%] whitespace-pre-wrap break-words leading-relaxed">
                                                     {previewMessage}
@@ -1165,7 +1165,7 @@ export default function ShopSmsPage() {
                             <Button
                                 onClick={() => { setSendError(null); setSendModal(true) }}
                                 disabled={!canSend}
-                                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2"
+                                className="w-full h-11 font-semibold gap-2 clay clay-green"
                             >
                                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 {sending ? 'Sending...' : allRecipients.length > 0 ? `Review & Send to ${allRecipients.length} recipient(s)` : 'Send SMS'}
@@ -1304,7 +1304,7 @@ export default function ShopSmsPage() {
                                                         <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 shrink-0">Auto</span>
                                                     )}
                                                     {log.source === 'reconciliation' && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 shrink-0">Adjustment</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-muted text-foreground/80 shrink-0">Adjustment</span>
                                                     )}
                                                     <span className="truncate">{log.message}</span>
                                                 </p>
@@ -1400,7 +1400,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={() => buyModal && handlePurchase(buyModal)}
                             disabled={!buyModal || activeBalance < buyModal.price || !!purchasingId}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="gap-1.5 clay clay-green"
                         >
                             {purchasingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Coins className="w-3.5 h-3.5" />}
                             Confirm Purchase
@@ -1458,7 +1458,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={handleSend}
                             disabled={sending || insufficient}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="gap-1.5 clay clay-green"
                         >
                             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                             Send Now
@@ -1508,7 +1508,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={handleSaveTemplate}
                             disabled={savingTemplate || !newTplName.trim() || newTplBody.trim().length < 3}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="gap-1.5 clay clay-green"
                         >
                             {savingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
                             Save Template

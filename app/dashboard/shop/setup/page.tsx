@@ -724,7 +724,7 @@ export default function ShopSetupPage() {
     const platform = detectPlatform(form.community_link)
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto pb-32 setup-theme">
+        <div className="space-y-6 pb-32 setup-theme">
             {/* Dynamic CSS variables with sanitization */}
             <style dangerouslySetInnerHTML={{ __html: `
                 .setup-theme { 
@@ -737,13 +737,13 @@ export default function ShopSetupPage() {
             {/* Unsaved Changes Modal */}
             {showUnsavedModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200">
+                    <div className="bg-card rounded-2xl shadow-2xl border border-border p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
                                 <AlertTriangle className="w-5 h-5 text-amber-600" />
                             </div>
                             <div>
-                                <p className="font-bold text-gray-900 dark:text-white">You have unsaved changes</p>
+                                <p className="font-bold text-foreground">You have unsaved changes</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">If you leave now, your changes will be lost.</p>
                             </div>
                         </div>
@@ -760,7 +760,7 @@ export default function ShopSetupPage() {
                                 Ignore
                             </Button>
                             <Button
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                className="flex-1 clay clay-green"
                                 disabled={saving}
                                 onClick={async () => {
                                     setShowUnsavedModal(false)
@@ -779,13 +779,13 @@ export default function ShopSetupPage() {
             {/* Delete Shop Confirmation Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200">
+                    <div className="bg-card rounded-2xl shadow-2xl border border-border p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                                 <AlertTriangle className="w-5 h-5 text-red-600" />
                             </div>
                             <div>
-                                <p className="font-bold text-gray-900 dark:text-white">Delete your shop?</p>
+                                <p className="font-bold text-foreground">Delete your shop?</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     This permanently deletes your shop, all orders, and your profit wallet.
                                     This cannot be undone.
@@ -868,8 +868,8 @@ export default function ShopSetupPage() {
                                     'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex-shrink-0',
                                     isCurrent ? 'bg-emerald-600 text-white' :
                                     isDone ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 cursor-pointer' :
-                                    canJump ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-pointer' :
-                                    'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-not-allowed'
+                                    canJump ? 'bg-muted text-muted-foreground cursor-pointer' :
+                                    'bg-muted/50 text-muted-foreground/70 cursor-not-allowed'
                                 )}
                             >
                                 {isDone && <Check className="w-3 h-3" />}
@@ -1177,7 +1177,7 @@ export default function ShopSetupPage() {
                                             'flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all',
                                             form.brand_color.toLowerCase() === preset.color.toLowerCase()
                                                 ? 'border-gray-900 dark:border-white scale-105 shadow-md'
-                                                : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                                : 'border-transparent hover:border-border dark:hover:border-border'
                                         )}
                                     >
                                         <div className={`w-8 h-8 rounded-full shadow-sm preset-bg-${idx}`} title={preset.name} />
@@ -1192,7 +1192,7 @@ export default function ShopSetupPage() {
                                     type="color"
                                     value={form.brand_color}
                                     onChange={(e) => updateForm({ brand_color: e.target.value, brand_accent: e.target.value })}
-                                    className="w-10 h-10 rounded-lg cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-transparent"
+                                    className="w-10 h-10 rounded-lg cursor-pointer border border-border p-0.5 bg-transparent"
                                     title="Pick a custom brand color"
                                 />
                                 <span className="text-xs font-mono text-muted-foreground">{form.brand_color}</span>
@@ -1213,7 +1213,7 @@ export default function ShopSetupPage() {
                                             'flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all overflow-hidden',
                                             form.divider_style === preset.id
                                                 ? 'border-emerald-500 scale-[1.04] shadow-md shadow-emerald-100 dark:shadow-emerald-900/20'
-                                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                : 'border-border hover:border-border dark:hover:border-border'
                                         )}
                                     >
                                         <div className="w-full h-8 rounded-md overflow-hidden bg-[var(--brand-color)]" title="Divider preview">
@@ -1241,11 +1241,11 @@ export default function ShopSetupPage() {
                                 <div className="p-6 text-center bg-[var(--brand-color)]">
                                     <div className="flex flex-col items-center gap-3">
                                         {logoPreview ? (
-                                            <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-lg flex-shrink-0">
+                                            <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-card shadow-lg flex-shrink-0">
                                                 <Image src={logoPreview} alt="Logo" fill className="object-contain" />
                                             </div>
                                         ) : (
-                                            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                            <div className="w-16 h-16 rounded-2xl bg-card/20 flex items-center justify-center flex-shrink-0 shadow-lg">
                                                 <Store className="w-8 h-8 text-white" />
                                             </div>
                                         )}
@@ -1261,7 +1261,7 @@ export default function ShopSetupPage() {
                                         </svg>
                                     </div>
                                 </div>
-                                <div className="p-3 bg-white dark:bg-gray-900 flex items-center justify-between">
+                                <div className="p-3 bg-card flex items-center justify-between">
                                     <span className="text-xs text-muted-foreground">Buy Now button preview:</span>
                                     <button className="text-xs text-white font-bold px-3 py-1.5 rounded-lg bg-[var(--brand-color)]" title="Action button preview">
                                         Buy Now
@@ -1297,11 +1297,11 @@ export default function ShopSetupPage() {
                             <p className="text-sm">One-time activation fee: <strong>GHS {smsStatus.activationFee.toFixed(2)}</strong></p>
                             <div className="flex gap-2">
                                 <button type="button" onClick={() => setSmsPaySource('wallet')}
-                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', smsPaySource === 'wallet' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700')}>
+                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', smsPaySource === 'wallet' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-border')}>
                                     Wallet (GHS {smsStatus.mainBalance.toFixed(2)})
                                 </button>
                                 <button type="button" onClick={() => setSmsPaySource('profit')}
-                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', smsPaySource === 'profit' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700')}>
+                                    className={cn('flex-1 py-2 rounded-lg border-2 text-sm font-bold', smsPaySource === 'profit' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-border')}>
                                     Profit (GHS {smsStatus.profitBalance.toFixed(2)})
                                 </button>
                             </div>
@@ -1384,7 +1384,7 @@ export default function ShopSetupPage() {
                     <DialogFooter>
                         <Button
                             onClick={goToPricing}
-                            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2"
+                            className="w-full h-11 font-semibold gap-2 clay clay-green"
                         >
                             <Save className="w-4 h-4" /> Set my prices
                         </Button>
@@ -1407,7 +1407,7 @@ export default function ShopSetupPage() {
                     <Button
                         onClick={goNext}
                         disabled={saving || uploading || slugTaken}
-                        className="min-w-[140px] bg-emerald-600 hover:bg-emerald-700 text-white h-11 font-semibold gap-2"
+                        className="min-w-[140px] h-11 font-semibold gap-2 clay clay-green"
                     >
                         {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : 'Continue'}
                     </Button>
@@ -1415,7 +1415,7 @@ export default function ShopSetupPage() {
                     <Button
                         onClick={() => handleSave()}
                         disabled={saving || uploading || slugTaken}
-                        className="min-w-[140px] bg-emerald-600 hover:bg-emerald-700 text-white h-11 font-semibold gap-2"
+                        className="min-w-[140px] h-11 font-semibold gap-2 clay clay-green"
                     >
                         {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Finishing...</> : existingShopId ? 'Save Changes' : 'Create Shop & Set Prices'}
                     </Button>

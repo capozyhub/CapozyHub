@@ -96,7 +96,7 @@ export function SystemControlCenter() {
                     <SlidersHorizontal className="w-4 h-4" style={{ color: accent.red }} />
                     <p className={sectionLabel}>System Controls</p>
                 </div>
-                <Link href="/admin/settings" className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+                <Link href="/admin/settings" className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-foreground dark:hover:text-white">
                     Manage in Settings <ExternalLink className="w-3 h-3" />
                 </Link>
             </div>
@@ -114,8 +114,8 @@ export function SystemControlCenter() {
                     return (
                         <div key={key} className={cn(mutedSurface, 'p-3 flex items-center justify-between gap-3')}>
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-zinc-900 dark:text-white">{TOGGLE_META[key].label}</p>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">{TOGGLE_META[key].description}</p>
+                                <p className="text-sm font-semibold text-foreground">{TOGGLE_META[key].label}</p>
+                                <p className="text-[11px] text-muted-foreground truncate">{TOGGLE_META[key].description}</p>
                             </div>
                             <Switch
                                 checked={on}
@@ -130,11 +130,11 @@ export function SystemControlCenter() {
                 {/* Payment maintenance — env-controlled, read-only */}
                 <div className={cn(mutedSurface, 'p-3 flex items-center justify-between gap-3')}>
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                             Payment Maintenance
                             {paymentMaintenance && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
                         </p>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Set via environment — redeploy to change</p>
+                        <p className="text-[11px] text-muted-foreground">Set via environment — redeploy to change</p>
                     </div>
                     <span className={cn('text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap', paymentMaintenance ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10')}>
                         {paymentMaintenance ? 'ON' : 'OFF'}
@@ -151,8 +151,8 @@ export function SystemControlCenter() {
                     const display = raw && raw.trim() !== '' ? `${meta.prefix || ''}${raw}${meta.suffix || ''}` : '—'
                     return (
                         <div key={key} className={cn(mutedSurface, 'p-2.5')}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">{meta.label}</p>
-                            <p className="text-sm font-bold text-zinc-900 dark:text-white">{loading ? '…' : display}</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{meta.label}</p>
+                            <p className="text-sm font-bold text-foreground">{loading ? '…' : display}</p>
                         </div>
                     )
                 })}

@@ -337,7 +337,7 @@ export function NotificationModal({
                     isOpen
                         ? 'translate-y-0 opacity-100 sm:translate-y-0 pointer-events-auto'
                         : 'translate-y-full opacity-0 pointer-events-none sm:translate-y-[-12px]',
-                    'bg-white/95 dark:bg-gray-900/95 border border-gray-200/70 dark:border-gray-700/70',
+                    'bg-card/95 border border-border/70',
                     'shadow-xl',
                     'max-h-[85dvh] sm:max-h-[80vh] flex flex-col',
                 )}
@@ -351,14 +351,14 @@ export function NotificationModal({
                 </div>
 
                 {/* ── Header ───────────────────────────────────────────────── */}
-                <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-200/60 dark:border-gray-700/60 flex-shrink-0">
+                <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/60 flex-shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            <Bell className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">Notifications</h2>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                            <h2 className="text-sm font-semibold text-foreground leading-tight">Notifications</h2>
+                            <p className="text-[11px] text-muted-foreground leading-tight">
                                 {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
                             </p>
                         </div>
@@ -371,7 +371,7 @@ export function NotificationModal({
                                 variant="ghost"
                                 onClick={markAllAsRead}
                                 disabled={markingAllRead}
-                                className="h-8 px-2.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-xs gap-1"
+                                className="h-8 px-2.5 text-muted-foreground hover:text-foreground dark:hover:text-white text-xs gap-1"
                             >
                                 {markingAllRead ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                 <span>Mark all read</span>
@@ -394,7 +394,7 @@ export function NotificationModal({
                             variant="ghost"
                             onClick={() => { onClose(); router.push('/dashboard/notifications?tab=settings') }}
                             title="Notification settings"
-                            className="w-8 h-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white flex-shrink-0"
+                            className="w-8 h-8 text-muted-foreground hover:text-foreground dark:hover:text-white flex-shrink-0"
                         >
                             <Settings className="w-4 h-4" />
                         </Button>
@@ -402,7 +402,7 @@ export function NotificationModal({
                             size="icon"
                             variant="ghost"
                             onClick={onClose}
-                            className="w-8 h-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white flex-shrink-0"
+                            className="w-8 h-8 text-muted-foreground hover:text-foreground dark:hover:text-white flex-shrink-0"
                         >
                             <X className="w-4 h-4" />
                         </Button>
@@ -410,7 +410,7 @@ export function NotificationModal({
                 </div>
 
                 {/* ── Filter tabs ──────────────────────────────────────────── */}
-                <div className="flex gap-1.5 px-4 sm:px-5 py-2.5 border-b border-gray-200/60 dark:border-gray-700/60 flex-shrink-0">
+                <div className="flex gap-1.5 px-4 sm:px-5 py-2.5 border-b border-border/60 flex-shrink-0">
                     {(['all', 'unread'] as const).map(tab => (
                         <button
                             type="button"
@@ -419,8 +419,8 @@ export function NotificationModal({
                             className={cn(
                                 'px-3 py-1 rounded-full text-xs font-medium transition-colors',
                                 filter === tab
-                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                    ? 'bg-card text-white dark:text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted'
                             )}
                         >
                             {tab === 'all' ? `All (${notifications.length})` : `Unread (${unreadCount})`}
@@ -468,7 +468,7 @@ export function NotificationModal({
                                     type="button"
                                     onClick={handleInstall}
                                     disabled={isInstalling}
-                                    className="flex-shrink-0 px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+                                    className="flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-60 clay clay-green"
                                 >
                                     {isInstalling ? 'Installing...' : 'Install'}
                                 </button>
@@ -482,7 +482,7 @@ export function NotificationModal({
                     {isLoading ? (
                         <div className="space-y-2 py-1">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 ">
                                     <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
                                     <div className="flex-1 space-y-1.5">
                                         <Skeleton className="h-3 w-3/4 rounded" />
@@ -494,10 +494,10 @@ export function NotificationModal({
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
-                            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                <Bell className="w-6 h-6 text-gray-400" />
+                            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                                <Bell className="w-6 h-6 text-muted-foreground" />
                             </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-sm text-muted-foreground">
                                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
                             </p>
                         </div>
@@ -511,9 +511,9 @@ export function NotificationModal({
                                     onClick={() => handleNotifClick(notif)}
                                     className={cn(
                                         'group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer',
-                                        'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700',
+                                        'bg-card border border-border',
                                         'transition-colors duration-150',
-                                        'hover:bg-gray-50 dark:hover:bg-gray-700',
+                                        'hover:bg-muted/50 dark:hover:bg-muted',
                                         !notif.is_read && 'border-l-[3px] border-l-blue-500',
                                         isHighlighted && 'bg-brand-50 dark:bg-brand-950/40 border-l-[3px] border-l-blue-500'
                                     )}
@@ -530,15 +530,15 @@ export function NotificationModal({
                                     <div className="flex-1 min-w-0 pr-6">
                                         <p className={cn(
                                             'text-sm font-semibold leading-snug truncate',
-                                            notif.is_read ? 'text-gray-600 dark:text-gray-300' : 'text-gray-900 dark:text-white'
+                                            notif.is_read ? 'text-muted-foreground ' : 'text-foreground'
                                         )}>
                                             {notif.title}
                                         </p>
                                         <NotificationMessage
                                             message={notif.message}
-                                            className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed"
+                                            className="text-xs text-muted-foreground mt-0.5 leading-relaxed"
                                         />
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">
+                                        <p className="text-[10px] text-muted-foreground mt-1.5">
                                             {formatDate(notif.created_at ?? '')}
                                         </p>
                                     </div>
@@ -549,7 +549,7 @@ export function NotificationModal({
                                     )}
 
                                     {/* Actions — revealed on hover */}
-                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-gray-700 rounded-lg p-0.5 shadow-sm border border-gray-100 dark:border-gray-600">
+                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-card rounded-lg p-0.5 shadow-sm border border-border">
                                         {!notif.is_read && (
                                             <button
                                                 type="button"
@@ -576,11 +576,11 @@ export function NotificationModal({
                 </div>
 
                 {/* ── Footer: see-all link + mobile drag handle ─────────────── */}
-                <div className="flex-shrink-0 border-t border-gray-200/60 dark:border-gray-700/60">
+                <div className="flex-shrink-0 border-t border-border/60">
                     <button
                         type="button"
                         onClick={() => { onClose(); router.push('/dashboard/notifications') }}
-                        className="w-full flex items-center justify-center gap-1 py-3 text-xs font-medium text-brand-700 dark:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1 py-3 text-xs font-medium text-brand-700 dark:text-brand-400 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors"
                     >
                         See all notifications <ChevronRight className="w-3.5 h-3.5" />
                     </button>

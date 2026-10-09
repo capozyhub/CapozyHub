@@ -72,26 +72,26 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
             {/* Toolbar */}
             <div className="flex flex-col gap-3">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                         value={query} onChange={e => setQuery(e.target.value)}
                         placeholder="Search notifications"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                     {(['all', ...CATEGORY_ORDER] as CatFilter[]).map(c => (
                         <button key={c} type="button" onClick={() => setCat(c)}
                             className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                                cat === c ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                    : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700')}>
+                                cat === c ? 'bg-card text-white dark:text-foreground'
+                                    : 'text-muted-foreground bg-muted hover:bg-muted dark:hover:bg-muted')}>
                             {c === 'all' ? 'All' : CATEGORY_LABEL[c]}
                         </button>
                     ))}
-                    <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 flex-shrink-0" />
+                    <span className="w-px h-5 bg-muted mx-1 flex-shrink-0" />
                     <button type="button" onClick={() => setOnlyUnread(v => !v)}
                         className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                            onlyUnread ? 'bg-brand-600 text-black' : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700')}>
+                            onlyUnread ? 'bg-brand-600 text-black' : 'text-muted-foreground bg-muted hover:bg-muted dark:hover:bg-muted')}>
                         Unread ({unreadCount})
                     </button>
                 </div>
@@ -113,7 +113,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
             {isLoading ? (
                 <div className="space-y-2">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
                             <Skeleton className="w-9 h-9 rounded-full" />
                             <div className="flex-1 space-y-1.5"><Skeleton className="h-3 w-1/2" /><Skeleton className="h-3 w-full" /></div>
                         </div>
@@ -121,33 +121,33 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><Bell className="w-6 h-6 text-gray-400" /></div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{query || cat !== 'all' || onlyUnread ? 'Nothing matches this filter' : 'No notifications yet'}</p>
+                    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center"><Bell className="w-6 h-6 text-muted-foreground" /></div>
+                    <p className="text-sm text-muted-foreground">{query || cat !== 'all' || onlyUnread ? 'Nothing matches this filter' : 'No notifications yet'}</p>
                 </div>
             ) : (
                 <div className="space-y-5">
                     {(['Today', 'Yesterday', 'Earlier'] as const).map(label => groups[label].length > 0 && (
                         <div key={label} className="space-y-2">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 px-1">{label}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-1">{label}</p>
                             {groups[label].map(n => (
                                 <div key={n.id} id={`notif-row-${n.id}`}
                                     onClick={() => handleClick(n)}
-                                    className={cn('group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors',
+                                    className={cn('group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer bg-card border border-border hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors',
                                         !n.is_read && 'border-l-[3px] border-l-blue-500',
                                         n.id === highlightId && 'ring-2 ring-brand-400')}>
                                     <div className={cn('w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', iconBg(n.type))}>
                                         <NotifIcon type={n.type} />
                                     </div>
                                     <div className="flex-1 min-w-0 pr-6">
-                                        <p className={cn('text-sm font-semibold leading-snug', n.is_read ? 'text-gray-600 dark:text-gray-300' : 'text-gray-900 dark:text-white')}>{n.title}</p>
+                                        <p className={cn('text-sm font-semibold leading-snug', n.is_read ? 'text-muted-foreground ' : 'text-foreground')}>{n.title}</p>
                                         <NotificationMessage
                                             message={n.message}
-                                            className="text-xs text-gray-600 dark:text-gray-400 mt-0.5"
+                                            className="text-xs text-muted-foreground mt-0.5"
                                         />
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">{formatDate(n.created_at ?? '')}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-1.5">{formatDate(n.created_at ?? '')}</p>
                                     </div>
                                     {!n.is_read && <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-brand-500" />}
-                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-0.5 shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-card rounded-lg p-0.5 shadow-sm border border-border">
                                         {!n.is_read && (
                                             <button type="button" title="Mark as read" onClick={e => { e.stopPropagation(); markAsRead(n.id) }}
                                                 className="w-6 h-6 flex items-center justify-center rounded-md text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/30"><CheckCircle2 className="w-3.5 h-3.5" /></button>

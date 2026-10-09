@@ -698,7 +698,7 @@ export default function IShareFulfillmentPage() {
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="bg-white/20 p-2 md:p-2.5 rounded-lg shrink-0">
+                                <div className="bg-card/20 p-2 md:p-2.5 rounded-lg shrink-0">
                                     <Wallet className="w-4 h-4 md:w-5 md:h-5" />
                                 </div>
                                 <p className="text-xs md:text-sm font-bold uppercase tracking-wider opacity-95">Console Balance</p>
@@ -708,7 +708,7 @@ export default function IShareFulfillmentPage() {
                                 disabled={isLoadingBalance}
                                 variant="secondary"
                                 size="sm"
-                                className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
+                                className="bg-card/20 hover:bg-card/30 text-white border-white/30 h-7 md:h-8 text-[10px] md:text-xs px-2 md:px-3"
                             >
                                 <RefreshCw className={`w-3 h-3 mr-1.5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
                                 Refresh
@@ -970,7 +970,7 @@ export default function IShareFulfillmentPage() {
                         <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-8 text-[11px] px-2.5 bg-yellow-500 hover:bg-yellow-600 text-black font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
                             <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reprocess
                         </Button>
-                        <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-8 text-[11px] px-2.5 bg-green-600 hover:bg-green-700 font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
+                        <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-8 text-[11px] px-2.5 font-bold clay clay-green" disabled={isUpdating || isRefulfilling}>
                             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Complete
                         </Button>
                         <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-8 text-[11px] px-2.5 font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>

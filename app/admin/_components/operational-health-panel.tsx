@@ -9,13 +9,13 @@ import type { AdminCounts } from '@/hooks/use-admin-counts'
 
 function Stat({ icon: Icon, label, value, color, href }: { icon: typeof Package; label: string; value: string | number; color: string; href?: string }) {
     const body = (
-        <div className={cn(mutedSurface, 'p-3 flex items-center gap-3', href && 'hover:border-zinc-300 dark:hover:border-white/20 transition-colors')}>
+        <div className={cn(mutedSurface, 'p-3 flex items-center gap-3', href && 'hover:border-border dark:hover:border-white/20 transition-colors')}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}1a`, color }}>
                 <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">{label}</p>
-                <p className="text-base font-bold text-zinc-900 dark:text-white">{value}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{label}</p>
+                <p className="text-base font-bold text-foreground">{value}</p>
             </div>
         </div>
     )

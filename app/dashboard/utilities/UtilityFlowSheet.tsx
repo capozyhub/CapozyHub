@@ -328,7 +328,7 @@ export function UtilityFlowSheet({
 
                 {/* Drag handle + close */}
                 <div className="relative flex items-center justify-center pt-3 pb-1">
-                    <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-zinc-700" />
+                    <div className="w-9 h-1 rounded-full bg-muted" />
                     <DialogClose
                         disabled={submitting}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-40"
@@ -375,7 +375,7 @@ export function UtilityFlowSheet({
                                     <div className="space-y-1.5">
                                         <Label htmlFor="util-phone" className="text-sm font-medium">ECG phone number</Label>
                                         <div className="relative">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                             <Input
                                                 ref={accountInputRef}
                                                 id="util-phone"
@@ -453,12 +453,12 @@ export function UtilityFlowSheet({
                                                         'mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
                                                         ecgConsent
                                                             ? 'bg-amber-500 border-amber-500 text-white'
-                                                            : 'border-slate-300 dark:border-slate-600'
+                                                            : 'border-border'
                                                     )}
                                                 >
                                                     {ecgConsent && <Check className="w-3.5 h-3.5" />}
                                                 </span>
-                                                <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                <span className="text-xs text-muted-foreground leading-relaxed">
                                                     ECG will link this meter to <span className="font-semibold">{phone || 'your phone'}</span>. I understand.
                                                 </span>
                                             </button>
@@ -493,7 +493,7 @@ export function UtilityFlowSheet({
                                         <div className="space-y-1.5">
                                             <Label htmlFor="util-phone" className="text-sm font-medium">Phone number</Label>
                                             <div className="relative">
-                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                                 <Input
                                                     id="util-phone"
                                                     type="tel"
@@ -550,7 +550,7 @@ export function UtilityFlowSheet({
                             {biller === 'ecg' ? (
                                 /* ECG: meter picker */
                                 <>
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    <p className="text-sm font-medium text-foreground/80 ">
                                         {info.meters.length > 0
                                             ? `Select your meter — ${info.meters.length} linked to ${phone}`
                                             : 'No meters found'}
@@ -584,7 +584,7 @@ export function UtilityFlowSheet({
                                                             'flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-colors',
                                                             isSaved
                                                                 ? 'border-amber-400/70 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-700'
-                                                                : 'border-border bg-card hover:border-slate-300 dark:hover:border-slate-600'
+                                                                : 'border-border bg-card hover:border-border dark:hover:border-border'
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-1.5 w-full">
@@ -604,7 +604,7 @@ export function UtilityFlowSheet({
                                                                 Credit GHS {Math.abs(m.outstanding).toFixed(2)}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground ">
                                                                 No balance due
                                                             </span>
                                                         )}
@@ -706,7 +706,7 @@ export function UtilityFlowSheet({
                                 <button
                                     type="button"
                                     onClick={() => setStep('verify')}
-                                    className="w-full flex items-center gap-2.5 rounded-xl border border-border bg-card p-3 text-left hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                                    className="w-full flex items-center gap-2.5 rounded-xl border border-border bg-card p-3 text-left hover:border-border dark:hover:border-border transition-colors"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-950/40 flex items-center justify-center shrink-0">
                                         <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -725,7 +725,7 @@ export function UtilityFlowSheet({
                                     <span className="text-xs font-normal text-muted-foreground">Min {minAmount} · Max {maxAmount}</span>
                                 </Label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">GHS</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">GHS</span>
                                     <Input
                                         id="util-amount"
                                         type="number"
@@ -751,7 +751,7 @@ export function UtilityFlowSheet({
                                             'px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors tabular-nums',
                                             parseFloat(amount) === q
                                                 ? 'bg-foreground border-foreground text-background'
-                                                : 'bg-card border-border text-foreground hover:border-slate-300 dark:hover:border-slate-600'
+                                                : 'bg-card border-border text-foreground hover:border-border dark:hover:border-border'
                                         )}
                                     >
                                         {q}

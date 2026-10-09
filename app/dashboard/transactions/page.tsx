@@ -388,14 +388,14 @@ export default function TransactionsPage() {
                                 <button
                                     onClick={() => setPage(p => Math.max(0, p - 1))}
                                     disabled={page === 0}
-                                    className="px-3 py-1 text-xs border rounded hover:bg-slate-50 disabled:opacity-50"
+                                    className="px-3 py-1 text-xs border rounded hover:bg-muted/50 disabled:opacity-50"
                                 >
                                     Previous
                                 </button>
                                 <button
                                     onClick={() => setPage(p => p + 1)}
                                     disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount}
-                                    className="px-3 py-1 text-xs border rounded hover:bg-slate-50 disabled:opacity-50"
+                                    className="px-3 py-1 text-xs border rounded hover:bg-muted/50 disabled:opacity-50"
                                 >
                                     Next
                                 </button>

@@ -95,7 +95,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
     refunded: { label: 'Refunded', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', icon: AlertCircle },
     // afa_orders.status also includes 'cancelled' (no shop_orders/RC equivalent) —
     // without this entry it would silently fall through to the raw string label.
-    cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800/40 dark:text-gray-400', icon: Ban },
+    cancelled: { label: 'Cancelled', color: 'bg-muted text-foreground/80 dark:bg-muted/40 ', icon: Ban },
 }
 
 // Trimmed to exactly the columns this page reads from shop_orders_effective
@@ -763,7 +763,7 @@ export default function ShopOrdersPage() {
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
                                 "flex-1 sm:flex-none px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap",
-                                activeTab === tab.id ? cn("bg-white dark:bg-gray-800 shadow-sm", tab.active) : "text-muted-foreground hover:text-foreground"
+                                activeTab === tab.id ? cn("bg-card shadow-sm", tab.active) : "text-muted-foreground hover:text-foreground"
                             )}
                         >
                             <tab.icon className="w-4 h-4" />
@@ -839,7 +839,7 @@ export default function ShopOrdersPage() {
                                 onClick={() => setFilterDate(f.id as any)}
                                 className={cn(
                                     "flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
-                                    filterDate === f.id ? "bg-white dark:bg-gray-800 shadow-sm text-emerald-600" : "text-muted-foreground hover:text-foreground"
+                                    filterDate === f.id ? "bg-card shadow-sm text-emerald-600" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 {f.label}
@@ -942,7 +942,7 @@ export default function ShopOrdersPage() {
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b text-xs text-muted-foreground bg-gray-50/50 dark:bg-gray-900/50">
+                                <tr className="border-b text-xs text-muted-foreground bg-muted/50 dark:bg-card/50">
                                     <th className="text-left px-4 py-3 font-medium">Date</th>
                                     <th className="text-left px-4 py-3 font-medium">Customer</th>
                                     <th className="text-left px-4 py-3 font-medium">Package</th>
@@ -1016,7 +1016,7 @@ export default function ShopOrdersPage() {
                                                     <div className="flex flex-col items-center gap-2">
                                                         <span className={cn(
                                                             'inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full',
-                                                            statusConfig[displayStatus]?.color || 'bg-gray-100 text-gray-600'
+                                                            statusConfig[displayStatus]?.color || 'bg-muted text-muted-foreground'
                                                         )}>
                                                             <StatusIcon className="w-3 h-3" />
                                                             {statusConfig[displayStatus]?.label || displayStatus}
@@ -1151,7 +1151,7 @@ export default function ShopOrdersPage() {
                                             <div className="flex flex-col items-end gap-2">
                                                 <span className={cn(
                                                     'inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full',
-                                                    statusConfig[displayStatus]?.color || 'bg-gray-100 text-gray-600'
+                                                    statusConfig[displayStatus]?.color || 'bg-muted text-muted-foreground'
                                                 )}>
                                                     <StatusIcon className="w-3 h-3" />
                                                     {statusConfig[displayStatus]?.label || displayStatus}

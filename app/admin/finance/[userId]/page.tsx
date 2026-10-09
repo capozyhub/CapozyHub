@@ -260,7 +260,7 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                                             {txn.balance_after !== undefined ? formatCurrency(txn.balance_after) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="secondary" className="capitalize font-normal text-muted-foreground bg-slate-100 hover:bg-slate-200 text-xs">
+                                            <Badge variant="secondary" className="capitalize font-normal text-muted-foreground bg-muted hover:bg-muted text-xs">
                                                 {formatSource(txn.source)}
                                             </Badge>
                                         </TableCell>

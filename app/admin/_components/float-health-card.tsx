@@ -24,7 +24,7 @@ export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
                     <Scale className="w-4 h-4" style={{ color: accent.slate }} />
                     <p className={sectionLabel}>Float &amp; Liability</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dot }} />
                     {healthLabel}
                 </span>
@@ -32,18 +32,18 @@ export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
 
             <div className="space-y-3 flex-1">
                 <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Wallet liability (held for users)</p>
-                    <p className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">{formatCurrency(liability)}</p>
+                    <p className="text-xs text-muted-foreground">Wallet liability (held for users)</p>
+                    <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(liability)}</p>
                 </div>
-                <div className="h-px bg-zinc-200/70 dark:bg-white/10" />
+                <div className="h-px bg-muted/70 dark:bg-card/10" />
                 <div className="flex items-end justify-between">
                     <div>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Outstanding debt owed to you</p>
-                        <p className={cn('text-xl font-bold tracking-tight', debt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-white')}>
+                        <p className="text-xs text-muted-foreground">Outstanding debt owed to you</p>
+                        <p className={cn('text-xl font-bold tracking-tight', debt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground')}>
                             {formatCurrency(debt)}
                         </p>
                     </div>
-                    <span className="text-xs font-semibold text-zinc-400">{stats.debtorCount} debtor{stats.debtorCount !== 1 ? 's' : ''}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{stats.debtorCount} debtor{stats.debtorCount !== 1 ? 's' : ''}</span>
                 </div>
             </div>
 

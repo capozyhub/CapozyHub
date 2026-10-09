@@ -829,7 +829,7 @@ export default function SmsComposePage() {
 
                             <div className="space-y-2">
                                 <Link href={`/dashboard/sms/records/${result.id}`} className="block">
-                                    <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2">
+                                    <Button className="w-full h-11 font-semibold gap-2 clay clay-green">
                                         View delivery report <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
@@ -1342,12 +1342,12 @@ export default function SmsComposePage() {
                                 className="overflow-hidden"
                             >
                                 <div className="rounded-xl border bg-muted/30 p-3">
-                                    <div className="bg-white dark:bg-zinc-900 rounded-xl px-3 pt-2 pb-3 shadow-inner">
+                                    <div className="bg-card rounded-xl px-3 pt-2 pb-3 shadow-inner">
                                         <p className="text-center text-[10px] font-bold text-muted-foreground tracking-wide mb-2">
                                             {effectiveSender}
                                         </p>
                                         {preview ? (
-                                            <div className="inline-block bg-zinc-100 dark:bg-zinc-800 text-foreground text-xs px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%] whitespace-pre-wrap break-words leading-relaxed">
+                                            <div className="inline-block bg-muted text-foreground text-xs px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%] whitespace-pre-wrap break-words leading-relaxed">
                                                 {preview}
                                             </div>
                                         ) : (
@@ -1472,7 +1472,7 @@ export default function SmsComposePage() {
                         )}
                         {callout.kind === 'credits' && (
                             <Link href="/dashboard/sms/credits">
-                                <Button size="sm" className="h-10 mt-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+                                <Button size="sm" className="h-10 mt-1 gap-1.5 clay clay-green">
                                     <Coins className="w-3.5 h-3.5" /> Buy Credits
                                 </Button>
                             </Link>
@@ -1486,7 +1486,7 @@ export default function SmsComposePage() {
                 <Button
                     onClick={openConfirm}
                     disabled={!canReview}
-                    className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold gap-2 shadow-lg shadow-emerald-600/20 disabled:shadow-none"
+                    className="w-full h-14 text-base font-bold gap-2 shadow-emerald-600/20 clay clay-green"
                 >
                     {sending
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
@@ -1551,7 +1551,7 @@ export default function SmsComposePage() {
                         <Button
                             onClick={handleSend}
                             disabled={sending || insufficient}
-                            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-10 gap-1.5 clay clay-green"
                         >
                             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : scheduleOn ? <CalendarClock className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
                             {scheduleOn ? 'Schedule' : 'Send Now'}
@@ -1653,7 +1653,7 @@ export default function SmsComposePage() {
                         <Button
                             onClick={saveTemplate}
                             disabled={savingTemplate || templateName.trim().length < 1 || preview.length < 3}
-                            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-10 gap-1.5 clay clay-green"
                         >
                             {savingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
                             Save
@@ -1678,7 +1678,7 @@ export default function SmsComposePage() {
                         <Button variant="ghost" className="h-10" onClick={() => setPendingTemplate(null)}>Keep mine</Button>
                         <Button
                             onClick={() => { if (pendingTemplate) applyTemplate(pendingTemplate) }}
-                            className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-10 gap-1.5 clay clay-green"
                         >
                             <RefreshCcw className="w-3.5 h-3.5" /> Replace
                         </Button>

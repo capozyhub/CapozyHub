@@ -62,7 +62,7 @@ function UserMiniCard({ user, onSelect }: { user: UserResult; onSelect: () => vo
     return (
         <button
             onClick={onSelect}
-            className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0"
+            className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors border-b border-border last:border-0"
         >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                 {initials}
@@ -98,7 +98,7 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
     return (
         <button
             onClick={() => onSelect()}
-            className="flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 w-36 text-left hover:border-yellow-400 dark:hover:border-yellow-500 hover:shadow-md transition-all group"
+            className="flex-shrink-0 bg-card border border-border rounded-xl p-3 w-36 text-left hover:border-yellow-400 dark:hover:border-yellow-500 hover:shadow-md transition-all group"
         >
             <div className="relative mb-2">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-white text-xs font-bold">
@@ -184,7 +184,7 @@ function AddToListPopover({
     }
 
     return (
-        <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-3 space-y-2">
+        <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card border border-border rounded-xl shadow-2xl p-3 space-y-2">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add to List</p>
             {lists.length === 0 && (
                 <p className="text-xs text-muted-foreground py-1">No lists yet. Create one below.</p>
@@ -194,13 +194,13 @@ function AddToListPopover({
                     key={list.id}
                     onClick={() => toggleMembership(list)}
                     disabled={loadingId === list.id}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/50 dark:hover:bg-muted transition-colors text-sm"
                 >
                     {loadingId === list.id
                         ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                         : isInList(list)
                         ? <Check className="w-4 h-4 text-emerald-500" />
-                        : <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600" />
+                        : <div className="w-4 h-4 rounded border border-border" />
                     }
                     <span className={cn('font-medium flex-1 text-left', isInList(list) && 'text-emerald-600 dark:text-emerald-400')}>
                         {list.name}
@@ -208,7 +208,7 @@ function AddToListPopover({
                     <span className="text-[10px] text-muted-foreground">{list.users.length}</span>
                 </button>
             ))}
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-1.5">
+            <div className="border-t border-border pt-2 space-y-1.5">
                 <p className="text-[10px] text-muted-foreground font-semibold">Create new list</p>
                 <div className="flex gap-1.5">
                     <Input
@@ -293,7 +293,7 @@ function SelectedUserCard({
             )}
 
             {/* ─── Premium User Card ─── */}
-            <div className="relative rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
+            <div className="relative rounded-2xl border border-border shadow-lg">
                 {/* Gradient accent top strip */}
                 <div className="h-1.5 w-full rounded-t-2xl bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500" />
 
@@ -348,14 +348,14 @@ function SelectedUserCard({
                     </div>
 
                     {/* Action Row */}
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-700/80">
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/80">
                         {/* Add to List button with popover */}
                         <div className="relative" ref={popoverRef}>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setShowListPicker(prev => !prev)}
-                                className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-700"
+                                className="h-8 text-xs gap-1.5 border-border"
                             >
                                 <Star className={cn('w-3.5 h-3.5', showListPicker && 'fill-yellow-400 text-yellow-500')} />
                                 Add to List
@@ -485,7 +485,7 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                                 'flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-all',
                                 activeListTab === 'frequent'
                                     ? 'bg-yellow-500 text-white border-yellow-500'
-                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-yellow-400'
+                                    : 'bg-card border-border text-muted-foreground hover:border-yellow-400'
                             )}
                         >
                             <Zap className="w-3 h-3" /> Frequent
@@ -497,8 +497,8 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                                 className={cn(
                                     'flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-all',
                                     activeListTab === list.id
-                                        ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white'
-                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-slate-400'
+                                        ? 'bg-muted text-white dark:text-foreground border-border dark:border-white'
+                                        : 'bg-card border-border text-muted-foreground hover:border-border'
                                 )}
                             >
                                 <Star className="w-3 h-3" /> {list.name}
@@ -548,14 +548,14 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                 )}
 
                 {showDropdown && results.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden max-h-80 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card rounded-xl border border-border shadow-xl overflow-hidden max-h-80 overflow-y-auto">
                         {results.map(u => (
                             <UserMiniCard key={u.id} user={u} onSelect={() => { onUserSelect(u); setQuery(''); setShowDropdown(false) }} />
                         ))}
                     </div>
                 )}
                 {showDropdown && results.length === 0 && !loading && query && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl p-4 text-center text-sm text-muted-foreground">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card rounded-xl border border-border shadow-xl p-4 text-center text-sm text-muted-foreground">
                         No users found for &quot;{query}&quot;
                     </div>
                 )}

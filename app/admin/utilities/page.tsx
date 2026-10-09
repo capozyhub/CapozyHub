@@ -236,7 +236,7 @@ function BillerBadge({ biller }: { biller: UtilityBiller }) {
     const ui = BILLER_UI[biller]
     const Icon = ui?.Icon ?? Package
     return (
-        <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap', ui?.badge ?? 'bg-slate-100 text-slate-600')}>
+        <span className={cn('inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap', ui?.badge ?? 'bg-muted text-muted-foreground')}>
             <Icon className="w-3.5 h-3.5 shrink-0" /> {billerLabel(biller)}
         </span>
     )
@@ -248,13 +248,13 @@ function StatCard({ icon, label, value, sub, accent, className }: {
     icon: React.ReactNode; label: string; value: string; sub?: React.ReactNode; accent?: string; className?: string
 }) {
     return (
-        <div className={cn('rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-w-0', className)}>
-            <div className="flex items-center gap-2 mb-2 text-slate-500 dark:text-slate-400">
+        <div className={cn('rounded-2xl border border-border bg-card p-4 shadow-sm min-w-0', className)}>
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
                 {icon}
                 <span className="text-xs font-medium truncate">{label}</span>
             </div>
-            <p className={cn('text-lg font-semibold tabular-nums truncate', accent || 'text-slate-900 dark:text-white')}>{value}</p>
-            {sub && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{sub}</div>}
+            <p className={cn('text-lg font-semibold tabular-nums truncate', accent || 'text-foreground')}>{value}</p>
+            {sub && <div className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</div>}
         </div>
     )
 }
@@ -289,12 +289,12 @@ function ToggleRow({ label, description, checked, saving, onChange }: {
     label: string; description?: string; checked: boolean; saving?: boolean; onChange: (v: boolean) => void
 }) {
     return (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
             <div className="min-w-0">
-                <Label className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-1.5">
-                    {label} {saving && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                <Label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    {label} {saving && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                 </Label>
-                {description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>}
+                {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
             </div>
             <Switch checked={checked} disabled={saving} onCheckedChange={onChange} />
         </div>
@@ -596,11 +596,11 @@ export default function AdminUtilitiesPage() {
             {/* ── Header ──────────────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <Lightbulb className="w-5 h-5 text-amber-500 shrink-0" />
                         Utility Bills
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    <p className="text-sm text-muted-foreground mt-0.5 truncate">
                         ECG, Ghana Water, DSTV, GOtv &amp; StarTimes — gates, economics &amp; orders
                     </p>
                 </div>
@@ -657,17 +657,17 @@ export default function AdminUtilitiesPage() {
                     label="Failed / Refunded"
                     value={String(stats.failed + stats.refunded)}
                     sub={`${stats.failed} failed · ${stats.refunded} refunded`}
-                    accent={(stats.failed + stats.refunded) > 0 ? 'text-amber-500' : 'text-slate-400'}
+                    accent={(stats.failed + stats.refunded) > 0 ? 'text-amber-500' : 'text-muted-foreground'}
                 />
             </div>
 
             {/* ── Orders ──────────────────────────────────────────────────── */}
             <div className="space-y-4">
                 {/* Filter bar */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-3 space-y-2.5">
+                <div className="rounded-xl border border-border bg-card shadow-sm p-3 space-y-2.5">
                     <div className="flex flex-col lg:flex-row gap-2">
                         <div className="relative flex-1 min-w-0">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search reference, account number, or name…"
                                 value={searchInput}
@@ -712,11 +712,11 @@ export default function AdminUtilitiesPage() {
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Calendar className="w-3.5 h-3.5" /> From
                         </div>
                         <Input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(0) }} className="h-8 text-xs w-auto" />
-                        <span className="text-xs text-slate-400">to</span>
+                        <span className="text-xs text-muted-foreground">to</span>
                         <Input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(0) }} className="h-8 text-xs w-auto" />
                         {filtersActive && (
                             <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={clearFilters}>
@@ -730,18 +730,18 @@ export default function AdminUtilitiesPage() {
                 {ordersLoading ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-3">
                         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading orders…</p>
+                        <p className="text-sm text-muted-foreground">Loading orders…</p>
                     </div>
                 ) : ordersError ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Could not load utility orders.</p>
+                    <div className="rounded-xl border border-dashed border-border py-16 text-center">
+                        <p className="text-sm text-muted-foreground mb-3">Could not load utility orders.</p>
                         <Button size="sm" variant="outline" onClick={loadOrders}><RefreshCw className="w-4 h-4 mr-2" /> Retry</Button>
                     </div>
                 ) : orders.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-24 text-center px-4">
-                        <Lightbulb className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-700" />
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">No utility orders yet — the feature ships dark until you enable it above.</p>
-                        {filtersActive && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Try adjusting or clearing your filters.</p>}
+                    <div className="rounded-xl border border-dashed border-border py-24 text-center px-4">
+                        <Lightbulb className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+                        <p className="text-sm font-semibold text-foreground">No utility orders yet — the feature ships dark until you enable it above.</p>
+                        {filtersActive && <p className="text-sm text-muted-foreground mt-1">Try adjusting or clearing your filters.</p>}
                     </div>
                 ) : (
                     <>
@@ -761,18 +761,18 @@ export default function AdminUtilitiesPage() {
                                             if (window.getSelection()?.toString()) return
                                             setSelectedOrder(o)
                                         }}
-                                        className="group relative flex flex-wrap md:flex-nowrap items-center gap-3 p-3 border-2 border-transparent rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:border-primary/20 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all duration-200 cursor-pointer"
+                                        className="group relative flex flex-wrap md:flex-nowrap items-center gap-3 p-3 border-2 border-transparent rounded-xl bg-card shadow-sm hover:border-primary/20 hover:bg-muted/50 dark:hover:bg-muted/40 transition-all duration-200 cursor-pointer"
                                     >
                                         <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-6 items-center gap-x-2 gap-y-3 md:gap-4 p-1">
                                             <div className="space-y-0.5">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Biller</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Biller</p>
                                                 <div className="flex items-center gap-1.5">
-                                                    <UtilityBillerLogo biller={o.biller} FallbackIcon={(BILLER_UI[o.biller]?.Icon) ?? Package} badgeClassName={BILLER_UI[o.biller]?.badge ?? 'bg-slate-100 text-slate-500'} size={24} rounded="lg" />
+                                                    <UtilityBillerLogo biller={o.biller} FallbackIcon={(BILLER_UI[o.biller]?.Icon) ?? Package} badgeClassName={BILLER_UI[o.biller]?.badge ?? 'bg-muted text-muted-foreground'} size={24} rounded="lg" />
                                                     <span className="text-[13px] md:text-sm font-medium truncate">{billerLabel(o.biller)}</span>
                                                 </div>
                                             </div>
                                             <div className="space-y-0.5 min-w-0">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Account</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Account</p>
                                                 {isUnverifiedMeterName(o) ? (
                                                     <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 truncate" title="Customer typed this meter number manually — Hubtel's ECG top-up API returns no account-holder name to confirm it against.">
                                                         Unverified — entered manually
@@ -780,10 +780,10 @@ export default function AdminUtilitiesPage() {
                                                 ) : (
                                                     <p className="text-[13px] md:text-sm font-medium truncate">{o.account_name || '—'}</p>
                                                 )}
-                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">{o.account_number}</p>
+                                                <p className="text-[11px] text-muted-foreground font-mono truncate">{o.account_number}</p>
                                             </div>
                                             <div className="space-y-0.5 min-w-0">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Purchaser</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Purchaser</p>
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <p className="font-bold text-[11px] md:text-xs truncate max-w-[100px] md:max-w-full" title={purchaserName}>
                                                         {purchaserName}
@@ -798,7 +798,7 @@ export default function AdminUtilitiesPage() {
                                                         <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">Storefront</Badge>
                                                     )}
                                                     {o.source === 'dashboard' && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200">Dashboard</Badge>
+                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-muted text-foreground/80 hover:bg-muted border-border">Dashboard</Badge>
                                                     )}
                                                     {o.shop_name && o.users?.first_name && (
                                                         <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
@@ -808,11 +808,11 @@ export default function AdminUtilitiesPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-0.5">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Status</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Status</p>
                                                 <div className="flex items-center gap-1 flex-wrap">
                                                     <span className={cn(
                                                         'inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium h-5 px-2',
-                                                        isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                                        isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground '
                                                     )}>
                                                         {isPaid ? 'Paid' : 'Unpaid'}
                                                     </span>
@@ -822,11 +822,11 @@ export default function AdminUtilitiesPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-0.5">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Time</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Time</p>
                                                 <p className="text-[11px] md:text-[12px] font-bold opacity-80">{fmtDate(o.created_at)}</p>
                                             </div>
                                             <div className="space-y-0.5 md:text-right">
-                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400">Amount</p>
+                                                <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Amount</p>
                                                 <p className="text-[13px] md:text-sm font-semibold tabular-nums">GHS {Number(o.amount).toFixed(2)}</p>
                                                 {Number(o.commission_amount) > 0 && (
                                                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">+{fmt4(o.commission_amount)} comm.</p>
@@ -873,14 +873,14 @@ export default function AdminUtilitiesPage() {
 
                         {/* Pagination */}
                         <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                                 Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
                             </p>
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" size="sm" className="h-8" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
                                     <ChevronLeft className="w-4 h-4" />
                                 </Button>
-                                <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">Page {page + 1} of {totalPages}</span>
+                                <span className="text-xs text-muted-foreground tabular-nums">Page {page + 1} of {totalPages}</span>
                                 <Button variant="outline" size="sm" className="h-8" disabled={(page + 1) * PAGE_SIZE >= total} onClick={() => setPage(p => p + 1)}>
                                     <ChevronRight className="w-4 h-4" />
                                 </Button>
@@ -902,17 +902,17 @@ export default function AdminUtilitiesPage() {
                     <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
                 </div>
             ) : settingsError ? (
-                <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-10 text-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Could not load settings.</p>
+                <div className="rounded-xl border border-dashed border-border py-10 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">Could not load settings.</p>
                     <Button size="sm" variant="outline" onClick={loadSettings}><RefreshCw className="w-4 h-4 mr-2" /> Retry</Button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* Feature gates */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-3">
+                    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-3">
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Feature gates</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Master switches &amp; per-biller availability</p>
+                            <h2 className="text-sm font-semibold text-foreground">Feature gates</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Master switches &amp; per-biller availability</p>
                         </div>
                         <ToggleRow
                             label="Utility bills enabled"
@@ -929,21 +929,21 @@ export default function AdminUtilitiesPage() {
                             onChange={(v) => handleToggle('utility_auto_fulfillment_enabled', v)}
                         />
                         <div className="pt-1 space-y-2">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Enabled billers</p>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 -mt-1">Controls which billers customers can pay, and which are eligible for auto-fulfillment.</p>
+                            <p className="text-xs font-medium text-muted-foreground">Enabled billers</p>
+                            <p className="text-[11px] text-muted-foreground -mt-1">Controls which billers customers can pay, and which are eligible for auto-fulfillment.</p>
                             {UTILITY_BILLER_KEYS.map((biller) => {
                                 const ui = BILLER_UI[biller]
                                 return (
-                                    <div key={biller} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                                    <div key={biller} className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <UtilityBillerLogo
                                                 biller={biller}
                                                 FallbackIcon={ui?.Icon ?? Package}
-                                                badgeClassName={ui?.badge ?? 'bg-slate-100 text-slate-500'}
+                                                badgeClassName={ui?.badge ?? 'bg-muted text-muted-foreground'}
                                                 size={28}
                                                 rounded="lg"
                                             />
-                                            <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{billerLabel(biller)}</span>
+                                            <span className="text-sm font-medium text-foreground truncate">{billerLabel(biller)}</span>
                                         </div>
                                         <Switch
                                             checked={!!settings.hubtel_utility_billers[biller]}
@@ -957,10 +957,10 @@ export default function AdminUtilitiesPage() {
                     </div>
 
                     {/* Surfaces */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-3 lg:self-start">
+                    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-3 lg:self-start">
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Surfaces</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Where customers can pay a bill</p>
+                            <h2 className="text-sm font-semibold text-foreground">Surfaces</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Where customers can pay a bill</p>
                         </div>
                         <ToggleRow
                             label="Storefront"
@@ -976,9 +976,9 @@ export default function AdminUtilitiesPage() {
                             saving={savingKeys.has('ussd_utility_enabled')}
                             onChange={(v) => handleToggle('ussd_utility_enabled', v)}
                         />
-                        <div className="pt-1 space-y-2 border-t border-slate-100 dark:border-slate-800 mt-1">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 pt-2">Storefront payment rail</p>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 -mt-1">
+                        <div className="pt-1 space-y-2 border-t border-border mt-1">
+                            <p className="text-xs font-medium text-muted-foreground pt-2">Storefront payment rail</p>
+                            <p className="text-[11px] text-muted-foreground -mt-1">
                                 ON: charges via Hubtel Direct Pay — no Paystack fee (bills are zero-markup, commission-only).
                                 OFF: falls back to Paystack Mobile Money — same rail as every other product, customer bears the ~2% fee.
                             </p>
@@ -993,15 +993,15 @@ export default function AdminUtilitiesPage() {
                     </div>
 
                     {/* Economics */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-4 lg:self-start">
+                    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-4 lg:self-start">
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Economics</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Partner split &amp; transaction limits</p>
+                            <h2 className="text-sm font-semibold text-foreground">Economics</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Partner split &amp; transaction limits</p>
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                Partner commission split {savingKeys.has('utility_commission_partner_percent') && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                Partner commission split {savingKeys.has('utility_commission_partner_percent') && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                             </Label>
                             <div className="relative">
                                 <Input
@@ -1012,9 +1012,9 @@ export default function AdminUtilitiesPage() {
                                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                                     className="h-9 pr-8 text-sm tabular-nums"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                                 Partner keeps {Number.isFinite(Number(percentDraft)) ? Math.min(100, Math.max(0, Number(percentDraft))) : 0}%
                                 {' · '}
                                 Platform keeps {Number.isFinite(Number(percentDraft)) ? 100 - Math.min(100, Math.max(0, Number(percentDraft))) : 100}%
@@ -1022,7 +1022,7 @@ export default function AdminUtilitiesPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-medium text-slate-500 dark:text-slate-400">Transaction limits (GHS)</Label>
+                            <Label className="text-xs font-medium text-muted-foreground">Transaction limits (GHS)</Label>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
                                     <Input
@@ -1034,7 +1034,7 @@ export default function AdminUtilitiesPage() {
                                         className="h-9 pr-10 text-sm tabular-nums"
                                         placeholder="Min"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Min</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Min</span>
                                 </div>
                                 <div className="relative">
                                     <Input
@@ -1046,23 +1046,23 @@ export default function AdminUtilitiesPage() {
                                         className="h-9 pr-10 text-sm tabular-nums"
                                         placeholder="Max"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Max</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Max</span>
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">1 ≤ min ≤ max ≤ 10,000</p>
+                            <p className="text-xs text-muted-foreground">1 ≤ min ≤ max ≤ 10,000</p>
                         </div>
                     </div>
 
                     {/* Commission Wallet */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-4 lg:col-span-3">
+                    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-4 lg:col-span-3">
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Commission Wallet</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Withdrawal fees, minimum payout &amp; internal transfers — separate from utility order settings above</p>
+                            <h2 className="text-sm font-semibold text-foreground">Commission Wallet</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Withdrawal fees, minimum payout &amp; internal transfers — separate from utility order settings above</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                    Withdrawal fee % {savingKeys.has('commission_withdrawal_fee_percent') && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                    Withdrawal fee % {savingKeys.has('commission_withdrawal_fee_percent') && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                                 </Label>
                                 <div className="relative">
                                     <Input
@@ -1073,12 +1073,12 @@ export default function AdminUtilitiesPage() {
                                         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                                         className="h-9 pr-8 text-sm tabular-nums"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                                 </div>
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                    Withdrawal flat fee (GHS) {savingKeys.has('commission_withdrawal_fee_flat') && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                    Withdrawal flat fee (GHS) {savingKeys.has('commission_withdrawal_fee_flat') && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                                 </Label>
                                 <Input
                                     type="number" min="0" step="0.01"
@@ -1090,8 +1090,8 @@ export default function AdminUtilitiesPage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                    Min withdrawal (GHS) {savingKeys.has('commission_min_withdrawal_amount') && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                    Min withdrawal (GHS) {savingKeys.has('commission_min_withdrawal_amount') && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                                 </Label>
                                 <Input
                                     type="number" min="0" step="1"
@@ -1146,8 +1146,8 @@ export default function AdminUtilitiesPage() {
 
                             <div className="space-y-5 mt-5">
                                 <div className="flex justify-between items-center gap-2 text-sm">
-                                    <span className="text-slate-500 dark:text-slate-400">Purchaser</span>
-                                    <span className="font-medium text-slate-900 dark:text-white truncate max-w-[60%] text-right">
+                                    <span className="text-muted-foreground">Purchaser</span>
+                                    <span className="font-medium text-foreground truncate max-w-[60%] text-right">
                                         {selectedOrder.users?.first_name
                                             ? `${selectedOrder.users.first_name} ${selectedOrder.users.last_name || ''}`.trim()
                                             : (selectedOrder.shop_name || 'Guest')}
@@ -1161,93 +1161,93 @@ export default function AdminUtilitiesPage() {
                                     <Badge variant="outline" className="text-xs capitalize">{selectedOrder.payment_method}</Badge>
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2 text-sm">
+                                <div className="rounded-xl border border-border p-3 space-y-2 text-sm">
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Amount</span>
-                                        <span className="font-semibold tabular-nums text-slate-900 dark:text-white">GHS {Number(selectedOrder.amount).toFixed(2)}</span>
+                                        <span className="text-muted-foreground">Amount</span>
+                                        <span className="font-semibold tabular-nums text-foreground">GHS {Number(selectedOrder.amount).toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Hubtel commission</span>
+                                        <span className="text-muted-foreground">Hubtel commission</span>
                                         <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">GHS {fmt4(selectedOrder.commission_amount)}</span>
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Partner share</span>
-                                        <span className="font-medium tabular-nums text-slate-700 dark:text-slate-300">GHS {fmt4(selectedOrder.partner_commission_amount)}</span>
+                                        <span className="text-muted-foreground">Partner share</span>
+                                        <span className="font-medium tabular-nums text-foreground/80 ">GHS {fmt4(selectedOrder.partner_commission_amount)}</span>
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Commission credited</span>
-                                        <span className="font-medium text-slate-700 dark:text-slate-300 text-xs">{fmtDate(selectedOrder.commission_credited_at)}</span>
+                                        <span className="text-muted-foreground">Commission credited</span>
+                                        <span className="font-medium text-foreground/80 text-xs">{fmtDate(selectedOrder.commission_credited_at)}</span>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2 text-sm">
+                                <div className="rounded-xl border border-border p-3 space-y-2 text-sm">
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Account name</span>
+                                        <span className="text-muted-foreground">Account name</span>
                                         {isUnverifiedMeterName(selectedOrder) ? (
                                             <span className="font-semibold text-amber-600 dark:text-amber-400 truncate max-w-[60%] text-right" title="Customer typed this meter number manually — Hubtel's ECG top-up API returns no account-holder name to confirm it against.">
                                                 Unverified — entered manually
                                             </span>
                                         ) : (
-                                            <span className="font-medium text-slate-900 dark:text-white truncate max-w-[60%] text-right">{selectedOrder.account_name || '—'}</span>
+                                            <span className="font-medium text-foreground truncate max-w-[60%] text-right">{selectedOrder.account_name || '—'}</span>
                                         )}
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Account number</span>
-                                        <span className="font-mono font-medium text-slate-900 dark:text-white flex items-center gap-1">
+                                        <span className="text-muted-foreground">Account number</span>
+                                        <span className="font-mono font-medium text-foreground flex items-center gap-1">
                                             {selectedOrder.account_number}
                                             <button
                                                 onClick={() => { navigator.clipboard.writeText(selectedOrder.account_number); toast.success('Copied') }}
-                                                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                                className="text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground"
                                                 aria-label="Copy account number"
                                             ><Copy className="w-3.5 h-3.5" /></button>
                                         </span>
                                     </div>
                                     {selectedOrder.destination_phone && (
                                         <div className="flex justify-between items-center gap-2">
-                                            <span className="text-slate-500 dark:text-slate-400">Destination phone</span>
-                                            <span className="font-mono font-medium text-slate-900 dark:text-white">{selectedOrder.destination_phone}</span>
+                                            <span className="text-muted-foreground">Destination phone</span>
+                                            <span className="font-mono font-medium text-foreground">{selectedOrder.destination_phone}</span>
                                         </div>
                                     )}
                                     {selectedOrder.customer_email && (
                                         <div className="flex justify-between items-center gap-2">
-                                            <span className="text-slate-500 dark:text-slate-400">Email</span>
-                                            <span className="font-medium text-slate-900 dark:text-white truncate max-w-[60%] text-right">{selectedOrder.customer_email}</span>
+                                            <span className="text-muted-foreground">Email</span>
+                                            <span className="font-medium text-foreground truncate max-w-[60%] text-right">{selectedOrder.customer_email}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Payment status</span>
+                                        <span className="text-muted-foreground">Payment status</span>
                                         <span className={cn(
                                             'inline-flex items-center rounded-md text-[11px] font-medium h-5 px-2 capitalize',
                                             selectedOrder.payment_status === 'paid'
                                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                                : 'bg-muted text-muted-foreground '
                                         )}>
                                             {selectedOrder.payment_status}
                                         </span>
                                     </div>
                                     {selectedOrder.payment_reference && (
                                         <div className="flex justify-between items-center gap-2">
-                                            <span className="text-slate-500 dark:text-slate-400">Payment reference</span>
-                                            <span className="font-mono text-xs text-slate-900 dark:text-white truncate max-w-[60%] text-right">{selectedOrder.payment_reference}</span>
+                                            <span className="text-muted-foreground">Payment reference</span>
+                                            <span className="font-mono text-xs text-foreground truncate max-w-[60%] text-right">{selectedOrder.payment_reference}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Fulfillment attempts</span>
-                                        <span className="font-medium text-slate-900 dark:text-white">{selectedOrder.fulfillment_attempts ?? 0}</span>
+                                        <span className="text-muted-foreground">Fulfillment attempts</span>
+                                        <span className="font-medium text-foreground">{selectedOrder.fulfillment_attempts ?? 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Created</span>
-                                        <span className="font-medium text-slate-900 dark:text-white text-xs">{fmtDate(selectedOrder.created_at)}</span>
+                                        <span className="text-muted-foreground">Created</span>
+                                        <span className="font-medium text-foreground text-xs">{fmtDate(selectedOrder.created_at)}</span>
                                     </div>
                                     <div className="flex justify-between items-center gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400">Updated</span>
-                                        <span className="font-medium text-slate-900 dark:text-white text-xs">{fmtDate(selectedOrder.updated_at)}</span>
+                                        <span className="text-muted-foreground">Updated</span>
+                                        <span className="font-medium text-foreground text-xs">{fmtDate(selectedOrder.updated_at)}</span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-xs uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider mb-2">Fulfillment metadata</p>
-                                    <pre className="text-[11px] leading-relaxed font-mono bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-lg p-3 overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-slate-700 dark:text-slate-300">
+                                    <p className="text-xs uppercase font-bold text-muted-foreground tracking-wider mb-2">Fulfillment metadata</p>
+                                    <pre className="text-[11px] leading-relaxed font-mono bg-muted/50 border border-border rounded-lg p-3 overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-foreground/80 ">
                                         {selectedOrder.fulfillment_metadata ? JSON.stringify(selectedOrder.fulfillment_metadata, null, 2) : '—'}
                                     </pre>
                                 </div>

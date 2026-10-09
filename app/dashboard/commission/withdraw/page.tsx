@@ -93,7 +93,7 @@ export default function CommissionWithdrawPage() {
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
 
     return (
-        <div className="p-4 md:p-6 max-w-md mx-auto space-y-4">
+        <div className="max-w-xl space-y-5">
             <Link href="/dashboard/commission" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="w-4 h-4" /> Back to Commission Wallet
             </Link>

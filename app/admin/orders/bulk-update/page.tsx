@@ -438,7 +438,7 @@ export default function BulkOrderUpdatePage() {
                                 <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold" disabled={isUpdating}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Processing
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 bg-green-600 hover:bg-green-700 font-bold" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-bold clay clay-green" disabled={isUpdating}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-bold" disabled={isUpdating}>

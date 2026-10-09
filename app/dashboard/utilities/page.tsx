@@ -316,7 +316,7 @@ export default function UtilitiesPage() {
                         </div>
                     </div>
                     {config && !featureOn && !configLoading && (
-                        <span className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <span className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground ">
                             Coming soon
                         </span>
                     )}

@@ -26,24 +26,24 @@ export function GrowthPanel({ stats, counts }: { stats: AdminStats | null; count
 
             <div className="grid grid-cols-3 gap-2.5 mb-4">
                 <div className={cn(mutedSurface, 'p-3')}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">New · 7d</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">New · 7d</p>
+                    <p className="text-lg font-bold text-foreground flex items-center gap-1">
                         <UserPlus className="w-3.5 h-3.5 text-emerald-500" />{stats.newUsers7d}
                     </p>
                 </div>
                 <div className={cn(mutedSurface, 'p-3')}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">New · 30d</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white">{stats.newUsers30d}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">New · 30d</p>
+                    <p className="text-lg font-bold text-foreground">{stats.newUsers30d}</p>
                 </div>
                 <div className={cn(mutedSurface, 'p-3')}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expiring</p>
-                    <p className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Expiring</p>
+                    <p className="text-lg font-bold text-foreground flex items-center gap-1">
                         <Crown className="w-3.5 h-3.5 text-amber-500" />{counts.expiringAgents}
                     </p>
                 </div>
             </div>
 
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">Role mix</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Role mix</p>
             <div className="flex h-2.5 rounded-full overflow-hidden mb-3">
                 {roles.map((r, i) => (
                     <div key={r.role} style={{ width: `${(r.count / totalRoles) * 100}%`, backgroundColor: chartPalette[i % chartPalette.length] }} />
@@ -51,7 +51,7 @@ export function GrowthPanel({ stats, counts }: { stats: AdminStats | null; count
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-auto">
                 {roles.map((r, i) => (
-                    <span key={r.role} className="inline-flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span key={r.role} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground ">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: chartPalette[i % chartPalette.length] }} />
                         <span className="capitalize">{r.role.replace('-', ' ')}</span>
                         <span className="font-bold">{r.count}</span>

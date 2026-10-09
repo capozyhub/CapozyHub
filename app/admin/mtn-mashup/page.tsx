@@ -247,7 +247,7 @@ export default function AdminMtnMashupPage() {
                                     <CardContent className="p-4 space-y-2">
                                         <div className="flex items-start justify-between">
                                             <p className="font-bold">{pkg.size}</p>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${pkg.is_available ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${pkg.is_available ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                                                 {pkg.is_available ? 'Available' : 'Hidden'}
                                             </span>
                                         </div>
@@ -307,7 +307,7 @@ export default function AdminMtnMashupPage() {
                                 <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold" disabled={isBulkUpdating}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Processing
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 bg-green-600 hover:bg-green-700 font-bold" disabled={isBulkUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-bold clay clay-green" disabled={isBulkUpdating}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-bold" disabled={isBulkUpdating}>

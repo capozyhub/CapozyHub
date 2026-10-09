@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
                 <p className="text-sm text-muted-foreground">{error}</p>
                 <button
                     onClick={refresh}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white text-sm hover:bg-zinc-800 transition-colors"
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-card text-white text-sm hover:bg-muted transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" /> Retry
                 </button>
@@ -48,8 +48,8 @@ export default function AdminDashboardPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">Admin Dashboard</h1>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Platform performance &amp; operations at a glance.</p>
+                    <h1 className="text-2xl font-black tracking-tight text-foreground">Admin Dashboard</h1>
+                    <p className="text-sm text-muted-foreground">Platform performance &amp; operations at a glance.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {actions > 0 && (

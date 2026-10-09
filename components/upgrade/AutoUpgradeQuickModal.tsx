@@ -139,13 +139,13 @@ export default function AutoUpgradeQuickModal({
                 'relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden',
                 isDealer
                     ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
-                    : 'bg-white dark:bg-gray-900 border border-yellow-200 dark:border-yellow-900/40'
+                    : 'bg-card border border-yellow-200 dark:border-yellow-900/40'
             )}>
                 {/* Header */}
                 <div className={cn('px-5 pt-5 pb-4 bg-gradient-to-r', accentGradient)}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-full bg-card/20 flex items-center justify-center">
                                 {mode === 'manage'
                                     ? <ZapOff className="w-4 h-4 text-white" />
                                     : <Zap className="w-4 h-4 text-white fill-white/40" />
@@ -164,7 +164,7 @@ export default function AutoUpgradeQuickModal({
                         </div>
                         <button
                             onClick={onClose}
-                            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-colors"
                         >
                             <X className="w-3.5 h-3.5 text-white" />
                         </button>
@@ -180,7 +180,7 @@ export default function AutoUpgradeQuickModal({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Icon className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-violet-100' : 'text-gray-800 dark:text-gray-100')}>
+                                        <span className={cn('text-sm font-bold', isDealer ? 'text-violet-100' : 'text-foreground')}>
                                             Active Plan
                                         </span>
                                     </div>
@@ -198,11 +198,11 @@ export default function AutoUpgradeQuickModal({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Wallet className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-gray-700 dark:text-gray-300')}>
+                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
                                             Renewal Cost
                                         </span>
                                     </div>
-                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-gray-900 dark:text-white')}>
+                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
                                         GHS {prices[currentPlan as Plan] ? prices[currentPlan as Plan].toFixed(2) : price.toFixed(2)}
                                     </span>
                                 </div>
@@ -211,11 +211,11 @@ export default function AutoUpgradeQuickModal({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Calendar className={cn('w-4 h-4', accentText)} />
-                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-gray-700 dark:text-gray-300')}>
+                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
                                                 Next Renewal
                                             </span>
                                         </div>
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-gray-900 dark:text-white')}>
+                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
                                             {expiryFormatted}
                                         </span>
                                     </div>
@@ -263,7 +263,7 @@ export default function AutoUpgradeQuickModal({
                     {/* ENABLE MODE — plan picker + confirm */}
                     {mode === 'enable' && (
                         <>
-                            <p className={cn('text-sm font-medium', isDealer ? 'text-violet-200' : 'text-gray-600 dark:text-gray-400')}>
+                            <p className={cn('text-sm font-medium', isDealer ? 'text-violet-200' : 'text-muted-foreground')}>
                                 Hi <strong>{firstName}</strong>! Choose which plan to auto-renew when your membership expires.
                             </p>
 
@@ -277,8 +277,8 @@ export default function AutoUpgradeQuickModal({
                                             className={cn(
                                                 'rounded-xl py-2.5 text-xs font-bold border-2 transition-all',
                                                 selectedPlan === p.id
-                                                    ? 'border-brand-500 bg-yellow-400/20 text-gray-900 dark:text-white'
-                                                    : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-yellow-300'
+                                                    ? 'border-brand-500 bg-yellow-400/20 text-foreground'
+                                                    : 'border-border text-muted-foreground hover:border-yellow-300'
                                             )}
                                         >
                                             {p.label}
@@ -292,11 +292,11 @@ export default function AutoUpgradeQuickModal({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Wallet className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-gray-700 dark:text-gray-300')}>
+                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
                                             Renewal Amount
                                         </span>
                                     </div>
-                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-gray-900 dark:text-white')}>
+                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
                                         GHS {price.toFixed(2)}
                                     </span>
                                 </div>
@@ -304,11 +304,11 @@ export default function AutoUpgradeQuickModal({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Calendar className={cn('w-4 h-4', accentText)} />
-                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-gray-700 dark:text-gray-300')}>
+                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
                                                 Auto-renews on
                                             </span>
                                         </div>
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-gray-900 dark:text-white')}>
+                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
                                             {expiryFormatted}
                                         </span>
                                     </div>

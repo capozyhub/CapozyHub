@@ -46,7 +46,7 @@ export function CtaFieldGroup({ index, label, url, onLabel, onUrl, savedButtons 
     }
 
     return (
-        <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+        <div className="space-y-2 rounded-xl border border-border p-3">
             <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-medium text-muted-foreground">
                     Button {index}{index === 2 ? ' (optional)' : ''}
@@ -80,7 +80,7 @@ export function CtaFieldGroup({ index, label, url, onLabel, onUrl, savedButtons 
                             const b = savedButtons[Number(e.target.value)]
                             if (b) { onLabel(b.label); onUrl(b.url) }
                         }}
-                        className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-foreground"
+                        className="w-full h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground"
                     >
                         <option value="" disabled>Pick a saved button…</option>
                         {savedButtons.map((b, i) => (

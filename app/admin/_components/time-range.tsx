@@ -11,7 +11,7 @@ const OPTIONS: { value: DashRange; label: string }[] = [
 
 export function TimeRange({ value, onChange }: { value: DashRange; onChange: (r: DashRange) => void }) {
     return (
-        <div className="inline-flex items-center gap-1 rounded-full border border-zinc-200/70 dark:border-white/10 bg-zinc-100 dark:bg-white/5 p-1">
+        <div className="inline-flex items-center gap-1 rounded-full border border-border/70 dark:border-white/10 bg-muted dark:bg-card/5 p-1">
             {OPTIONS.map(o => (
                 <button
                     key={o.value}
@@ -19,8 +19,8 @@ export function TimeRange({ value, onChange }: { value: DashRange; onChange: (r:
                     className={cn(
                         'px-3 py-1 text-xs font-bold rounded-full transition-colors',
                         value === o.value
-                            ? 'bg-white dark:bg-white/10 text-zinc-900 dark:text-white shadow-sm'
-                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                            ? 'bg-card dark:bg-card/10 text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground dark:hover:text-white'
                     )}
                 >
                     {o.label}

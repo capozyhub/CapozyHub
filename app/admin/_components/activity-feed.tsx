@@ -33,7 +33,7 @@ export function ActivityFeed({ items, isLoading }: { items: ActivityItem[]; isLo
                     {[...Array(5)].map((_, i) => <div key={i} className={cn(mutedSurface, 'h-12 animate-pulse')} />)}
                 </div>
             ) : items.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">No recent activity</div>
+                <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">No recent activity</div>
             ) : (
                 <ul className="space-y-1.5 overflow-y-auto max-h-[340px] pr-1">
                     {items.map(item => {
@@ -45,14 +45,14 @@ export function ActivityFeed({ items, isLoading }: { items: ActivityItem[]; isLo
                                     <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{item.label}</p>
-                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
+                                    <p className="text-[11px] text-muted-foreground">
                                         <span className="capitalize">{item.kind}</span>
                                         {item.status ? ` · ${item.status}` : ''} · {timeAgo(item.at)}
                                     </p>
                                 </div>
                                 {item.amount != null && (
-                                    <span className="text-sm font-bold text-zinc-900 dark:text-white whitespace-nowrap">{formatCurrency(item.amount)}</span>
+                                    <span className="text-sm font-bold text-foreground whitespace-nowrap">{formatCurrency(item.amount)}</span>
                                 )}
                             </li>
                         )

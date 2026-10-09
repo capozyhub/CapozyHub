@@ -472,32 +472,31 @@ export default function MyOrdersPage() {
     }
 
     return (
-        <div className="space-y-6 pb-8">
+        <div className="space-y-5">
             {/* Header */}
-            <div className="text-center space-y-1 relative">
-                <h1 className="text-2xl font-bold">My Order History</h1>
-                <p className="text-sm text-muted-foreground">View and manage your order transactions</p>
-
+            <div>
+                <h1 className="font-display text-2xl font-semibold tracking-tight">Order history</h1>
+                <p className="text-sm text-muted-foreground">Track, retry and complain about your orders.</p>
             </div>
 
-            {/* Summary Stats - Yellow/Gold Theme */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="bg-[#1a1a1a] rounded-xl p-3 sm:p-4 text-center text-white">
-                    <p className="text-base sm:text-lg font-bold">{stats.totalOrders}</p>
-                    <p className="text-[10px] sm:text-xs text-gray-400">Total Orders</p>
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3">
+                <div className="neu-night rounded-2xl p-3 text-white sm:p-4">
+                    <p className="text-xs text-white/60">Orders</p>
+                    <p className="mt-1 font-display text-lg font-bold sm:text-2xl">{stats.totalOrders}</p>
                 </div>
-                <div className="bg-brand-500 rounded-xl p-3 sm:p-4 text-center text-black">
-                    <p className="text-base sm:text-lg font-bold">{formatAmount(stats.totalAmount)}</p>
-                    <p className="text-[10px] sm:text-xs text-black/70">Total Amount</p>
+                <div className="clay-gold rounded-2xl p-3 sm:p-4">
+                    <p className="text-xs text-black/70">Spent</p>
+                    <p className="mt-1 truncate font-display text-lg font-bold sm:text-2xl">{formatAmount(stats.totalAmount)}</p>
                 </div>
-                <div className="bg-[#1a1a1a] rounded-xl p-3 sm:p-4 text-center text-white">
-                    <p className="text-base sm:text-lg font-bold">{stats.totalData} GB</p>
-                    <p className="text-[10px] sm:text-xs text-gray-400">Total Data</p>
+                <div className="neu-night rounded-2xl p-3 text-white sm:p-4">
+                    <p className="text-xs text-white/60">Data</p>
+                    <p className="mt-1 font-display text-lg font-bold sm:text-2xl">{stats.totalData} GB</p>
                 </div>
             </div>
 
             {/* Status filter cards — 3 per row; tap to filter, tap the active one to clear */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
                 {ORDER_STATUSES.map((s) => {
                     const cfg = STATUS_CONFIG[s]
                     const Icon = cfg.Icon
@@ -507,10 +506,10 @@ export default function MyOrdersPage() {
                             key={s}
                             onClick={() => setStatusFilter(active ? 'All' : s)}
                             className={cn(
-                                'rounded-xl border p-3 text-left transition-all active:scale-95',
+                                'rounded-2xl p-3 text-left transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                                 active
-                                    ? cn(cfg.cardBg, 'ring-2 ring-foreground/20 border-transparent')
-                                    : 'bg-card border-border hover:border-muted-foreground/30'
+                                    ? 'well ring-2 ring-foreground/20'
+                                    : 'neu-raised-sm neu-press'
                             )}
                         >
                             <Icon className={cn('w-4 h-4 mb-1.5', cfg.iconColor)} />
@@ -522,14 +521,14 @@ export default function MyOrdersPage() {
             </div>
 
             {/* Time Period Filters — All in one row, compact/abbreviated to fit 6 on mobile */}
-            <div className="grid grid-cols-6 gap-1 sm:gap-2">
+            <div className="grid grid-cols-6 gap-2">
                 {([['All', 'All'], ['Today', 'Today'], ['Yesterday', 'Yest.'], ['This Week', 'Week'], ['This Month', 'Month']] as const).map(([value, label]) => (
                     <button
                         key={value}
                         onClick={() => setTimePeriod(value)}
-                        className={`px-1 py-2 text-[10px] sm:text-xs rounded-lg border transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === value
-                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-brand-500 dark:text-black dark:border-brand-500'
-                            : 'bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-500'
+                        className={`px-1 py-2 text-[11px] sm:text-xs font-semibold rounded-xl transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === value
+                            ? 'clay-gold'
+                            : 'neu-raised-sm neu-press text-muted-foreground'
                             }`}
                     >
                         {label}
@@ -537,9 +536,9 @@ export default function MyOrdersPage() {
                 ))}
                 <button
                     onClick={() => setIsCustomDialogOpen(true)}
-                    className={`px-1 py-2 text-[10px] sm:text-xs rounded-lg border transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === 'Custom'
-                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] dark:bg-brand-500 dark:text-black dark:border-brand-500'
-                        : 'bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-500'
+                    className={`px-1 py-2 text-[11px] sm:text-xs font-semibold rounded-xl transition-all whitespace-nowrap overflow-hidden text-ellipsis ${timePeriod === 'Custom'
+                        ? 'clay-gold'
+                        : 'neu-raised-sm neu-press text-muted-foreground'
                         }`}
                 >
                     {timePeriod === 'Custom' && customStart && customEnd
@@ -568,14 +567,14 @@ export default function MyOrdersPage() {
                 </div>
 
                 {/* Category Segment Filter */}
-                <div className="flex bg-gray-100 dark:bg-zinc-800 rounded-xl p-1 gap-1">
+                <div className="well flex gap-1 rounded-2xl p-1">
                     {([['All', 'All'], ['data', 'Data'], ['mtn_mashup', 'MTN Mashup']] as const).map(([val, label]) => (
                         <button
                             key={val}
                             onClick={() => setCategoryFilter(val)}
-                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${
+                            className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-150 ${
                                 categoryFilter === val
-                                    ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
+                                    ? 'clay-gold'
                                     : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
@@ -621,15 +620,15 @@ export default function MyOrdersPage() {
             </div>
 
             {/* Order Cards */}
-            <div id="orders-table" className="space-y-4">
+            <div id="orders-table" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                 {isLoading ? (
-                    <Card className="shadow-md dark:shadow-gray-900/50">
+                    <Card className="sm:col-span-2 2xl:col-span-3">
                         <CardContent className="py-12 text-center">
                             <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin" />
                         </CardContent>
                     </Card>
                 ) : orders.length === 0 ? (
-                    <Card className="shadow-md dark:shadow-gray-900/50">
+                    <Card className="sm:col-span-2 2xl:col-span-3">
                         <CardContent className="py-12 text-center">
                             <ShoppingCart className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
                             <p className="text-muted-foreground">No orders found</p>
@@ -637,7 +636,7 @@ export default function MyOrdersPage() {
                     </Card>
                 ) : (
                     orders.map((order) => (
-                        <Card key={order.id} className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow dark:shadow-gray-900/50 dark:hover:shadow-gray-900/70">
+                        <Card key={order.id} className="overflow-hidden">
                             <CardContent className="p-4 space-y-4">
                                 {/* Header Row */}
                                 <div className="flex items-start justify-between">
@@ -669,7 +668,7 @@ export default function MyOrdersPage() {
                                 </div>
 
                                 {/* Details */}
-                                <div className="space-y-2 text-sm border-t border-b py-3">
+                                <div className="space-y-2 border-y border-border/60 py-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Order Date:</span>
                                         <span className="font-medium">{formatOrderDate(order.created_at ?? '')}</span>
@@ -691,17 +690,17 @@ export default function MyOrdersPage() {
                                             "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide",
                                             order.source === 'api'
                                                 ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
-                                                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                                : "bg-muted text-muted-foreground"
                                         )}>
                                             {order.source === 'api' ? 'API' : 'Web'}
                                         </span>
-                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{order.reference_code}</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">{order.reference_code}</span>
                                     </div>
                                 )}
 
                                 {/* Footer - Show complain button for orders within 24 hours */}
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">{order.status}</span>
+                                    <span className="text-xs capitalize text-muted-foreground">{order.status}</span>
                                     {/* Action Area */}
                                     {orderThreads[order.id] || (order.complaints && order.complaints.length > 0) ? (
                                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800">

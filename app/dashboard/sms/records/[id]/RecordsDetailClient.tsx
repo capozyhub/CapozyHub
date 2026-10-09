@@ -222,7 +222,7 @@ export default function RecordsDetailClient({ campaignId }: { campaignId: string
                             <ArrowLeft className="w-4 h-4" /> Back to Records
                         </Button>
                     </Link>
-                    <Button onClick={fetchDetail} className="gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Button onClick={fetchDetail} className="gap-2 h-10 clay clay-green">
                         <RefreshCcw className="w-4 h-4" /> Retry
                     </Button>
                 </div>
@@ -274,7 +274,7 @@ export default function RecordsDetailClient({ campaignId }: { campaignId: string
                         size="sm"
                         onClick={handleExport}
                         disabled={exporting || totalMessages === 0}
-                        className="gap-1.5 h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        className="gap-1.5 h-10 font-semibold clay clay-green"
                     >
                         {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                         {exporting ? 'Exporting…' : 'Export CSV'}

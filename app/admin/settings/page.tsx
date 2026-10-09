@@ -38,16 +38,16 @@ function SettingsPanel({ title, description, icon: Icon, children }: {
     children: React.ReactNode
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-            <div className="flex items-start gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="flex items-start gap-3 px-5 py-4 border-b border-border">
                 {Icon && (
-                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                     </div>
                 )}
                 <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">{title}</p>
-                    {description && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>}
+                    <p className="text-sm font-bold text-foreground">{title}</p>
+                    {description && <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>}
                 </div>
             </div>
             <div className="p-5 space-y-4">{children}</div>
@@ -58,9 +58,9 @@ function SettingsPanel({ title, description, icon: Icon, children }: {
 function SettingField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <Label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{label}</Label>
+            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{label}</Label>
             {children}
-            {hint && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{hint}</p>}
+            {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
         </div>
     )
 }
@@ -83,18 +83,18 @@ function ToggleRow({
                 ? color === 'emerald'
                     ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'
                     : 'bg-violet-50/60 dark:bg-violet-500/5 border-violet-200/80 dark:border-violet-500/20'
-                : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/60'
+                : 'bg-muted/50 dark:bg-muted/30 border-border dark:border-border/60'
         )}>
             <div className="min-w-0 mr-3 flex-1">
                 <p className={cn(
                     'font-semibold',
                     compact ? 'text-xs' : 'text-sm',
                     checked
-                        ? color === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                        : 'text-slate-500 dark:text-slate-400'
+                        ? color === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+                        : 'text-muted-foreground'
                 )}>{label}</p>
                 {description && (
-                    <p className={cn('text-slate-400 dark:text-slate-500 leading-tight', compact ? 'text-[10px] mt-0.5' : 'text-xs mt-0.5')}>
+                    <p className={cn('text-muted-foreground leading-tight', compact ? 'text-[10px] mt-0.5' : 'text-xs mt-0.5')}>
                         {description}
                     </p>
                 )}
@@ -535,8 +535,8 @@ export default function AdminSettingsPage() {
                         <Settings className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">System Settings</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Configure detailed platform parameters</p>
+                        <h1 className="text-xl font-black text-foreground tracking-tight">System Settings</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Configure detailed platform parameters</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -675,7 +675,7 @@ export default function AdminSettingsPage() {
                             color="emerald"
                         />
                         <div className="pt-2">
-                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
                                 Max profit per registration (GHS) — saved separately from the fields above
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -764,15 +764,15 @@ export default function AdminSettingsPage() {
                             {landingDataPackages.map((pkg, i) => (
                                 <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Network</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Network</Label>}
                                         <Input placeholder="e.g. MTN" value={pkg.network} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], network: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Volume</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Volume</Label>}
                                         <Input placeholder="e.g. 1GB" value={pkg.volume} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], volume: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Price (GHS)</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Price (GHS)</Label>}
                                         <Input placeholder="e.g. 4.30" value={pkg.price} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], price: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setLandingDataPackages(landingDataPackages.filter((_, idx) => idx !== i))}>
@@ -789,9 +789,9 @@ export default function AdminSettingsPage() {
                     <SettingsPanel title="Agent Membership Plans" description="Pricing cards shown on the landing page. Key must be unique (e.g. 3d, 14d, 30d, permanent)." icon={Star}>
                         <div className="space-y-4">
                             {landingAgentPlans.map((plan, i) => (
-                                <div key={i} className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
+                                <div key={i} className="p-3 rounded-xl border border-border bg-muted/50 dark:bg-muted/30 space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Plan {i + 1}</p>
+                                        <p className="text-xs font-semibold text-muted-foreground">Plan {i + 1}</p>
                                         <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-7 w-7" onClick={() => setLandingAgentPlans(landingAgentPlans.filter((_, idx) => idx !== i))}>
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
@@ -815,9 +815,9 @@ export default function AdminSettingsPage() {
                     <SettingsPanel title="Customer Testimonials" description="Reviews shown on the landing page. Minimum 3 required to display the section. Maximum 6 shown." icon={Users}>
                         <div className="space-y-4">
                             {landingTestimonials.map((t, i) => (
-                                <div key={i} className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
+                                <div key={i} className="p-3 rounded-xl border border-border bg-muted/50 dark:bg-muted/30 space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Review {i + 1}</p>
+                                        <p className="text-xs font-semibold text-muted-foreground">Review {i + 1}</p>
                                         <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-7 w-7" onClick={() => setLandingTestimonials(landingTestimonials.filter((_, idx) => idx !== i))}>
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
@@ -845,7 +845,7 @@ export default function AdminSettingsPage() {
                         icon={Wallet}
                     >
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 flex-1">
+                            <p className="text-sm text-muted-foreground flex-1">
                                 Claim review, transaction matching, and crediting live on the MoMo Claims page so they stay close to the payment records.
                             </p>
                             <Link href="/admin/momo-claims">

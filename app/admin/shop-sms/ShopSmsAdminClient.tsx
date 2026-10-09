@@ -465,7 +465,7 @@ export default function ShopSmsAdminClient() {
                             />
                         </div>
 
-                        <Button onClick={saveSettings} disabled={savingSettings} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                        <Button onClick={saveSettings} disabled={savingSettings} className="w-full gap-2 font-semibold clay clay-green">
                             {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             Save Settings
                         </Button>
@@ -561,7 +561,7 @@ export default function ShopSmsAdminClient() {
                                 size="sm"
                                 disabled={savingBundle === (bundleForm.id || 'new') || !bundleForm.name || !bundleForm.credits || !bundleForm.price}
                                 onClick={submitBundleForm}
-                                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                className="gap-1.5 font-semibold clay clay-green"
                             >
                                 {savingBundle === (bundleForm.id || 'new') ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : bundleForm.id ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                                 {bundleForm.id ? 'Save Changes' : 'Add Tier'}

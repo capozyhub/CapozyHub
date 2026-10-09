@@ -183,7 +183,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
         <span className={cn(
             'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium uppercase border whitespace-nowrap',
-            STATUS_STYLES[status] || 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+            STATUS_STYLES[status] || 'bg-muted text-muted-foreground border-border ',
         )}>
             {icons[status]} {status}
         </span>
@@ -286,10 +286,10 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
         <div
             onClick={selectionMode ? () => onToggleSelect?.(order) : undefined}
             className={cn(
-                'rounded-2xl border bg-white dark:bg-slate-900 p-4 shadow-sm transition-all',
+                'rounded-2xl border bg-card p-4 shadow-sm transition-all',
                 selectionMode && 'cursor-pointer select-none active:scale-[0.99]',
                 selected ? 'border-emerald-400 ring-2 ring-emerald-400/40 dark:border-emerald-500'
-                    : 'border-slate-200 dark:border-slate-800',
+                    : 'border-border',
             )}
         >
             {/* Header */}
@@ -297,26 +297,26 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
                 <div className="flex items-center gap-2.5 min-w-0">
                     {selectionMode && (
                         <span className={cn('w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
-                            selected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600')}>
+                            selected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-border')}>
                             {selected && <Check className="w-3.5 h-3.5" />}
                         </span>
                     )}
-                    <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
                         <NetworkLogo id={order.network} />
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            <span className="text-sm font-semibold text-foreground truncate">
                                 {order.network} {order.type === 'mashup' ? 'Mashup' : 'Airtime'}
                             </span>
                             <StatusBadge status={order.status} />
                         </div>
-                        <p className="font-mono text-xs text-slate-500 dark:text-slate-400 truncate">{order.reference_code}</p>
+                        <p className="font-mono text-xs text-muted-foreground truncate">{order.reference_code}</p>
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Total paid</p>
-                    <p className="text-base font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total paid</p>
+                    <p className="text-base font-bold tabular-nums text-foreground leading-tight">
                         {isFailed ? '—' : `GHS ${order.total_paid.toFixed(2)}`}
                     </p>
                 </div>
@@ -331,7 +331,7 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
                         </Badge>
                     )}
                     {order.bundle_preference && (
-                        <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-200 dark:text-slate-300 dark:border-slate-700">
+                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border ">
                             {order.bundle_preference === 'balanced' ? 'Balanced' : order.bundle_preference === 'data' ? 'Data' : 'Voice'}
                         </Badge>
                     )}
@@ -350,20 +350,20 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
 
             {/* Customer / Beneficiary */}
             <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-2.5 min-w-0">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Initiator</p>
-                    <p className="font-medium text-slate-900 dark:text-white truncate">{order.users?.first_name} {order.users?.last_name}</p>
-                    <p className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+                <div className="rounded-lg border border-border p-2.5 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-0.5">Initiator</p>
+                    <p className="font-medium text-foreground truncate">{order.users?.first_name} {order.users?.last_name}</p>
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
                         <Mail className="w-3 h-3 shrink-0" /> <span className="truncate">{order.users?.email}</span>
                     </p>
                 </div>
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-2.5 min-w-0">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Beneficiary</p>
+                <div className="rounded-lg border border-border p-2.5 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-0.5">Beneficiary</p>
                     <div className="flex items-center justify-between gap-1 min-w-0">
-                        <span className="font-mono font-medium text-slate-900 dark:text-white truncate">{order.beneficiary_phone}</span>
+                        <span className="font-mono font-medium text-foreground truncate">{order.beneficiary_phone}</span>
                         <button
                             onClick={() => { navigator.clipboard.writeText(normalizeWhatsAppNumber(order.beneficiary_phone)); toast.success('Copied') }}
-                            className="shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                            className="shrink-0 text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground transition-colors"
                             aria-label="Copy beneficiary number"
                         >
                             <Copy className="w-3.5 h-3.5" />
@@ -373,23 +373,23 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
             </div>
 
             {/* Earnings strip */}
-            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-3 text-xs rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
-                <span className="text-slate-500 dark:text-slate-400">Net <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{order.airtime_amount.toFixed(2)}</span></span>
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-slate-500 dark:text-slate-400">Admin <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
-                {commission > 0 && (<><span className="text-slate-300 dark:text-slate-700">·</span>
-                    <span className="text-slate-500 dark:text-slate-400">Comm <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{commission.toFixed(2)}</span></span></>)}
-                {order.shop_id && (<><span className="text-slate-300 dark:text-slate-700">·</span>
-                    <span className="text-slate-500 dark:text-slate-400">Shop <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-slate-400 dark:text-slate-500 tabular-nums">{order.fee_rate.toFixed(1)}%</span>
+            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-3 text-xs rounded-lg bg-muted/50 dark:bg-muted/40 px-3 py-2">
+                <span className="text-muted-foreground">Net <span className="font-semibold tabular-nums text-foreground">{order.airtime_amount.toFixed(2)}</span></span>
+                <span className="text-muted-foreground/70 ">·</span>
+                <span className="text-muted-foreground">Admin <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
+                {commission > 0 && (<><span className="text-muted-foreground/70 ">·</span>
+                    <span className="text-muted-foreground">Comm <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{commission.toFixed(2)}</span></span></>)}
+                {order.shop_id && (<><span className="text-muted-foreground/70 ">·</span>
+                    <span className="text-muted-foreground">Shop <span className="font-semibold tabular-nums text-foreground/80 ">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
+                <span className="text-muted-foreground/70 ">·</span>
+                <span className="text-muted-foreground tabular-nums">{order.fee_rate.toFixed(1)}%</span>
             </div>
 
             {/* Provider / attempts */}
             {(provider || attempts > 1) && (
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     {provider && (
-                        <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-200 dark:text-slate-300 dark:border-slate-700">
+                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border ">
                             {provider}
                         </Badge>
                     )}
@@ -409,7 +409,7 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
                     <div className={cn('text-xs mb-3 px-2.5 py-1.5 rounded-lg border truncate',
                         r.tone === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900'
                             : r.tone === 'fail' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-900'
-                                : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700')}
+                                : 'bg-muted/50 text-muted-foreground border-border ')}
                         title={r.text}>
                         Hubtel: {r.text}
                     </div>
@@ -417,8 +417,8 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
             })()}
 
             {/* Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-                <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <div className="pt-3 border-t border-border space-y-2.5">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3 shrink-0" /> {format(parseISO(order.created_at), 'MMM d, yyyy · p')}
                 </span>
                 {!selectionMode && (canSync(order) || canRefulfill(order) || canAct || canRefund(order)) && (
@@ -493,30 +493,30 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
             <DialogContent className="rounded-2xl max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="text-base font-semibold">Manual override</DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    <DialogDescription className="text-xs text-muted-foreground font-mono">
                         {order?.reference_code}
                     </DialogDescription>
                 </DialogHeader>
 
                 {order && (
                     <>
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2 text-sm">
+                        <div className="rounded-xl border border-border p-3 space-y-2 text-sm">
                             <div className="flex justify-between items-center gap-2">
-                                <span className="text-slate-500 dark:text-slate-400">Customer</span>
-                                <span className="font-medium text-slate-900 dark:text-white truncate">{order.users?.first_name} {order.users?.last_name}</span>
+                                <span className="text-muted-foreground">Customer</span>
+                                <span className="font-medium text-foreground truncate">{order.users?.first_name} {order.users?.last_name}</span>
                             </div>
                             <div className="flex justify-between items-center gap-2">
-                                <span className="text-slate-500 dark:text-slate-400">Amount</span>
+                                <span className="text-muted-foreground">Amount</span>
                                 <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">GHS {order.airtime_amount.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center gap-2">
-                                <span className="text-slate-500 dark:text-slate-400">Network</span>
+                                <span className="text-muted-foreground">Network</span>
                                 <Badge variant="outline" className={cn('text-xs font-medium', NETWORK_COLORS[order.network])}>{order.network}</Badge>
                             </div>
                             {order.fulfillment_service && (
                                 <div className="flex justify-between items-center gap-2">
-                                    <span className="text-slate-500 dark:text-slate-400">Provider</span>
-                                    <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{order.fulfillment_service}</span>
+                                    <span className="text-muted-foreground">Provider</span>
+                                    <span className="font-medium text-foreground/80 truncate">{order.fulfillment_service}</span>
                                 </div>
                             )}
                         </div>
@@ -524,12 +524,12 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
                         {transitions.length === 0 ? (
                             <div className="text-center py-4 space-y-2">
                                 <CheckCircle className="w-9 h-9 text-emerald-500 mx-auto" />
-                                <p className="text-sm text-slate-500 dark:text-slate-400">This order is finalised and cannot be changed.</p>
+                                <p className="text-sm text-muted-foreground">This order is finalised and cannot be changed.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 <div>
-                                    <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block">New status</Label>
+                                    <Label className="text-xs font-medium text-muted-foreground mb-2 block">New status</Label>
                                     <div className="flex gap-2">
                                         {transitions.map(s => (
                                             <button
@@ -541,7 +541,7 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
                                                         ? s === 'completed' ? 'bg-emerald-600 border-emerald-600 text-white'
                                                             : s === 'failed' ? 'bg-red-600 border-red-600 text-white'
                                                                 : 'bg-brand-600 border-brand-600 text-black'
-                                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600',
+                                                        : 'border-border text-muted-foreground hover:border-border dark:hover:border-border',
                                                 )}
                                             >{s}</button>
                                         ))}
@@ -595,16 +595,16 @@ function NetworkFeeSection({
     setSettings: React.Dispatch<React.SetStateAction<AirtimeSettings>>
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
+                <h2 className="text-sm font-semibold text-foreground">
                     {productType === 'airtime' ? 'Airtime' : 'Mashup'} fee configuration
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                     Per-network, per-role markup rates — affects {productType} orders only
                 </p>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-border">
                 {NETWORKS.map(net => {
                     const enabledKey = `${productType}_enabled_${net.toLowerCase()}` as keyof AirtimeSettings
                     const isEnabled = settings[enabledKey] !== 'false'
@@ -613,12 +613,12 @@ function NetworkFeeSection({
                         <div key={net} className="px-4 py-4">
                             <div className="flex items-center justify-between gap-2 mb-3">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0">
+                                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
                                         <NetworkLogo id={net} />
                                     </div>
                                     <div className="min-w-0">
-                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">{net}</h3>
-                                        <span className={cn('text-xs', isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400')}>
+                                        <h3 className="text-sm font-semibold text-foreground truncate">{net}</h3>
+                                        <span className={cn('text-xs', isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
                                             {isEnabled ? 'Operational' : 'Disabled'}
                                         </span>
                                     </div>
@@ -637,8 +637,8 @@ function NetworkFeeSection({
                                     return (
                                         <div key={role} className="space-y-1.5 min-w-0">
                                             <div className="flex justify-between items-center gap-1">
-                                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">{ROLE_LABELS[role]}</Label>
-                                                <span className="text-xs text-slate-400 tabular-nums shrink-0">GHS {preview}</span>
+                                                <Label className="text-xs font-medium text-muted-foreground truncate">{ROLE_LABELS[role]}</Label>
+                                                <span className="text-xs text-muted-foreground tabular-nums shrink-0">GHS {preview}</span>
                                             </div>
                                             <div className="relative">
                                                 <Input
@@ -648,7 +648,7 @@ function NetworkFeeSection({
                                                     className="h-9 pr-8 text-sm tabular-nums"
                                                     min="0" max="100" step="0.1"
                                                 />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                                             </div>
                                         </div>
                                     )
@@ -697,19 +697,19 @@ function HubtelFulfillmentSection({
     }
 
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-4">
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-4">
             <div>
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                     <Wifi className="w-4 h-4 text-emerald-500" /> Hubtel auto-fulfillment
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Route airtime through Hubtel Commission Services</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Route airtime through Hubtel Commission Services</p>
             </div>
 
             {/* Master switch */}
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
                 <div className="min-w-0">
-                    <Label className="text-sm font-medium text-slate-900 dark:text-white">Auto-fulfill airtime via Hubtel</Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Master switch — dispatches paid orders automatically</p>
+                    <Label className="text-sm font-medium text-foreground">Auto-fulfill airtime via Hubtel</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Master switch — dispatches paid orders automatically</p>
                 </div>
                 <Switch
                     checked={autoOn}
@@ -719,14 +719,14 @@ function HubtelFulfillmentSection({
 
             {/* Per-network switches */}
             <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Enabled networks</p>
+                <p className="text-xs font-medium text-muted-foreground">Enabled networks</p>
                 {NETWORKS.map(net => (
-                    <div key={net} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                    <div key={net} className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
                                 <NetworkLogo id={net} className="[&_svg]:w-5 [&_svg]:h-5" />
                             </div>
-                            <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{net}</span>
+                            <span className="text-sm font-medium text-foreground truncate">{net}</span>
                         </div>
                         <Switch
                             checked={nets[net]}
@@ -742,15 +742,15 @@ function HubtelFulfillmentSection({
                 'flex items-center justify-between gap-2 rounded-xl border p-3',
                 paused
                     ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900'
-                    : 'bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-800',
+                    : 'bg-muted/50 border-border dark:bg-muted/40 ',
             )}>
                 <div className="flex items-center gap-2 min-w-0">
                     {paused
                         ? <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                         : <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />}
                     <div className="min-w-0">
-                        <Label className="text-sm font-medium text-slate-900 dark:text-white">Commission paused (low float)</Label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                        <Label className="text-sm font-medium text-foreground">Commission paused (low float)</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {paused ? 'Auto-fulfillment is paused after an insufficient-float failure.' : 'Float is healthy — auto-fulfillment active.'}
                         </p>
                     </div>
@@ -784,31 +784,31 @@ function LimitsAndTogglesSection({
     const sfKey = `storefront_${productType}_enabled` as keyof AirtimeSettings
 
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 space-y-5">
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-5">
             <div>
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                <h2 className="text-sm font-semibold text-foreground">
                     {productType === 'airtime' ? 'Airtime' : 'Mashup'} controls
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visibility, limits &amp; storefronts</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Visibility, limits &amp; storefronts</p>
             </div>
 
             {/* Visibility toggles */}
             <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Visibility</p>
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                <p className="text-xs font-medium text-muted-foreground">Visibility</p>
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
                     <div className="min-w-0">
-                        <Label className="text-sm font-medium text-slate-900 dark:text-white">Dashboard</Label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Show on user main dashboard</p>
+                        <Label className="text-sm font-medium text-foreground">Dashboard</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">Show on user main dashboard</p>
                     </div>
                     <Switch
                         checked={settings[dashKey] !== 'false'}
                         onCheckedChange={v => setSettings(s => ({ ...s, [dashKey]: v ? 'true' : 'false' }))}
                     />
                 </div>
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
                     <div className="min-w-0">
-                        <Label className="text-sm font-medium text-slate-900 dark:text-white">Storefront</Label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Allow shop storefronts to sell {productType}</p>
+                        <Label className="text-sm font-medium text-foreground">Storefront</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">Allow shop storefronts to sell {productType}</p>
                     </div>
                     <Switch
                         checked={settings[sfKey] !== 'false'}
@@ -819,13 +819,13 @@ function LimitsAndTogglesSection({
 
             {/* Per-role limits */}
             <div className="space-y-3">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Per-role transaction limits (GHS)</p>
+                <p className="text-xs font-medium text-muted-foreground">Per-role transaction limits (GHS)</p>
                 {ROLES.map(role => {
                     const minKey = `${productType}_min_amount_${role}` as keyof AirtimeSettings
                     const maxKey = `${productType}_max_amount_${role}` as keyof AirtimeSettings
                     return (
                         <div key={role} className="space-y-1">
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 capitalize">{role}</p>
+                            <p className="text-xs font-medium text-muted-foreground capitalize">{role}</p>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
                                     <Input
@@ -836,7 +836,7 @@ function LimitsAndTogglesSection({
                                         min="0.5" step="0.5"
                                         placeholder="Min"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Min</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Min</span>
                                 </div>
                                 <div className="relative">
                                     <Input
@@ -847,7 +847,7 @@ function LimitsAndTogglesSection({
                                         min="1" step="1"
                                         placeholder="Max"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Max</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Max</span>
                                 </div>
                             </div>
                         </div>
@@ -877,13 +877,13 @@ function StatCard({ icon, label, value, sub, accent, className }: {
     icon: React.ReactNode; label: string; value: string; sub?: React.ReactNode; accent?: string; className?: string
 }) {
     return (
-        <div className={cn('rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-w-0', className)}>
-            <div className="flex items-center gap-2 mb-2 text-slate-500 dark:text-slate-400">
+        <div className={cn('rounded-2xl border border-border bg-card p-4 shadow-sm min-w-0', className)}>
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
                 {icon}
                 <span className="text-xs font-medium truncate">{label}</span>
             </div>
-            <p className={cn('text-lg font-semibold tabular-nums truncate', accent || 'text-slate-900 dark:text-white')}>{value}</p>
-            {sub && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{sub}</div>}
+            <p className={cn('text-lg font-semibold tabular-nums truncate', accent || 'text-foreground')}>{value}</p>
+            {sub && <div className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</div>}
         </div>
     )
 }
@@ -1260,11 +1260,11 @@ export default function AdminAirtimePage() {
             {/* ── Header ────────────────────────────────────────────────────── */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <Phone className="w-5 h-5 text-emerald-500 shrink-0" />
                         Airtime &amp; Mashup
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    <p className="text-sm text-muted-foreground mt-0.5 truncate">
                         Revenue, fulfillment control &amp; Hubtel commission
                     </p>
                 </div>
@@ -1300,7 +1300,7 @@ export default function AdminAirtimePage() {
                     )}
 
                     {/* Tab switcher */}
-                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                    <div className="flex items-center bg-muted rounded-lg p-0.5">
                         {(['orders', 'batches', 'settings'] as const).map(tab => (
                             <button
                                 key={tab}
@@ -1308,8 +1308,8 @@ export default function AdminAirtimePage() {
                                 className={cn(
                                     'px-3 h-8 rounded-md text-sm font-medium capitalize transition-colors flex items-center gap-1.5',
                                     activeTab === tab
-                                        ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+                                        ? 'bg-card shadow-sm text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70',
                                 )}
                             >
                                 {tab === 'settings' ? <><Settings2 className="w-4 h-4" /> Settings</> : tab}
@@ -1353,7 +1353,7 @@ export default function AdminAirtimePage() {
                     label="Pending"
                     value={`${cardStats.pendingCount} order${cardStats.pendingCount !== 1 ? 's' : ''}`}
                     sub={`GHS ${cardStats.pendingValue.toFixed(2)} at risk`}
-                    accent={cardStats.pendingCount > 0 ? 'text-amber-500' : 'text-slate-400'}
+                    accent={cardStats.pendingCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}
                 />
             </div>
 
@@ -1361,10 +1361,10 @@ export default function AdminAirtimePage() {
             {activeTab === 'orders' && (
                 <div className="space-y-4">
                     {/* Filter bar */}
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-3 space-y-3">
+                    <div className="rounded-xl border border-border bg-card shadow-sm p-3 space-y-3">
                         <div className="flex flex-col lg:flex-row gap-2">
                             <div className="relative flex-1 min-w-0">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search reference, phone, or customer…"
                                     value={search}
@@ -1388,7 +1388,7 @@ export default function AdminAirtimePage() {
                                     else setTimePeriod(val)
                                 }}>
                                     <SelectTrigger className="flex-1 lg:w-36 h-9 text-sm">
-                                        <Calendar className="w-4 h-4 mr-1 text-slate-400 shrink-0" />
+                                        <Calendar className="w-4 h-4 mr-1 text-muted-foreground shrink-0" />
                                         <SelectValue placeholder="Period" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1409,12 +1409,12 @@ export default function AdminAirtimePage() {
                                     className={cn(
                                         'px-3 h-8 rounded-lg text-xs font-medium capitalize border transition-colors',
                                         statusFilter === s
-                                            ? 'bg-slate-900 border-slate-900 text-white dark:bg-white dark:text-slate-900 dark:border-white'
-                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600',
+                                            ? 'bg-card border-slate-900 text-white dark:text-foreground dark:border-white'
+                                            : 'bg-card border-border text-muted-foreground hover:border-border dark:hover:border-border',
                                     )}
                                 >{s}</button>
                             ))}
-                            <span className="w-px self-stretch bg-slate-200 dark:bg-slate-700 mx-1" />
+                            <span className="w-px self-stretch bg-muted mx-1" />
                             {(['all', 'airtime', 'mashup'] as const).map(t => (
                                 <button
                                     key={t}
@@ -1422,8 +1422,8 @@ export default function AdminAirtimePage() {
                                     className={cn(
                                         'px-3 h-8 rounded-lg text-xs font-medium capitalize border transition-colors',
                                         typeFilter === t
-                                            ? 'bg-slate-900 border-slate-900 text-white dark:bg-white dark:text-slate-900 dark:border-white'
-                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600',
+                                            ? 'bg-card border-slate-900 text-white dark:text-foreground dark:border-white'
+                                            : 'bg-card border-border text-muted-foreground hover:border-border dark:hover:border-border',
                                     )}
                                 >{t === 'all' ? 'All types' : t}</button>
                             ))}
@@ -1434,13 +1434,13 @@ export default function AdminAirtimePage() {
                     {ordersLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-3">
                             <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Loading orders…</p>
+                            <p className="text-sm text-muted-foreground">Loading orders…</p>
                         </div>
                     ) : filteredOrders.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-24 text-center">
-                            <Filter className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-700" />
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">No orders found</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        <div className="rounded-xl border border-dashed border-border py-24 text-center">
+                            <Filter className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+                            <p className="text-sm font-semibold text-foreground">No orders found</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
                                 {timePeriod !== 'All'
                                     ? `No matches in "${timePeriod}" — try "All" if you're looking for an older order.`
                                     : 'Adjust your filters to see more'}
@@ -1449,7 +1449,7 @@ export default function AdminAirtimePage() {
                     ) : (
                         <div className="space-y-3">
                             {loadedCount > orders.length && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                                <p className="text-xs text-muted-foreground text-center">
                                     Showing the latest {orders.length} of {loadedCount} orders — the stat cards above reflect the full period.
                                 </p>
                             )}
@@ -1489,22 +1489,22 @@ export default function AdminAirtimePage() {
                 const completeIds = selectedOrders.filter(o => o.status === 'pending' || o.status === 'processing').map(o => o.id)
                 return (
                     <div className="fixed bottom-3 inset-x-0 z-40 px-4 pointer-events-none">
-                        <div className="max-w-3xl mx-auto pointer-events-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur shadow-xl p-3">
+                        <div className="max-w-3xl mx-auto pointer-events-auto rounded-2xl border border-border bg-card/95 backdrop-blur shadow-xl p-3">
                             {bulkProgress ? (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium text-slate-900 dark:text-white">Processing… {bulkProgress.done}/{bulkProgress.total}</span>
+                                        <span className="font-medium text-foreground">Processing… {bulkProgress.done}/{bulkProgress.total}</span>
                                         <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
                                     </div>
-                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                         <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.round((bulkProgress.done / Math.max(1, bulkProgress.total)) * 100)}%` }} />
                                     </div>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <div className="text-sm min-w-0 flex-1">
-                                        <span className="font-semibold text-slate-900 dark:text-white">{selectedIds.size} selected</span>
-                                        <span className="text-slate-500 dark:text-slate-400"> · {refulfillIds.length} refulfillable · {syncIds.length} syncable</span>
+                                        <span className="font-semibold text-foreground">{selectedIds.size} selected</span>
+                                        <span className="text-muted-foreground"> · {refulfillIds.length} refulfillable · {syncIds.length} syncable</span>
                                     </div>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set(filteredOrders.map(o => o.id)))}>Select all</Button>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set())}>Clear</Button>
@@ -1530,10 +1530,10 @@ export default function AdminAirtimePage() {
             {/* ══ BATCHES TAB ═════════════════════════════════════════════ */}
             {activeTab === 'batches' && (
                 <div className="space-y-4">
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="rounded-xl border border-border bg-card shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="min-w-0">
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Fulfillment batches</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <h2 className="text-sm font-semibold text-foreground">Fulfillment batches</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">
                                 Group pending orders for bulk fulfillment
                             </p>
                         </div>
@@ -1551,13 +1551,13 @@ export default function AdminAirtimePage() {
                     {batchesLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
                             <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Loading batches…</p>
+                            <p className="text-sm text-muted-foreground">Loading batches…</p>
                         </div>
                     ) : batches.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-20 text-center">
-                            <Database className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-700" />
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">No batches yet</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        <div className="rounded-xl border border-dashed border-border py-20 text-center">
+                            <Database className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+                            <p className="text-sm font-semibold text-foreground">No batches yet</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
                                 Use the &ldquo;Batch pending&rdquo; button on the Orders tab to create one
                             </p>
                         </div>
@@ -1572,28 +1572,28 @@ export default function AdminAirtimePage() {
                                     : 0
 
                                 return (
-                                    <div key={batch.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4">
+                                    <div key={batch.id} className="rounded-xl border border-border bg-card shadow-sm p-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                                                    <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{batch.batch_name}</span>
+                                                    <span className="text-sm font-semibold text-foreground truncate">{batch.batch_name}</span>
                                                     <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium uppercase border whitespace-nowrap',
                                                         STATUS_STYLES[batch.status] || 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900',
                                                     )}>
                                                         {batch.status}
                                                     </span>
                                                     {batch.fulfillment_service && (
-                                                        <Badge variant="outline" className="text-xs font-medium text-slate-600 border-slate-200 dark:text-slate-300 dark:border-slate-700 max-w-[10rem] truncate">{batch.fulfillment_service}</Badge>
+                                                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border max-w-[10rem] truncate">{batch.fulfillment_service}</Badge>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                     {batch.order_count} orders · {batch.completed_count} completed · {batch.failed_count} failed
                                                     {batch.created_by_user && ` · by ${batch.created_by_user.first_name} ${batch.created_by_user.last_name}`}
                                                 </p>
-                                                <p className="text-xs text-slate-400 mt-0.5">{format(parseISO(batch.created_at), 'MMM d, yyyy · p')}</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5">{format(parseISO(batch.created_at), 'MMM d, yyyy · p')}</p>
 
                                                 {batch.order_count > 0 && (
-                                                    <div className="mt-2.5 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="mt-2.5 h-1.5 bg-muted rounded-full overflow-hidden">
                                                         <div
                                                             className={cn('h-full rounded-full transition-all', isComplete ? 'bg-emerald-500' : isPartial ? 'bg-amber-500' : 'bg-brand-500')}
                                                             style={{ width: `${completion}%` }}
@@ -1622,12 +1622,12 @@ export default function AdminAirtimePage() {
                     {settingsLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-3">
                             <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Loading configuration…</p>
+                            <p className="text-sm text-muted-foreground">Loading configuration…</p>
                         </div>
                     ) : (
                         <>
                             {/* Inner settings tab switcher */}
-                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 w-fit">
+                            <div className="flex items-center bg-muted rounded-lg p-0.5 w-fit">
                                 {(['airtime', 'mashup'] as const).map(t => (
                                     <button
                                         key={t}
@@ -1635,8 +1635,8 @@ export default function AdminAirtimePage() {
                                         className={cn(
                                             'px-4 h-8 rounded-md text-sm font-medium capitalize transition-colors',
                                             activeSettingsTab === t
-                                                ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white'
-                                                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+                                                ? 'bg-card shadow-sm text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70',
                                         )}
                                     >
                                         {t} settings
@@ -1687,17 +1687,17 @@ export default function AdminAirtimePage() {
                 <DialogContent className="rounded-2xl max-w-[400px]">
                     <DialogHeader>
                         <DialogTitle className="text-base font-semibold">Custom range</DialogTitle>
-                        <DialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                        <DialogDescription className="text-sm text-muted-foreground">
                             Select a specific date range to scan orders.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
                         <div className="space-y-1.5">
-                            <Label htmlFor="start" className="text-xs font-medium text-slate-500 dark:text-slate-400">Start date</Label>
+                            <Label htmlFor="start" className="text-xs font-medium text-muted-foreground">Start date</Label>
                             <Input id="start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-9 text-sm" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="end" className="text-xs font-medium text-slate-500 dark:text-slate-400">End date</Label>
+                            <Label htmlFor="end" className="text-xs font-medium text-muted-foreground">End date</Label>
                             <Input id="end" type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-9 text-sm" />
                         </div>
                     </div>

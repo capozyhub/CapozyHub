@@ -74,20 +74,20 @@ export default function AdminAnnouncementsPage() {
     return (
         <div className="space-y-4 sm:space-y-6">
             <div>
-                <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Announcements</h1>
+                <h1 className="text-lg font-semibold text-foreground">Announcements</h1>
                 <p className="text-sm text-muted-foreground">
                     Compose alerts with optional action buttons, or manage past announcements.
                 </p>
             </div>
 
             {/* Tabs */}
-            <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+            <div className="inline-flex rounded-lg border border-border p-1">
                 <button type="button" onClick={() => setTab('compose')} className={tabBtn(tab === 'compose')}>
                     <PenSquare className="w-3.5 h-3.5" /> Compose
                 </button>
                 <button type="button" onClick={() => setTab('history')} className={tabBtn(tab === 'history')}>
                     <HistoryIcon className="w-3.5 h-3.5" /> History
-                    <span className="ml-0.5 rounded-full bg-black/10 dark:bg-white/10 px-1.5 text-[10px] tabular-nums">
+                    <span className="ml-0.5 rounded-full bg-black/10 dark:bg-card/10 px-1.5 text-[10px] tabular-nums">
                         {announcements.length}
                     </span>
                 </button>

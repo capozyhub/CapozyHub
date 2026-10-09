@@ -483,7 +483,7 @@ export default function AdminShopSettingsPage() {
             <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 font-semibold gap-2"
+                className="w-full h-11 font-semibold gap-2 clay clay-green"
             >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : 'Save Global Settings'}

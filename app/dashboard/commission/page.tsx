@@ -215,7 +215,7 @@ export default function CommissionWalletPage() {
     }
 
     return (
-        <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
+        <div className="space-y-5">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold">Commission Wallet</h1>
@@ -244,14 +244,14 @@ export default function CommissionWalletPage() {
                 <div className="flex gap-2 mt-4">
                     <Button
                         size="sm"
-                        className="flex-1 bg-white text-violet-700 hover:bg-violet-50 font-semibold disabled:opacity-60"
+                        className="flex-1 bg-card text-violet-700 hover:bg-violet-50 font-semibold disabled:opacity-60"
                         onClick={openTransferDialog}
                         disabled={wallet.balance <= 0}
                     >
                         <ArrowRightLeft className="w-4 h-4 mr-1.5" /> Transfer
                     </Button>
                     <Link href="/dashboard/commission/withdraw" className="flex-1">
-                        <Button size="sm" className="w-full bg-white/10 border border-white/30 hover:bg-white/20 text-white font-semibold">
+                        <Button size="sm" className="w-full bg-card/10 border border-white/30 hover:bg-card/20 text-white font-semibold">
                             <Banknote className="w-4 h-4 mr-1.5" /> Withdraw
                         </Button>
                     </Link>

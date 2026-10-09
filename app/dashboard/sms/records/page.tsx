@@ -223,7 +223,7 @@ export default function SmsRecordsPage() {
                     </p>
                     {!statusFilter && (
                         <Link href="/dashboard/sms/compose">
-                            <Button className="gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white mt-1">
+                            <Button className="gap-2 h-10 mt-1 clay clay-green">
                                 <Send className="w-4 h-4" /> Send your first SMS
                             </Button>
                         </Link>

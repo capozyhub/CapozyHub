@@ -146,7 +146,7 @@ function StatusBadge({ status }: { status: string }) {
         failed: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900',
     }
     return (
-        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize', map[status] || 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700')}>
+        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize', map[status] || 'bg-muted text-muted-foreground border-border ')}>
             {status}
         </span>
     )
@@ -168,60 +168,60 @@ function SuccessModal({ order, onClose, onBuyMore }: { order: AirtimeOrder | nul
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-5">
                     <div className="flex items-center gap-3 mb-4">
                         <div className={cn('w-11 h-11 rounded-full border flex items-center justify-center shrink-0', isMashup ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900')}>
                             <CheckCircle className={cn('w-6 h-6', isMashup ? 'text-amber-500' : 'text-emerald-500')} />
                         </div>
                         <div className="min-w-0">
-                            <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate">{isMashup ? 'Mashup Bundle Placed' : 'Order Placed'}</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{isMashup ? 'Your MTN Mashup bundle is being processed' : 'Your airtime is being processed'}</p>
+                            <h2 className="text-base font-semibold text-foreground truncate">{isMashup ? 'Mashup Bundle Placed' : 'Order Placed'}</h2>
+                            <p className="text-xs text-muted-foreground truncate">{isMashup ? 'Your MTN Mashup bundle is being processed' : 'Your airtime is being processed'}</p>
                         </div>
                     </div>
 
                     {/* Mashup bundle breakdown */}
                     {isMashup && mashupBundle && (
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                            <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
+                            <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 dark:bg-muted/60 border border-border p-3">
                                 <Wifi className="w-4 h-4 text-brand-700 mb-1" />
-                                <span className="text-xs text-slate-500 dark:text-slate-400">Data</span>
-                                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.data}</span>
-                                {!mashupBundle.exact && <span className="text-xs text-slate-400">Est. range</span>}
+                                <span className="text-xs text-muted-foreground">Data</span>
+                                <span className="text-sm font-semibold text-foreground truncate">{mashupBundle.data}</span>
+                                {!mashupBundle.exact && <span className="text-xs text-muted-foreground">Est. range</span>}
                             </div>
-                            <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
+                            <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 dark:bg-muted/60 border border-border p-3">
                                 <Mic2 className="w-4 h-4 text-purple-500 mb-1" />
-                                <span className="text-xs text-slate-500 dark:text-slate-400">Voice</span>
-                                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.voice}</span>
-                                {!mashupBundle.exact && <span className="text-xs text-slate-400">Est. range</span>}
+                                <span className="text-xs text-muted-foreground">Voice</span>
+                                <span className="text-sm font-semibold text-foreground truncate">{mashupBundle.voice}</span>
+                                {!mashupBundle.exact && <span className="text-xs text-muted-foreground">Est. range</span>}
                             </div>
                         </div>
                     )}
 
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 mb-3 space-y-2">
-                        <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Network</span><span className="font-medium text-slate-900 dark:text-white truncate">{order.network}</span></div>
-                        <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Recipient</span><span className="font-medium text-slate-900 dark:text-white truncate">{order.beneficiary_phone}</span></div>
+                    <div className="rounded-xl border border-border p-3 mb-3 space-y-2">
+                        <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Network</span><span className="font-medium text-foreground truncate">{order.network}</span></div>
+                        <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Recipient</span><span className="font-medium text-foreground truncate">{order.beneficiary_phone}</span></div>
                         {!isMashup && (
-                            <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Airtime</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {order.airtime_amount.toFixed(2)}</span></div>
+                            <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Airtime</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {order.airtime_amount.toFixed(2)}</span></div>
                         )}
-                        <div className="flex justify-between gap-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2"><span className="text-slate-500 dark:text-slate-400">You paid</span><span className="font-semibold text-slate-900 dark:text-white tabular-nums">GHS {order.total_paid.toFixed(2)}</span></div>
+                        <div className="flex justify-between gap-3 text-sm border-t border-border pt-2"><span className="text-muted-foreground">You paid</span><span className="font-semibold text-foreground tabular-nums">GHS {order.total_paid.toFixed(2)}</span></div>
                     </div>
 
-                    <button onClick={copy} className="w-full flex items-center justify-between gap-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl px-3 py-2.5 mb-3 transition-colors group min-w-0">
+                    <button onClick={copy} className="w-full flex items-center justify-between gap-3 border border-border hover:bg-muted/50 dark:hover:bg-muted/60 rounded-xl px-3 py-2.5 mb-3 transition-colors group min-w-0">
                         <div className="text-left min-w-0">
-                            <p className="text-xs text-slate-400">Reference code</p>
-                            <p className="font-mono font-medium text-slate-800 dark:text-slate-200 text-sm truncate">{order.reference_code}</p>
+                            <p className="text-xs text-muted-foreground">Reference code</p>
+                            <p className="font-mono font-medium text-foreground text-sm truncate">{order.reference_code}</p>
                         </div>
-                        <Copy className={cn('w-4 h-4 shrink-0 transition-colors', copied ? 'text-emerald-500' : 'text-slate-400 group-hover:text-slate-600')} />
+                        <Copy className={cn('w-4 h-4 shrink-0 transition-colors', copied ? 'text-emerald-500' : 'text-muted-foreground group-hover:text-muted-foreground')} />
                     </button>
 
-                    <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
                         {isMashup ? 'MTN will credit the bundle within minutes. Dial *567*1*6# to verify.' : 'The network provider will send a confirmation SMS once credited.'}
                     </p>
 
                     <div className="flex gap-2">
                         <Button variant="outline" className="flex-1 rounded-xl h-10" onClick={onBuyMore}>Buy more</Button>
-                        <Button className="flex-1 rounded-xl h-10 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onClose}>
+                        <Button className="flex-1 rounded-xl h-10 clay clay-green" onClick={onClose}>
                             History <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
                     </div>
@@ -240,40 +240,40 @@ function ConfirmSheet({ open, onCancel, onConfirm, isLoading, details }: {
     const isMashup = details.purchaseMode === 'mashup'
     return (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-sm animate-in slide-in-from-bottom-4 duration-200">
+            <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm animate-in slide-in-from-bottom-4 duration-200">
                 <div className="p-5">
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">{isMashup ? 'Confirm mashup bundle' : 'Confirm payment'}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Please review before proceeding</p>
+                    <h3 className="text-base font-semibold text-foreground">{isMashup ? 'Confirm mashup bundle' : 'Confirm payment'}</h3>
+                    <p className="text-xs text-muted-foreground mb-4">Please review before proceeding</p>
                     <div className="space-y-2 mb-5">
-                        <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Network</span><span className="font-medium text-slate-900 dark:text-white truncate">{details.network}</span></div>
-                        <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Recipient</span><span className="font-medium text-slate-900 dark:text-white truncate">{details.phone}</span></div>
+                        <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Network</span><span className="font-medium text-foreground truncate">{details.network}</span></div>
+                        <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Recipient</span><span className="font-medium text-foreground truncate">{details.phone}</span></div>
                         {isMashup && details.mashupBundle ? (
                             <>
                                 <div className="flex justify-between gap-3 text-sm">
-                                    <span className="text-slate-500 dark:text-slate-400">Est. data</span>
-                                    <span className="font-medium text-slate-900 dark:text-white truncate">{details.mashupBundle.data}</span>
+                                    <span className="text-muted-foreground">Est. data</span>
+                                    <span className="font-medium text-foreground truncate">{details.mashupBundle.data}</span>
                                 </div>
                                 <div className="flex justify-between gap-3 text-sm">
-                                    <span className="text-slate-500 dark:text-slate-400">Est. voice</span>
-                                    <span className="font-medium text-slate-900 dark:text-white truncate">{details.mashupBundle.voice}</span>
+                                    <span className="text-muted-foreground">Est. voice</span>
+                                    <span className="font-medium text-foreground truncate">{details.mashupBundle.voice}</span>
                                 </div>
                                 {!details.mashupBundle.exact && (
                                     <p className="text-xs text-amber-600 dark:text-amber-500">Amounts below GHS 10 are estimated ranges. Actual values set by MTN.</p>
                                 )}
                             </>
                         ) : (
-                            <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Airtime to send</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {details.airtime.toFixed(2)}</span></div>
+                            <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Airtime to send</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {details.airtime.toFixed(2)}</span></div>
                         )}
-                        <div className="flex justify-between gap-3 text-sm"><span className="text-slate-500 dark:text-slate-400">Service fee</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">GHS {details.fee.toFixed(2)}</span></div>
-                        <div className="flex justify-between gap-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-1">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">Total to pay</span>
-                            <span className="font-semibold text-base text-slate-900 dark:text-white tabular-nums">GHS {details.total.toFixed(2)}</span>
+                        <div className="flex justify-between gap-3 text-sm"><span className="text-muted-foreground">Service fee</span><span className="font-medium text-foreground tabular-nums">GHS {details.fee.toFixed(2)}</span></div>
+                        <div className="flex justify-between gap-3 text-sm border-t border-border pt-2.5 mt-1">
+                            <span className="font-medium text-foreground/80 ">Total to pay</span>
+                            <span className="font-semibold text-base text-foreground tabular-nums">GHS {details.total.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" className="flex-1 rounded-xl h-10" onClick={onCancel} disabled={isLoading}>Cancel</Button>
                         <Button
-                            className="flex-1 rounded-xl h-10 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="flex-1 rounded-xl h-10 clay clay-green"
                             onClick={onConfirm}
                             disabled={isLoading}
                         >
@@ -544,7 +544,7 @@ export default function AirtimePage() {
     if (settingsLoading) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center">
-                <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
+                <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
             </div>
         )
     }
@@ -552,23 +552,23 @@ export default function AirtimePage() {
     const lowBalance = walletBalance !== null && walletBalance < 5
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        <div className="space-y-5">
             {/* Page Header */}
             <div className="min-w-0">
-                <h1 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <Phone className="w-5 h-5 text-emerald-500 shrink-0" /> Buy airtime & mashup
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Top up any network or buy an MTN Mashup bundle from your wallet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Top up any network or buy an MTN Mashup bundle from your wallet</p>
             </div>
 
             {/* Wallet Balance Card */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Wallet className="w-3.5 h-3.5 shrink-0" /> Wallet balance
                         </div>
-                        <div className="text-2xl font-semibold text-slate-900 dark:text-white tabular-nums truncate mt-0.5">
+                        <div className="text-2xl font-semibold text-foreground tabular-nums truncate mt-0.5">
                             GHS {walletBalance !== null ? walletBalance.toFixed(2) : '—'}
                         </div>
                     </div>
@@ -582,11 +582,11 @@ export default function AirtimePage() {
             </div>
 
             {/* Mode toggle: Airtime vs Mashup (Mashup hidden when disabled) */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/60 rounded-xl p-1 gap-1">
+            <div className="flex bg-muted dark:bg-muted/60 rounded-xl p-1 gap-1">
                 <button
                     onClick={() => setPurchaseMode('airtime')}
                     className={cn('flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2',
-                        purchaseMode === 'airtime' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200')}
+                        purchaseMode === 'airtime' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground')}
                 >
                     <Phone className="w-4 h-4" /> Airtime
                 </button>
@@ -594,7 +594,7 @@ export default function AirtimePage() {
                     <button
                         onClick={() => setPurchaseMode('mashup')}
                         className={cn('flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2',
-                            purchaseMode === 'mashup' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200')}
+                            purchaseMode === 'mashup' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground')}
                     >
                         <Zap className={cn('w-4 h-4', purchaseMode === 'mashup' && 'text-amber-500 fill-current')} /> MTN Mashup
                     </button>
@@ -602,7 +602,7 @@ export default function AirtimePage() {
             </div>
 
             {/* Sub-tab bar (buy / history) */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/60 rounded-xl p-1 gap-1">
+            <div className="flex bg-muted dark:bg-muted/60 rounded-xl p-1 gap-1">
                 {(['buy', 'history'] as const).map(tab => (
                     <button
                         key={tab}
@@ -610,8 +610,8 @@ export default function AirtimePage() {
                         className={cn(
                             'flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2',
                             activeTab === tab
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground'
                         )}
                     >
                         {tab === 'buy' ? <Phone className="w-4 h-4" /> : <History className="w-4 h-4" />}
@@ -631,14 +631,14 @@ export default function AirtimePage() {
                             <div className="rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-4">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Zap className="w-4 h-4 text-amber-500 fill-current shrink-0" />
-                                    <span className="text-sm font-semibold text-slate-900 dark:text-white">MTN Mashup bundle</span>
+                                    <span className="text-sm font-semibold text-foreground">MTN Mashup bundle</span>
                                 </div>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">Buy data and voice minutes in one optimized bundle</p>
+                                <p className="text-xs text-muted-foreground">Buy data and voice minutes in one optimized bundle</p>
                             </div>
 
                             {/* Bundle Preference Selector */}
                             <div>
-                                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Bundle preference</Label>
+                                <Label className="text-sm font-medium text-foreground/80 mb-2 block">Bundle preference</Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {([
                                         { id: 'balanced', icon: Zap, label: 'Balanced', desc: 'Equal data & minutes' },
@@ -651,12 +651,12 @@ export default function AirtimePage() {
                                                 'flex flex-col items-start gap-1 p-3 rounded-xl border transition-colors text-left',
                                                 bundlePreference === pref.id
                                                     ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 dark:border-emerald-800'
-                                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                                    : 'bg-card border-border hover:border-border dark:hover:border-border'
                                             )}
                                         >
-                                            <pref.icon className={cn('w-4 h-4', bundlePreference === pref.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400')} />
-                                            <span className={cn('text-sm font-medium', bundlePreference === pref.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300')}>{pref.label}</span>
-                                            <span className="text-xs text-slate-400 truncate w-full">{pref.desc}</span>
+                                            <pref.icon className={cn('w-4 h-4', bundlePreference === pref.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
+                                            <span className={cn('text-sm font-medium', bundlePreference === pref.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground/80 ')}>{pref.label}</span>
+                                            <span className="text-xs text-muted-foreground truncate w-full">{pref.desc}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -670,7 +670,7 @@ export default function AirtimePage() {
                     {/* ── AIRTIME NETWORK SELECTOR (hidden in Mashup mode) ── */}
                     {purchaseMode === 'airtime' && (
                         <div>
-                            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Network</Label>
+                            <Label className="text-sm font-medium text-foreground/80 mb-2 block">Network</Label>
                             <div className="grid grid-cols-3 gap-2">
                                 {NETWORKS.map(net => {
                                     const enabledKey = `enabled_${net.id.toLowerCase()}` as keyof AirtimeSettings
@@ -685,14 +685,14 @@ export default function AirtimePage() {
                                                 'relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors',
                                                 isSelected
                                                     ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500/60 dark:border-emerald-800'
-                                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
+                                                    : 'bg-card border-border hover:border-border dark:hover:border-border',
                                                 !isEnabled && 'opacity-50 cursor-not-allowed'
                                             )}
                                         >
                                             <NetworkLogo id={net.id} className="w-7 h-7" />
-                                            <span className={cn('text-xs font-medium truncate max-w-full', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300')}>{net.label}</span>
+                                            <span className={cn('text-xs font-medium truncate max-w-full', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground/80 ')}>{net.label}</span>
                                             {!isEnabled && (
-                                                <span className="absolute top-1.5 right-1.5 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs px-1.5 rounded-full">Off</span>
+                                                <span className="absolute top-1.5 right-1.5 bg-muted text-muted-foreground text-xs px-1.5 rounded-full">Off</span>
                                             )}
                                         </button>
                                     )
@@ -702,11 +702,11 @@ export default function AirtimePage() {
                     )}
 
                     <div>
-                        <Label htmlFor="beneficiary-phone" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">
+                        <Label htmlFor="beneficiary-phone" className="text-sm font-medium text-foreground/80 mb-1.5 block">
                             Beneficiary phone number
                         </Label>
                         <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 id="beneficiary-phone"
                                 type="tel"
@@ -729,12 +729,12 @@ export default function AirtimePage() {
                             </p>
                         )}
                         {phone.length > 0 && phone.length < 10 && (
-                            <p className="mt-1.5 text-xs text-slate-400">{10 - phone.length} more digits needed</p>
+                            <p className="mt-1.5 text-xs text-muted-foreground">{10 - phone.length} more digits needed</p>
                         )}
                     </div>
 
                     <div>
-                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Quick amount (GHS)</Label>
+                        <Label className="text-sm font-medium text-foreground/80 mb-2 block">Quick amount (GHS)</Label>
                         <div className="flex gap-2 flex-wrap">
                             {QUICK_AMOUNTS.map(q => (
                                 <button
@@ -744,7 +744,7 @@ export default function AirtimePage() {
                                         'px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors tabular-nums',
                                         amount === String(q)
                                             ? 'bg-emerald-600 border-emerald-600 text-white'
-                                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+                                            : 'bg-card border-border text-foreground/80 hover:border-border dark:hover:border-border'
                                     )}
                                 >
                                     {q}
@@ -754,12 +754,12 @@ export default function AirtimePage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="airtime-amount" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2 flex-wrap">
+                        <Label htmlFor="airtime-amount" className="text-sm font-medium text-foreground/80 mb-1.5 flex items-center gap-2 flex-wrap">
                             Custom amount (GHS)
-                            {settings && <span className="text-xs font-normal text-slate-400">Min {activeMin} · Max {activeMax}</span>}
+                            {settings && <span className="text-xs font-normal text-muted-foreground">Min {activeMin} · Max {activeMax}</span>}
                         </Label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">GHS</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">GHS</span>
                             <Input
                                 id="airtime-amount"
                                 type="number"
@@ -781,25 +781,25 @@ export default function AirtimePage() {
                             'flex items-start gap-3 rounded-xl p-4 border transition-colors cursor-pointer select-none',
                             useExact
                                 ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500/50 dark:border-emerald-900'
-                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                : 'bg-card border-border hover:border-border dark:hover:border-border'
                         )}
                     >
                         <div className={cn(
                             'mt-0.5 flex items-center justify-center w-5 h-5 rounded-md border transition-colors shrink-0',
                             useExact
                                 ? 'bg-emerald-600 border-emerald-600 text-white'
-                                : 'border-slate-300 dark:border-slate-600'
+                                : 'border-border'
                         )}>
                             {useExact && <CheckCircle className="w-3.5 h-3.5" />}
                         </div>
                         <div className="flex-1 min-w-0 space-y-0.5">
                             <h4 className={cn(
                                 'text-sm font-medium',
-                                useExact ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'
+                                useExact ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
                             )}>
                                 Pay processing fee separately
                             </h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 {useExact
                                     ? 'Beneficiary receives exactly the amount you type. The service fee is added to your total.'
                                     : 'Standard mode: the service fee is deducted from the amount you type.'}
@@ -808,52 +808,52 @@ export default function AirtimePage() {
                     </div>
 
                     {parsedAmount > 0 && (purchaseMode === 'mashup' || selectedNetwork) && (
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{purchaseMode === 'mashup' ? 'Estimated bundle value' : 'Fee breakdown'}</p>
+                        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
+                            <div className="px-4 py-2.5 border-b border-border bg-muted/50 dark:bg-muted/40">
+                                <p className="text-sm font-medium text-foreground/80 ">{purchaseMode === 'mashup' ? 'Estimated bundle value' : 'Fee breakdown'}</p>
                             </div>
                             <div className="p-4 space-y-2.5 text-sm">
                                 {/* MASHUP: Live Estimator */}
                                 {purchaseMode === 'mashup' ? (
                                     <>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
+                                            <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 dark:bg-muted/60 border border-border p-3">
                                                 <Wifi className="w-4 h-4 text-brand-700 mb-1" />
-                                                <span className="text-xs text-slate-500 dark:text-slate-400">Data</span>
-                                                <span className="text-base font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.data}</span>
-                                                {!mashupBundle.exact && <span className="text-xs text-slate-400">Estimated range</span>}
+                                                <span className="text-xs text-muted-foreground">Data</span>
+                                                <span className="text-base font-semibold text-foreground truncate">{mashupBundle.data}</span>
+                                                {!mashupBundle.exact && <span className="text-xs text-muted-foreground">Estimated range</span>}
                                             </div>
-                                            <div className="flex flex-col items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-3">
+                                            <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 dark:bg-muted/60 border border-border p-3">
                                                 <Mic2 className="w-4 h-4 text-purple-500 mb-1" />
-                                                <span className="text-xs text-slate-500 dark:text-slate-400">Voice</span>
-                                                <span className="text-base font-semibold text-slate-900 dark:text-white truncate">{mashupBundle.voice}</span>
-                                                {!mashupBundle.exact && <span className="text-xs text-slate-400">Estimated range</span>}
+                                                <span className="text-xs text-muted-foreground">Voice</span>
+                                                <span className="text-base font-semibold text-foreground truncate">{mashupBundle.voice}</span>
+                                                {!mashupBundle.exact && <span className="text-xs text-muted-foreground">Estimated range</span>}
                                             </div>
                                         </div>
                                         {!mashupBundle.exact && (
                                             <p className="text-xs text-amber-600 dark:text-amber-500 text-center">Amounts below GHS 10 show estimated ranges. Actual values are set by MTN.</p>
                                         )}
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">You type</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">Service fee ({feeRate}%)</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">{useExact ? '+' : '–'} GHS {feeAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-1">
-                                            <span className="font-medium text-slate-700 dark:text-slate-300">You pay</span>
-                                            <span className="font-semibold text-base text-slate-900 dark:text-white tabular-nums">GHS {totalPaid.toFixed(2)}</span>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">You type</span><span className="font-medium text-foreground tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">Service fee ({feeRate}%)</span><span className="font-medium text-foreground tabular-nums">{useExact ? '+' : '–'} GHS {feeAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3 border-t border-border pt-2.5 mt-1">
+                                            <span className="font-medium text-foreground/80 ">You pay</span>
+                                            <span className="font-semibold text-base text-foreground tabular-nums">GHS {totalPaid.toFixed(2)}</span>
                                         </div>
                                     </>
                                 ) : useExact ? (
                                     <>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">You type</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">Beneficiary receives</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {airtimeAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">Service fee ({feeRate}%)</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">+ GHS {feeAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-1">
-                                            <span className="font-medium text-slate-700 dark:text-slate-300">You pay</span>
-                                            <span className="font-semibold text-base text-slate-900 dark:text-white tabular-nums">GHS {totalPaid.toFixed(2)}</span>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">You type</span><span className="font-medium text-foreground tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">Beneficiary receives</span><span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">GHS {airtimeAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">Service fee ({feeRate}%)</span><span className="font-medium text-foreground tabular-nums">+ GHS {feeAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3 border-t border-border pt-2.5 mt-1">
+                                            <span className="font-medium text-foreground/80 ">You pay</span>
+                                            <span className="font-semibold text-base text-foreground tabular-nums">GHS {totalPaid.toFixed(2)}</span>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">You type</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between gap-3"><span className="text-slate-500 dark:text-slate-400">Service fee ({feeRate}%)</span><span className="font-medium text-slate-900 dark:text-white tabular-nums">– GHS {feeAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">You type</span><span className="font-medium text-foreground tabular-nums">GHS {parsedAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between gap-3"><span className="text-muted-foreground">Service fee ({feeRate}%)</span><span className="font-medium text-foreground tabular-nums">– GHS {feeAmount.toFixed(2)}</span></div>
                                         <div className="flex justify-between gap-3 items-center rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 px-3 py-2">
                                             <span className="text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5 text-xs">
                                                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Beneficiary receives
@@ -861,9 +861,9 @@ export default function AirtimePage() {
                                             <span className="font-semibold text-amber-700 dark:text-amber-400 tabular-nums">GHS {airtimeAmount.toFixed(2)}</span>
                                         </div>
                                         <p className="text-xs text-amber-600 dark:text-amber-500">Fee deducted — enable &ldquo;Pay separately&rdquo; to avoid this.</p>
-                                        <div className="flex justify-between gap-3 border-t border-slate-100 dark:border-slate-800 pt-2.5 mt-1">
-                                            <span className="font-medium text-slate-700 dark:text-slate-300">You pay</span>
-                                            <span className="font-semibold text-base text-slate-900 dark:text-white tabular-nums">GHS {totalPaid.toFixed(2)}</span>
+                                        <div className="flex justify-between gap-3 border-t border-border pt-2.5 mt-1">
+                                            <span className="font-medium text-foreground/80 ">You pay</span>
+                                            <span className="font-semibold text-base text-foreground tabular-nums">GHS {totalPaid.toFixed(2)}</span>
                                         </div>
                                     </>
                                 )}
@@ -881,7 +881,7 @@ export default function AirtimePage() {
                         </div>
                     ) : (
                         <Button
-                            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm"
+                            className="w-full h-12 rounded-xl text-sm font-semibold clay clay-green"
                             disabled={!canProceed}
                             onClick={() => setShowConfirm(true)}
                         >
@@ -895,28 +895,28 @@ export default function AirtimePage() {
             {activeTab === 'history' && (
                 <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="bg-card rounded-xl p-3 border border-border shadow-sm min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                                 <Coins className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> <span className="truncate">Total spent</span>
                             </div>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate tabular-nums">GHS {stats.totalSpent.toFixed(2)}</p>
+                            <p className="text-sm font-semibold text-foreground truncate tabular-nums">GHS {stats.totalSpent.toFixed(2)}</p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="bg-card rounded-xl p-3 border border-border shadow-sm min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                                 <History className="w-3.5 h-3.5 text-brand-700 shrink-0" /> <span className="truncate">Orders</span>
                             </div>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate tabular-nums">{stats.totalOrders}</p>
+                            <p className="text-sm font-semibold text-foreground truncate tabular-nums">{stats.totalOrders}</p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-sm min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="bg-card rounded-xl p-3 border border-border shadow-sm min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                                 <TrendingUp className="w-3.5 h-3.5 text-amber-500 shrink-0" /> <span className="truncate">Today</span>
                             </div>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate tabular-nums">GHS {stats.todaySpent.toFixed(2)}</p>
+                            <p className="text-sm font-semibold text-foreground truncate tabular-nums">GHS {stats.todaySpent.toFixed(2)}</p>
                         </div>
                     </div>
 
                     {/* Type Filter Chips */}
-                    <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl gap-1">
+                    <div className="flex bg-muted dark:bg-muted/60 p-1 rounded-xl gap-1">
                         {(['all', 'airtime', 'mashup'] as const).map((type) => (
                             <button
                                 key={type}
@@ -924,8 +924,8 @@ export default function AirtimePage() {
                                 className={cn(
                                     'flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors',
                                     typeFilter === type
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                        ? 'bg-card text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground'
                                 )}
                             >
                                 {type}
@@ -935,7 +935,7 @@ export default function AirtimePage() {
 
                     <div className="space-y-2.5">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search beneficiary or reference…"
                                 value={searchQuery}
@@ -951,7 +951,7 @@ export default function AirtimePage() {
                                 }}>
                                     <SelectTrigger className="h-10 rounded-xl">
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
                                             <SelectValue placeholder="Time period" />
                                         </div>
                                     </SelectTrigger>
@@ -967,39 +967,39 @@ export default function AirtimePage() {
                             </Button>
                         </div>
                         {timePeriod === 'Custom' && customStart && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-fit">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg text-xs text-muted-foreground border border-border w-fit">
                                 <CalendarRange className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{format(new Date(customStart), 'MMM d')} – {format(new Date(customEnd), 'MMM d, yyyy')}</span>
-                                <button onClick={() => setTimePeriod('All')} className="ml-1 text-slate-400 hover:text-red-500 shrink-0" title="Clear custom date filter"><X className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => setTimePeriod('All')} className="ml-1 text-muted-foreground hover:text-red-500 shrink-0" title="Clear custom date filter"><X className="w-3.5 h-3.5" /></button>
                             </div>
                         )}
                     </div>
 
                     {historyLoading ? (
-                        <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                            <Loader2 className="w-7 h-7 animate-spin text-slate-400 mb-2" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Syncing your history…</p>
+                        <div className="flex flex-col items-center justify-center py-16 bg-card rounded-2xl border border-dashed border-border">
+                            <Loader2 className="w-7 h-7 animate-spin text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">Syncing your history…</p>
                         </div>
                     ) : filteredOrders.length === 0 ? (
-                        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                            <div className="bg-slate-100 dark:bg-slate-800 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <History className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                        <div className="text-center py-16 bg-card rounded-2xl border border-dashed border-border">
+                            <div className="bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <History className="w-6 h-6 text-muted-foreground/70 " />
                             </div>
-                            <p className="text-sm font-medium text-slate-900 dark:text-white">No orders found</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[14rem] mx-auto mt-0.5">Try adjusting your filters or search query.</p>
+                            <p className="text-sm font-medium text-foreground">No orders found</p>
+                            <p className="text-xs text-muted-foreground max-w-[14rem] mx-auto mt-0.5">Try adjusting your filters or search query.</p>
                         </div>
                     ) : (
                         <div className="space-y-2.5 pb-16">
                             {filteredOrders.map(order => (
-                                <div key={order.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                                <div key={order.id} className="bg-card rounded-xl border border-border p-4 shadow-sm">
                                     <div className="flex items-start justify-between gap-3 mb-3">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-800 shrink-0">
+                                            <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border shrink-0">
                                                 <NetworkLogo id={order.network} className="w-7 h-7" />
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5 min-w-0">
-                                                    <span className="font-medium text-slate-900 dark:text-white truncate">{order.network}</span>
+                                                    <span className="font-medium text-foreground truncate">{order.network}</span>
                                                     <span className={cn(
                                                         'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border shrink-0',
                                                         order.type === 'mashup'
@@ -1010,12 +1010,12 @@ export default function AirtimePage() {
                                                         {order.type === 'mashup' ? 'Mashup' : 'Airtime'}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 min-w-0">
+                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 min-w-0">
                                                     <Phone className="w-3 h-3 shrink-0" />
                                                     <span className="truncate font-mono">{order.beneficiary_phone}</span>
                                                     <button
                                                         onClick={() => { navigator.clipboard.writeText(order.beneficiary_phone); toast.success('Number copied') }}
-                                                        className="p-0.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors shrink-0"
+                                                        className="p-0.5 hover:bg-muted dark:hover:bg-muted rounded transition-colors shrink-0"
                                                         title="Copy beneficiary number"
                                                     >
                                                         <Copy className="w-3 h-3" />
@@ -1025,31 +1025,31 @@ export default function AirtimePage() {
                                         </div>
                                         <div className="text-right shrink-0">
                                             <StatusBadge status={order.status} />
-                                            <p className="text-base font-semibold text-slate-900 dark:text-white tabular-nums mt-1">GHS {order.total_paid.toFixed(2)}</p>
+                                            <p className="text-base font-semibold text-foreground tabular-nums mt-1">GHS {order.total_paid.toFixed(2)}</p>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 p-2.5 border border-slate-100 dark:border-slate-800">
+                                    <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 dark:bg-muted/40 p-2.5 border border-border">
                                         <div className="min-w-0">
-                                            <p className="text-xs text-slate-400">Amount</p>
+                                            <p className="text-xs text-muted-foreground">Amount</p>
                                             <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 truncate tabular-nums">GHS {order.airtime_amount.toFixed(2)}</p>
                                         </div>
                                         <div className="min-w-0 text-center">
-                                            <p className="text-xs text-slate-400">Fee</p>
-                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate tabular-nums">GHS {order.fee_amount.toFixed(2)}</p>
+                                            <p className="text-xs text-muted-foreground">Fee</p>
+                                            <p className="text-sm font-medium text-foreground/80 truncate tabular-nums">GHS {order.fee_amount.toFixed(2)}</p>
                                         </div>
                                         <div className="min-w-0 text-right">
-                                            <p className="text-xs text-slate-400">Date</p>
-                                            <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{format(parseISO(order.created_at), 'MMM d, p')}</p>
+                                            <p className="text-xs text-muted-foreground">Date</p>
+                                            <p className="text-xs font-medium text-foreground/80 truncate">{format(parseISO(order.created_at), 'MMM d, p')}</p>
                                         </div>
                                     </div>
 
-                                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-1.5 text-slate-400 font-mono text-xs min-w-0">
+                                    <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-xs min-w-0">
                                             <Info className="w-3 h-3 shrink-0" />
                                             <span className="truncate">{order.reference_code}</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 shrink-0">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
                                             <Clock className="w-3 h-3" />
                                             <span className="text-xs tabular-nums">{format(parseISO(order.created_at), 'hh:mm a')}</span>
                                         </div>
@@ -1115,7 +1115,7 @@ export default function AirtimePage() {
                                 setTimePeriod('Custom')
                                 setIsCustomDialogOpen(false)
                             }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 flex-1"
+                            className="rounded-xl h-10 flex-1 clay clay-green"
                             disabled={!customStart || !customEnd}
                         >
                             Apply filter

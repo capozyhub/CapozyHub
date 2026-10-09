@@ -185,7 +185,7 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                 {QUEUE_STATUSES.has(row.status) && (
                     <Button
                         size="sm"
-                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1"
+                        className="h-8 font-bold text-xs gap-1 clay clay-green"
                         onClick={e => { e.stopPropagation(); onPay() }}
                         disabled={inFlight}
                     >
@@ -261,7 +261,7 @@ function QueueMobileCard({ row, selected, onToggle, onRowClick, onPay, inFlight 
                 {QUEUE_STATUSES.has(row.status) && (
                     <Button
                         size="sm"
-                        className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                        className="w-full h-9 font-bold gap-2 clay clay-green"
                         onClick={e => { e.stopPropagation(); onPay() }}
                         disabled={inFlight}
                     >

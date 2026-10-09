@@ -111,14 +111,14 @@ export default function WalletUpgradeModal({
                     'relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden',
                     isDealer
                         ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
-                        : 'bg-white dark:bg-gray-900 border border-yellow-200 dark:border-yellow-900/40'
+                        : 'bg-card border border-yellow-200 dark:border-yellow-900/40'
                 )}
             >
                 {/* Header */}
                 <div className={cn('px-6 pt-6 pb-4 bg-gradient-to-r', accentClass)}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-card/20 flex items-center justify-center">
                                 <UpgradeIcon className="w-5 h-5 text-white fill-white/30" />
                             </div>
                             <div>
@@ -131,7 +131,7 @@ export default function WalletUpgradeModal({
                         <button
                             onClick={onClose}
                             aria-label="Close"
-                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-colors"
                         >
                             <X className="w-4 h-4 text-white" />
                         </button>
@@ -143,11 +143,11 @@ export default function WalletUpgradeModal({
                     <div className={cn('rounded-xl p-4 border flex items-center justify-between', accentBg, accentBorder)}>
                         <div className="flex items-center gap-2">
                             <Wallet className={cn('w-5 h-5', isDealer ? 'text-violet-300' : 'text-amber-600')} />
-                            <span className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-gray-800 dark:text-gray-200')}>
+                            <span className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-foreground')}>
                                 Upgrade Cost
                             </span>
                         </div>
-                        <span className={cn('font-bold text-xl', isDealer ? 'text-white' : 'text-gray-900 dark:text-white')}>
+                        <span className={cn('font-bold text-xl', isDealer ? 'text-white' : 'text-foreground')}>
                             GHS {price.toFixed(2)}
                         </span>
                     </div>
@@ -162,10 +162,10 @@ export default function WalletUpgradeModal({
                                 <span className="text-green-300 font-bold">GHS {walletBalance.toFixed(2)}</span>
                             </div>
                             <div className="flex items-center justify-between text-xs opacity-70">
-                                <span className={isDealer ? 'text-violet-300' : 'text-gray-500 dark:text-gray-400'}>
+                                <span className={isDealer ? 'text-violet-300' : 'text-muted-foreground'}>
                                     Balance after upgrade
                                 </span>
-                                <span className={isDealer ? 'text-violet-200' : 'text-gray-700 dark:text-gray-300'}>
+                                <span className={isDealer ? 'text-violet-200' : 'text-foreground/80 '}>
                                     GHS {newBalance.toFixed(2)}
                                 </span>
                             </div>
@@ -205,7 +205,7 @@ export default function WalletUpgradeModal({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <Zap className={cn('w-4 h-4 flex-shrink-0', isDealer ? 'text-violet-300' : 'text-amber-600')} />
-                                        <p className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-gray-800 dark:text-gray-200')}>
+                                        <p className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-foreground')}>
                                             Enable Auto-Upgrade
                                         </p>
                                         <span className={cn(
@@ -215,7 +215,7 @@ export default function WalletUpgradeModal({
                                             Optional
                                         </span>
                                     </div>
-                                    <p className={cn('text-xs leading-relaxed', isDealer ? 'text-violet-300' : 'text-gray-500 dark:text-gray-400')}>
+                                    <p className={cn('text-xs leading-relaxed', isDealer ? 'text-violet-300' : 'text-muted-foreground')}>
                                         Automatically renews this plan from your wallet when it's about to expire. Keep enough balance to avoid interruption.
                                     </p>
                                 </div>
@@ -227,7 +227,7 @@ export default function WalletUpgradeModal({
                                     {autoUpgrade ? (
                                         <ToggleRight className={cn('w-9 h-9', isDealer ? 'text-violet-400' : 'text-amber-500')} />
                                     ) : (
-                                        <ToggleLeft className="w-9 h-9 text-gray-400 dark:text-gray-600" />
+                                        <ToggleLeft className="w-9 h-9 text-muted-foreground" />
                                     )}
                                 </button>
                             </div>
@@ -258,7 +258,7 @@ export default function WalletUpgradeModal({
                                 'flex-1 h-11 rounded-xl font-bold text-sm',
                                 isDealer
                                     ? 'border-violet-500/40 text-violet-300 hover:bg-violet-500/10 bg-transparent'
-                                    : 'border-gray-200 dark:border-gray-700'
+                                    : 'border-border'
                             )}
                         >
                             Cancel
@@ -289,7 +289,7 @@ export default function WalletUpgradeModal({
 
                     <p className={cn(
                         'text-center text-[10px] font-medium',
-                        isDealer ? 'text-violet-400/60' : 'text-gray-400 dark:text-gray-600'
+                        isDealer ? 'text-violet-400/60' : 'text-muted-foreground'
                     )}>
                         Payment is instant and deducted directly from your Flexy-Wallet.
                     </p>

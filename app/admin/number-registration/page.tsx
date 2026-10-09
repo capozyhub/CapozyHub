@@ -264,7 +264,7 @@ export default function NumberRegistrationPage() {
             registered: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             confirmed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
         }
-        return map[s] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+        return map[s] || 'bg-muted text-foreground/80 '
     }
 
     if (loading && !data) {
@@ -294,7 +294,7 @@ export default function NumberRegistrationPage() {
                         className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                             data?.gateEnabled
                                 ? 'bg-green-50 border-green-300 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
-                                : 'bg-gray-50 border-border text-muted-foreground dark:bg-gray-900/30'
+                                : 'bg-muted/50 border-border text-muted-foreground dark:bg-card/30'
                         }`}
                     >
                         {busy === 'gate' ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -308,7 +308,7 @@ export default function NumberRegistrationPage() {
                         className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                             data?.whitelistGateEnabled
                                 ? 'bg-brand-50 border-brand-300 text-brand-700 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400'
-                                : 'bg-gray-50 border-border text-muted-foreground dark:bg-gray-900/30'
+                                : 'bg-muted/50 border-border text-muted-foreground dark:bg-card/30'
                         }`}
                     >
                         {busy === 'whitelistGate' ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -322,7 +322,7 @@ export default function NumberRegistrationPage() {
                         className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
                             data?.bundlePortalWhitelistEnabled
                                 ? 'bg-brand-50 border-brand-300 text-brand-700 dark:bg-brand-900/20 dark:border-brand-800 dark:text-brand-400'
-                                : 'bg-gray-50 border-border text-muted-foreground dark:bg-gray-900/30'
+                                : 'bg-muted/50 border-border text-muted-foreground dark:bg-card/30'
                         }`}
                     >
                         {busy === 'bundlePortalWhitelist' ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -458,7 +458,7 @@ export default function NumberRegistrationPage() {
                                                 <button
                                                     onClick={() => markRegistered(b)}
                                                     disabled={busy === `rel-${b.id}`}
-                                                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-semibold"
+                                                    className="inline-flex items-center gap-1.5 rounded-lg disabled:opacity-50 px-3 py-1.5 text-xs font-semibold clay clay-green"
                                                 >
                                                     {busy === `rel-${b.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                                                     Mark Registered
@@ -532,7 +532,7 @@ export default function NumberRegistrationPage() {
                             placeholder="0241234567, 0559876543"
                             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono"
                         />
-                        <button onClick={registerManual} disabled={busy === 'manual' || !manualPhones.trim()} className="mt-2 flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2.5 text-sm font-semibold">
+                        <button onClick={registerManual} disabled={busy === 'manual' || !manualPhones.trim()} className="mt-2 flex items-center gap-2 rounded-xl disabled:opacity-50 px-4 py-2.5 text-sm font-semibold clay clay-green">
                             {busy === 'manual' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Register &amp; Release
                         </button>
                     </div>

@@ -85,7 +85,7 @@ const KIND_META: Record<SmsLedgerKind, { label: string; icon: React.ElementType;
     debit:        { label: 'Campaign send',    icon: Send,      iconClass: 'text-brand-700 dark:text-brand-400',       bgClass: 'bg-brand-100 dark:bg-brand-900/30' },
     refund:       { label: 'Refund',           icon: Undo2,     iconClass: 'text-purple-600 dark:text-purple-400',   bgClass: 'bg-purple-100 dark:bg-purple-900/30' },
     bonus:        { label: 'Bonus credits',    icon: Gift,      iconClass: 'text-amber-600 dark:text-amber-400',     bgClass: 'bg-amber-100 dark:bg-amber-900/30' },
-    admin_adjust: { label: 'Admin adjustment', icon: Settings2, iconClass: 'text-gray-600 dark:text-gray-400',       bgClass: 'bg-gray-100 dark:bg-gray-800' },
+    admin_adjust: { label: 'Admin adjustment', icon: Settings2, iconClass: 'text-muted-foreground',       bgClass: 'bg-muted' },
 }
 
 /** Debit/refund ledger rows carry the campaign id in `reference`. */
@@ -296,7 +296,7 @@ export default function SmsCreditsPage() {
                 <Card className="rounded-2xl border-0 overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 text-white shadow-lg">
                     <CardContent className="p-5 sm:p-6 relative">
                         {/* Decorative glow */}
-                        <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+                        <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-card/10 blur-2xl" />
                         <div className="pointer-events-none absolute -bottom-20 -left-10 w-40 h-40 rounded-full bg-teal-300/10 blur-2xl" />
 
                         <div className="relative flex items-start justify-between gap-3">
@@ -311,7 +311,7 @@ export default function SmsCreditsPage() {
                             </div>
                             <span className={cn(
                                 'inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full shrink-0',
-                                isBusiness ? 'bg-white/20 text-white' : 'bg-black/15 text-emerald-50',
+                                isBusiness ? 'bg-card/20 text-white' : 'bg-black/15 text-emerald-50',
                             )}>
                                 {isBusiness ? <Building2 className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
                                 {isBusiness ? 'Business mode' : 'Platform mode'}
@@ -319,13 +319,13 @@ export default function SmsCreditsPage() {
                         </div>
 
                         <div className="relative grid grid-cols-2 gap-2.5 mt-5">
-                            <div className="rounded-xl bg-white/10 backdrop-blur-sm px-3.5 py-2.5">
+                            <div className="rounded-xl bg-card/10 backdrop-blur-sm px-3.5 py-2.5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-100/80 flex items-center gap-1">
                                     <TrendingUp className="w-3 h-3" /> Total purchased
                                 </p>
                                 <p className="text-lg font-bold tabular-nums mt-0.5">{wallet.total_purchased.toLocaleString()}</p>
                             </div>
-                            <div className="rounded-xl bg-white/10 backdrop-blur-sm px-3.5 py-2.5">
+                            <div className="rounded-xl bg-card/10 backdrop-blur-sm px-3.5 py-2.5">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-100/80 flex items-center gap-1">
                                     <TrendingDown className="w-3 h-3" /> Total used
                                 </p>
@@ -403,7 +403,7 @@ export default function SmsCreditsPage() {
                                                 onClick={() => openBuy(b)}
                                                 disabled={suspended || purchasing}
                                                 size="sm"
-                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1 px-2"
+                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs font-semibold gap-1 px-2 clay clay-green"
                                             >
                                                 <Coins className="w-3 h-3" /> Buy
                                             </Button>
@@ -560,7 +560,7 @@ export default function SmsCreditsPage() {
                         <Button
                             onClick={handlePurchase}
                             disabled={purchasing || !buyIntent}
-                            className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-11 gap-1.5 clay clay-green"
                         >
                             {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coins className="w-4 h-4" />}
                             {purchasing ? 'Processing…' : 'Pay & Add Credits'}

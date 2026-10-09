@@ -671,7 +671,7 @@ export default function SmsBusinessPage() {
                                 <Button
                                     onClick={handleSubmitClick}
                                     disabled={!canSubmit}
-                                    className="h-11 flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                    className="h-11 flex-1 gap-2 font-semibold clay clay-green"
                                 >
                                     {saving === 'submit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                     {saving === 'submit' ? 'Submitting…' : 'Submit for review'}
@@ -707,9 +707,9 @@ export default function SmsBusinessPage() {
                 <motion.div {...fadeUp} transition={{ duration: 0.3, delay: 0.05 }}>
                     <Card className="rounded-2xl border-0 overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 text-white shadow-lg">
                         <CardContent className="p-5 sm:p-6 relative">
-                            <div className="pointer-events-none absolute -top-14 -right-14 w-44 h-44 rounded-full bg-white/10 blur-2xl" />
+                            <div className="pointer-events-none absolute -top-14 -right-14 w-44 h-44 rounded-full bg-card/10 blur-2xl" />
                             <div className="relative flex items-start gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+                                <div className="w-11 h-11 rounded-2xl bg-card/15 backdrop-blur-sm flex items-center justify-center shrink-0">
                                     <PartyPopper className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
@@ -840,7 +840,7 @@ export default function SmsBusinessPage() {
                                                         'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
                                                         selected ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30',
                                                     )}>
-                                                        {selected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                        {selected && <span className="w-1.5 h-1.5 rounded-full bg-card" />}
                                                     </span>
                                                     <span className="font-mono text-sm font-bold truncate">{opt.name}</span>
                                                 </span>
@@ -965,7 +965,7 @@ export default function SmsBusinessPage() {
                                                     || senderText.trim().length < 3
                                                     || !(senderValidation?.ok)
                                                 }
-                                                className="h-11 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shrink-0"
+                                                className="h-11 gap-1.5 font-semibold shrink-0 clay clay-green"
                                             >
                                                 {requestingSender ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                                 Request
@@ -1082,7 +1082,7 @@ export default function SmsBusinessPage() {
                         <Button
                             onClick={() => doSave('submit')}
                             disabled={!!saving}
-                            className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            className="h-11 gap-1.5 clay clay-green"
                         >
                             {saving === 'submit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                             {saving === 'submit' ? 'Submitting…' : 'Submit for review'}

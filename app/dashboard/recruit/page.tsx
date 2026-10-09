@@ -268,7 +268,7 @@ export default function RecruitPage() {
     // upgrade prompt instead of an empty or broken sub-agents list.
     if (!authLoading && !isEligible) {
         return (
-            <div className="space-y-4 max-w-4xl mx-auto">
+            <div className="space-y-5">
                 <Card>
                     <CardContent className="p-6 sm:p-8 flex flex-col items-center text-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
@@ -294,12 +294,12 @@ export default function RecruitPage() {
     }
 
     return (
-        <div className="space-y-4 max-w-4xl mx-auto">
+        <div className="space-y-5">
             <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                        <Users className="w-5 h-5 text-emerald-600" />
-                        Sub-Agents
+                    <h1 className="flex items-center gap-2 font-display text-2xl font-semibold tracking-tight">
+                        <Users className="h-6 w-6 text-brand-700 dark:text-brand-500" />
+                        Sub-agents
                     </h1>
                     <p className="text-muted-foreground text-xs sm:text-sm">
                         Bring on sub-agents who sell under your account. You hand each one an access key —
@@ -388,23 +388,21 @@ export default function RecruitPage() {
                 </Card>
             )}
 
-            {/* Downline list */}
-            <Card>
-                <CardHeader className="p-4 pb-0">
-                    <CardTitle className="text-sm">Your sub-agents</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-1.5">
+            {/* Downline list: each sub-agent is its own card; no wrapper card around them */}
+            <section aria-label="Your sub-agents" className="space-y-3">
+                <h2 className="font-display text-lg font-semibold">Your sub-agents</h2>
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                     {loading ? (
-                        <div className="flex justify-center py-8">
+                        <div className="surface flex justify-center rounded-2xl py-10 md:col-span-2 2xl:col-span-3">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                         </div>
                     ) : loadError ? (
-                        <div className="text-center py-8 space-y-3">
+                        <div className="surface space-y-3 rounded-2xl py-10 text-center md:col-span-2 2xl:col-span-3">
                             <p className="text-sm text-muted-foreground">Couldn&apos;t load your sub-agents.</p>
                             <Button variant="outline" size="sm" onClick={fetchSubAgents}>Retry</Button>
                         </div>
                     ) : subAgents.length === 0 ? (
-                        <div className="text-center py-8">
+                        <div className="surface rounded-2xl px-4 py-10 text-center md:col-span-2 2xl:col-span-3">
                             <p className="text-sm text-muted-foreground">
                                 You haven&apos;t recruited anyone yet. Use "Add sub-agent" above to bring on your first one.
                             </p>
@@ -416,12 +414,12 @@ export default function RecruitPage() {
                             const isActivityLoading = activityLoadingId === sub.id
                             const hasActivityError = activityErrorId === sub.id && !activity
                             return (
-                                <div key={sub.id} className="rounded-lg border p-2">
+                                <div key={sub.id} className="surface flex flex-col rounded-2xl p-4">
                                     {/* Stacks on mobile — three labeled buttons never fit beside
                                         the info column at phone widths, and forcing them onto one
                                         row squeezed the name/email/date text into a sliver, wrapping
                                         it one word per line (found 2026-09-29). */}
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col gap-3">
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <p className="text-sm font-medium truncate">{sub.name || sub.email}</p>
@@ -432,7 +430,7 @@ export default function RecruitPage() {
                                             <p className="text-xs text-muted-foreground truncate">{sub.email}</p>
                                             <p className="text-[11px] text-muted-foreground">Recruited {formatDate(sub.created_at)}</p>
                                         </div>
-                                        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap sm:shrink-0">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -488,8 +486,8 @@ export default function RecruitPage() {
                             )
                         })
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </section>
 
             {/* Credential-sent confirmation — replaces the old key-reveal dialog.
                 The plaintext access key never reaches this page (Task 3

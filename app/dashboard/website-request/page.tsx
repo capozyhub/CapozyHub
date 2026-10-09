@@ -150,7 +150,7 @@ export default function WebsiteRequestPage() {
     const activeFeatures = category ? (CATEGORY_FEATURES[category] ?? []) : []
 
     return (
-        <div className="mx-auto max-w-2xl space-y-4 p-4 pb-10">
+        <div className="space-y-5">
 
             {/* Header */}
             <div>

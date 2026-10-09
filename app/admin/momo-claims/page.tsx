@@ -94,13 +94,13 @@ const NETWORK_COLORS: Record<string, string> = {
     MTN: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     Telecel: 'bg-red-100 text-red-800 border-red-300',
     AirtelTigo: 'bg-brand-100 text-brand-800 border-brand-300',
-    Unknown: 'bg-gray-100 text-gray-700 border-gray-300',
+    Unknown: 'bg-muted text-foreground/80 border-border',
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
     pending:  { label: 'Pending',  color: 'bg-amber-100 text-amber-800 border-amber-300',   icon: Clock },
     claimed:  { label: 'Claimed',  color: 'bg-green-100 text-green-800 border-green-300',   icon: CheckCircle2 },
-    voided:   { label: 'Voided',   color: 'bg-gray-100 text-gray-600 border-gray-300',      icon: XCircle },
+    voided:   { label: 'Voided',   color: 'bg-muted text-muted-foreground border-border',      icon: XCircle },
     flagged:  { label: 'Flagged',  color: 'bg-red-100 text-red-800 border-red-300',         icon: AlertTriangle },
 }
 
@@ -415,7 +415,7 @@ export default function MomoClaimsAdminPage() {
                         { label: 'Total', value: filteredStats.total, color: 'text-brand-700', bg: 'bg-brand-50' },
                         { label: 'Pending', value: filteredStats.pending, color: 'text-amber-600', bg: 'bg-amber-50' },
                         { label: 'Claimed', value: filteredStats.claimed, color: 'text-green-600', bg: 'bg-green-50' },
-                        { label: 'Voided', value: filteredStats.voided, color: 'text-gray-500', bg: 'bg-gray-50' },
+                        { label: 'Voided', value: filteredStats.voided, color: 'text-muted-foreground', bg: 'bg-muted/50' },
                         { label: 'Flagged', value: filteredStats.flagged, color: 'text-red-600', bg: 'bg-red-50' },
                         { label: 'Total Credited', value: formatCurrency(filteredStats.totalCredited), color: 'text-emerald-700', bg: 'bg-emerald-50', isAmount: true },
                     ].map((s) => (
@@ -504,13 +504,13 @@ export default function MomoClaimsAdminPage() {
                                 return (
                                     <div key={txn.id} className="p-4 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <code className="text-xs font-bold text-slate-700 dark:text-slate-300">{txn.transaction_id}</code>
+                                            <code className="text-xs font-bold text-foreground/80 ">{txn.transaction_id}</code>
                                             <Badge variant="outline" className={`text-[10px] gap-1 ${sc.color}`}>
                                                 <StatusIcon className="w-3 h-3" /> {sc.label}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-900 dark:text-white">{txn.sender_name}</span>
+                                            <span className="text-sm font-medium text-foreground">{txn.sender_name}</span>
                                             <Badge variant="outline" className={`text-[10px] ${NETWORK_COLORS[txn.sender_network] || NETWORK_COLORS.Unknown}`}>
                                                 {txn.sender_network}
                                             </Badge>
@@ -646,7 +646,7 @@ export default function MomoClaimsAdminPage() {
                     <CardContent>
                         <div className="space-y-2">
                             {attempts.map(a => (
-                                <div key={a.user_id} className="flex items-center justify-between p-3 rounded-lg bg-white border border-red-100">
+                                <div key={a.user_id} className="flex items-center justify-between p-3 rounded-lg bg-card border border-red-100">
                                     <span className="font-medium text-sm">{a.user_name}</span>
                                     <Badge variant="destructive">{a.count} attempts</Badge>
                                 </div>
@@ -740,7 +740,7 @@ export default function MomoClaimsAdminPage() {
                                         {references.map((r: any) => (
                                             <tr key={r.id} className="hover:bg-muted/20 transition-colors">
                                                 <td className="px-4 py-3">
-                                                    <span className="font-mono font-bold tracking-widest text-base bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                                    <span className="font-mono font-bold tracking-widest text-base bg-muted px-2 py-1 rounded">
                                                         {r.reference_code}
                                                     </span>
                                                 </td>

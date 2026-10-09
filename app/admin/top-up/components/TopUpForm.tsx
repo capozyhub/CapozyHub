@@ -227,7 +227,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                                 'text-xs px-2.5 py-1.5 rounded-full border transition-all',
                                 selectedTemplates.includes(t.id)
                                     ? 'bg-brand-600 text-black border-brand-600'
-                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-brand-400'
+                                    : 'bg-card border-border hover:border-brand-400'
                             )}
                         >
                             {t.label}
@@ -270,7 +270,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                                         title="Select debt to settle"
                                         value={selectedDebtId}
                                         onChange={e => setSelectedDebtId(e.target.value)}
-                                        className="w-full mt-1 text-sm border rounded-lg p-2 bg-white dark:bg-slate-900"
+                                        className="w-full mt-1 text-sm border rounded-lg p-2 bg-card"
                                     >
                                         {debts.map((d, i) => (
                                             <option key={d.id} value={d.id}>
@@ -294,10 +294,10 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                                 />
                             </div>
                             {amountNum > 0 && deductNum > 0 && (
-                                <div className="text-xs space-y-1 bg-white dark:bg-slate-900 rounded-lg p-3 font-mono">
+                                <div className="text-xs space-y-1 bg-card rounded-lg p-3 font-mono">
                                     <div className="flex justify-between"><span>Cash received:</span><span className="font-bold">GHS {amountNum.toFixed(2)}</span></div>
                                     <div className="flex justify-between text-red-600"><span>Debt deducted:</span><span className="font-bold">−GHS {deductNum.toFixed(2)}</span></div>
-                                    <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+                                    <div className="border-t border-border my-1" />
                                     <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet credit:</span><span>GHS {netCredit.toFixed(2)}</span></div>
                                     <div className={cn('flex justify-between', debtRemaining === 0 ? 'text-green-600' : 'text-amber-600')}>
                                         <span>Debt remaining:</span>
@@ -345,7 +345,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                         ? 'bg-amber-500 hover:bg-amber-600 text-white'
                         : deductFromDebt
                             ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                            : 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'clay clay-green'
                 )}
             >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
@@ -359,7 +359,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                         <DialogTitle>Confirm Top-Up</DialogTitle>
                         <DialogDescription asChild>
                             <div className="space-y-2 text-sm">
-                                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 font-mono space-y-1">
+                                <div className="bg-muted/50 rounded-lg p-3 font-mono space-y-1">
                                     {deductFromDebt && deductNum > 0 ? (
                                         <>
                                             <p>✅ Credit <strong>GHS {netCredit.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
@@ -379,7 +379,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                         </DialogClose>
-                        <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+                        <Button onClick={handleSubmit} className="clay clay-green">
                             Confirm
                         </Button>
                     </DialogFooter>

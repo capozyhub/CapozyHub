@@ -109,7 +109,7 @@ const SEGMENTS: {
     value: (s: UserStats) => number
     sub?: (s: UserStats) => string
 }[] = [
-    { key: 'total',      label: 'Total',      icon: UsersIcon,  color: 'text-slate-600 dark:text-slate-300', role: 'all',      status: 'all',       value: s => s.total },
+    { key: 'total',      label: 'Total',      icon: UsersIcon,  color: 'text-muted-foreground ', role: 'all',      status: 'all',       value: s => s.total },
     { key: 'customers',  label: 'Customers',  icon: UserCircle, color: 'text-brand-700',    role: 'customer', status: 'all',       value: s => s.customers },
     { key: 'agents',     label: 'Agents',     icon: BadgeCheck, color: 'text-emerald-600', role: 'agent',    status: 'all',       value: s => s.agents, sub: s => `${s.active_agents} active · ${s.expired_agents} expired` },
     { key: 'dealers',    label: 'Dealers',    icon: Gem,        color: 'text-violet-600',  role: 'dealer',   status: 'all',       value: s => s.dealers },
@@ -650,7 +650,7 @@ export default function AdminUsersPage() {
                                 <Card
                                     key={user.id}
                                     className={cn(
-                                        'group relative overflow-hidden border transition-all duration-200 shadow-md bg-white dark:bg-slate-900/50',
+                                        'group relative overflow-hidden border transition-all duration-200 shadow-md bg-card dark:bg-card/50',
                                         isSelected
                                             ? 'border-purple-500 ring-2 ring-purple-500/30'
                                             : 'border-purple-100 dark:border-purple-900/30 lg:hover:border-purple-500/50 lg:hover:shadow-xl lg:hover:-translate-y-1'
@@ -668,7 +668,7 @@ export default function AdminUsersPage() {
                                             <Checkbox checked={isSelected} className="h-5 w-5 bg-background" />
                                         </div>
                                     )}
-                                    <div className="absolute top-0 right-0 p-4 opacity-50 font-black text-6xl text-slate-100 dark:text-slate-800/50 -z-10 select-none pointer-events-none">
+                                    <div className="absolute top-0 right-0 p-4 opacity-50 font-black text-6xl text-foreground dark:text-foreground/50 -z-10 select-none pointer-events-none">
                                         {user.first_name?.[0]}
                                     </div>
 
@@ -682,7 +682,7 @@ export default function AdminUsersPage() {
                                                     const RoleIcon = config.icon
                                                     return (
                                                         <div
-                                                            className="h-14 w-14 flex-shrink-0 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-gray-800"
+                                                            className="h-14 w-14 flex-shrink-0 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-border"
                                                             style={{ backgroundColor: config.color }}
                                                         >
                                                             <RoleIcon className="w-7 h-7" />
@@ -690,7 +690,7 @@ export default function AdminUsersPage() {
                                                     )
                                                 })()}
                                                 <div className="min-w-0">
-                                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-1">
+                                                    <h3 className="font-bold text-lg text-foreground line-clamp-1">
                                                         {user.first_name} {user.last_name}
                                                     </h3>
                                                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -717,7 +717,7 @@ export default function AdminUsersPage() {
                                                                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
                                                                 expiry.expired
                                                                     ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                                                    : 'bg-muted text-muted-foreground '
                                                             )}>
                                                                 {expiry.label}
                                                             </span>
@@ -727,7 +727,7 @@ export default function AdminUsersPage() {
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 relative z-30 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 relative z-30 text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-muted rounded-full">
                                                         <MoreVertical className="w-5 h-5" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -819,17 +819,17 @@ export default function AdminUsersPage() {
 
                                         {/* Details */}
                                         <div className="space-y-2">
-                                            <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
                                                 <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                                                 <span className="truncate text-sm font-medium">{user.email}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
-                                                <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
                                                     <Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                                                     <span className="text-sm font-medium truncate">{user.phone_number || 'N/A'}</span>
                                                     {user.phone_verified && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
                                                 </div>
-                                                <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
                                                     <Calendar className="w-4 h-4 text-orange-500 flex-shrink-0" />
                                                     <span className="text-sm font-medium truncate">{formatDate(user.created_at).split(',')[0]}</span>
                                                 </div>
@@ -877,15 +877,15 @@ export default function AdminUsersPage() {
 
             {/* Bulk action bar */}
             {selectMode && selected.size > 0 && (
-                <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xl px-4 py-3">
+                <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl bg-card text-white dark:text-foreground shadow-2xl px-4 py-3">
                     <span className="text-sm font-bold whitespace-nowrap">{selected.size} selected</span>
                     <Button size="sm" className="h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white" onClick={() => openSuspendDialog(selectedUsers)}>
                         <Ban className="w-3.5 h-3.5 mr-1.5" /> Suspend
                     </Button>
-                    <Button size="sm" className="h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white" onClick={() => activateUsers(selectedUsers)}>
+                    <Button size="sm" className="h-8 rounded-lg clay clay-green" onClick={() => activateUsers(selectedUsers)}>
                         <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Activate
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 rounded-lg text-white dark:text-slate-900" onClick={() => setSelected(new Set())}>
+                    <Button size="sm" variant="ghost" className="h-8 rounded-lg text-white dark:text-foreground" onClick={() => setSelected(new Set())}>
                         <X className="w-4 h-4" />
                     </Button>
                 </div>

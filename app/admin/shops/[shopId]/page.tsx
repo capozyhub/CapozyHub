@@ -482,7 +482,7 @@ export default function AdminShopDetailPage() {
                             <Button
                                 onClick={approvePricing}
                                 disabled={!!pricingAction}
-                                className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                                className="gap-1.5 clay clay-green"
                             >
                                 {pricingAction === 'approving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                                 Approve Pricing
@@ -645,7 +645,7 @@ export default function AdminShopDetailPage() {
                         <Button
                             onClick={() => updateApproval('approved')}
                             disabled={saving || shop.approval_status === 'approved'}
-                            className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                            className="gap-1.5 clay clay-green"
                         >
                             <CheckCircle2 className="w-4 h-4" /> Approve Profile
                         </Button>
@@ -756,7 +756,7 @@ export default function AdminShopDetailPage() {
                         </div>
                     </div>
 
-                    <Button onClick={saveSettings} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                    <Button onClick={saveSettings} disabled={saving} className="gap-2 clay clay-green">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Settings
                     </Button>

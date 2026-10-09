@@ -77,7 +77,7 @@ export function BulkActionBar({
         'w-[calc(100%-2rem)] max-w-3xl',
         'flex flex-wrap items-center gap-3',
         'rounded-xl shadow-lg border',
-        'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700',
+        'bg-card border-border',
         'px-4 py-3',
       )}
     >
@@ -86,7 +86,7 @@ export function BulkActionBar({
         <button
           onClick={onClear}
           aria-label="Clear selection"
-          className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center text-muted-foreground hover:bg-muted dark:hover:bg-muted transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -117,7 +117,7 @@ export function BulkActionBar({
             className={cn(
               'font-bold gap-1.5 rounded-lg',
               hasBank
-                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-brand-600 hover:bg-brand-500 text-black',
             )}
           >
@@ -132,7 +132,7 @@ export function BulkActionBar({
             )}
           </Button>
           {hasBank && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-zinc-800 dark:bg-zinc-700 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-muted text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
               Paystack supports MoMo only — selection includes bank accounts
             </div>
           )}
@@ -143,7 +143,7 @@ export function BulkActionBar({
           variant="outline"
           disabled={busy}
           onClick={() => handle('manual')}
-          className="font-bold gap-1.5 rounded-lg border-zinc-300 dark:border-zinc-600"
+          className="font-bold gap-1.5 rounded-lg border-border"
         >
           {busy ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

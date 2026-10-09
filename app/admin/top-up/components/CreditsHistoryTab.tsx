@@ -120,7 +120,7 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
 
     return (
         <div className={cn(
-            'bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 transition-all',
+            'bg-card border border-border rounded-xl p-4 transition-all',
             isUnpaid && 'border-l-4 border-l-amber-400'
         )}>
             <div className="flex items-start gap-3">
@@ -168,7 +168,7 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
 
             {/* Action Row */}
             {!hasLinkedDebt && (
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <div className="mt-2 pt-2 border-t border-border flex justify-end">
                     <Button
                         size="sm"
                         variant="ghost"
@@ -239,8 +239,8 @@ export function CreditsHistoryTab() {
                         className={cn(
                             'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
                             filter === f.value
-                                ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white shadow'
-                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-slate-400'
+                                ? 'bg-muted text-white dark:text-foreground border-border dark:border-white shadow'
+                                : 'bg-card border-border text-muted-foreground hover:border-border'
                         )}
                     >
                         {f.label}
@@ -256,7 +256,7 @@ export function CreditsHistoryTab() {
                         { icon: Hash, label: 'Top-Ups', value: String(totalCount), color: 'text-brand-700' },
                         { icon: TrendingUp, label: 'Avg Amount', value: formatCurrency(avgAmount), color: 'text-amber-600' },
                     ].map(card => (
-                        <div key={card.label} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-center">
+                        <div key={card.label} className="bg-card border border-border rounded-xl p-3 text-center">
                             <card.icon className={cn('w-4 h-4 mx-auto mb-1', card.color)} />
                             <p className={cn('text-base font-black', card.color)}>{card.value}</p>
                             <p className="text-[10px] text-muted-foreground">{card.label}</p>

@@ -789,7 +789,7 @@ export default function SmsPlatformAdminClient() {
                         <Button
                             size="lg"
                             onClick={() => openDialog({ kind: 'toggle_feature', next: true })}
-                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex-shrink-0 w-full sm:w-auto"
+                            className="gap-2 font-semibold flex-shrink-0 w-full sm:w-auto clay clay-green"
                         >
                             <Rocket className="w-4 h-4" /> Turn On SMS Platform
                         </Button>
@@ -933,7 +933,7 @@ export default function SmsPlatformAdminClient() {
                                             <Button
                                                 size="sm"
                                                 onClick={() => openDialog({ kind: 'review_business', profile: p, decision: 'approved' })}
-                                                className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                                className="h-8 text-xs gap-1.5 font-semibold clay clay-green"
                                             >
                                                 <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                                             </Button>
@@ -1034,7 +1034,7 @@ export default function SmsPlatformAdminClient() {
                                                                     <Button
                                                                         size="sm"
                                                                         onClick={() => openDialog({ kind: 'sender', sender: s, op: 'approve' })}
-                                                                        className="h-7 text-[11px] gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                                                                        className="h-7 text-[11px] gap-1 font-semibold clay clay-green"
                                                                     >
                                                                         <CheckCircle2 className="w-3 h-3" /> Approve
                                                                     </Button>
@@ -1970,7 +1970,7 @@ export default function SmsPlatformAdminClient() {
                                 'gap-1.5 font-semibold text-white',
                                 dialog && isDestructive(dialog)
                                     ? 'bg-red-600 hover:bg-red-700'
-                                    : 'bg-emerald-600 hover:bg-emerald-700'
+                                    : 'clay clay-green'
                             )}
                         >
                             {dialogBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -2047,7 +2047,7 @@ function SaveButton({ saving, onClick, label }: { saving: boolean; onClick: () =
         <Button
             onClick={onClick}
             disabled={saving}
-            className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            className="w-full gap-2 font-semibold clay clay-green"
         >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {label}

@@ -54,8 +54,8 @@ function CopyButton({ text }: { text: string }) {
         })
     }
     return (
-        <button onClick={handleCopy} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Copy">
-            {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
+        <button onClick={handleCopy} className="p-1 rounded hover:bg-muted dark:hover:bg-muted transition-colors" title="Copy">
+            {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
         </button>
     )
 }
@@ -65,7 +65,7 @@ function StatusBadge({ status }: { status: string }) {
         completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
         pending:   'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
         failed:    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-        refunded:  'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+        refunded:  'bg-muted text-muted-foreground ',
     }
     return (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${map[status] || map.pending}`}>
@@ -382,7 +382,7 @@ export default function ResultsCheckerPage() {
     })
 
     return (
-        <div className="max-w-4xl mx-auto px-4 pb-24 space-y-5">
+        <div className="space-y-5">
             {/* Compact Header */}
             <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
@@ -390,29 +390,29 @@ export default function ResultsCheckerPage() {
                         <GraduationCap className="w-4 h-4" />
                         <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Official Portal</span>
                     </div>
-                    <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
+                    <h1 className="text-xl font-black tracking-tight text-foreground">
                         Result Checker <span className="text-[#0B1F3A] dark:text-brand-400">Access</span>
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Securely purchase and manage your examination credentials.</p>
+                    <p className="text-muted-foreground text-xs font-medium">Securely purchase and manage your examination credentials.</p>
                 </div>
-                <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 text-[9px] font-bold text-gray-500 uppercase tracking-wider w-fit">
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/50 dark:bg-card/5 rounded-xl border border-border dark:border-white/5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider w-fit">
                     <span className="flex items-center gap-1"><Lock className="w-2.5 h-2.5 text-emerald-500" />Secure</span>
-                    <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                    <span className="w-px h-3 bg-muted" />
                     <span className="flex items-center gap-1"><Zap className="w-2.5 h-2.5 text-[#F5B800]" />Instant</span>
-                    <span className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                    <span className="w-px h-3 bg-muted" />
                     <span className="flex items-center gap-1"><ShieldCheck className="w-2.5 h-2.5 text-brand-700" />Verified</span>
                 </div>
             </div>
 
             {/* ── Stats Strip ── */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
-                <span className="text-[11px] font-semibold text-gray-400">Balance</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card text-sm">
+                <span className="text-[11px] font-semibold text-muted-foreground">Balance</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(walletBalance)}</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm">
-                <span className="text-[11px] font-semibold text-gray-400">Orders</span>
-                <span className="font-bold text-gray-900 dark:text-white">{orders.length}</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card text-sm">
+                <span className="text-[11px] font-semibold text-muted-foreground">Orders</span>
+                <span className="font-bold text-foreground">{orders.length}</span>
               </div>
             </div>
 
@@ -430,15 +430,15 @@ export default function ResultsCheckerPage() {
             )}
 
             {/* ── Purchase Form ── */}
-            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-900 shadow-sm p-5 sm:p-6 space-y-6">
+            <div className="bg-card rounded-xl border border-border dark:border-gray-900 shadow-sm p-5 sm:p-6 space-y-6">
               {/* Section heading */}
-              <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-900">
+              <div className="flex items-center gap-3 pb-4 border-b border-border dark:border-gray-900">
                 <div className="w-9 h-9 rounded-xl bg-[#0B1F3A] dark:bg-[#F5B800] flex items-center justify-center flex-shrink-0">
                   <GraduationCap className="w-5 h-5 text-white dark:text-[#0B1F3A]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">Results Checker</h2>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Purchase official WAEC exam credentials</p>
+                  <h2 className="text-sm font-bold text-foreground">Results Checker</h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Purchase official WAEC exam credentials</p>
                 </div>
                 {selectedType?.bulk_pricing && selectedType.bulk_pricing.length > 0 && (
                   <div className="ml-auto hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 text-[10px] font-semibold">
@@ -450,12 +450,12 @@ export default function ResultsCheckerPage() {
               <div className={cn("space-y-6", !pageEnabled && "opacity-50 pointer-events-none")}>
                 {/* Step 1 — Exam type */}
                 <div>
-                  <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Select Examination Type</span>
+                  <span className="block text-sm font-semibold text-foreground mb-3">Select Examination Type</span>
                   <div className="pl-7">
                     {types.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-10 text-center">
-                        <Clock className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-                        <p className="text-sm text-gray-500 font-medium">No voucher types available at this time.</p>
+                      <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
+                        <Clock className="w-8 h-8 mx-auto mb-3 text-muted-foreground/70" />
+                        <p className="text-sm text-muted-foreground font-medium">No voucher types available at this time.</p>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -480,29 +480,29 @@ export default function ResultsCheckerPage() {
                               className={cn(
                                 'relative flex items-center gap-2.5 p-3 rounded-xl border-[1.5px] text-left transition-all duration-200 overflow-hidden',
                                 'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:content-[""] before:transition-colors',
-                                unselectable ? 'opacity-40 cursor-not-allowed border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 before:bg-gray-200' :
+                                unselectable ? 'opacity-40 cursor-not-allowed border-border bg-muted/50 dark:bg-card/50 before:bg-muted' :
                                 isSelected
                                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/[0.12] before:bg-emerald-500 ring-1 ring-emerald-500/30'
-                                  : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 before:bg-transparent'
+                                  : 'border-border bg-card hover:border-border dark:hover:border-border before:bg-transparent'
                               )}>
                               <div className="flex-1 min-w-0">
-                                <p className={cn('text-[13px] sm:text-sm font-semibold leading-snug break-words', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white')}>{t.name}</p>
-                                <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 truncate">{waecUrl}{hasBulk ? ' · Bulk discounts' : ''}</p>
+                                <p className={cn('text-[13px] sm:text-sm font-semibold leading-snug break-words', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground')}>{t.name}</p>
+                                <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{waecUrl}{hasBulk ? ' · Bulk discounts' : ''}</p>
                               </div>
-                              <p className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{formatCurrency(t.price)}</p>
+                              <p className="text-[13px] sm:text-sm font-bold text-foreground whitespace-nowrap flex-shrink-0">{formatCurrency(t.price)}</p>
                               <div className={cn(
                                 'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
-                                isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 dark:border-gray-600'
+                                isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-border'
                               )}>
                                 {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                               </div>
                               {outOfStock && (
-                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60 dark:bg-black/50">
-                                  <span className="bg-gray-800 dark:bg-gray-900 text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow">Sold out</span>
+                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-card/60 dark:bg-black/50">
+                                  <span className="bg-muted text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow">Sold out</span>
                                 </div>
                               )}
                               {notConfigured && (
-                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60 dark:bg-black/50">
+                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-card/60 dark:bg-black/50">
                                   <span className="bg-amber-600 dark:bg-amber-700 text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow">Not available</span>
                                 </div>
                               )}
@@ -531,7 +531,7 @@ export default function ResultsCheckerPage() {
                                 "px-3 py-1.5 rounded-lg border text-center text-[11px] font-semibold",
                                 quantity >= tier.min_qty && quantity <= tier.max_qty
                                   ? "bg-amber-500 text-white border-amber-600"
-                                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-amber-100 dark:border-amber-900/30"
+                                  : "bg-card text-muted-foreground border-amber-100 dark:border-amber-900/30"
                               )}>
                                 {tier.min_qty}{tier.max_qty >= 99999 ? '+' : `–${tier.max_qty}`} · {formatCurrency(tier.unit_price)}/ea
                               </div>
@@ -543,20 +543,20 @@ export default function ResultsCheckerPage() {
 
                     {/* Step 2 — Quantity */}
                     <div>
-                      <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Set Quantity</span>
+                      <span className="block text-sm font-semibold text-foreground mb-3">Set Quantity</span>
                       <div className="pl-7 flex items-center gap-4">
-                        <div className="text-[11px] text-gray-400 flex-1">Bulk discounts apply automatically · Max {maxQty}</div>
+                        <div className="text-[11px] text-muted-foreground flex-1">Bulk discounts apply automatically · Max {maxQty}</div>
                         <div className="flex items-center">
                           <button onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={!pageEnabled || isUnselectable}
-                            className="w-8 h-8 rounded-l-lg border-[1.5px] border-r-0 border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all disabled:opacity-30 bg-white dark:bg-gray-900">
+                            className="w-8 h-8 rounded-l-lg border-[1.5px] border-r-0 border-border flex items-center justify-center text-muted-foreground hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all disabled:opacity-30 bg-card">
                             –
                           </button>
                           <input type="number" title="Quantity" placeholder="1" min={1} max={effectiveMaxQty} value={quantity}
                             disabled={!pageEnabled || isUnselectable}
                             onChange={e => setQuantity(Math.max(1, Math.min(effectiveMaxQty, parseInt(e.target.value) || 1)))}
-                            className="w-12 h-8 text-center border-[1.5px] border-y-gray-200 dark:border-y-gray-700 border-x-0 text-sm font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                            className="w-12 h-8 text-center border-[1.5px] border-y-gray-200 dark:border-y-gray-700 border-x-0 text-sm font-bold text-foreground bg-card focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
                           <button onClick={() => setQuantity(q => Math.min(effectiveMaxQty, q + 1))} disabled={!pageEnabled || isUnselectable}
-                            className="w-8 h-8 rounded-r-lg border-[1.5px] border-l-0 border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all disabled:opacity-30 bg-white dark:bg-gray-900">
+                            className="w-8 h-8 rounded-r-lg border-[1.5px] border-l-0 border-border flex items-center justify-center text-muted-foreground hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all disabled:opacity-30 bg-card">
                             +
                           </button>
                         </div>
@@ -565,17 +565,17 @@ export default function ResultsCheckerPage() {
 
                     {/* Step 3 — Delivery */}
                     <div>
-                      <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Delivery Details <span className="text-[11px] font-normal text-gray-400">(optional)</span></span>
+                      <span className="block text-sm font-semibold text-foreground mb-3">Delivery Details <span className="text-[11px] font-normal text-muted-foreground">(optional)</span></span>
                       <div className="pl-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="relative">
-                          <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <input type="tel" placeholder="Phone (Optional)" value={recipientPhone} onChange={e => setRecipientPhone(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            className="w-full pl-10 pr-3 py-2.5 bg-muted/50 dark:bg-card/[0.03] border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
                         </div>
                         <div className="relative">
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <input type="email" placeholder="Email (Optional)" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                            className="w-full pl-10 pr-3 py-2.5 bg-muted/50 dark:bg-card/[0.03] border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
                         </div>
                       </div>
                     </div>
@@ -583,22 +583,22 @@ export default function ResultsCheckerPage() {
                     {/* Order summary + CTA */}
                     {selectedType && !isUnselectable && (
                       <div className="pl-7 space-y-3">
-                        <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 text-sm">
-                            <span className="text-gray-500 font-medium">Exam</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{selectedType.name}</span>
+                        <div className="border border-border rounded-xl overflow-hidden">
+                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-border bg-muted/50 dark:bg-card/50 text-sm">
+                            <span className="text-muted-foreground font-medium">Exam</span>
+                            <span className="font-semibold text-foreground">{selectedType.name}</span>
                           </div>
-                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-sm">
-                            <span className="text-gray-500 font-medium">Quantity</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{quantity} {quantity === 1 ? 'voucher' : 'vouchers'}</span>
+                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-border text-sm">
+                            <span className="text-muted-foreground font-medium">Quantity</span>
+                            <span className="font-semibold text-foreground">{quantity} {quantity === 1 ? 'voucher' : 'vouchers'}</span>
                           </div>
-                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-sm">
-                            <span className="text-gray-500 font-medium">Unit price</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(unitPrice)}{currentBulkTier ? <span className="text-[11px] text-amber-600 ml-1">bulk</span> : ''}</span>
+                          <div className="flex justify-between items-center px-4 py-2.5 border-b border-border text-sm">
+                            <span className="text-muted-foreground font-medium">Unit price</span>
+                            <span className="font-semibold text-foreground">{formatCurrency(unitPrice)}{currentBulkTier ? <span className="text-[11px] text-amber-600 ml-1">bulk</span> : ''}</span>
                           </div>
                           <div className="flex justify-between items-center px-4 py-3">
                             <div>
-                              <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
+                              <span className="text-sm font-semibold text-foreground">Total</span>
                               {hasInsufficientBalance && <p className="text-[11px] text-red-500 mt-0.5">Wallet: {formatCurrency(walletBalance)} — insufficient</p>}
                             </div>
                             <span className="text-xl font-black text-[#0B1F3A] dark:text-[#F5B800]">{formatCurrency(totalPrice)}</span>
@@ -616,7 +616,7 @@ export default function ResultsCheckerPage() {
                             <Lock className="w-4 h-4" /> Secure Purchase
                           </button>
                         )}
-                        <p className="text-center text-[11px] text-gray-400">Debited instantly from wallet · Delivered via SMS &amp; Email</p>
+                        <p className="text-center text-[11px] text-muted-foreground">Debited instantly from wallet · Delivered via SMS &amp; Email</p>
                       </div>
                     )}
                   </div>
@@ -639,18 +639,18 @@ export default function ResultsCheckerPage() {
                         </div>
                         <div className="flex items-center gap-3">
                             <button onClick={handleDownloadSuccess}
-                                className="text-xs font-bold px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5 transition-all active:scale-95">
+                                className="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 clay clay-green">
                                 <Download className="w-3.5 h-3.5" /> Download
                             </button>
                             <button onClick={() => { setSuccessVouchers([]); setSuccessOrder(null) }}
-                                className="text-xs font-bold text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">✕</button>
+                                className="text-xs font-bold text-muted-foreground hover:text-foreground/80 dark:hover:text-white transition-colors">✕</button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {successVouchers.map((v, i) => (
-                            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-emerald-100 dark:border-emerald-900 shadow-sm">
+                            <div key={i} className="bg-card rounded-xl p-3 border border-emerald-100 dark:border-emerald-900 shadow-sm">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Voucher {i + 1}</span>
+                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide">Voucher {i + 1}</span>
                                     <div className="flex gap-0.5">
                                         <div className="w-1 h-2 bg-red-500 rounded-full" />
                                         <div className="w-1 h-2 bg-yellow-500 rounded-full" />
@@ -658,17 +658,17 @@ export default function ResultsCheckerPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <div className="p-1.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-800">
-                                        <p className="text-[9px] text-gray-400 font-bold mb-0.5 uppercase">PIN</p>
+                                    <div className="p-1.5 bg-muted/50 dark:bg-card/50 rounded-lg border border-border">
+                                        <p className="text-[9px] text-muted-foreground font-bold mb-0.5 uppercase">PIN</p>
                                         <div className="flex items-center justify-between">
-                                            <span className="font-mono font-bold text-gray-900 dark:text-white text-sm tracking-wider">{v.pin}</span>
+                                            <span className="font-mono font-bold text-foreground text-sm tracking-wider">{v.pin}</span>
                                             <CopyButton text={v.pin} />
                                         </div>
                                     </div>
-                                    <div className="p-1.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-800">
-                                        <p className="text-[9px] text-gray-400 font-bold mb-0.5 uppercase">SERIAL</p>
+                                    <div className="p-1.5 bg-muted/50 dark:bg-card/50 rounded-lg border border-border">
+                                        <p className="text-[9px] text-muted-foreground font-bold mb-0.5 uppercase">SERIAL</p>
                                         <div className="flex items-center justify-between">
-                                            <span className="font-mono font-bold text-gray-900 dark:text-white text-xs">{v.serial_number}</span>
+                                            <span className="font-mono font-bold text-foreground text-xs">{v.serial_number}</span>
                                             <CopyButton text={v.serial_number} />
                                         </div>
                                     </div>
@@ -680,33 +680,33 @@ export default function ResultsCheckerPage() {
             )}
 
             {/* ── Order History ── */}
-            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-900 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-xl border border-border dark:border-gray-900 shadow-sm overflow-hidden">
                 {/* History Header */}
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-900 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50">
+                <div className="px-4 sm:px-6 py-4 border-b border-border dark:border-gray-900 flex items-center justify-between bg-muted/50 dark:bg-card/50">
                     <div className="flex items-center gap-3">
-                        <div className="bg-gray-200 dark:bg-white/5 p-2 sm:p-2.5 rounded-xl flex-shrink-0">
-                            <Clock className="w-5 h-5 text-gray-500" />
+                        <div className="bg-muted dark:bg-card/5 p-2 sm:p-2.5 rounded-xl flex-shrink-0">
+                            <Clock className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-bold text-gray-900 dark:text-white">Transaction History</h2>
-                            <p className="text-[10px] font-medium text-gray-500 mt-0.5">Track your credentials</p>
+                            <h2 className="text-sm font-bold text-foreground">Transaction History</h2>
+                            <p className="text-[10px] font-medium text-muted-foreground mt-0.5">Track your credentials</p>
                         </div>
                     </div>
-                    <button onClick={fetchData} title="Refresh Orders" aria-label="Refresh Orders" className="p-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/5 transition-all group">
-                        <RefreshCw className="w-4 h-4 text-gray-400 group-hover:rotate-180 transition-transform duration-500" />
+                    <button onClick={fetchData} title="Refresh Orders" aria-label="Refresh Orders" className="p-2.5 rounded-xl hover:bg-muted dark:hover:bg-card/5 transition-all group">
+                        <RefreshCw className="w-4 h-4 text-muted-foreground group-hover:rotate-180 transition-transform duration-500" />
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-900 space-y-3">
+                <div className="px-4 sm:px-6 py-4 border-b border-border dark:border-gray-900 space-y-3">
                     <div className="relative">
-                        <MessageSquare className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
+                        <MessageSquare className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
                         <input
                             type="text"
                             placeholder="Search by reference or exam type..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-muted/50 dark:bg-card/[0.03] border border-border dark:border-white/5 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                         />
                     </div>
                     {/* Scrollable filter chips */}
@@ -718,8 +718,8 @@ export default function ResultsCheckerPage() {
                                     className={cn(
                                         'px-3.5 py-1.5 rounded-xl text-[10px] font-semibold transition-all whitespace-nowrap',
                                         datePreset === preset
-                                            ? 'bg-[#0B1F3A] dark:bg-white text-white dark:text-gray-900 shadow-md'
-                                            : 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 hover:bg-gray-200 dark:hover:bg-white/[0.08]'
+                                            ? 'bg-[#0B1F3A] dark:bg-card text-white dark:text-foreground shadow-md'
+                                            : 'bg-muted dark:bg-card/[0.05] text-muted-foreground hover:bg-muted dark:hover:bg-card/[0.08]'
                                     )}>
                                     {preset.replace('_', ' ')}
                                 </button>
@@ -729,9 +729,9 @@ export default function ResultsCheckerPage() {
                     {datePreset === 'custom' && (
                         <div className="flex gap-2">
                             <input type="date" aria-label="From date" title="From date" value={customDateFrom} onChange={e => setCustomDateFrom(e.target.value)}
-                                className="flex-1 bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-emerald-500 min-w-0" />
+                                className="flex-1 bg-muted/50 dark:bg-card/[0.03] border border-border dark:border-white/5 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-emerald-500 min-w-0" />
                             <input type="date" aria-label="To date" title="To date" value={customDateTo} onChange={e => setCustomDateTo(e.target.value)}
-                                className="flex-1 bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-emerald-500 min-w-0" />
+                                className="flex-1 bg-muted/50 dark:bg-card/[0.03] border border-border dark:border-white/5 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-emerald-500 min-w-0" />
                         </div>
                     )}
                 </div>
@@ -739,36 +739,36 @@ export default function ResultsCheckerPage() {
                 {/* Order List */}
                 {filteredOrders.length === 0 ? (
                     <div className="py-16 text-center space-y-3">
-                        <div className="bg-gray-100 dark:bg-gray-800 w-14 h-14 rounded-full flex items-center justify-center mx-auto">
-                            <Clock className="w-7 h-7 text-gray-300 dark:text-gray-600" />
+                        <div className="bg-muted w-14 h-14 rounded-full flex items-center justify-center mx-auto">
+                            <Clock className="w-7 h-7 text-muted-foreground/70 " />
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-semibold">No orders found</p>
+                        <p className="text-sm text-muted-foreground font-semibold">No orders found</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    <div className="divide-y divide-border">
                         {filteredOrders.map(order => {
                             const isExpanded = expandedOrders.has(order.id)
                             const vouchers = orderVouchers[order.id] || []
                             return (
-                                <div key={order.id} className={cn("transition-all", isExpanded && "bg-gray-50 dark:bg-gray-800/20")}>
+                                <div key={order.id} className={cn("transition-all", isExpanded && "bg-muted/50 dark:bg-muted/20")}>
                                     <button onClick={() => toggleOrderExpand(order.id, order.inventory_ids)}
-                                        className="w-full px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex items-center justify-between gap-3">
+                                        className="w-full px-4 py-4 text-left hover:bg-muted/50 dark:hover:bg-muted/50 transition-colors flex items-center justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <p className="font-bold text-gray-900 dark:text-white text-base tracking-tight truncate">{order.type_name}</p>
+                                                <p className="font-bold text-foreground text-base tracking-tight truncate">{order.type_name}</p>
                                                 <StatusBadge status={order.status} />
                                             </div>
-                                            <div className="flex items-center gap-3 text-xs font-medium text-gray-400">
+                                            <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
                                                 <span className="font-mono text-[#0B1F3A] dark:text-[#F5B800]">{order.reference_code}</span>
                                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                                 <span>{new Date(order.created_at).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">{formatCurrency(order.total_paid)}</p>
-                                            <p className="text-[10px] font-medium text-gray-400">{order.quantity} Units</p>
+                                            <p className="text-sm font-bold text-foreground mb-1">{formatCurrency(order.total_paid)}</p>
+                                            <p className="text-[10px] font-medium text-muted-foreground">{order.quantity} Units</p>
                                         </div>
-                                        {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-300" /> : <ChevronDown className="w-5 h-5 text-gray-300" />}
+                                        {isExpanded ? <ChevronUp className="w-5 h-5 text-muted-foreground/70" /> : <ChevronDown className="w-5 h-5 text-muted-foreground/70" />}
                                     </button>
 
                                     {isExpanded && order.status === 'completed' && (
@@ -782,7 +782,7 @@ export default function ResultsCheckerPage() {
                                                     {orderVoucherErrors[order.id]}
                                                 </div>
                                             ) : !orderVouchers[order.id]?.length ? (
-                                                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
+                                                <div className="rounded-xl border border-border bg-muted/50 px-4 py-4 text-sm text-muted-foreground dark:bg-card/40 ">
                                                     Voucher details are not available yet for this order.
                                                 </div>
                                             ) : (
@@ -791,9 +791,9 @@ export default function ResultsCheckerPage() {
                                                         {vouchers.map((v, i) => {
                                                             const isRevealed = revealedPins.has(v.pin)
                                                             return (
-                                                                <div key={i} className="bg-gray-50 dark:bg-white/[0.02] rounded-xl p-4 border border-gray-100 dark:border-white/5 space-y-3">
-                                                                    <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-white/5">
-                                                                        <span className="text-[9px] font-bold text-gray-400 uppercase">Credential {i + 1}</span>
+                                                                <div key={i} className="bg-muted/50 dark:bg-card/[0.02] rounded-xl p-4 border border-border dark:border-white/5 space-y-3">
+                                                                    <div className="flex justify-between items-center pb-2 border-b border-border dark:border-white/5">
+                                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Credential {i + 1}</span>
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation()
@@ -807,19 +807,19 @@ export default function ResultsCheckerPage() {
                                                                     </div>
                                                                     <div className="space-y-2">
                                                                         <div className="flex justify-between items-center">
-                                                                            <p className="text-[10px] text-gray-500 font-bold uppercase">Serial</p>
-                                                                            <span className="font-mono text-xs font-medium text-gray-900 dark:text-white">{v.serial_number}</span>
+                                                                            <p className="text-[10px] text-muted-foreground font-bold uppercase">Serial</p>
+                                                                            <span className="font-mono text-xs font-medium text-foreground">{v.serial_number}</span>
                                                                         </div>
                                                                         <div className="flex justify-between items-center">
-                                                                            <p className="text-[10px] text-gray-500 font-bold uppercase">PIN</p>
+                                                                            <p className="text-[10px] text-muted-foreground font-bold uppercase">PIN</p>
                                                                             <div
                                                                                 onClick={(e) => { e.stopPropagation(); togglePinReveal(v.pin) }}
-                                                                                className="flex items-center gap-2 cursor-pointer group/pin bg-white dark:bg-black/20 px-2 py-1 rounded border border-gray-100 dark:border-white/5"
+                                                                                className="flex items-center gap-2 cursor-pointer group/pin bg-card dark:bg-black/20 px-2 py-1 rounded border border-border dark:border-white/5"
                                                                             >
-                                                                                <span className={cn("font-mono text-xs font-bold transition-all", isRevealed ? "text-[#0B1F3A] dark:text-[#F5B800]" : "text-gray-300 blur-[3px]")}>
+                                                                                <span className={cn("font-mono text-xs font-bold transition-all", isRevealed ? "text-[#0B1F3A] dark:text-[#F5B800]" : "text-muted-foreground/70 blur-[3px]")}>
                                                                                     {isRevealed ? v.pin : "PIN HIDDEN"}
                                                                                 </span>
-                                                                                {isRevealed ? <EyeOff className="w-3 h-3 text-gray-400 group-hover/pin:text-gray-600" /> : <Eye className="w-3 h-3 text-gray-400 group-hover/pin:text-gray-600" />}
+                                                                                {isRevealed ? <EyeOff className="w-3 h-3 text-muted-foreground group-hover/pin:text-gray-600" /> : <Eye className="w-3 h-3 text-muted-foreground group-hover/pin:text-gray-600" />}
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -837,7 +837,7 @@ export default function ResultsCheckerPage() {
                                                             const complaint = order.results_checker_complaints?.[0]
                                                             if (complaint) {
                                                                 return (
-                                                                    <div className="py-3 px-4 rounded-xl border-2 border-gray-100 dark:border-gray-800 text-gray-500 font-semibold text-[10px] flex items-center justify-center gap-2 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50">
+                                                                    <div className="py-3 px-4 rounded-xl border-2 border-border text-muted-foreground font-semibold text-[10px] flex items-center justify-center gap-2 cursor-not-allowed bg-muted/50">
                                                                         <AlertCircle className="w-4 h-4" /> {complaint.status === 'resolved' ? 'Resolved' : 'Reviewing...'}
                                                                     </div>
                                                                 )
@@ -891,22 +891,22 @@ export default function ResultsCheckerPage() {
                     </DialogHeader>
                     <div className="bg-[#0B1F3A] p-8 text-white space-y-2">
                         <h3 className="text-xl font-bold tracking-tight">Confirm Purchase</h3>
-                        <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                        <p className="text-xs text-muted-foreground font-medium leading-relaxed">
                             Please review your order details before proceeding. Credentials are delivered instantly upon confirmation.
                         </p>
                     </div>
-                    <div className="p-8 space-y-6 bg-white dark:bg-gray-950">
+                    <div className="p-8 space-y-6 bg-card ">
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center text-xs pb-3 border-b border-gray-100 dark:border-white/5">
-                                <span className="text-gray-500 font-medium">Credential Type</span>
-                                <span className="font-bold text-gray-900 dark:text-white">{selectedType?.name}</span>
+                            <div className="flex justify-between items-center text-xs pb-3 border-b border-border dark:border-white/5">
+                                <span className="text-muted-foreground font-medium">Credential Type</span>
+                                <span className="font-bold text-foreground">{selectedType?.name}</span>
                             </div>
-                            <div className="flex justify-between items-center text-xs pb-3 border-b border-gray-100 dark:border-white/5">
-                                <span className="text-gray-500 font-medium">Quantity</span>
-                                <span className="font-bold text-gray-900 dark:text-white">{quantity} Units</span>
+                            <div className="flex justify-between items-center text-xs pb-3 border-b border-border dark:border-white/5">
+                                <span className="text-muted-foreground font-medium">Quantity</span>
+                                <span className="font-bold text-foreground">{quantity} Units</span>
                             </div>
                             <div className="flex justify-between items-center text-sm pt-2">
-                                <span className="text-gray-900 dark:text-white font-bold">Total Payable</span>
+                                <span className="text-foreground font-bold">Total Payable</span>
                                 <span className="font-black text-[#0B1F3A] dark:text-[#F5B800]">{formatCurrency(totalPrice)}</span>
                             </div>
                         </div>
@@ -942,15 +942,15 @@ export default function ResultsCheckerPage() {
                             Order Ref: <span className="font-mono font-bold">{complaintOrder?.reference_code}</span>. Our team reviews all reports within 24 hours.
                         </p>
                     </div>
-                    <div className="p-8 space-y-6 bg-white dark:bg-gray-950">
+                    <div className="p-8 space-y-6 bg-card ">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Issue Description</label>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Issue Description</label>
                             <Textarea
                                 placeholder="Example: PIN is showing as already used, or I didn't receive the SMS..."
                                 value={complaintDesc}
                                 onChange={(e) => setComplaintDesc(e.target.value)}
                                 rows={4}
-                                className="rounded-2xl border-gray-100 dark:border-white/5 focus:ring-2 focus:ring-[#EF4444]/20 focus:border-[#EF4444] transition-all text-sm font-medium"
+                                className="rounded-2xl border-border dark:border-white/5 focus:ring-2 focus:ring-[#EF4444]/20 focus:border-[#EF4444] transition-all text-sm font-medium"
                             />
                         </div>
                         <div className="flex gap-3">

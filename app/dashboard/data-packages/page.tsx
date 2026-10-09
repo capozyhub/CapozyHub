@@ -92,10 +92,10 @@ function NetworkSelectorCard({
         <button
             onClick={onClick}
             className={cn(
-                'relative flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-2xl border-2 bg-white dark:bg-zinc-900 transition-all duration-200 w-full',
+                'relative flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-2xl border-2 bg-card transition-all duration-200 w-full',
                 selected
                     ? `${style.selectedBorder} shadow-sm`
-                    : 'border-gray-100 dark:border-zinc-800 hover:border-gray-200 dark:hover:border-zinc-700'
+                    : 'border-border hover:border-border dark:hover:border-border'
             )}
         >
             {selected && (
@@ -104,7 +104,7 @@ function NetworkSelectorCard({
                 </span>
             )}
             <NetworkIcon network={network} size={34} />
-            <span className="text-[10px] sm:text-[11px] font-semibold text-gray-800 dark:text-gray-200 leading-tight text-center">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-foreground leading-tight text-center">
                 {label}
             </span>
             <div className="flex items-center gap-1">
@@ -745,11 +745,11 @@ export default function DataPackagesPage() {
         <div className="space-y-4 pb-10">
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-3.5 flex flex-col items-center justify-center gap-1.5 min-h-[76px]">
+                <div className="bg-card rounded-2xl border border-border p-3.5 flex flex-col items-center justify-center gap-1.5 min-h-[76px]">
                     <p className="text-[11px] text-muted-foreground font-medium text-center">Wallet Balance</p>
                     <p className="text-lg font-bold leading-none text-center">{formatCurrency(animatedBalance)}</p>
                 </div>
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-3.5 flex flex-col items-center justify-center gap-1.5 min-h-[76px]">
+                <div className="bg-card rounded-2xl border border-border p-3.5 flex flex-col items-center justify-center gap-1.5 min-h-[76px]">
                     <p className="text-[11px] text-muted-foreground font-medium text-center">Orders Today</p>
                     <p className="text-lg font-bold leading-none text-center">{Math.round(animatedOrders)}</p>
                 </div>
@@ -771,7 +771,7 @@ export default function DataPackagesPage() {
             {selectedNetwork === 'MTN' && (
                 <button
                     onClick={() => setWhitelistOpen(true)}
-                    className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3.5 text-left hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                    className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
                 >
                     <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-amber-400/15 flex items-center justify-center">
                         <ShieldCheck className="w-[18px] h-[18px] text-amber-500" />
@@ -789,13 +789,13 @@ export default function DataPackagesPage() {
             <MtnWhitelistChecker open={whitelistOpen} onOpenChange={setWhitelistOpen} />
 
             {/* Single · Special MTN Mashup · Bulk Tabs */}
-            <div className="flex bg-gray-100 dark:bg-zinc-800 rounded-xl p-1 gap-1">
+            <div className="flex bg-muted rounded-xl p-1 gap-1">
                 <button
                     onClick={() => setActiveTab('single')}
                     className={cn(
                         'flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-150',
                         activeTab === 'single'
-                            ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
+                            ? 'bg-card text-foreground shadow-sm'
                             : 'text-muted-foreground hover:text-foreground'
                     )}
                 >
@@ -807,7 +807,7 @@ export default function DataPackagesPage() {
                         className={cn(
                             'flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-150 whitespace-nowrap',
                             activeTab === 'mtn_mashup'
-                                ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
+                                ? 'bg-card text-foreground shadow-sm'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -819,7 +819,7 @@ export default function DataPackagesPage() {
                     className={cn(
                         'flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-150',
                         activeTab === 'bulk'
-                            ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm'
+                            ? 'bg-card text-foreground shadow-sm'
                             : 'text-muted-foreground hover:text-foreground'
                     )}
                 >
@@ -918,12 +918,12 @@ export default function DataPackagesPage() {
                                         )}
                                     >
                                         <div className="flex items-center justify-between w-full px-3 pt-3 pb-1">
-                                            <div className="p-1.5 bg-white/20 rounded-full">
+                                            <div className="p-1.5 bg-card/20 rounded-full">
                                                 <NetworkIcon network={pkg.network} size={20} variant="card" />
                                             </div>
                                             <span className={cn(
                                                 'text-[9px] font-semibold px-2 py-0.5 rounded-full',
-                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-white/20 text-white'
+                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-card/20 text-white'
                                             )}>
                                                 {pkg.network === 'AT-iShare' ? 'AT-iS' :
                                                  pkg.network === 'AT-BigTime' ? 'AT-BT' :
@@ -979,7 +979,7 @@ export default function DataPackagesPage() {
                                         )}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-white/20 rounded-xl">
+                                            <div className="p-2 bg-card/20 rounded-xl">
                                                 <NetworkIcon network={pkg.network} size={30} />
                                             </div>
                                             <div className="text-left">
@@ -997,7 +997,7 @@ export default function DataPackagesPage() {
                                             </span>
                                             <div className={cn(
                                                 'px-3 py-1.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5',
-                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-white/20 text-white'
+                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-card/20 text-white'
                                             )}>
                                                 <ShoppingCart className="w-3 h-3" />
                                                 Buy
@@ -1062,12 +1062,12 @@ export default function DataPackagesPage() {
                                         )}
                                     >
                                         <div className="flex items-center justify-between w-full px-3 pt-3 pb-1">
-                                            <div className="p-1.5 bg-white/20 rounded-full">
+                                            <div className="p-1.5 bg-card/20 rounded-full">
                                                 <NetworkIcon network={pkg.network} size={20} variant="card" />
                                             </div>
                                             <span className={cn(
                                                 'text-[8px] font-semibold px-1.5 py-0.5 rounded-full shrink-0',
-                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-white/20 text-white'
+                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-card/20 text-white'
                                             )}>
                                                 MASHUP
                                             </span>
@@ -1110,7 +1110,7 @@ export default function DataPackagesPage() {
                                         )}
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="p-2 bg-white/20 rounded-xl shrink-0">
+                                            <div className="p-2 bg-card/20 rounded-xl shrink-0">
                                                 <NetworkIcon network={pkg.network} size={30} variant="card" />
                                             </div>
                                             <div className="min-w-0">
@@ -1120,7 +1120,7 @@ export default function DataPackagesPage() {
                                                     </p>
                                                     <span className={cn(
                                                         'text-[8px] font-semibold px-1.5 py-0.5 rounded-full shrink-0',
-                                                        style.isMTN ? 'bg-black/10 text-black' : 'bg-white/20 text-white'
+                                                        style.isMTN ? 'bg-black/10 text-black' : 'bg-card/20 text-white'
                                                     )}>
                                                         MASHUP
                                                     </span>
@@ -1138,7 +1138,7 @@ export default function DataPackagesPage() {
                                             </span>
                                             <div className={cn(
                                                 'px-3 py-1.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5',
-                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-white/20 text-white'
+                                                style.isMTN ? 'bg-black/10 text-black' : 'bg-card/20 text-white'
                                             )}>
                                                 <ShoppingCart className="w-3 h-3" />
                                                 Buy
@@ -1156,9 +1156,9 @@ export default function DataPackagesPage() {
             {activeTab === 'bulk' && (
                 <div className="space-y-3">
                     {/* Input card */}
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
+                    <div className="bg-card rounded-2xl border border-border overflow-hidden">
                         {/* Tab header */}
-                        <div className="flex border-b border-gray-100 dark:border-zinc-800">
+                        <div className="flex border-b border-border">
                             <button
                                 onClick={() => {
                                     setBulkInputType('text')
@@ -1204,7 +1204,7 @@ export default function DataPackagesPage() {
                                     </p>
                                     <textarea
                                         ref={textareaRef}
-                                        className="w-full min-h-[150px] rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-gray-400 dark:focus:border-zinc-500 resize-none transition-colors"
+                                        className="w-full min-h-[150px] rounded-xl border border-border bg-muted/50 px-3 py-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-border dark:focus:border-zinc-500 resize-none transition-colors"
                                         placeholder={`0241234567  5\n0541234567  10\n0207654321  1`}
                                         value={bulkText}
                                         onChange={e => {
@@ -1229,7 +1229,7 @@ export default function DataPackagesPage() {
                                         </button>
                                     </div>
                                     <div
-                                        className="flex flex-col items-center gap-3 border-2 border-dashed border-gray-200 dark:border-zinc-700 rounded-xl p-8 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                        className="flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/50 transition-colors"
                                         onClick={() => document.getElementById('excel-upload')?.click()}
                                     >
                                         <input
@@ -1246,7 +1246,7 @@ export default function DataPackagesPage() {
                                                 }
                                             }}
                                         />
-                                        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-xl">
+                                        <div className="p-3 bg-muted rounded-xl">
                                             <Upload className="w-5 h-5 text-muted-foreground" />
                                         </div>
                                         <p className="text-sm font-medium">{bulkFile ? bulkFile.name : 'Click to upload'}</p>
@@ -1259,8 +1259,8 @@ export default function DataPackagesPage() {
 
                     {/* Validation Results */}
                     {validationResults.length > 0 && (
-                        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800">
+                        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                                 <p className="text-sm font-semibold">
                                     <span className="text-green-600">{validOrders.length} valid</span>
                                     {validationResults.filter(r => r.whitelistStatus === 'blocked').length > 0 && (
@@ -1301,11 +1301,11 @@ export default function DataPackagesPage() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 dark:divide-zinc-800">
+                            <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 dark:divide-border">
                                 {validationResults.map((res, i) => (
                                     <div
                                         key={i}
-                                        className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-800/50 group transition-colors"
+                                        className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 dark:hover:bg-muted/50 group transition-colors"
                                     >
                                         <div className="flex items-center gap-2.5">
                                             <div className={cn(
@@ -1337,7 +1337,7 @@ export default function DataPackagesPage() {
                     )}
 
                     {/* Action bar */}
-                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 px-3 py-2.5">
+                    <div className="flex items-center gap-2 bg-card rounded-2xl border border-border px-3 py-2.5">
                         <p className="flex-1 min-w-0 text-xs text-muted-foreground truncate">
                             {validOrders.length > 0
                                 ? `${validOrders.length} valid rows · Wallet ${formatCurrency(walletBalance)}`
@@ -1402,7 +1402,7 @@ export default function DataPackagesPage() {
 
                     {/* drag handle + close button */}
                     <div className="relative flex items-center justify-center pt-3 pb-1">
-                        <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-zinc-700" />
+                        <div className="w-9 h-1 rounded-full bg-muted" />
                         <DialogClose
                             disabled={isPurchasing}
                             className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-40"
@@ -1463,7 +1463,7 @@ export default function DataPackagesPage() {
                                 const style = NETWORK_STYLE[selectedPackage.network] ?? NETWORK_STYLE.MTN
                                 return (
                                     <div className={cn('mx-4 mt-2 mb-4 rounded-2xl px-4 py-3 flex items-center gap-3', style.cardBg)}>
-                                        <div className="p-2 bg-white/20 rounded-xl shrink-0">
+                                        <div className="p-2 bg-card/20 rounded-xl shrink-0">
                                             <NetworkIcon network={selectedPackage.network} size={32} variant="card" />
                                         </div>
                                         <div className="flex-1 min-w-0">

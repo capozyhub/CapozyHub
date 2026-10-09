@@ -236,7 +236,7 @@ function CreditRowItem({ row }: { row: CreditRow }) {
       {/* ── Summary row (clickable) ── */}
       <button
         type="button"
-        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-black/5 dark:hover:bg-card/5 transition-colors"
         onClick={() => setExpanded(prev => !prev)}
       >
         {/* Risk pill */}

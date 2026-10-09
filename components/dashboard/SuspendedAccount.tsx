@@ -23,10 +23,10 @@ export function SuspendedAccount() {
                     </div>
 
                     <div className="space-y-2">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                        <h2 className="text-2xl font-bold text-foreground uppercase tracking-tight">
                             YOUR ACCOUNT IS SUSPENDED
                         </h2>
-                        <p className="text-slate-600 dark:text-slate-400 font-medium">
+                        <p className="text-muted-foreground font-medium">
                             You can appeal this decision or contact our team below.
                         </p>
                     </div>
@@ -50,7 +50,7 @@ export function SuspendedAccount() {
                         </Button>
                     </div>
 
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium pt-4 border-t border-border">
                         KiNG FLEXY GH Support System
                     </p>
                 </CardContent>

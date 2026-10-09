@@ -210,7 +210,7 @@ export default function ShopProfitLogsPage() {
     }
 
     return (
-        <div className="space-y-5 pb-20 md:pb-6 max-w-4xl mx-auto">
+        <div className="space-y-5">
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -317,7 +317,7 @@ export default function ShopProfitLogsPage() {
                             onClick={() => setFilterDate(f)}
                             className={cn(
                                 'px-3 py-1.5 text-xs font-semibold rounded-md transition-all',
-                                filterDate === f ? 'bg-white dark:bg-gray-800 shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                                filterDate === f ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             {f === 'today' ? 'Today' : f === '7d' ? '7 Days' : f === '30d' ? '30 Days' : 'All Time'}
@@ -338,7 +338,7 @@ export default function ShopProfitLogsPage() {
                             onClick={() => setKindFilter(f.id as KindFilter)}
                             className={cn(
                                 'px-3 py-1.5 text-xs font-semibold rounded-md transition-all',
-                                kindFilter === f.id ? 'bg-white dark:bg-gray-800 shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                                kindFilter === f.id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             {f.label}
@@ -410,7 +410,7 @@ export default function ShopProfitLogsPage() {
                                         <div className="text-right flex-shrink-0">
                                             <p className={cn(
                                                 'font-bold text-sm tabular-nums flex items-center justify-end gap-1',
-                                                isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
+                                                isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
                                             )}>
                                                 {isCredit
                                                     ? <ArrowDownLeft className="w-3 h-3" />

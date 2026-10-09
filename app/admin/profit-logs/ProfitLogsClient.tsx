@@ -189,7 +189,7 @@ export default function ProfitLogsClient() {
     }
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-zinc-50/50 min-h-screen">
+        <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-muted/50 min-h-screen">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                     <ShieldCheck className="w-8 h-8 text-brand-700" />
@@ -201,17 +201,17 @@ export default function ProfitLogsClient() {
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-4 bg-card border border-border rounded-xl shadow-sm">
                 <div className="space-y-4 w-full">
                     <div className="flex flex-col sm:flex-row gap-4 sm:items-center w-full">
                         {/* Date Filters */}
-                        <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50 flex-wrap">
+                        <div className="flex border border-border rounded-lg overflow-hidden bg-muted/50 flex-wrap">
                             {(['Today', 'Yesterday', 'This Week', 'This Month', 'All'] as DateFilter[]).map((f) => (
                                 <button
                                     key={f}
                                     onClick={() => setDateFilter(f)}
                                     className={`px-4 py-2 text-sm font-semibold transition-colors flex-1 text-center whitespace-nowrap
-                                        ${dateFilter === f ? 'bg-brand-600 text-black shadow-inner' : 'text-slate-600 hover:bg-slate-100'}
+                                        ${dateFilter === f ? 'bg-brand-600 text-black shadow-inner' : 'text-muted-foreground hover:bg-muted'}
                                     `}
                                 >
                                     {f}
@@ -225,7 +225,7 @@ export default function ProfitLogsClient() {
                             aria-label="Filter by transaction type"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value as any)}
-                            className="bg-white border border-slate-200 text-sm font-semibold text-slate-700 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none focus:ring-2 focus:ring-brand-500"
+                            className="bg-card border border-border text-sm font-semibold text-foreground/80 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none focus:ring-2 focus:ring-brand-500"
                         >
                             <option value="All">All Transactions</option>
                             <option value="main">Main Platform Filter</option>
@@ -250,14 +250,14 @@ export default function ProfitLogsClient() {
                     <CardContent className="pt-4 max-h-[300px] overflow-auto">
                         <div className="space-y-3">
                             {losses.slice(0, 5).map(loss => (
-                                <div key={loss.id} className="bg-white p-3 rounded-lg border border-red-100 flex items-center justify-between shadow-sm">
+                                <div key={loss.id} className="bg-card p-3 rounded-lg border border-red-100 flex items-center justify-between shadow-sm">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <Badge variant="destructive" className="bg-red-500">LOSS</Badge>
                                             <span className="text-sm font-medium">{formatDate(loss.created_at)}</span>
-                                            <span className="text-xs text-muted-foreground border px-2 py-0.5 rounded-full uppercase bg-slate-50">{loss.channel}</span>
+                                            <span className="text-xs text-muted-foreground border px-2 py-0.5 rounded-full uppercase bg-muted/50">{loss.channel}</span>
                                         </div>
-                                        <p className="text-sm font-mono text-slate-700 bg-slate-50 px-2 py-1 rounded inline-block mt-1">
+                                        <p className="text-sm font-mono text-foreground/80 bg-muted/50 px-2 py-1 rounded inline-block mt-1">
                                             {loss.calculation_note}
                                         </p>
                                     </div>
@@ -277,15 +277,15 @@ export default function ProfitLogsClient() {
             )}
 
             {/* MAIN LOGS DATA TABLE */}
-            <Card className="shadow-sm border-0 bg-white overflow-hidden text-sm">
-                <CardHeader className="pb-4 bg-slate-50 border-b flex flex-row items-center justify-between">
+            <Card className="shadow-sm border-0 bg-card overflow-hidden text-sm">
+                <CardHeader className="pb-4 bg-muted/50 border-b flex flex-row items-center justify-between">
                     <div>
                         <CardTitle className="text-lg">Financial Logs</CardTitle>
                         <CardDescription>Filtered records base on your selection</CardDescription>
                     </div>
                     {!loading && logs.length > 0 && (
                         <div className="text-right">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Filtered Profit</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Filtered Profit</p>
                             <p className={`text-xl font-black ${calculateTotals() >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                 {calculateTotals() >= 0 ? '+' : ''}{formatCurrency(calculateTotals())}
                             </p>
@@ -296,7 +296,7 @@ export default function ProfitLogsClient() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b bg-white text-muted-foreground uppercase tracking-wider text-[11px] h-12">
+                                <tr className="border-b bg-card text-muted-foreground uppercase tracking-wider text-[11px] h-12">
                                     <th className="px-6 font-bold text-left whitespace-nowrap">Transaction Timeline</th>
                                     <th className="px-6 font-bold text-left">Source / Entity</th>
                                     <th className="px-6 font-bold text-right">Selling/Paid</th>
@@ -309,24 +309,24 @@ export default function ProfitLogsClient() {
                                     <tr>
                                         <td colSpan={5} className="py-20 text-center">
                                             <Loader2 className="w-8 h-8 animate-spin text-brand-700 mx-auto mb-4" />
-                                            <p className="text-slate-500 font-semibold">Loading ledger records...</p>
+                                            <p className="text-muted-foreground font-semibold">Loading ledger records...</p>
                                         </td>
                                     </tr>
                                 ) : logs.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="py-20 text-center text-muted-foreground bg-slate-50/30">
+                                        <td colSpan={5} className="py-20 text-center text-muted-foreground bg-muted/30">
                                             <Loader2 className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                                            <h3 className="text-lg font-bold text-slate-400">No records found</h3>
+                                            <h3 className="text-lg font-bold text-muted-foreground">No records found</h3>
                                             <p className="text-sm">There are no profit logs for the selected filters.</p>
                                         </td>
                                     </tr>
                                 ) : (
                                     logs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr key={log.id} className="hover:bg-muted/50 transition-colors">
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="font-bold text-slate-700 whitespace-nowrap">{formatDate(log.created_at)}</span>
-                                                    <code className="text-[10px] text-slate-400">ID: {log.transaction_id.split('-')[0]}...</code>
+                                                    <span className="font-bold text-foreground/80 whitespace-nowrap">{formatDate(log.created_at)}</span>
+                                                    <code className="text-[10px] text-muted-foreground">ID: {log.transaction_id.split('-')[0]}...</code>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6 align-top">
@@ -336,25 +336,25 @@ export default function ProfitLogsClient() {
                                                     </Badge>
                                                     
                                                     {/* Enriched Entity View */}
-                                                    <div className="flex items-center gap-2 text-slate-600 mt-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                                                    <div className="flex items-center gap-2 text-muted-foreground mt-1 bg-muted/50 px-2 py-1 rounded-md border border-border">
                                                         {log.channel === 'main' ? (
                                                             <>
-                                                                <User className="w-4 h-4 text-slate-400 shrink-0" />
+                                                                <User className="w-4 h-4 text-muted-foreground shrink-0" />
                                                                 <span className="text-xs font-semibold">{log.enrichedData?.phone_number || 'Direct Customer'}</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Store className="w-4 h-4 text-slate-400 shrink-0" />
+                                                                <Store className="w-4 h-4 text-muted-foreground shrink-0" />
                                                                 <span className="text-xs font-semibold">{log.enrichedData?.shop_name || 'Storefront'}</span>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-6 text-right font-black text-slate-800 align-top">
+                                            <td className="py-4 px-6 text-right font-black text-foreground align-top">
                                                 {formatCurrency(log.channel === 'main' ? log.selling_price : log.amount_paid_to_admin)}
                                             </td>
-                                            <td className="py-4 px-6 text-right font-bold text-slate-500 align-top">
+                                            <td className="py-4 px-6 text-right font-bold text-muted-foreground align-top">
                                                 {formatCurrency(log.admin_cost)}
                                             </td>
                                             <td className="py-4 px-6 text-right align-top">
@@ -362,7 +362,7 @@ export default function ProfitLogsClient() {
                                                     <span className={`text-base font-black px-2 py-0.5 rounded-full ${log.is_loss ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                         {log.is_loss ? '' : '+'}{formatCurrency(log.profit)}
                                                     </span>
-                                                    <span className="text-[10px] text-slate-400 mt-1 max-w-[120px] leading-tight" title={log.calculation_note}>
+                                                    <span className="text-[10px] text-muted-foreground mt-1 max-w-[120px] leading-tight" title={log.calculation_note}>
                                                         {log.calculation_note.split('|')[0]}
                                                     </span>
                                                 </div>
@@ -377,22 +377,22 @@ export default function ProfitLogsClient() {
                 
                 {/* Pagination Load More */}
                 {logs.length > 0 && hasMore && (
-                    <div className="p-4 border-t bg-slate-50 flex justify-center">
+                    <div className="p-4 border-t bg-muted/50 flex justify-center">
                         <button
                             onClick={handleLoadMore}
                             disabled={loadingMore}
-                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-6 rounded-full shadow-sm flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                            className="bg-card border border-border hover:bg-muted/50 text-foreground/80 font-bold py-2.5 px-6 rounded-full shadow-sm flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                         >
                             {loadingMore ? (
                                 <><Loader2 className="w-4 h-4 animate-spin text-brand-700" /> Fetching records...</>
                             ) : (
-                                <><RefreshCw className="w-4 h-4 text-slate-400" /> Load More Records</>
+                                <><RefreshCw className="w-4 h-4 text-muted-foreground" /> Load More Records</>
                             )}
                         </button>
                     </div>
                 )}
                 {logs.length > 0 && !hasMore && (
-                    <div className="p-4 border-t bg-slate-50 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <div className="p-4 border-t bg-muted/50 text-center text-xs font-bold text-muted-foreground uppercase tracking-widest">
                         End of ledgers
                     </div>
                 )}

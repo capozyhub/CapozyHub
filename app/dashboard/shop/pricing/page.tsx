@@ -778,7 +778,7 @@ export default function ShopPricingPage() {
                         <Button
                             onClick={handleAcknowledge}
                             disabled={acknowledging}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-12"
+                            className="w-full gap-2 h-12 clay clay-green"
                         >
                             {acknowledging ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                             I Understand, Let Me Revise
@@ -796,7 +796,7 @@ export default function ShopPricingPage() {
     const ownerIsReseller = shop?.owner_role === 'agent' || shop?.owner_role === 'dealer'
 
     return (
-        <div className="space-y-5 pb-32 max-w-6xl mx-auto px-4 md:px-6 mt-4">
+        <div className="space-y-5 pb-32">
             {/* ── Header ── */}
             <div className="flex flex-col gap-3">
                 <Link href="/dashboard/shop">
@@ -818,7 +818,7 @@ export default function ShopPricingPage() {
                     <Button
                         onClick={handleSubmitAll}
                         disabled={saving}
-                        className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-10 px-5 rounded-xl font-semibold"
+                        className="hidden sm:flex gap-2 h-10 px-5 rounded-xl font-semibold clay clay-green"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                         {saving ? 'Saving...' : 'Save All & Go Live'}
@@ -843,7 +843,7 @@ export default function ShopPricingPage() {
                         onClick={() => setActiveSection(id)}
                         className={cn(
                             'flex-1 px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap',
-                            activeSection === id ? 'bg-white dark:bg-gray-800 shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                            activeSection === id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
                         <Icon className="w-4 h-4" />
@@ -873,7 +873,7 @@ export default function ShopPricingPage() {
                                 <h2 className="text-sm font-bold text-brand-900 dark:text-brand-300">Bulk Pricing</h2>
                             </div>
                             {/* Mode tabs */}
-                            <div className="flex p-0.5 bg-white dark:bg-gray-900 rounded-lg border">
+                            <div className="flex p-0.5 bg-card rounded-lg border">
                                 {([
                                     { id: 'flat', label: 'Rate per GB (GHS)' },
                                     { id: 'percent', label: 'Margin (%)' },
@@ -901,7 +901,7 @@ export default function ShopPricingPage() {
                         <div className="flex flex-col sm:flex-row gap-2.5">
                             <div className="sm:w-44">
                                 <Select value={bulkApplyTarget} onValueChange={setBulkApplyTarget}>
-                                    <SelectTrigger className="h-10 rounded-lg bg-white dark:bg-gray-900 font-semibold text-sm">
+                                    <SelectTrigger className="h-10 rounded-lg bg-card font-semibold text-sm">
                                         <SelectValue placeholder="Select Network" />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-lg">
@@ -918,7 +918,7 @@ export default function ShopPricingPage() {
                                 <Input
                                     type="number" min="0.01" step={bulkMode === 'flat' ? '0.5' : '0.1'} value={bulkValue}
                                     onChange={(e) => setBulkValue(e.target.value)}
-                                    className={cn('h-10 rounded-lg bg-white dark:bg-gray-900 font-semibold', bulkMode === 'flat' ? 'pl-16' : 'pl-12')}
+                                    className={cn('h-10 rounded-lg bg-card font-semibold', bulkMode === 'flat' ? 'pl-16' : 'pl-12')}
                                 />
                             </div>
                         </div>
@@ -926,7 +926,7 @@ export default function ShopPricingPage() {
                         {bulkTargets.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No packages found for {bulkApplyTarget}.</p>
                         ) : (
-                            <div className="rounded-xl border bg-white dark:bg-gray-900 overflow-x-auto">
+                            <div className="rounded-xl border bg-card overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -1031,8 +1031,8 @@ export default function ShopPricingPage() {
                             if (count === 0) return null
                             const isActiveTab = activeNetwork === network
                             const colors = networkTabColors[network] ?? {
-                                active: 'bg-slate-900 text-white border-slate-900 shadow-md',
-                                inactive: 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50',
+                                active: 'bg-card text-white border-slate-900 shadow-md',
+                                inactive: 'bg-card border-border text-muted-foreground hover:bg-muted/50',
                             }
                             return (
                                 <button
@@ -1044,7 +1044,7 @@ export default function ShopPricingPage() {
                                     )}
                                 >
                                     <span>{network}</span>
-                                    <span className={cn('px-1.5 py-0.5 rounded-md text-[10px] font-bold', isActiveTab ? 'bg-black/10 dark:bg-white/20' : 'bg-black/5 dark:bg-white/10')}>
+                                    <span className={cn('px-1.5 py-0.5 rounded-md text-[10px] font-bold', isActiveTab ? 'bg-black/10 dark:bg-card/20' : 'bg-black/5 dark:bg-card/10')}>
                                         {count}
                                     </span>
                                 </button>
@@ -1057,7 +1057,7 @@ export default function ShopPricingPage() {
                         const lockedByAdmin = !!adminOOS[activeNetwork]
                         const isOut = lockedByAdmin || shopOOS.includes(activeNetwork)
                         return (
-                            <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2 mb-3 bg-white/60 dark:bg-slate-900/50">
+                            <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 mb-3 bg-card/60 dark:bg-card/50">
                                 <div className="flex flex-col">
                                     <span className="text-xs font-semibold">
                                         {activeNetwork}: {isOut ? 'Out of Stock at the Moment' : 'In Stock'}
@@ -1092,19 +1092,19 @@ export default function ShopPricingPage() {
                                 <div key={pkg.id} className={cn(
                                     'flex flex-col p-3 rounded-xl border transition-all',
                                     valStr && valid === false ? 'border-red-400 bg-red-50/50 dark:border-red-900/40' :
-                                        valStr && valid === true ? 'border-emerald-300 bg-white dark:bg-slate-900 shadow-sm' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/50'
+                                        valStr && valid === true ? 'border-emerald-300 bg-card shadow-sm' : 'border-border bg-card/60 dark:bg-card/50'
                                 )}>
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-2 gap-1">
                                         <h3 className="font-bold text-sm leading-tight">{pkg.size}</h3>
-                                        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md shrink-0">
+                                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md shrink-0">
                                             Cost: {formatCurrency(cost)}
                                         </span>
                                     </div>
 
                                     {/* Price input */}
                                     <div className="relative mb-2">
-                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-semibold text-[11px] text-slate-400">GHS</span>
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-semibold text-[11px] text-muted-foreground">GHS</span>
                                         <Input
                                             type="number" inputMode="decimal" value={valStr}
                                             onChange={(e) => setPricing(prev => ({ ...prev, [pkg.id]: e.target.value }))}
@@ -1112,15 +1112,15 @@ export default function ShopPricingPage() {
                                             className={cn(
                                                 'h-9 rounded-lg pl-10 text-sm font-semibold',
                                                 valStr && valid === false ? 'border-red-500 bg-red-50 text-red-900' :
-                                                    valStr && valid === true ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 'bg-slate-50 dark:bg-slate-800'
+                                                    valStr && valid === true ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 'bg-muted/50 '
                                             )}
                                         />
                                     </div>
 
                                     {/* Profit row */}
                                     <div className="flex items-center justify-between text-xs mb-2">
-                                        <span className="text-slate-400 font-medium">Profit</span>
-                                        <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-slate-400')}>
+                                        <span className="text-muted-foreground font-medium">Profit</span>
+                                        <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-muted-foreground')}>
                                             {valStr && valid !== null ? `+${formatCurrency(profit)}` : '—'}
                                         </span>
                                     </div>
@@ -1137,8 +1137,8 @@ export default function ShopPricingPage() {
                                         className={cn(
                                             'mt-auto flex items-center justify-center gap-1 h-7 rounded-lg text-[11px] font-semibold transition-all border',
                                             valid === true
-                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 disabled:opacity-50'
-                                                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed'
+                                                ? 'disabled:opacity-50 clay clay-green'
+                                                : 'bg-muted border-border text-muted-foreground cursor-not-allowed'
                                         )}
                                     >
                                         {isSavingThis
@@ -1155,7 +1155,7 @@ export default function ShopPricingPage() {
                     <Button
                         onClick={() => handleSaveSection('data')}
                         disabled={savingSection === 'data'}
-                        className="w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-black h-11 px-6 rounded-xl font-semibold gap-2"
+                        className="w-full sm:w-auto bg-card text-white dark:text-foreground hover:bg-black h-11 px-6 rounded-xl font-semibold gap-2"
                     >
                         {savingSection === 'data' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Data Prices
@@ -1176,7 +1176,7 @@ export default function ShopPricingPage() {
                         </p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/60">
+                    <div className="bg-card rounded-2xl border shadow-sm overflow-hidden divide-y divide-border dark:divide-border/60">
                         {AIRTIME_NETWORKS.map(net => {
                             const key = net.toLowerCase() as keyof typeof airtimeFees
                             const maxAllowed = getMaxAirtimeProfit(net)
@@ -1191,19 +1191,19 @@ export default function ShopPricingPage() {
                                     <div className="flex items-center justify-between sm:w-36 shrink-0">
                                         <Badge variant="outline" className={cn('px-2.5 py-0.5 font-semibold text-xs', networkColors[net] || networkColors['MTN'])}>{net}</Badge>
                                         <div className="sm:hidden text-right">
-                                            <p className="text-[10px] text-slate-400 font-medium">Max markup</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium">Max markup</p>
                                             <p className="font-semibold text-sm">{maxAllowed.toFixed(2)}%</p>
                                         </div>
                                     </div>
 
                                     <div className="hidden sm:flex flex-1 items-center justify-center gap-8 text-center">
                                         <div>
-                                            <p className="text-[10px] text-slate-400 font-medium">Network cost</p>
-                                            <p className="font-semibold text-sm text-slate-500">{(10 - maxAllowed).toFixed(2)}%</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium">Network cost</p>
+                                            <p className="font-semibold text-sm text-muted-foreground">{(10 - maxAllowed).toFixed(2)}%</p>
                                         </div>
-                                        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
+                                        <div className="w-px h-6 bg-muted" />
                                         <div>
-                                            <p className="text-[10px] text-slate-400 font-medium">Max markup</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium">Max markup</p>
                                             <p className="font-semibold text-sm">{maxAllowed.toFixed(2)}%</p>
                                         </div>
                                     </div>
@@ -1215,11 +1215,11 @@ export default function ShopPricingPage() {
                                             onChange={e => setAirtimeFees(s => ({ ...s, [key]: e.target.value }))}
                                             className={cn(
                                                 'rounded-lg h-10 pr-7 text-sm font-semibold text-center',
-                                                isOverLimit ? 'text-red-600 border-red-300 ring-1 ring-red-200' : 'bg-slate-50 dark:bg-slate-950'
+                                                isOverLimit ? 'text-red-600 border-red-300 ring-1 ring-red-200' : 'bg-muted/50 '
                                             )}
                                             min="0" max={maxAllowed} step="0.1" placeholder="0.0"
                                         />
-                                        <span className={cn('absolute right-3 top-1/2 -translate-y-1/2 font-semibold text-xs', isOverLimit ? 'text-red-500' : 'text-slate-400')}>%</span>
+                                        <span className={cn('absolute right-3 top-1/2 -translate-y-1/2 font-semibold text-xs', isOverLimit ? 'text-red-500' : 'text-muted-foreground')}>%</span>
                                     </div>
                                 </div>
                             )
@@ -1265,33 +1265,33 @@ export default function ShopPricingPage() {
 
                                 return (
                                     <div key={exam.id} className={cn(
-                                        'relative bg-white dark:bg-slate-900 rounded-xl border p-4 shadow-sm space-y-3',
+                                        'relative bg-card rounded-xl border p-4 shadow-sm space-y-3',
                                         notConfigured && 'opacity-60'
                                     )}>
                                         <div className="flex items-center justify-between">
                                             <h4 className="font-bold text-sm">{exam.name}</h4>
                                             {!notConfigured && (
-                                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                                                     Cost {formatCurrency(cost)}
                                                 </span>
                                             )}
                                         </div>
 
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-xs text-slate-400">GHS</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-xs text-muted-foreground">GHS</span>
                                             <Input
                                                 type="number" step="0.5" min="0" placeholder="0.00"
                                                 value={markupStr}
                                                 disabled={notConfigured}
                                                 onChange={e => setRcMarkups(prev => ({ ...prev, [exam.id]: e.target.value }))}
                                                 className={cn(
-                                                    'h-10 rounded-lg pl-11 text-sm font-semibold bg-slate-50 dark:bg-slate-950',
+                                                    'h-10 rounded-lg pl-11 text-sm font-semibold bg-muted/50 ',
                                                     over && 'border-red-400 text-red-600 ring-1 ring-red-200'
                                                 )}
                                             />
                                         </div>
                                         {notConfigured && (
-                                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60 dark:bg-black/50">
+                                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-card/60 dark:bg-black/50">
                                                 <span className="bg-amber-600 dark:bg-amber-700 text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow">Not available</span>
                                             </div>
                                         )}
@@ -1301,23 +1301,23 @@ export default function ShopPricingPage() {
                                             </p>
                                         )}
 
-                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 space-y-1.5 text-xs">
+                                        <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-slate-400 font-medium">Sells for</span>
+                                                <span className="text-muted-foreground font-medium">Sells for</span>
                                                 <span className="font-bold text-emerald-600 tabular-nums">{formatCurrency(sellPrice)}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-slate-400 font-medium">Your profit</span>
+                                                <span className="text-muted-foreground font-medium">Your profit</span>
                                                 <span className="font-semibold text-emerald-500 tabular-nums">+{formatCurrency(over ? rcMaxMarkup : markup)}</span>
                                             </div>
                                         </div>
 
                                         {exam.bulk_pricing && exam.bulk_pricing.length > 0 && (
-                                            <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
-                                                <p className="text-[10px] font-semibold text-slate-400">Bulk tiers (your profit applies per voucher)</p>
+                                            <div className="space-y-1 pt-1 border-t border-border">
+                                                <p className="text-[10px] font-semibold text-muted-foreground">Bulk tiers (your profit applies per voucher)</p>
                                                 {exam.bulk_pricing.map((tier, idx) => (
                                                     <div key={idx} className="flex items-center justify-between text-[11px]">
-                                                        <span className="text-slate-500">
+                                                        <span className="text-muted-foreground">
                                                             {tier.min_qty}{tier.max_qty >= 99999 ? '+' : `–${tier.max_qty}`} pcs
                                                         </span>
                                                         <span className="font-semibold text-emerald-600 tabular-nums">{formatCurrency(tier.unit_price + (over ? rcMaxMarkup : markup))}/ea</span>
@@ -1334,7 +1334,7 @@ export default function ShopPricingPage() {
                     <Button
                         onClick={() => handleSaveSection('rc')}
                         disabled={savingSection === 'rc'}
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white h-11 px-6 rounded-xl font-semibold gap-2"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl font-semibold gap-2 clay clay-green"
                     >
                         {savingSection === 'rc' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Exam Markups
@@ -1353,11 +1353,11 @@ export default function ShopPricingPage() {
                         </p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border p-4 shadow-sm space-y-3">
+                    <div className="bg-card rounded-xl border p-4 shadow-sm space-y-3">
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-bold">Mashup Profit Margin</p>
                             {mashupMaxProfit > 0 && (
-                                <span className="text-[11px] font-medium text-slate-500">Max {mashupMaxProfit.toFixed(2)}%</span>
+                                <span className="text-[11px] font-medium text-muted-foreground">Max {mashupMaxProfit.toFixed(2)}%</span>
                             )}
                         </div>
 
@@ -1369,11 +1369,11 @@ export default function ShopPricingPage() {
                                 value={mashupFee}
                                 onChange={e => setMashupFee(e.target.value)}
                                 className={cn(
-                                    'h-11 rounded-lg pr-9 text-base font-semibold bg-slate-50 dark:bg-slate-950',
+                                    'h-11 rounded-lg pr-9 text-base font-semibold bg-muted/50 ',
                                     mashupMaxProfit > 0 && parseFloat(mashupFee) > mashupMaxProfit && 'border-red-400 text-red-600 ring-1 ring-red-200'
                                 )}
                             />
-                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-semibold text-sm text-slate-400">%</span>
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-semibold text-sm text-muted-foreground">%</span>
                         </div>
 
                         {mashupMaxProfit > 0 && parseFloat(mashupFee) > mashupMaxProfit && (
@@ -1428,21 +1428,21 @@ export default function ShopPricingPage() {
                     </div>
 
                     <div className={cn(
-                        'bg-white dark:bg-slate-900 rounded-xl border p-4 shadow-sm space-y-3',
+                        'bg-card rounded-xl border p-4 shadow-sm space-y-3',
                         valStr && valid === false ? 'border-red-400 bg-red-50/50 dark:border-red-900/40' :
                             valStr && valid === true ? 'border-emerald-300' : ''
                     )}>
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-bold">AFA Registration Price</p>
                             {!notAvailable && (
-                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                                     Cost: {formatCurrency(afaCost)}
                                 </span>
                             )}
                         </div>
 
                         <div className="relative">
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-semibold text-xs text-slate-400">GHS</span>
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-semibold text-xs text-muted-foreground">GHS</span>
                             <Input
                                 type="number" inputMode="decimal" step="0.5" min="0"
                                 placeholder={`e.g. ${(afaCost + 2).toFixed(2)}`}
@@ -1453,7 +1453,7 @@ export default function ShopPricingPage() {
                                     'h-11 rounded-lg pl-11 text-base font-semibold',
                                     valStr && valid === false ? 'border-red-500 bg-red-50 text-red-900 dark:bg-red-950/20' :
                                         valStr && valid === true ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' :
-                                            'bg-slate-50 dark:bg-slate-950'
+                                            'bg-muted/50 '
                                 )}
                             />
                         </div>
@@ -1461,8 +1461,8 @@ export default function ShopPricingPage() {
                         {/* Live profit readout */}
                         {!notAvailable && (
                             <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-400 font-medium">Profit</span>
-                                <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-slate-400')}>
+                                <span className="text-muted-foreground font-medium">Profit</span>
+                                <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-muted-foreground')}>
                                     {valStr && profit !== null ? `+${formatCurrency(profit)}` : '—'}
                                 </span>
                             </div>
@@ -1478,7 +1478,7 @@ export default function ShopPricingPage() {
                         )}
 
                         {(notAvailable || valStr === '') && (
-                            <p className="text-xs text-slate-500">AFA registration is currently off for your shop.</p>
+                            <p className="text-xs text-muted-foreground">AFA registration is currently off for your shop.</p>
                         )}
                     </div>
 
@@ -1498,7 +1498,7 @@ export default function ShopPricingPage() {
             <div className="fixed bottom-4 max-md:bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-40 sm:hidden">
                 <Button
                     onClick={handleSubmitAll} disabled={saving}
-                    className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xl gap-2"
+                    className="w-full h-12 rounded-xl font-semibold shadow-xl gap-2 clay clay-green"
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {saving ? 'Saving Everything...' : 'Save All & Go Live'}
@@ -1508,7 +1508,7 @@ export default function ShopPricingPage() {
             {/* ── "Your Shop Is Live" completion modal ── */}
             {showLiveModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full space-y-5 animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
+                    <div className="bg-card rounded-2xl shadow-2xl border border-border p-6 max-w-md w-full space-y-5 animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
                         <div className="text-center space-y-2">
                             <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                                 <PartyPopper className="w-8 h-8 text-emerald-600" />
@@ -1522,7 +1522,7 @@ export default function ShopPricingPage() {
                         <div className="flex flex-col gap-2 bg-emerald-50/60 dark:bg-emerald-950/20 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
                             <span className="text-xs font-mono text-emerald-800 dark:text-emerald-300 truncate px-2 py-1.5">{shopUrl}</span>
                             <div className="flex gap-2">
-                                <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 h-9 bg-white dark:bg-zinc-900 text-emerald-600 gap-1.5 rounded-lg font-semibold">
+                                <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 h-9 bg-card text-emerald-600 gap-1.5 rounded-lg font-semibold">
                                     {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy Link'}
                                 </Button>
                                 <a
@@ -1538,7 +1538,7 @@ export default function ShopPricingPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100">How to get more customers:</p>
+                            <p className="text-xs font-bold text-foreground">How to get more customers:</p>
                             <ul className="space-y-1.5 text-xs text-muted-foreground">
                                 <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Share your link in WhatsApp groups and your status daily.</li>
                                 <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Keep your prices slightly below local competitors.</li>
@@ -1553,7 +1553,7 @@ export default function ShopPricingPage() {
                                     <ExternalLink className="w-4 h-4" /> View Storefront
                                 </Button>
                             </a>
-                            <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" onClick={() => setShowLiveModal(false)}>
+                            <Button className="flex-1 font-semibold clay clay-green" onClick={() => setShowLiveModal(false)}>
                                 Done
                             </Button>
                         </div>

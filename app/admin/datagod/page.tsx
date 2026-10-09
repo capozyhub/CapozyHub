@@ -221,7 +221,7 @@ export default function DataGodTerminalPage() {
                 <CardContent className="p-4 md:p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="bg-white/20 p-2.5 rounded-lg">
+                            <div className="bg-card/20 p-2.5 rounded-lg">
                                 <Server className="w-5 h-5 md:w-6 md:h-6" />
                             </div>
                             <div>
@@ -238,7 +238,7 @@ export default function DataGodTerminalPage() {
                             disabled={isLoadingBalance}
                             variant="secondary"
                             size="sm"
-                            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                            className="bg-card/20 hover:bg-card/30 text-white border-white/30"
                         >
                             <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingBalance ? 'animate-spin' : ''}`} />
                             Refresh Balance
@@ -332,7 +332,7 @@ export default function DataGodTerminalPage() {
                                 <Button
                                     size="sm"
                                     onClick={syncSelected}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-4 font-bold clay clay-green"
                                     disabled={isRefulfilling || isSyncing}
                                 >
                                     {isSyncing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}

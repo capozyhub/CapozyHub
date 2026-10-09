@@ -22,20 +22,20 @@ export function WalletStatsCard({ balance, totalCredited, totalSpent }: WalletSt
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <p className="text-sm text-gray-400 mb-1">Active Balance</p>
+                        <p className="text-sm text-muted-foreground mb-1">Active Balance</p>
                         <p className="text-4xl font-bold tracking-tight">{formatCurrency(balance)}</p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-8 pt-4 md:pt-0 border-t md:border-t-0 border-gray-800">
+                    <div className="flex flex-col sm:flex-row gap-8 pt-4 md:pt-0 border-t md:border-t-0 border-border">
                         <div>
-                            <div className="flex items-center gap-1 text-gray-400 text-xs mb-1">
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-1">
                                 <TrendingUp className="w-3.5 h-3.5 text-green-500" />
                                 <span>Total Credited</span>
                             </div>
                             <p className="font-bold text-xl text-green-400">{formatCurrency(totalCredited)}</p>
                         </div>
                         <div>
-                            <div className="flex items-center gap-1 text-gray-400 text-xs mb-1">
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-1">
                                 <TrendingDown className="w-3.5 h-3.5 text-red-500" />
                                 <span>Total Spent</span>
                             </div>

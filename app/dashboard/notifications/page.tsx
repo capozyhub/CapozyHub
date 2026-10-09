@@ -21,17 +21,17 @@ export default function NotificationsPage() {
     }, [])
 
     return (
-        <div className="max-w-3xl mx-auto space-y-5">
+        <div className="space-y-5">
             <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Your alerts and notification preferences</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Notifications</h1>
+                <p className="text-sm text-muted-foreground">Your alerts and notification preferences</p>
             </div>
 
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 w-fit">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit">
                 {([['inbox', 'Inbox', Bell], ['settings', 'Settings', Settings]] as const).map(([key, label, Icon]) => (
                     <button key={key} type="button" onClick={() => setTab(key)}
                         className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                            tab === key ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                            tab === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground')}>
                         <Icon className="w-4 h-4" /> {label}
                     </button>
                 ))}

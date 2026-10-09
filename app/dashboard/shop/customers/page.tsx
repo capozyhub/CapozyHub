@@ -209,10 +209,10 @@ export default function ShopCustomersPage() {
                     <h2 className="text-sm font-bold">Grow Your Shop</h2>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/10 p-2 rounded-xl">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-card/10 p-2 rounded-xl">
                     <span className="text-xs font-mono text-emerald-100 truncate flex-1 px-2 py-1.5">{shopUrl}</span>
                     <div className="flex gap-2">
-                        <Button onClick={copyLink} size="sm" variant="secondary" className="flex-1 sm:flex-none h-9 bg-white text-emerald-700 gap-1.5 rounded-lg font-semibold hover:bg-emerald-50">
+                        <Button onClick={copyLink} size="sm" variant="secondary" className="flex-1 sm:flex-none h-9 bg-card text-emerald-700 gap-1.5 rounded-lg font-semibold hover:bg-emerald-50">
                             {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy'}
                         </Button>
                         <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
@@ -224,7 +224,7 @@ export default function ShopCustomersPage() {
                             href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(shopUrl)}`}
                             target="_blank" rel="noopener noreferrer" title="Download QR code"
                         >
-                            <Button size="sm" variant="secondary" className="h-9 bg-white/15 hover:bg-white/25 text-white gap-1.5 rounded-lg font-semibold border-0">
+                            <Button size="sm" variant="secondary" className="h-9 bg-card/15 hover:bg-card/25 text-white gap-1.5 rounded-lg font-semibold border-0">
                                 <QrCode className="w-3.5 h-3.5" /> QR
                             </Button>
                         </a>
@@ -262,7 +262,7 @@ export default function ShopCustomersPage() {
                                 onClick={() => setSortKey(s.id)}
                                 className={cn(
                                     'px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap',
-                                    sortKey === s.id ? 'bg-white dark:bg-gray-800 shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+                                    sortKey === s.id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
                                 {s.label}
@@ -401,7 +401,7 @@ export default function ShopCustomersPage() {
                     )}
                     <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-                        <Button onClick={saveEdit} disabled={savingEdit} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+                        <Button onClick={saveEdit} disabled={savingEdit} className="gap-1.5 clay clay-green">
                             {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             Save
                         </Button>

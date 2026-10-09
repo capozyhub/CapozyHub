@@ -126,7 +126,7 @@ export default function AdminFinancePage() {
                 <div className="flex items-center gap-3">
                     <div className="w-[180px]">
                         <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setPage(0) }}>
-                            <SelectTrigger className="bg-white dark:bg-slate-950">
+                            <SelectTrigger className="bg-card ">
                                 <SelectValue placeholder="Filter by Role" />
                             </SelectTrigger>
                             <SelectContent>
@@ -224,7 +224,7 @@ export default function AdminFinancePage() {
                                     </TableRow>
                                 ) : (
                                     users.map((user) => (
-                                        <TableRow key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                                        <TableRow key={user.id} className="hover:bg-muted/50 dark:hover:bg-card/50 transition-colors">
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{user.first_name} {user.last_name}</span>

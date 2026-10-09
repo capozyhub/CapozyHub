@@ -172,7 +172,7 @@ export function PayoutDialog({
           <Button
             onClick={pay}
             disabled={paying}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+            className="font-bold gap-2 clay clay-green"
           >
             {paying
               ? <Loader2 className="w-4 h-4 animate-spin" />

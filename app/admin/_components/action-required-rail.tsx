@@ -50,11 +50,11 @@ export function ActionRequiredRail({ counts }: { counts: AdminCounts }) {
                                     <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-[10px] font-bold uppercase text-zinc-500 dark:text-zinc-400 tracking-wider truncate">{a.label}</p>
-                                    <p className="text-sm font-bold text-zinc-900 dark:text-white">{counts[a.key]} {a.suffix}</p>
+                                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider truncate">{a.label}</p>
+                                    <p className="text-sm font-bold text-foreground">{counts[a.key]} {a.suffix}</p>
                                 </div>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-zinc-300 group-hover:text-zinc-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                            <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                         </div>
                     </Link>
                 )

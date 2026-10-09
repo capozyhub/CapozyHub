@@ -265,7 +265,7 @@ export default function SmsOverviewPage() {
                     <h1 className="text-lg font-bold">Could not load SMS Platform</h1>
                     <p className="text-sm text-muted-foreground mt-1.5">{gateMessage || 'Something went wrong.'}</p>
                 </div>
-                <Button onClick={() => { setGate('loading'); fetchAll() }} className="gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Button onClick={() => { setGate('loading'); fetchAll() }} className="gap-2 h-10 clay clay-green">
                     <RefreshCcw className="w-4 h-4" /> Retry
                 </Button>
             </div>
@@ -378,7 +378,7 @@ export default function SmsOverviewPage() {
                                 </Button>
                             ) : (
                                 <Link href="/dashboard/sms/compose" className="flex-1">
-                                    <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2">
+                                    <Button className="w-full h-11 font-semibold gap-2 clay clay-green">
                                         <Send className="w-4 h-4" /> Send SMS
                                     </Button>
                                 </Link>
@@ -391,7 +391,7 @@ export default function SmsOverviewPage() {
                         </div>
                         {/* Sending identity */}
                         {policy.canSend === true && (
-                            <div className="flex items-center gap-2 rounded-xl bg-white/60 dark:bg-black/20 border border-emerald-200/70 dark:border-emerald-900/60 px-3 py-2.5">
+                            <div className="flex items-center gap-2 rounded-xl bg-card/60 dark:bg-black/20 border border-emerald-200/70 dark:border-emerald-900/60 px-3 py-2.5">
                                 <Radio className="w-4 h-4 text-emerald-600 shrink-0" />
                                 <p className="text-xs text-muted-foreground min-w-0 truncate">
                                     Sending as <span className="font-mono font-bold text-foreground">{policy.sender}</span>

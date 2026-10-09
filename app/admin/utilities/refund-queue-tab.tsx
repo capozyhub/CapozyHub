@@ -67,35 +67,35 @@ export default function RefundQueueTab() {
 
     if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-emerald-500" /></div>
     if (error) return (
-        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-16 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Could not load the refund queue.</p>
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
+            <p className="text-sm text-muted-foreground mb-3">Could not load the refund queue.</p>
             <Button size="sm" variant="outline" onClick={load}><RefreshCw className="w-4 h-4 mr-2" /> Retry</Button>
         </div>
     )
     if (rows.length === 0) return (
-        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-24 text-center px-4">
-            <Package className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-700" />
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">No refunds waiting</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Guest and shop-attributed refunds that can't be one-click wallet-credited land here.</p>
+        <div className="rounded-xl border border-dashed border-border py-24 text-center px-4">
+            <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+            <p className="text-sm font-semibold text-foreground">No refunds waiting</p>
+            <p className="text-sm text-muted-foreground mt-1">Guest and shop-attributed refunds that can't be one-click wallet-credited land here.</p>
         </div>
     )
 
     return (
         <>
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                        <thead className="bg-muted/50 border-b border-border">
                             <tr>
                                 {['Queued', 'Biller', 'Source', 'Contact phone', 'Amount', ''].map((h) => (
-                                    <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">{h}</th>
+                                    <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody className="divide-y divide-border">
                             {rows.map((r) => (
                                 <tr key={r.id}>
-                                    <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(r.created_at)}</td>
+                                    <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{fmtDate(r.created_at)}</td>
                                     <td className="px-3 py-2.5">{UTILITY_BILLERS[r.biller]?.label ?? r.biller}</td>
                                     <td className="px-3 py-2.5 text-xs">{r.source}</td>
                                     <td className="px-3 py-2.5">

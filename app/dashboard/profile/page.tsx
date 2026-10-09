@@ -302,7 +302,7 @@ export default function ProfilePage() {
 
                             return (
                                 <div
-                                    className={cn("w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-gray-800", roleBgClass)}
+                                    className={cn("w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-border", roleBgClass)}
                                 >
                                     <RoleIcon className="w-10 h-10" />
                                 </div>

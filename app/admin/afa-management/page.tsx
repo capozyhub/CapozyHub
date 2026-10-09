@@ -526,7 +526,7 @@ export default function AdminAfaManagementPage() {
                                                                 </span>
                                                             )}
                                                             {app.source === 'api' && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80 ">
                                                                     API
                                                                 </span>
                                                             )}
@@ -589,7 +589,7 @@ export default function AdminAfaManagementPage() {
                                                         </span>
                                                     )}
                                                     {app.source === 'api' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80 ">
                                                             API
                                                         </span>
                                                     )}
