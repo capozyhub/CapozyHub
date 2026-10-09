@@ -1,8 +1,10 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp, requireKeyType } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
-import { waitUntil } from '@vercel/functions'
 import { quoteAirtimeCommission } from '@/lib/airtime-pricing'
+import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
+import { placeAirtimeOrder } from '@/lib/data-orders/place-airtime'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 
 // ============================================================================
@@ -68,58 +70,55 @@ export async function POST(request: NextRequest) {
             done(400, 'Invalid network')
             return apiError(400, `Invalid network. Must be one of: ${VALID_NETWORKS.join(', ')}`)
         }
-        const cleanPhone = String(beneficiary_phone || '').replace(/\s+/g, '')
-        if (!/^0\d{9}$/.test(cleanPhone)) {
+        const cleanPhone = toCanonicalPhone(beneficiary_phone)
+        if (!cleanPhone) {
             done(400, 'Invalid phone')
-            return apiError(400, 'Invalid beneficiary_phone. Use Ghana format: 0XXXXXXXXX')
+            return apiError(400, 'Invalid beneficiary_phone. Use a Ghana mobile number: 0XXXXXXXXX')
         }
-        const parsedAmount = parseFloat(amount)
+        const parsedAmount = typeof amount === 'number' ? amount : parseFloat(String(amount))
         if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
             done(400, 'Invalid amount')
             return apiError(400, 'amount must be a positive number')
         }
-        if (!reference || typeof reference !== 'string' || reference.length < 3 || reference.length > 100) {
+        if (!reference || typeof reference !== 'string' || !/^[A-Za-z0-9._:\-]{3,100}$/.test(reference)) {
             done(400, 'Invalid reference')
-            return apiError(400, 'reference is required (3-100 characters) — your unique transaction ID for idempotency')
+            return apiError(400, 'reference is required: 3-100 characters, letters, numbers and . _ : - only. This is your unique transaction ID for idempotency.')
         }
         const referenceCode = `API-${reference}`
 
-        // Idempotency check, scoped to the caller.
-        const { data: existingOrder } = await (supabase.from('airtime_orders') as any)
-            .select('id, reference_code, status, network, beneficiary_phone, airtime_amount, total_paid')
-            .eq('reference_code', referenceCode).eq('user_id', userId).maybeSingle()
-        if (existingOrder) {
-            done(200)
-            return apiSuccess({
-                order_id: existingOrder.id, reference, status: existingOrder.status,
-                network: existingOrder.network, beneficiary_phone: existingOrder.beneficiary_phone,
-                airtime_amount: parseFloat(String(existingOrder.airtime_amount)),
-                total_paid: parseFloat(String(existingOrder.total_paid)), is_duplicate: true,
-            }, { version: 'v2', message: 'Order already exists with this reference' })
+        // The key owner must exist and not be suspended. The ROLE used for pricing comes from
+        // auth.effectiveRole, which applies dealer/agent expiry (lapsed = customer prices).
+        const buyerResult = await loadBuyer(supabase, userId)
+        if (!buyerResult.ok) {
+            done(buyerResult.status, buyerResult.error)
+            return apiError(buyerResult.status, buyerResult.error)
+        }
+        const userRole = effectiveRole
+
+        try {
+            const blocked = await findBlacklistedPhones(supabase, [cleanPhone])
+            if (blocked.has(cleanPhone)) {
+                done(403, 'Blacklisted number')
+                return apiError(403, 'This number cannot receive orders')
+            }
+        } catch (e) {
+            console.error('[API v2 Airtime Purchase] blacklist check failed:', e)
+            done(503, 'Blacklist check failed')
+            return apiError(503, 'We could not verify this number. Please try again.')
         }
 
-        const [userResult, settingsResult] = await Promise.all([
-            // Still queried to confirm the account exists; the ROLE used for pricing
-            // comes from auth.effectiveRole, which applies dealer/agent expiry.
-            (supabase.from('users') as any).select('id').eq('id', userId).single(),
-            (supabase.from('admin_settings') as any).select('key, value').in('key', [
-                `airtime_enabled_${NETWORK_KEY_MAP[network]}`,
-                `airtime_fee_${NETWORK_KEY_MAP[network]}_customer`, `airtime_fee_${NETWORK_KEY_MAP[network]}_agent`, `airtime_fee_${NETWORK_KEY_MAP[network]}_dealer`,
-                `airtime_min_amount_customer`, `airtime_min_amount_agent`, `airtime_min_amount_dealer`,
-                `airtime_max_amount_customer`, `airtime_max_amount_agent`, `airtime_max_amount_dealer`,
-            ]),
+        const { data: settingRows, error: settingsError } = await (supabase.from('admin_settings') as any).select('key, value').in('key', [
+            `airtime_enabled_${NETWORK_KEY_MAP[network]}`,
+            `airtime_min_amount_customer`, `airtime_min_amount_agent`, `airtime_min_amount_dealer`,
+            `airtime_max_amount_customer`, `airtime_max_amount_agent`, `airtime_max_amount_dealer`,
         ])
-        if (userResult.error || !userResult.data) {
-            done(404, 'User not found')
-            return apiError(404, 'User not found')
+        if (settingsError) {
+            console.error('[API v2 Airtime Purchase] settings lookup failed:', settingsError.message)
+            done(503, 'Settings lookup failed')
+            return apiError(503, 'Please try again in a moment.')
         }
-        // Expiry-aware: a lapsed dealer/agent prices as a customer here, matching
-        // data/purchase, the storefront and USSD. `user_role` is stamped on the order
-        // below from this same value, so the row records what they were actually
-        // charged as. See lib/effective-role.ts.
-        const userRole = effectiveRole
         const settingsMap: Record<string, string> = {}
-        for (const s of (settingsResult.data || [])) settingsMap[(s as any).key] = (s as any).value
+        for (const s of (settingRows || [])) settingsMap[(s as any).key] = (s as any).value
 
         if (settingsMap[`airtime_enabled_${NETWORK_KEY_MAP[network]}`] === 'false') {
             done(400, 'Network disabled')
@@ -142,74 +141,61 @@ export async function POST(request: NextRequest) {
         }
         const { airtimeAmount, feeAmount, totalPaid, feeRate } = quoted.quote
 
-        const { data: deductResult, error: deductError } = await (supabase as any).rpc('deduct_wallet_balance', { p_user_id: userId, p_amount: totalPaid })
-        if (deductError) {
-            if (deductError.message?.includes('INSUFFICIENT_BALANCE')) {
-                done(400, 'Insufficient balance')
-                return apiError(400, 'Insufficient wallet balance')
-            }
-            console.error('[API v2 Airtime Purchase] Wallet deduction error:', deductError)
-            done(500, 'Wallet deduction failed')
-            return apiError(500, 'Failed to process payment')
-        }
-        const walletRow = deductResult?.[0] || deductResult
-        const walletId = walletRow?.wallet_id
-        const newBalance = walletRow?.new_balance
-        if (!walletId) {
-            const { error: refundError } = await (supabase as any).rpc('credit_wallet_balance', { p_user_id: userId, p_amount: totalPaid })
-            if (refundError) console.error('[API v2 Airtime Purchase] CRITICAL: refund failed after missing wallet_id; manual reconciliation required:', refundError)
-            done(404, 'Wallet not found')
-            return apiError(404, 'Wallet not found')
-        }
+        const placed = await placeAirtimeOrder(supabase, userId, {
+            reference_code: referenceCode,
+            beneficiary_phone: cleanPhone,
+            network,
+            type: 'airtime',
+            bundle_preference: null,
+            airtime_amount: airtimeAmount,
+            fee_rate: feeRate,
+            fee_amount: feeAmount,
+            total_paid: totalPaid,
+            use_exact_amount: false,
+            user_role: userRole,
+            source: 'api',
+            api_key_id: apiKeyId,
+        })
 
-        const { data: order, error: orderError } = await (supabase.from('airtime_orders') as any)
-            .insert({
-                user_id: userId, user_role: userRole, beneficiary_phone: cleanPhone, network,
-                airtime_amount: airtimeAmount, fee_rate: feeRate, fee_amount: feeAmount,
-                admin_fee_amount: feeAmount, shop_fee_amount: 0, total_paid: totalPaid,
-                use_exact_amount: false, status: 'pending', reference_code: referenceCode,
-                type: 'airtime', bundle_preference: null, source: 'api', api_key_id: apiKeyId,
-            }).select().single()
-
-        if (orderError) {
-            console.error('[API v2 Airtime Purchase] Order insert error:', orderError)
-            const { error: refundError } = await (supabase as any).rpc('credit_wallet_balance', { p_user_id: userId, p_amount: totalPaid })
-            if (refundError) {
-                console.error('[API v2 Airtime Purchase] CRITICAL: refund failed for', referenceCode, refundError)
-                done(500, 'Order insert failed; refund failed')
-                return apiError(500, 'Order processing failed. Your wallet has been debited. Please contact support with your reference code for assistance.')
+        if (!placed.ok) {
+            switch (placed.code) {
+                case 'INSUFFICIENT_BALANCE':
+                    done(400, 'Insufficient balance')
+                    return apiError(400, 'Insufficient wallet balance')
+                case 'RECENT_DUPLICATE':
+                    done(409, 'Recent duplicate')
+                    return apiError(409, 'The same order was placed moments ago. Wait 30 seconds, or reuse its reference to read it back.')
+                case 'REFERENCE_IN_USE':
+                    done(409, 'Reference already in use')
+                    return apiError(409, 'This reference is already in use. Your wallet was not charged. Choose a different reference.')
+                case 'NO_WALLET':
+                    done(404, 'Wallet not found')
+                    return apiError(404, 'Wallet not found')
+                case 'INVALID':
+                    done(400, 'Invalid order')
+                    return apiError(400, 'Invalid order')
+                default:
+                    done(500, 'Order failed')
+                    return apiError(500, 'Order could not be placed. Your wallet was not charged. Please try again.')
             }
-            // airtime_orders_reference_code_key is GLOBAL, so this is usually a reference another
-            // account already used. "Please try again" would be advice that fails identically
-            // forever — tell them to change the reference instead. The refund above already ran.
-            if (orderError.code === '23505' || orderError.message?.includes('duplicate key')) {
-                done(409, 'Reference already in use')
-                return apiError(409, 'This reference is already in use. Your wallet was not charged. Choose a different reference.')
-            }
-            done(500, 'Order insert failed; refunded')
-            return apiError(500, 'Order could not be placed. Your wallet was not charged. Please try again.')
         }
 
-        // waitUntil so a lambda freeze immediately after the response cannot drop the ledger row
-        // — the wallet has already been debited, so losing this leaves an audit gap.
-        waitUntil((supabase.from('wallet_transactions') as any).insert({
-            wallet_id: walletId, user_id: userId, type: 'debit', amount: totalPaid,
-            description: `API Airtime: GHS ${airtimeAmount.toFixed(2)} for ${cleanPhone} (${network})`,
-            reference: referenceCode, source: 'airtime', status: 'completed',
-        }).then(() => {}).catch((e: any) => console.error('[API v2 Airtime Purchase] Tx insert error:', e)))
+        if (placed.duplicate) {
+            done(200)
+            return apiSuccess({
+                order_id: placed.order.id, reference, status: placed.order.status,
+                network: placed.order.network, beneficiary_phone: placed.order.beneficiary_phone,
+                airtime_amount: placed.order.airtime_amount, total_paid: placed.order.total_paid,
+                is_duplicate: true,
+            }, { version: 'v2', message: 'Order already exists with this reference' })
+        }
 
-        waitUntil((async () => {
-            try {
-                const { dispatchAirtimeFulfillment } = await import('@/lib/airtime-fulfillment')
-                await dispatchAirtimeFulfillment((order as any).id)
-            } catch (e) { console.error('[API v2 Airtime Purchase] auto-dispatch failed:', e) }
-        })())
-
+        // Orders start as "pending"; an admin fulfils them from the fulfillment page.
         done(200)
         return apiSuccess({
-            order_id: (order as any).id, reference, status: 'pending', network,
+            order_id: placed.order.id, reference, status: 'pending', network,
             beneficiary_phone: cleanPhone, airtime_amount: airtimeAmount, fee_amount: feeAmount,
-            total_paid: totalPaid, new_balance: newBalance,
+            total_paid: totalPaid, new_balance: placed.newBalance,
         }, { version: 'v2' })
 
     } catch (error: any) {
