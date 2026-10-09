@@ -33,14 +33,18 @@
     --neu-out: 9px 9px 20px #C2C2C2, -9px -9px 20px #FFFFFF;
     --neu-out-sm: 5px 5px 11px #C2C2C2, -5px -5px 11px #FFFFFF;
     --neu-in: inset 6px 6px 12px #C9C9C9, inset -6px -6px 12px #FFFFFF;
+
+    /* Cards and popovers: lifted, but softer than the canvas shadows so dense pages stay calm. */
+    --surface-out: 5px 5px 12px rgba(0,0,0,0.07), -4px -4px 10px rgba(255,255,255,0.9);
+    --surface-pop: 0 18px 40px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
   }
 
   .dark {
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
+    --card: 0 0% 9%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
+    --popover: 0 0% 9%;
     --popover-foreground: 0 0% 98%;
     --primary: 47 93% 51%;
     --primary-foreground: 0 0% 0%;
@@ -60,6 +64,10 @@
     --neu-out: 9px 9px 20px #000000, -7px -7px 18px #242424;
     --neu-out-sm: 5px 5px 11px #000000, -4px -4px 10px #232323;
     --neu-in: inset 6px 6px 12px #000000, inset -5px -5px 11px #242424;
+
+    --well-bg: #0B0B0B;
+    --surface-out: 5px 5px 12px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.035);
+    --surface-pop: 0 22px 48px rgba(0,0,0,0.7), inset 1px 1px 0 rgba(255,255,255,0.06);
   }
 }
 @layer base {
@@ -137,6 +145,27 @@
   .neu-press:hover { box-shadow: var(--neu-out-sm); }
   .neu-press:active { box-shadow: var(--neu-in); transform: scale(0.995); }
 
+  /* ── Shared surfaces: every Card, popover and input in components/ui builds on these ── */
+  .surface { background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); box-shadow: var(--surface-out); }
+  .surface-pop { background-color: hsl(var(--popover)); color: hsl(var(--popover-foreground)); box-shadow: var(--surface-pop); }
+  .well { background-color: var(--well-bg, var(--neu-bg)); box-shadow: var(--neu-in); }
+
+  /* Generic clay button: pick a colour with one of the .clay-* modifiers below. */
+  .clay {
+    color: var(--clay-ink, #fff);
+    background: linear-gradient(145deg, var(--clay-a) 0%, var(--clay-b) 50%, var(--clay-c) 100%);
+    box-shadow:
+      6px 8px 16px var(--clay-glow),
+      inset -5px -6px 10px rgba(0,0,0,0.25),
+      inset 5px 6px 10px rgba(255,255,255,0.45);
+    transition: box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+  }
+  .clay:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  .clay:active { transform: translateY(1px) scale(0.985); box-shadow: 2px 3px 6px var(--clay-glow), inset -3px -4px 7px rgba(0,0,0,0.25), inset 3px 4px 7px rgba(255,255,255,0.4); }
+  .clay-red    { --clay-a: #FF8A80; --clay-b: #E5383B; --clay-c: #B71C1C; --clay-ink: #fff; --clay-glow: rgba(229,56,59,0.35); }
+  .clay-green  { --clay-a: #86EFAC; --clay-b: #16A34A; --clay-c: #166534; --clay-ink: #fff; --clay-glow: rgba(22,163,74,0.35); }
+  .clay-orange { --clay-a: #FFB067; --clay-b: #F2711C; --clay-c: #C2410C; --clay-ink: #fff; --clay-glow: rgba(242,113,28,0.35); }
+  .clay-yellow { --clay-a: #FFE766; --clay-b: #FFCC00; --clay-c: #D9A800; --clay-ink: #000; --clay-glow: rgba(255,204,0,0.35); }
   /* Same idea on the black hero, where only a faint top-left light can show. */
   .neu-night { background-color: #111111; box-shadow: 14px 14px 30px rgba(0,0,0,0.85), -6px -6px 18px rgba(255,255,255,0.05), inset 1px 1px 0 rgba(255,255,255,0.06); }
   .neu-night-in { background-color: #080808; box-shadow: inset 5px 5px 12px rgba(0,0,0,0.9), inset -4px -4px 10px rgba(255,255,255,0.05); }
@@ -186,7 +215,7 @@
   .swoosh-reveal { animation: swoosh-reveal 1.5s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
   @media (prefers-reduced-motion: reduce) {
     .swoosh-reveal { animation: none; }
-    .clay-gold, .clay-black, .clay-silver, .neu-press { transition: none; }
+    .clay-gold, .clay-black, .clay-silver, .clay, .neu-press { transition: none; }
   }
   .glass-card {
     @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm lg:backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-md lg:shadow-xl;
@@ -797,6 +826,8 @@ html[data-perf='lite'] .neu-night-in { box-shadow: inset 3px 3px 8px rgba(0,0,0,
 html[data-perf='lite'] .clay-gold { box-shadow: 0 5px 10px rgba(246,169,0,0.3), inset 0 -3px 5px rgba(155,98,0,0.4), inset 0 2px 3px rgba(255,255,255,0.55); transition: none; }
 html[data-perf='lite'] .clay-black { box-shadow: 0 5px 10px rgba(0,0,0,0.3), inset 0 -3px 5px rgba(0,0,0,0.7), inset 0 2px 3px rgba(255,255,255,0.2); transition: none; }
 html[data-perf='lite'] .clay-silver { box-shadow: 0 5px 10px rgba(0,0,0,0.22), inset 0 -3px 5px rgba(120,120,120,0.3), inset 0 2px 3px rgba(255,255,255,0.8); transition: none; }
+html[data-perf='lite'] { --surface-out: 3px 3px 7px rgba(0,0,0,0.12); --surface-pop: 0 8px 20px rgba(0,0,0,0.3); }
+html[data-perf='lite'] .clay { box-shadow: 0 4px 8px var(--clay-glow), inset 0 -3px 5px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.4); transition: none; }
 html[data-perf='lite'] .swoosh-fx { display: none; }
 html[data-perf='lite'] .swoosh-reveal,
 html[data-perf='lite'] .animate-in { animation: none !important; }
