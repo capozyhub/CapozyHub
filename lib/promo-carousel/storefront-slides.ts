@@ -160,35 +160,18 @@ export function buildStorefrontSlides(ctx: StorefrontSlideContext): PromoSlide[]
         })
     }
 
-    // Awareness slide — storefront visitors may be anonymous, so nothing here is account-gated.
-    // When the shop sells MTN, point at the registration check (MTN is the first network in the
-    // data tab, so selecting it lands the visitor right beside the inline checker). The copy names
-    // no supplier and promises no turnaround. Otherwise fall back to the generic number tip.
-    if (activeNetworks.includes('MTN')) {
-        slides.push({
-            id: 'mtn-whitelist',
-            theme: 'blue',
-            eyebrowIcon: ShieldCheck,
-            eyebrow: 'MTN',
-            title: 'Check your MTN number',
-            body: 'MTN data only reaches registered numbers. Check yours before you pay.',
-            icon: ShieldCheck,
-            cta: { label: 'Check My Number', onClick: () => ctx.selectProduct('data') },
-            accentColor,
-        })
-    } else {
-        slides.push({
-            id: 'instant-delivery-awareness',
-            theme: 'blue',
-            eyebrowIcon: ShieldCheck,
-            eyebrow: 'TIP',
-            title: 'Double-check your number',
-            body: 'Enter the correct phone number at checkout for instant delivery.',
-            icon: ShieldCheck,
-            cta: { label: 'Start Shopping', onClick: () => ctx.selectProduct('data') },
-            accentColor,
-        })
-    }
+    // Awareness slide: storefront visitors may be anonymous, so nothing here is account-gated.
+    slides.push({
+        id: 'instant-delivery-awareness',
+        theme: 'blue',
+        eyebrowIcon: ShieldCheck,
+        eyebrow: 'TIP',
+        title: 'Double-check your number',
+        body: 'Enter the correct phone number at checkout for instant delivery.',
+        icon: ShieldCheck,
+        cta: { label: 'Start Shopping', onClick: () => ctx.selectProduct('data') },
+        accentColor,
+    })
 
     slides.push({
         id: 'need-help',

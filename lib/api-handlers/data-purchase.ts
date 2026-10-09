@@ -3,7 +3,7 @@
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Mirrors app/api/orders/purchase/route.ts's flow:
-//   validate phone → resolve package by network+volume → OOS/blacklist/whitelist
+//   validate phone → resolve package by network+volume → OOS/blacklist
 //   gates → role-based pricing → atomic wallet deduction → insert order →
 //   background fulfillment via the SHARED lib/fulfillment-trigger.ts
 //
@@ -21,14 +21,13 @@ import {
 } from '@/lib/api-auth'
 import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
-import { resolveOrderQueueing } from '@/lib/number-registration'
-import { checkMtnWhitelistGate } from '@/lib/mtn-whitelist-gate'
 import { triggerFulfillment } from '@/lib/fulfillment-trigger'
 import { versionMeta } from '@/lib/api-version'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
+import { tierCost } from '@/lib/pricing/cost-basis'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones } from '@/lib/data-orders/guards'
 import { placeDataOrders } from '@/lib/data-orders/place'
@@ -179,16 +178,6 @@ export async function handleDataPurchase(request: NextRequest) {
             // Generic message: do not confirm the number is on a blacklist.
             return apiError(400, 'Order cannot be processed for this recipient')
         }
-        // MTN AgentPortal whitelist gate — pre-deduction, alongside the existing
-        // blacklist/OOS checks. Unlike the blacklist message above, this one is
-        // deliberately specific: it's an operational status the developer needs
-        // to act on (retry shortly), not a security-sensitive rejection to obscure.
-        const whitelistGate = await checkMtnWhitelistGate(cleanPhone, (pkg as any).network, (pkg as any).category)
-        if (whitelistGate.blocked) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 409, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Not whitelisted' })
-            return apiError(409, whitelistGate.reason!)
-        }
-
         // ── Role-based pricing ────────────────────────────────────────────
         // Uses auth.effectiveRole. This route previously ran its OWN inline expiry
         // check (isActiveDealerV1/isActiveAgentV1) deriving expired as
@@ -199,13 +188,7 @@ export async function handleDataPurchase(request: NextRequest) {
         // from lib/effective-role.ts, and the per-request `users` round-trip this
         // route made purely for the expiry columns is gone (validateApiKey
         // already selected them).
-        const isActiveDealer = effectiveRole === 'dealer'
-        const isActiveAgent = effectiveRole === 'agent'
-        let priceToCharge = isActiveDealer && (pkg as any).dealer_price > 0
-            ? (pkg as any).dealer_price
-            : isActiveAgent && (pkg as any).agent_price > 0
-                ? (pkg as any).agent_price
-                : (pkg as any).price
+        let priceToCharge = tierCost(pkg as any, effectiveRole)
 
         // Sub-agent pricing overrides the role price entirely (spec C2) — the sub's cost
         // is recruiter-derived, never role-derived. Fails closed before any charge (spec
@@ -247,9 +230,6 @@ export async function handleDataPurchase(request: NextRequest) {
         }
 
         // ── Pay and create the order in one database transaction ──────────
-        // An unregistered MTN recipient is held 'queued' until the supplier confirms the number.
-        const queueDecision = await resolveOrderQueueing(cleanPhone, (pkg as any).network)
-
         priceToCharge = Math.round(priceToCharge * 100) / 100
         const placed = await placeDataOrders(supabase, userId, [{
             reference_code: referenceCode,
@@ -262,7 +242,7 @@ export async function handleDataPurchase(request: NextRequest) {
             // users.role: a lapsed dealer billed at customer rates must not leave a row
             // claiming role_at_time='dealer'.
             role_at_time: effectiveRole,
-            status: queueDecision.queue ? 'queued' : 'pending',
+            status: 'pending',
             fulfillment_method: 'auto',
             category: (pkg as any).category || 'data',
             source: 'api',
@@ -313,10 +293,6 @@ export async function handleDataPurchase(request: NextRequest) {
                     .eq('id', userId)
                     .single()
 
-                if (queueDecision.queue) {
-                    console.log(`[API Data Purchase] Order ${order.id} QUEUED for MTN number registration — fulfillment held`)
-                    return
-                }
                 const firstName = (userData as any)?.first_name || 'Customer'
                 await triggerFulfillment(order.id, (pkg as any).network, {
                     email: (userData as any)?.email || 'Unknown',
@@ -337,7 +313,7 @@ export async function handleDataPurchase(request: NextRequest) {
         return apiSuccess({
             order_id: order.id,
             reference: reference,
-            status: queueDecision.queue ? 'queued' : 'pending',
+            status: 'pending',
             network: (pkg as any).network,
             size: (pkg as any).size,
             recipient: cleanPhone,

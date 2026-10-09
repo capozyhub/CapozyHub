@@ -16,9 +16,6 @@ const DEFAULT_ON: Record<ToggleKey, boolean> = {
     auto_fulfillment_enabled: false,
     page_access_storefront: true,
     mtn_express_delivery_enabled: false,
-    number_registration_gate_enabled: false,
-    mtn_agentportal_whitelist_gate_enabled: false,
-    mtn_bundleportal_whitelist_gate_enabled: false,
 }
 
 const MONEY_LABELS: Record<string, { label: string; prefix?: string; suffix?: string }> = {

@@ -12,7 +12,6 @@ import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { isUtilityBiller, UTILITY_BILLERS } from '@/lib/hubtel-utility/billers'
 import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { parseSettingNumber } from '@/lib/paystack-fees'
-import { checkMtnWhitelistGate } from '@/lib/mtn-whitelist-gate'
 
 export interface ShopCheckoutInput {
     shopSlug: string
@@ -298,13 +297,6 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
         const { data: shopStock } = await db.from('shop_profiles').select('oos_networks').eq('id', shop.id).maybeSingle()
         if (isNetworkOOS(mergeOOS(adminOOS, shopStock?.oos_networks), pkg.network)) {
             return { ok: false, status: 409, error: `${pkg.network} is out of stock at the moment` }
-        }
-
-        // MTN AgentPortal whitelist gate — pre-charge, shared by both
-        // /api/shop/initialize and /api/shop/charge since both call this function.
-        const whitelistGate = await checkMtnWhitelistGate(cleanPhone, pkg.network, pkg.category)
-        if (whitelistGate.blocked) {
-            return { ok: false, status: 400, error: whitelistGate.reason! }
         }
 
         const { data: shopPrice } = await db.from('shop_pricing').select('selling_price').eq('shop_id', shop.id).eq('package_id', packageId).maybeSingle()

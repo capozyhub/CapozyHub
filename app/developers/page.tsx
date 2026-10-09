@@ -388,67 +388,6 @@ r = requests.post('${BASE}/data/bulk',
 print(r.json())`,
 }
 
-const VERIFY_NUMBER_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X POST ${BASE}/data/verify-number \\
-  -H "Authorization: ${KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"network":"MTN","recipient":"0551617309"}'`,
-    'Node.js': `const res = await fetch('${BASE}/data/verify-number', {
-  method: 'POST',
-  headers: { 'Authorization': '${KEY}', 'Content-Type': 'application/json' },
-  body: JSON.stringify({ network: 'MTN', recipient: '0551617309' }),
-});
-console.log(await res.json());`,
-    'PHP': `<?php
-$ch = curl_init('${BASE}/data/verify-number');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${KEY}', 'Content-Type: application/json'],
-  CURLOPT_POSTFIELDS => json_encode(['network' => 'MTN', 'recipient' => '0551617309']),
-]);
-echo curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests
-
-r = requests.post('${BASE}/data/verify-number',
-  headers={'Authorization': '${KEY}'},
-  json={'network': 'MTN', 'recipient': '0551617309'}
-)
-print(r.json())`,
-}
-
-function verifyServerSamples(server: 1 | 2): Record<LangTab, string> {
-    return {
-        'cURL': `curl -X POST ${BASE}/data/verify-number/server-${server} \\
-  -H "Authorization: ${KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"network":"MTN","recipient":"0551617309"}'`,
-        'Node.js': `const res = await fetch('${BASE}/data/verify-number/server-${server}', {
-  method: 'POST',
-  headers: { 'Authorization': '${KEY}', 'Content-Type': 'application/json' },
-  body: JSON.stringify({ network: 'MTN', recipient: '0551617309' }),
-});
-console.log(await res.json());`,
-        'PHP': `<?php
-$ch = curl_init('${BASE}/data/verify-number/server-${server}');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${KEY}', 'Content-Type: application/json'],
-  CURLOPT_POSTFIELDS => json_encode(['network' => 'MTN', 'recipient' => '0551617309']),
-]);
-echo curl_exec($ch); curl_close($ch);`,
-        'Python': `import requests
-
-r = requests.post('${BASE}/data/verify-number/server-${server}',
-  headers={'Authorization': '${KEY}'},
-  json={'network': 'MTN', 'recipient': '0551617309'}
-)
-print(r.json())`,
-    }
-}
-
-const VERIFY_SERVER_1_SAMPLES = verifyServerSamples(1)
-const VERIFY_SERVER_2_SAMPLES = verifyServerSamples(2)
-
 const BALANCE_SAMPLES: Record<LangTab, string> = {
     'cURL': `curl -X GET ${BASE}/wallet/balance \\
   -H "Authorization: ${KEY}"`,
@@ -1218,71 +1157,26 @@ export default function DevelopersPage() {
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "pending",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "new_balance": 120.50\n  }\n}`}
                                     notes={[
                                         'reference is your idempotency key — sending the same reference twice returns the existing order without double-charging.',
-                                        'status is usually "pending", but MAY be "queued" if the recipient number still needs registration on our network — it auto-releases to pending and is fulfilled shortly after. Poll GET /api/v2/orders/{reference} to track it.',
-                                        'MTN purchases MAY also return 409 if the recipient number isn\'t yet whitelisted with our supplier (only applies when this optional gate is enabled by an admin) — message reads "This number isn\'t registered to receive MTN data yet. We\'ve submitted it for registration — please try again soon." Retrying shortly usually succeeds once the number is registered. To avoid this, check the number before checkout — see POST /data/verify-number and its /server-1 and /server-2 variants.',
+                                        'status starts as "pending". Poll GET /api/v2/orders/{reference} to track it.',
                                         'network must be one of: MTN, Telecel, AT-iShare, AT-BigTime (case-sensitive).',
                                         'volume_gb must match an available package. Use GET /packages to confirm.',
-                                        'recipient must be a valid Ghana number: 0XXXXXXXXX (10 digits, starts with 0).',
+                                        'recipient must be a Ghana mobile number: 0XXXXXXXXX (10 digits) or 233XXXXXXXXX.',
                                     ]}
                                     codeSamples={PURCHASE_SAMPLES}
                                 />
 
                                 <EndpointSection
                                     method="POST" path="/api/v2/data/bulk"
-                                    description="Purchase up to 100 data bundles in a single batch. A validation failure (invalid network, package not found, out of stock) rejects the whole batch and nothing is charged; the one exception is MTN recipients not yet whitelisted with our supplier — those orders are skipped individually while the rest of the batch is placed and charged normally."
+                                    description="Purchase up to 100 data bundles in a single batch. The batch is all-or-nothing: a validation failure (invalid network, package not found, out of stock, blocked recipient) rejects the whole batch and nothing is charged."
                                     requestBody={`{\n  "orders": [\n    {\n      "network": "MTN",\n      "volume_gb": 5,\n      "recipient": "0551617309",\n      "reference": "b_001"\n    },\n    {\n      "network": "Telecel",\n      "volume_gb": 2,\n      "recipient": "0201234567",\n      "reference": "b_002"\n    }\n  ]\n}`}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "orders_placed": 2,\n    "total_cost": 7.00,\n    "new_balance": 113.50,\n    "orders": [\n      { "order_id": "...", "reference": "b_001", "status": "pending" }\n    ],\n    "skipped": []\n  }\n}`}
+                                    responseBody={`{\n  "success": true,\n  "data": {\n    "orders_placed": 2,\n    "total_cost": 7.00,\n    "new_balance": 113.50,\n    "orders": [\n      { "order_id": "...", "reference": "b_001", "status": "pending" }\n    ]\n  }\n}`}
                                     notes={[
                                         'Maximum 100 orders per batch request.',
-                                        'Still atomic for network/package validation failures (invalid network, package not found, out of stock) — one bad order in the array rejects the whole batch and nothing is charged.',
-                                        'MTN orders to a recipient not yet whitelisted with our supplier are the one exception: they are skipped individually — not charged, not created — while the rest of the batch is placed normally. Only applies when this optional gate is enabled by an admin.',
-                                        'skipped is an array of { recipient, reason }, one entry per order skipped for the whitelist reason above — cross-reference it against your original orders array since skipped orders have no reference or order_id.',
+                                        'All-or-nothing: one bad order in the array rejects the whole batch and nothing is charged.',
+                                        'Sending the same references again returns the existing orders without charging (is_duplicate: true).',
                                         'Each order in the array follows the same rules as single purchase.',
                                     ]}
                                     codeSamples={BULK_SAMPLES}
-                                />
-
-                                <EndpointSection
-                                    method="POST" path="/api/v2/data/verify-number"
-                                    description="Server 1 and Server 2 combined: allowed: true when the number is registered on Server 1 or Server 2. Use it as your checkout gate only when the platform has announced that both servers are accepted — if only one server is accepted, check that server's endpoint instead. It does not tell you which server holds the number: for the actual registration state, use /data/verify-number/server-1 and /server-2. Non-MTN networks always return allowed: true immediately — no need to special-case other networks in your own client."
-                                    requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "allowed": true\n  }\n}`}
-                                    notes={[
-                                        'The combined result follows the server(s) the platform currently accepts orders on, so it equals "Server 1 or Server 2" only while both are accepted. Watch platform announcements for which servers are accepted.',
-                                        'A number that isn\'t registered yet is automatically submitted for registration — check again soon.',
-                                        '/data/purchase independently re-verifies at order time.',
-                                        'On an upstream verification outage this endpoint fails open (allowed: true) rather than wrongly telling you a real customer is blocked — treat a true response as "likely fine to proceed", not a guarantee the subsequent purchase will succeed.',
-                                        'Rate limit: 20/min per API key, shared across /data/verify-number, /server-1 and /server-2.',
-                                    ]}
-                                    codeSamples={VERIFY_NUMBER_SAMPLES}
-                                />
-
-                                <EndpointSection
-                                    method="POST" path="/api/v2/data/verify-number/server-1"
-                                    description="The actual registration state on Server 1: allowed tells you whether this number is registered on Server 1 specifically. Use this endpoint to know which server a number is registered on. If only Server 1 is currently accepted, use it as your checkout gate."
-                                    requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "server": 1,\n    "allowed": true\n  }\n}`}
-                                    notes={[
-                                        'A number can be registered on one server and not the other. Which server(s) the platform currently accepts orders on can change — check platform announcements or ask support.',
-                                        'A number that isn\'t registered on Server 1 is automatically submitted for registration — check again soon.',
-                                        'Unlike /data/verify-number, this does not fail open: if Server 1 can\'t be reached it returns 502 instead of a guess.',
-                                        'Rate limit: 20/min per API key, shared across /data/verify-number, /server-1 and /server-2.',
-                                    ]}
-                                    codeSamples={VERIFY_SERVER_1_SAMPLES}
-                                />
-
-                                <EndpointSection
-                                    method="POST" path="/api/v2/data/verify-number/server-2"
-                                    description="The actual registration state on Server 2: allowed tells you whether this number is registered on Server 2 specifically. Use this endpoint to know which server a number is registered on. If only Server 2 is currently accepted, use it as your checkout gate."
-                                    requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "server": 2,\n    "allowed": false\n  }\n}`}
-                                    notes={[
-                                        'A number can be registered on one server and not the other. Which server(s) the platform currently accepts orders on can change — check platform announcements or ask support.',
-                                        'A number that isn\'t registered on Server 2 is automatically submitted for registration — check again soon.',
-                                        'Unlike /data/verify-number, this does not fail open: if Server 2 can\'t be reached it returns 502 instead of a guess.',
-                                        'Rate limit: 20/min per API key, shared across /data/verify-number, /server-1 and /server-2.',
-                                    ]}
-                                    codeSamples={VERIFY_SERVER_2_SAMPLES}
                                 />
 
                                 <EndpointSection
@@ -1302,9 +1196,8 @@ export default function DevelopersPage() {
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "completed",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "source": "api",\n    "created_at": "2026-..."\n  }\n}`}
                                     notes={[
                                         'Use the same reference you passed when calling /data/purchase or /data/bulk.',
-                                        'Status lifecycle: pending | queued → processing → completed | failed | refunded.',
+                                        'Status lifecycle: pending → processing → completed | failed | refunded.',
                                         'pending — order accepted and awaiting dispatch to the network.',
-                                        'queued — the recipient MTN number is not yet registered with our network provider, so the order is held (not dispatched); it auto-releases to pending and is fulfilled once registration completes, usually within a short period.',
                                         'processing — dispatched to the network and being fulfilled.',
                                         'completed — bundle delivered successfully.',
                                         'failed — the order could not be fulfilled.',
@@ -1658,17 +1551,6 @@ export default function DevelopersPage() {
                             </div>
 
                             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">MTN number registration checks</p>
-                                <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>To know the <strong>actual registration state</strong> of a number — which server it is registered on — call <IC>POST /data/verify-number/server-1</IC> and <IC>POST /data/verify-number/server-2</IC>. A number can be registered on one and not the other.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span><IC>POST /data/verify-number</IC> is the <strong>combination of Server 1 and Server 2</strong>. Use it as your checkout gate only when the platform announces that both servers are accepted. If only one server is accepted, gate on that server&apos;s endpoint instead.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Which server(s) are accepted can change — watch platform announcements, or ask support, rather than hardcoding an assumption.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>A number that isn&apos;t registered is automatically submitted for registration. There is no fixed turnaround — check again soon rather than after a set time.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>The three checks share one <IC>20/min</IC> limit per API key. Check once at checkout, not on every keystroke.</span></li>
-                                </ul>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Commission Services key — utilities, airtime</p>
                                 <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Call <IC>GET /utilities/billers</IC> and <IC>GET /utilities/lookup</IC> before <IC>POST /utilities/pay</IC> — the payment call validates against what lookup returns, so skipping it just produces avoidable 400s.</span></li>
@@ -1745,7 +1627,7 @@ export default function DevelopersPage() {
                                     [<span key="401" className="font-mono font-bold text-red-500">401</span>, 'Missing or invalid API key'],
                                     [<span key="403" className="font-mono font-bold text-red-500">403</span>, 'Key pending approval, revoked, suspended account, or role not allowed'],
                                     [<span key="404" className="font-mono font-bold text-red-500">404</span>, 'Package or order not found for the given network/size/reference'],
-                                    [<span key="409" className="font-mono font-bold text-amber-500">409</span>, 'Duplicate reference — an order with this reference already exists. On /data/purchase specifically, an MTN recipient not yet whitelisted with our supplier also returns 409 (see that endpoint\'s notes) — /data/bulk skips those orders individually instead of returning an error.'],
+                                    [<span key="409" className="font-mono font-bold text-amber-500">409</span>, 'Duplicate reference — an order with this reference already exists.'],
                                     [<span key="429" className="font-mono font-bold text-amber-500">429</span>, 'Rate limit exceeded — back off and retry after a short delay'],
                                     [<span key="500" className="font-mono font-bold text-slate-500">500</span>, 'Internal server error — contact support if persistent'],
                                     [<span key="503" className="font-mono font-bold text-slate-500">503</span>, 'API feature temporarily disabled by administrator'],

@@ -33,12 +33,6 @@ const PUBLIC_ALLOWED_KEYS = new Set([
     // page to show a network as "Out of Stock at the Moment". Non-sensitive (customers
     // see the state anyway).
     'data_network_stock',
-    // MTN whitelist gate toggles (Server 1 / Server 2) — read by the dashboard bulk-order
-    // page (app/dashboard/data-packages/page.tsx) to decide whether to run the
-    // amber pre-check before hitting /api/mtn-whitelist/verify. Non-sensitive:
-    // they only say whether the gate is currently on.
-    'mtn_agentportal_whitelist_gate_enabled',
-    'mtn_bundleportal_whitelist_gate_enabled',
 ])
 
 export async function GET(request: Request) {

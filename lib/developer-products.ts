@@ -52,7 +52,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
         name: 'Data Bundles API',
         title: 'Data Bundles API Ghana — MTN, Telecel & AirtelTigo',
         description:
-            'Buy MTN, Telecel, AT-iShare and AT-BigTime data bundles programmatically in Ghana. Single and bulk (up to 100) purchases, number verification, order status, wallet-based billing and idempotent references.',
+            'Buy MTN, Telecel, AT-iShare and AT-BigTime data bundles programmatically in Ghana. Single and bulk (up to 100) purchases, order status, wallet-based billing and idempotent references.',
         intro:
             'Resell data bundles from your own app, website or bot. List live packages with prices for your account role, place single or bulk orders paid from your wallet, and poll order status. Ghana networks only.',
         keyType: 'standard',
@@ -60,7 +60,6 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/packages', summary: 'List available data packages with pricing for your role' },
             { method: 'POST', path: '/data/purchase', summary: 'Purchase a single data bundle' },
             { method: 'POST', path: '/data/bulk', summary: 'Purchase up to 100 data bundles in one batch' },
-            { method: 'POST', path: '/data/verify-number', summary: 'Check a number against Server 1 and Server 2 combined' },
             { method: 'GET', path: '/orders/{reference}', summary: 'Check a data order\'s fulfillment status' },
             { method: 'GET', path: '/wallet/balance', summary: 'Get your wallet balance' },
         ],

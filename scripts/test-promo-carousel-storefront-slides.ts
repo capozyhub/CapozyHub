@@ -180,32 +180,11 @@ for (const id of ['need-help', 'become-subagent']) {
     }
 }
 
-// ── MTN whitelist slide: only when MTN is actually sellable; replaces the generic tip ──
-{
-    const calls: string[] = []
-    const selectProduct = (tab: string) => { calls.push(tab) }
-    const withMtn = buildStorefrontSlides({ ...base, packages: [{ network: 'MTN' }], selectProduct })
-    const ids = withMtn.map(s => s.id)
-    assertHasSlide(ids, 'mtn-whitelist', 'MTN active')
-    assertMissingSlide(ids, 'instant-delivery-awareness', 'MTN active replaces the generic tip')
-    const slide = withMtn.find(s => s.id === 'mtn-whitelist')!
-    if (!('onClick' in slide.cta)) throw new Error('whitelist CTA must be an in-page action')
-    slide.cta.onClick()
-    if (calls.join() !== 'data') throw new Error(`whitelist CTA should open the data tab, got [${calls.join()}]`)
-    const copy = `${slide.title} ${slide.body} ${slide.cta.label}`.toLowerCase()
-    for (const banned of ['agentportal', 'agent portal', 'bundleportal', 'bundle portal', '24 hour', '24h']) {
-        if (copy.includes(banned)) throw new Error(`whitelist slide copy must not contain "${banned}"`)
-    }
-
-    // MTN missing, or out of stock: no whitelist slide, the generic tip stays
-    for (const [label, ctx] of [
-        ['no MTN packages', { packages: [{ network: 'Telecel' }] }],
-        ['MTN out of stock', { packages: [{ network: 'MTN' }], oosNetworks: ['MTN'] }],
-    ] as const) {
-        const ids2 = buildStorefrontSlides({ ...base, ...ctx }).map(s => s.id)
-        assertMissingSlide(ids2, 'mtn-whitelist', label)
-        assertHasSlide(ids2, 'instant-delivery-awareness', label)
-    }
+// ── No whitelist slide: the generic number tip is always shown ──
+for (const packages of [[{ network: 'MTN' }], [{ network: 'Telecel' }]]) {
+    const ids = buildStorefrontSlides({ ...base, packages }).map(s => s.id)
+    assertMissingSlide(ids, 'mtn-whitelist', 'no whitelist slide')
+    assertHasSlide(ids, 'instant-delivery-awareness', 'generic tip')
 }
 
 // ── Announcement slide: admin or shop notice, leads the carousel, opens the modal ──

@@ -39,7 +39,6 @@ function statusForOutcome(outcome: RetryOutcome): number {
     case 'invalid_charge_amount':
     case 'owner_not_found':
     case 'no_wallet_user':
-    case 'not_whitelisted':
       return 400
     case 'invalid_actor_role':
     case 'error':

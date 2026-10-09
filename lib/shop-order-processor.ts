@@ -9,7 +9,6 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
 import { repairSubAgentEarning } from '@/lib/sub-agent-earning-repair'
-import { resolveOrderQueueing } from '@/lib/number-registration'
 import { sanitizeForStorage } from '@/lib/sanitize-for-storage'
 import { resolveEnabledSuppliers, type FulfillmentNetworkSettings } from '@/lib/order-supplier'
 import { claimForDispatchByShopOrderId, acceptDispatch, releaseClaim } from '@/lib/dispatch-claim'
@@ -326,14 +325,6 @@ export async function processShopOrder(
             return { success: false, error: 'Pricing changed and this order cannot be completed. Your payment will be refunded.' }
         }
 
-        // MTN number-registration gate — data orders only (airtime/mashup unaffected).
-        // Unregistered MTN guest numbers are held 'queued' (no dispatch) until an
-        // admin releases the batch after the supplier confirms registration.
-        const queueDecision = isDataOrder
-            ? await resolveOrderQueueing(metadata.guest_phone, metadata.network)
-            : { queue: false, canonicalPhone: null }
-        const shopOrderStatus = queueDecision.queue ? 'queued' : 'pending'
-
         // 3. Create Order Records (only runs after amount validation passes)
         let orderId = existingOrder?.id
         let airtimeOrderId: string | null = null
@@ -355,7 +346,7 @@ export async function processShopOrder(
                 parent_shop_id: verifiedParentShopId,
                 parent_profit: verifiedParentProfit,
                 paystack_reference: reference,
-                status: shopOrderStatus
+                status: 'pending'
             }
 
             const { data: newOrder, error: createError } = await db
@@ -401,7 +392,7 @@ export async function processShopOrder(
                 price: verifiedSellingPrice,
                 cost_price_at_time: verifiedCostPrice,
                 role_at_time: ownerRole,
-                status: shopOrderStatus,
+                status: 'pending',
                 payment_status: 'paid',
                 reference_code: `SHOP-${reference.slice(-10)}`,
                 fulfillment_method: 'auto',
@@ -461,14 +452,13 @@ export async function processShopOrder(
 
         // 4. Process Valid Order — SMS, Profit Credit, Fulfillment
         // Customer confirmation SMS is opt-out per shop (defaults to enabled).
-        // Held (queued) orders send no "delivered" SMS until they are released.
         // Task F3: suppress-until-sender + credit-metered — a shop with no
         // APPROVED sms_sender_id sends NOTHING (no free platform-sender
         // fallback); an approved shop pays 1 SMS credit/confirmation via
         // debit_sms_credits (with atomic refund-on-send-failure). The sender
         // is pre-resolved from the shopProfile row already SELECTed above so
         // sendShopConfirmationSMS doesn't re-query shop_profiles.
-        if (metadata.guest_phone && !queueDecision.queue && (shopProfile as any)?.sms_order_confirmation_enabled !== false) {
+        if (metadata.guest_phone && (shopProfile as any)?.sms_order_confirmation_enabled !== false) {
             waitUntil(sendShopConfirmationSMS(db, metadata.shop_id, metadata.guest_phone, {
                 network: metadata.network,
                 size: metadata.package_size || `${metadata.airtime_amount} Airtime`,
@@ -500,31 +490,26 @@ export async function processShopOrder(
             console.error('[Shop Order Processor] Profit credit error:', profitErr)
         }
 
-        // 4.3 Trigger Fulfillment (held for queued MTN-registration orders)
-        if (queueDecision.queue) {
-            console.log(`[Shop Order Processor] Order ${orderId} QUEUED for MTN number registration — fulfillment held`)
-        } else {
-            try {
-                const fulfillmentPayload = (metadata.order_type === 'airtime' || metadata.order_type === 'mashup')
-                   ? { amount: metadata.airtime_amount || verifiedSellingPrice }
-                   : { size: metadata.package_size }
+        // 4.3 Trigger Fulfillment
+        try {
+            const fulfillmentPayload = (metadata.order_type === 'airtime' || metadata.order_type === 'mashup')
+               ? { amount: metadata.airtime_amount || verifiedSellingPrice }
+               : { size: metadata.package_size }
 
-                await triggerShopFulfillment(orderId!, metadata.network, metadata.guest_phone, db, {
-                    referenceCode: `SHOP-${reference.slice(-10)}`,
-                    price: verifiedSellingPrice,
-                    customerName: 'Shop Guest',
-                    customerEmail: 'N/A',
-                    shopName: shopProfile?.shop_name || slug || shopProfile?.shop_name,
-                    fulfillmentMode,
-                    orderType: metadata.order_type || 'data',
-                    airtimeOrderId: airtimeOrderId ?? undefined,
-                    ...fulfillmentPayload
-                })
-            } catch (fulfillErr) {
-                console.error('[Shop Order Processor] Fulfillment error:', fulfillErr)
-            }
+            await triggerShopFulfillment(orderId!, metadata.network, metadata.guest_phone, db, {
+                referenceCode: `SHOP-${reference.slice(-10)}`,
+                price: verifiedSellingPrice,
+                customerName: 'Shop Guest',
+                customerEmail: 'N/A',
+                shopName: shopProfile?.shop_name || slug || shopProfile?.shop_name,
+                fulfillmentMode,
+                orderType: metadata.order_type || 'data',
+                airtimeOrderId: airtimeOrderId ?? undefined,
+                ...fulfillmentPayload
+            })
+        } catch (fulfillErr) {
+            console.error('[Shop Order Processor] Fulfillment error:', fulfillErr)
         }
-
         return { success: true, orderId }
 
     } catch (error) {

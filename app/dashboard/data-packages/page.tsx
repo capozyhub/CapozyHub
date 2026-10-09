@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ExternalLink, LayoutGrid, List, Loader2, Search, ShieldCheck, Wifi } from 'lucide-react'
+import { LayoutGrid, List, Loader2, Search, Wifi } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -17,12 +16,6 @@ import { NetworkTabs } from '@/components/dashboard/data-packages/NetworkTabs'
 import { PackageGrid } from '@/components/dashboard/data-packages/PackageGrid'
 import { PurchaseSheet } from '@/components/dashboard/data-packages/PurchaseSheet'
 import { BulkPanel } from '@/components/dashboard/data-packages/BulkPanel'
-
-// Loaded the first time someone opens it, so its code is not part of this page's first load.
-const MtnWhitelistChecker = dynamic(
-    () => import('@/components/mtn-whitelist-checker').then(m => m.MtnWhitelistChecker),
-    { ssr: false },
-)
 
 type Tab = 'single' | 'bulk' | 'mtn_mashup'
 
@@ -58,9 +51,6 @@ export default function DataPackagesPage() {
     const [ordersToday, setOrdersToday] = useState(0)
     const [outOfStock, setOutOfStock] = useState<Record<string, boolean>>({})
     const [selected, setSelected] = useState<DataPackage | null>(null)
-    // Mounted on first open only.
-    const [checkerMounted, setCheckerMounted] = useState(false)
-    const [checkerOpen, setCheckerOpen] = useState(false)
 
     // A sub-agent only sees bundles their recruiter has priced for them, at that price.
     const isSubAgent = dbUser?.role === 'subagent'
@@ -228,22 +218,6 @@ export default function DataPackagesPage() {
             </div>
 
             <NetworkTabs selected={selectedNetwork} outOfStock={outOfStock} onSelect={selectNetwork} />
-
-            {selectedNetwork === 'MTN' && (
-                <button
-                    type="button"
-                    onClick={() => { setCheckerMounted(true); setCheckerOpen(true) }}
-                    className="surface flex w-full items-center gap-3 rounded-2xl p-3.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                    <span className="well flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-brand-700 dark:text-brand-500"><ShieldCheck className="h-5 w-5" /></span>
-                    <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold">Check MTN number registration</span>
-                        <span className="block text-xs text-muted-foreground">Numbers that are not registered are sent to MTN for you. Check up to 1,000 at once.</span>
-                    </span>
-                    <ExternalLink className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                </button>
-            )}
-            {checkerMounted && <MtnWhitelistChecker open={checkerOpen} onOpenChange={setCheckerOpen} />}
 
             <div className="flex flex-wrap items-center gap-3">
                 {tabs.length > 1 && (

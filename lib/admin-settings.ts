@@ -11,9 +11,6 @@ export const CRITICAL_TOGGLE_KEYS = [
     'auto_fulfillment_enabled',
     'page_access_storefront',
     'mtn_express_delivery_enabled',
-    'number_registration_gate_enabled',
-    'mtn_agentportal_whitelist_gate_enabled',
-    'mtn_bundleportal_whitelist_gate_enabled',
 ] as const
 
 export type ToggleKey = (typeof CRITICAL_TOGGLE_KEYS)[number]
@@ -51,17 +48,5 @@ export const TOGGLE_META: Record<ToggleKey, { label: string; description: string
     mtn_express_delivery_enabled: {
         label: 'MTN Express Delivery',
         description: 'Route MTN data orders via the DataKazina express product line (network_id 6)',
-    },
-    number_registration_gate_enabled: {
-        label: 'MTN Number Registration Gate',
-        description: 'Hold orders to unregistered MTN numbers as "queued" until the supplier confirms registration',
-    },
-    mtn_agentportal_whitelist_gate_enabled: {
-        label: 'MTN Whitelist Gate — Server 1 (AgentPortal)',
-        description: 'Make Server 1 an active whitelist server: MTN purchases are blocked unless the number is registered on an active server (independent of the Number Registration Gate above)',
-    },
-    mtn_bundleportal_whitelist_gate_enabled: {
-        label: 'MTN Whitelist Gate — Server 2 (Bundle Portal)',
-        description: 'Make Server 2 an active whitelist server: MTN purchases are blocked unless the number is registered on an active server. Works alone or with Server 1 (registered on either active server passes)',
     },
 }

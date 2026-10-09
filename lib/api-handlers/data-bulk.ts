@@ -1,3 +1,16 @@
+// ============================================================================
+// lib/api-handlers/data-bulk.ts
+// Handler for POST /api/v2/data/bulk.
+// See lib/api-handlers/packages.ts for why handlers live here.
+//
+// Place up to MAX_BULK_ORDERS data orders in one batch via the API:
+//   validate every row → resolve packages → price each row → pay and create ALL orders in
+//   one database call (place_data_orders) → fulfil in the background.
+//
+// All-or-nothing: if anything in the batch is invalid the whole batch is rejected and nothing is
+// charged; if the batch is accepted it is charged once and every order exists. A reused reference
+// can never charge twice.
+// ============================================================================
 import { NextRequest } from 'next/server'
 import {
     validateApiKey,
@@ -7,39 +20,24 @@ import {
     logApiRequest,
     getClientIp,
 } from '@/lib/api-auth'
-import { createServerClient } from '@/lib/supabase'
 import { generateReferenceCode } from '@/lib/utils'
 import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
-import { resolveOrderQueueing } from '@/lib/number-registration'
-import { checkMtnWhitelistGateBatch } from '@/lib/mtn-whitelist-gate'
 import { triggerFulfillment } from '@/lib/fulfillment-trigger'
 import { versionMeta } from '@/lib/api-version'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
-
-// ============================================================================
-// lib/api-handlers/data-bulk.ts
-// Handler for POST /api/v2/data/bulk.
-// See lib/api-handlers/packages.ts for why handlers live here.
-//
-// Place up to MAX_BULK_ORDERS data orders in a single batch via API.
-// Mirrors app/api/orders/bulk-purchase/route.ts logic:
-//   validate all orders → resolve packages → compute total →
-//   atomic wallet deduction → batch insert → background fulfillment
-//
-// Sub-agent pricing (2026-09-17): each item is priced individually — a batch
-// can mix packages carrying different configured recruiter markups — via the
-// same resolveSubAgentDataCost used by lib/api-handlers/data-purchase.ts and
-// app/api/orders/purchase. Ahead of the dashboard's own bulk-purchase route
-// (app/api/orders/bulk-purchase), which still blocks sub-agents outright —
-// this is the first surface to support per-item sub-agent bulk pricing.
-// ============================================================================
+import { tierCost } from '@/lib/pricing/cost-basis'
+import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { findBlacklistedPhones } from '@/lib/data-orders/guards'
+import { placeDataOrders, type PlaceItem } from '@/lib/data-orders/place'
 
 const VALID_NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
 const MAX_BULK_ORDERS = 100
+// Developer-chosen references: short, URL-safe, no free text.
+const REFERENCE_PATTERN = /^[A-Za-z0-9._:\-]{3,100}$/
 
 interface BulkOrderInput {
     network: string
@@ -54,7 +52,6 @@ export async function handleDataBulk(request: NextRequest) {
     const endpoint = request.nextUrl.pathname
     const meta = versionMeta(endpoint)
 
-    // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
         logApiRequest({
@@ -66,410 +63,252 @@ export async function handleDataBulk(request: NextRequest) {
         return auth
     }
 
-    try {
-        const { userId, apiKeyId, effectiveRole, supabase } = auth
+    const { userId, apiKeyId, effectiveRole, supabase } = auth
+    const done = (statusCode: number, errorMessage?: string) =>
+        logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
-        // Sub-agent eligibility (2026-09-17): each item is priced individually below
-        // (a batch can mix packages with different configured markups) — only the
-        // pending/suspended/ineligible-recruiter gate is checked here, before any
-        // other work, same as every other purchase surface.
+    try {
+        // A sub-agent can buy here: each row is priced from their recruiter's configuration below.
+        // A pending or suspended sub, or one whose recruiter is currently ineligible, cannot.
         const subCtx = await resolveSubAgentContext(supabase, userId)
         if (subCtx.isSub && !subCtx.effectiveActive) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 403, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Sub-agent inactive' })
+            done(403, 'Sub-agent inactive')
             return apiError(403, subCtx.inactiveReason || 'Your account is not currently active')
         }
 
-        // ── Parse body ────────────────────────────────────────────────────
         let body: any
         try {
             body = await request.json()
         } catch {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Invalid JSON' })
+            done(400, 'Invalid JSON')
             return apiError(400, 'Invalid request body')
         }
 
         const { orders } = body
-
         if (!Array.isArray(orders) || orders.length === 0) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'No orders' })
+            done(400, 'No orders')
             return apiError(400, 'orders array is required and must not be empty')
         }
-
         if (orders.length > MAX_BULK_ORDERS) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Too many orders' })
+            done(400, 'Too many orders')
             return apiError(400, `Maximum ${MAX_BULK_ORDERS} orders per batch`)
         }
 
-        // ── Validate each order item ──────────────────────────────────────
-        const ghanaPhoneRegex = /^0\d{9}$/
+        // ── Validate every row ────────────────────────────────────────────
         const errors: string[] = []
+        const rows: Array<{ input: BulkOrderInput; recipient: string; reference: string | null }> = []
+        const seenReferences = new Set<string>()
 
         for (let i = 0; i < orders.length; i++) {
-            const o = orders[i] as BulkOrderInput
-            if (!o.network || !VALID_NETWORKS.includes(o.network)) {
-                errors.push(`Order ${i + 1}: Invalid network "${o.network}"`)
+            const o = (orders[i] ?? {}) as BulkOrderInput
+            const label = `Order ${i + 1}`
+            if (!o.network || !VALID_NETWORKS.includes(o.network)) errors.push(`${label}: invalid network "${String(o.network).slice(0, 30)}"`)
+            if (!o.volume_gb || typeof o.volume_gb !== 'number' || !Number.isFinite(o.volume_gb) || o.volume_gb <= 0) errors.push(`${label}: invalid volume_gb`)
+            const recipient = toCanonicalPhone(o.recipient)
+            if (!recipient) errors.push(`${label}: invalid recipient phone number`)
+            let reference: string | null = null
+            if (o.reference !== undefined && o.reference !== null) {
+                if (typeof o.reference !== 'string' || !REFERENCE_PATTERN.test(o.reference)) {
+                    errors.push(`${label}: reference must be 3-100 characters: letters, numbers and . _ : - only`)
+                } else if (seenReferences.has(o.reference)) {
+                    errors.push(`${label}: reference "${o.reference}" is used twice in this batch`)
+                } else {
+                    seenReferences.add(o.reference)
+                    reference = o.reference
+                }
             }
-            if (!o.volume_gb || typeof o.volume_gb !== 'number' || o.volume_gb <= 0) {
-                errors.push(`Order ${i + 1}: Invalid volume_gb`)
-            }
-            if (!o.recipient || !ghanaPhoneRegex.test(o.recipient.replace(/\s+/g, ''))) {
-                errors.push(`Order ${i + 1}: Invalid recipient phone number`)
-            }
+            if (recipient) rows.push({ input: o, recipient, reference })
         }
-
         if (errors.length > 0) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: errors.join('; ') })
-            return apiError(400, errors.join('; '))
+            done(400, errors.slice(0, 5).join('; '))
+            return apiError(400, errors.slice(0, 10).join('; ') + (errors.length > 10 ? ` (+${errors.length - 10} more)` : ''))
         }
 
-        // ── Resolve all packages by network + volume_gb ───────────────────
-        // Build unique (network, size) pairs to query
-        const uniquePairs = new Map<string, string>()
-        for (const o of orders as BulkOrderInput[]) {
-            const key = `${o.network}|${o.volume_gb}GB`
-            uniquePairs.set(key, `${o.volume_gb}GB`)
-        }
-
-        // Fetch all needed packages in one query
-        const { data: allPackages, error: pkgsError } = await (supabase
-            .from('data_packages') as any)
+        // ── Resolve packages, stock and price per row ─────────────────────
+        const { data: allPackages, error: pkgsError } = await (supabase.from('data_packages') as any)
             .select('*')
             .eq('is_available', true)
             .neq('category', 'mtn_mashup')
-
         if (pkgsError || !allPackages) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Failed to load packages' })
+            done(500, 'Failed to load packages')
             return apiError(500, 'Failed to load packages')
         }
-
-        // Build lookup map: "MTN|5GB" → package
         const pkgMap = new Map<string, any>()
-        for (const p of allPackages as any[]) {
-            pkgMap.set(`${p.network}|${p.size}`, p)
-        }
+        for (const p of allPackages as any[]) pkgMap.set(`${p.network}|${p.size}`, p)
 
-        // Per-network out-of-stock guard (admin/global). Fetched once before the
-        // validation loop so a batch containing a hidden network is rejected
-        // BEFORE any wallet deduction (mirrors app/api/orders/bulk-purchase).
         const adminOOS = await getAdminOOSNetworks(supabase)
 
-        // ── Map each order to its package and compute price ───────────────
-        // Uses auth.effectiveRole. This route previously ran its OWN inline expiry
-        // check deriving expired as `expiry < now`; together with data/purchase's,
-        // these were the last two sites outside the expiry unification in 44a4059f,
-        // and the ones the Phase 2A review flagged as creating a NEW inconsistency
-        // once every other surface moved to strict `>`. All pricing now reads one
-        // value from lib/effective-role.ts, and the per-request `users` round-trip
-        // this route made purely for the expiry columns is gone — validateApiKey
-        // already selected them.
-        const isActiveDealerBulk = effectiveRole === 'dealer'
-        const isActiveAgentBulk = effectiveRole === 'agent'
+        const problems: string[] = []
+        const priced: Array<{ row: typeof rows[number]; pkg: any; price: number; recruiterAmount: number }> = []
 
-        const validatedOrders: any[] = []
-        const missingPackages: string[] = []
-
-        for (let i = 0; i < orders.length; i++) {
-            const o = orders[i] as BulkOrderInput
-            const sizeString = `${o.volume_gb}GB`
-            const key = `${o.network}|${sizeString}`
-            const pkg = pkgMap.get(key)
-
-            if (!pkg) {
-                missingPackages.push(`Order ${i + 1}: ${o.network} ${sizeString} not found`)
-                continue
-            }
-
-            if (isNetworkOOS(adminOOS, pkg.network)) {
-                missingPackages.push(`Order ${i + 1}: ${pkg.network} is out of stock at the moment`)
-                continue
-            }
+        for (let i = 0; i < rows.length; i++) {
+            const { input } = rows[i]
+            const size = `${input.volume_gb}GB`
+            const pkg = pkgMap.get(`${input.network}|${size}`)
+            if (!pkg) { problems.push(`Order ${i + 1}: ${input.network} ${size} not found`); continue }
+            if (isNetworkOOS(adminOOS, pkg.network)) { problems.push(`Order ${i + 1}: ${pkg.network} is out of stock at the moment`); continue }
 
             let price: number
-            // Sub-agent recruiter margin for THIS item, if any — recorded per-order after
-            // insert (matching the single-item /data/purchase pattern), since a batch can
-            // mix packages with different configured markups.
             let recruiterAmount = 0
-
             if (subCtx.isSub) {
-                // Same "unconfigured = unbuyable" server-side teeth as every other
-                // sub-agent pricing surface (spec C4) — treated as an item-level failure
-                // in the SAME missingPackages list a not-found/OOS package already uses,
-                // so the whole batch fails closed (404) rather than silently skipping or
-                // mispricing one item, matching this file's own existing convention that
-                // a bad item rejects the batch rather than partial-succeeding.
-                if (
-                    subCtx.recruiterId
-                    && !(await hasSubAgentPricingConfigured(supabase, subCtx.recruiterId, userId, 'data', pkg.id))
-                ) {
-                    missingPackages.push(`Order ${i + 1}: Pricing is not available for ${o.network} ${sizeString} right now`)
+                // "Unconfigured = unbuyable", the same server-side rule as every other sub-agent surface.
+                if (subCtx.recruiterId && !(await hasSubAgentPricingConfigured(supabase, subCtx.recruiterId, userId, 'data', pkg.id))) {
+                    problems.push(`Order ${i + 1}: pricing is not available for ${input.network} ${size} right now`)
                     continue
                 }
-
                 const resolved = await resolveSubAgentDataCost(supabase, userId, pkg.id, pkg, pkg.category)
                 if (!resolved.ok) {
                     console.error(`[API Data Bulk] sub cost unresolvable for pkg ${pkg.id} (user ${userId}): ${resolved.reason}`)
-                    missingPackages.push(`Order ${i + 1}: Pricing is not available for ${o.network} ${sizeString} right now`)
+                    problems.push(`Order ${i + 1}: pricing is not available for ${input.network} ${size} right now`)
                     continue
                 }
                 price = resolved.subCost
-                if (resolved.recruiterEarns > 0 && resolved.recruiterId) {
-                    recruiterAmount = resolved.recruiterEarns
-                }
+                if (resolved.recruiterEarns > 0 && resolved.recruiterId) recruiterAmount = resolved.recruiterEarns
             } else {
-                price = isActiveDealerBulk && pkg.dealer_price > 0
-                    ? pkg.dealer_price
-                    : isActiveAgentBulk && pkg.agent_price > 0
-                        ? pkg.agent_price
-                        : pkg.price
+                // effectiveRole already accounts for expiry, so tierCost (which does not) is correct here.
+                price = tierCost(pkg, effectiveRole)
             }
 
-            validatedOrders.push({
-                phoneNumber: o.recipient.replace(/\s+/g, ''),
-                network: pkg.network,
-                size: pkg.size,
-                packagePrice: price,
-                costPrice: pkg.cost_price || 0,
-                category: pkg.category,
-                clientReference: o.reference || null,
-                recruiterAmount,
-            })
-        }
-
-        if (missingPackages.length > 0) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 404, responseTimeMs: Date.now() - startTime, ip, errorMessage: missingPackages.join('; ') })
-            return apiError(404, missingPackages.join('; '))
-        }
-
-        // ── MTN AgentPortal whitelist gate â€” filter out blocked MTN items ──
-        // Partial-process, same as the dashboard bulk route: blocked items are
-        // skipped (not charged, not created) and reported individually; the
-        // rest of the batch still goes through. A batch with EVERY item blocked
-        // is still a valid response (0 placed, N skipped) â€” not a client error.
-        const whitelistResults = await checkMtnWhitelistGateBatch(
-            validatedOrders.map((o: any) => ({ phoneNumber: o.phoneNumber, network: o.network, category: o.category }))
-        )
-        const skipped: { recipient: string; reason: string }[] = []
-        const chargeableOrders = validatedOrders.filter((o: any) => {
-            const result = whitelistResults.get(o.phoneNumber)
-            if (result?.blocked) {
-                skipped.push({ recipient: o.phoneNumber, reason: result.reason || 'Not yet whitelisted' })
-                return false
+            price = Math.round(price * 100) / 100
+            if (!Number.isFinite(price) || price <= 0) {
+                console.error(`[API Data Bulk] Invalid price ${price} for pkg ${pkg.id} (user ${userId}), blocked`)
+                problems.push(`Order ${i + 1}: ${input.network} ${size} is temporarily unavailable`)
+                continue
             }
-            return true
-        })
-
-        if (chargeableOrders.length === 0) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 200, responseTimeMs: Date.now() - startTime, ip })
-            return apiSuccess({ orders_placed: 0, total_cost: 0, new_balance: null, orders: [], skipped }, meta)
+            priced.push({ row: rows[i], pkg, price, recruiterAmount })
+        }
+        if (problems.length > 0) {
+            done(404, problems.slice(0, 5).join('; '))
+            return apiError(404, problems.slice(0, 10).join('; ') + (problems.length > 10 ? ` (+${problems.length - 10} more)` : ''))
         }
 
-        // Price floor — never charge a zero/invalid amount for any item (mirrors the
-        // single-item /data/purchase parity fix). Not currently reachable
-        // (computeSubAgentCost already rejects non-finite/<=0 inputs, and the plain
-        // role-based branch always resolves to a positive tier/customer price), but
-        // explicit rather than assumed.
-        const invalidPriced = chargeableOrders.filter((o: any) => !Number.isFinite(o.packagePrice) || o.packagePrice <= 0)
-        if (invalidPriced.length > 0) {
-            console.error(`[API Data Bulk] 🚨 Invalid packagePrice on ${invalidPriced.length} item(s) for user ${userId} — blocked`)
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 409, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Invalid packagePrice' })
-            return apiError(409, 'One or more packages are temporarily unavailable')
+        // ── Blacklist (every recipient, fails closed) ─────────────────────
+        let blocked: Set<string>
+        try {
+            blocked = await findBlacklistedPhones(supabase, priced.map(p => p.row.recipient))
+        } catch (e) {
+            console.error('[API Data Bulk] blacklist check unavailable:', e)
+            done(503, 'Blacklist check unavailable')
+            return apiError(503, 'Could not verify the recipients right now. Please try again.')
+        }
+        if (blocked.size > 0) {
+            done(400, 'Recipient blacklisted')
+            // Generic: do not confirm which numbers are on a blacklist.
+            return apiError(400, 'Order cannot be processed for one or more recipients')
         }
 
-        // ── Calculate total and deduct atomically ─────────────────────────
-        const totalCost = chargeableOrders.reduce((sum: number, o: any) => sum + o.packagePrice, 0)
-
-        const { data: deductResult, error: deductError } = await (supabase as any)
-            .rpc('deduct_wallet_balance', {
-                p_user_id: userId,
-                p_amount: totalCost,
-            })
-
-        if (deductError) {
-            if (deductError.message?.includes('INSUFFICIENT_BALANCE')) {
-                logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Insufficient balance' })
-                return apiError(400, `Insufficient wallet balance. Need GHS ${totalCost.toFixed(2)}`)
-            }
-            console.error('[API Bulk] Wallet deduction error:', deductError)
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Wallet deduction failed' })
-            return apiError(500, 'Failed to process payment')
-        }
-
-        const walletRow = deductResult?.[0] || deductResult
-        const walletId = walletRow?.wallet_id
-        const newBalance = walletRow?.new_balance
-
-        if (!walletId) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 404, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Wallet not found' })
-            return apiError(404, 'Wallet not found')
-        }
-
-        // ── Generate reference codes and insert all orders ────────────────
-        const referenceCodes = chargeableOrders.map((o: any) =>
-            o.clientReference ? `API-${o.clientReference}` : `API-${generateReferenceCode()}`
-        )
-
-        // MTN number-registration gate â€” per row; unregistered MTN numbers held 'queued'.
-        const queueDecisions = await Promise.all(
-            chargeableOrders.map((order: any) => resolveOrderQueueing(order.phoneNumber, order.network))
-        )
-
-        const orderInserts = chargeableOrders.map((order: any, i: number) => ({
-            user_id: userId,
-            phone_number: order.phoneNumber,
-            network: order.network,
-            size: order.size,
-            price: order.packagePrice,
-            cost_price_at_time: order.costPrice,
-            role_at_time: effectiveRole,
-            status: queueDecisions[i].queue ? 'queued' : 'pending',
-            payment_status: 'paid',
+        // ── Pay and create every order in one database call ───────────────
+        const referenceCodes = priced.map(p => `API-${p.row.reference ?? generateReferenceCode()}`)
+        const items: PlaceItem[] = priced.map((p, i) => ({
             reference_code: referenceCodes[i],
+            phone_number: p.row.recipient,
+            network: p.pkg.network,
+            size: p.pkg.size,
+            price: p.price,
+            cost_price: Number(p.pkg.cost_price) || 0,
+            role_at_time: effectiveRole,
+            status: 'pending',
             fulfillment_method: 'auto',
+            category: p.pkg.category || 'data',
             source: 'api',
             api_key_id: apiKeyId,
         }))
 
-        const { data: createdOrders, error: ordersError } = await (supabase.from('orders') as any)
-            .insert(orderInserts)
-            .select('id, reference_code, network, size, phone_number, price, status')
+        const placed = await placeDataOrders(supabase, userId, items)
 
-        if (ordersError) {
-            console.error('[API Bulk] Order insert error:', ordersError)
-            // Refund the full debited amount atomically. A duplicate batch that
-            // collides on a per-order reference_code fails the whole insert here
-            // (all-or-nothing) and is fully refunded, so retries never double-charge.
-            const { error: refundError } = await (supabase as any)
-                .rpc('credit_wallet_balance', { p_user_id: userId, p_amount: totalCost })
-            if (refundError) {
-                console.error('[API Bulk] CRITICAL: refund failed, manual reconciliation required:', refundError)
-                logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Order insert failed; refund failed' })
-                return apiError(500, 'Order processing failed. Your wallet has been debited. Please contact support for assistance.')
+        if (!placed.ok) {
+            if (placed.code === 'INSUFFICIENT_BALANCE') {
+                const total = items.reduce((s, i) => s + i.price, 0)
+                done(400, 'Insufficient balance')
+                return apiError(400, `Insufficient wallet balance. Need GHS ${total.toFixed(2)}`)
             }
-            // orders_reference_code_key is a GLOBAL unique constraint (verified on
-            // the live DB), not per-user, and batch references are developer-chosen
-            // plaintext. The insert is all-or-nothing, so ONE colliding reference —
-            // possibly one another tenant already used — fails the entire batch.
-            // "Please try again" is advice that will fail identically forever; the
-            // caller has to change that reference. Same fix already applied to
-            // data/purchase and the v2 airtime/RC/AFA endpoints (finding m1/I5).
-            // The full refund above has already run, so the wallet really is intact.
-            if (ordersError.code === '23505' || ordersError.message?.includes('duplicate key')) {
-                logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 409, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Reference already in use' })
+            if (placed.code === 'REFERENCE_IN_USE') {
+                // orders.reference_code is globally unique and references are developer-chosen, so one
+                // colliding reference (possibly another account's) rejects the whole batch. Nothing was charged.
+                done(409, 'Reference already in use')
                 return apiError(409, 'One or more references in this batch are already in use. Your wallet was not charged. Use fresh references and retry.')
             }
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Order insert failed; refunded' })
+            done(500, placed.message)
             return apiError(500, 'Orders could not be placed. Your wallet was not charged. Please try again.')
         }
 
-        // Sub-agent purchase: credit the ONE direct recruiter for each item that carries a
-        // margin (spec C3, C4 — a pending row now, credited by the trigger only once each
-        // order actually completes). Never blocks the batch — the sub already paid, the
-        // data must still ship. referenceCodes[i] is the SAME value just persisted as that
-        // order's own reference_code, matching the trigger's lookup.
+        if (placed.duplicate) {
+            // Same account, same references: this batch was already placed. Return what exists.
+            const { data: existing } = await (supabase.from('orders') as any)
+                .select('id, reference_code, status, network, size, phone_number, price')
+                .eq('user_id', userId)
+                .in('reference_code', referenceCodes)
+            done(200)
+            return apiSuccess({
+                orders_placed: 0,
+                is_duplicate: true,
+                orders: ((existing ?? []) as any[]).map(o => ({
+                    order_id: o.id,
+                    reference: String(o.reference_code).replace(/^API-/, ''),
+                    status: o.status,
+                    network: o.network,
+                    size: o.size,
+                    recipient: o.phone_number,
+                    price: parseFloat(String(o.price)),
+                })),
+            }, { ...meta, message: 'These orders already exist' })
+        }
+
+        // Sub-agent: credit the direct recruiter's margin per item as a pending row, released by a
+        // trigger when each order completes. Never blocks the batch: the buyer has paid.
         if (subCtx.isSub && subCtx.recruiterId) {
             const recruiterId = subCtx.recruiterId
-            await Promise.all(
-                chargeableOrders.map((order: any, i: number) =>
-                    order.recruiterAmount > 0
-                        ? recordPendingSubAgentEarning(supabase, {
-                            orderReference: referenceCodes[i],
-                            orderTable: 'orders',
-                            recruiterId,
-                            subUserId: userId,
-                            amount: order.recruiterAmount,
-                        }).catch((e) => console.error(`[API Data Bulk] recordPendingSubAgentEarning threw for ${referenceCodes[i]}:`, e))
-                        : Promise.resolve()
-                )
-            )
+            await Promise.all(priced.map((p, i) =>
+                p.recruiterAmount > 0
+                    ? recordPendingSubAgentEarning(supabase, {
+                        orderReference: referenceCodes[i],
+                        orderTable: 'orders',
+                        recruiterId,
+                        subUserId: userId,
+                        amount: p.recruiterAmount,
+                    }).catch((e) => console.error(`[API Data Bulk] recordPendingSubAgentEarning threw for ${referenceCodes[i]}:`, e))
+                    : Promise.resolve(),
+            ))
         }
 
-        // ── Wallet transactions (batch insert) ────────────────────────────
-        const txInserts = chargeableOrders.map((order: any, i: number) => ({
-            wallet_id: walletId,
-            user_id: userId,
-            type: 'debit',
-            amount: order.packagePrice,
-            description: `API bulk purchase: ${order.size} for ${order.phoneNumber}`,
-            reference: referenceCodes[i],
-            source: 'purchase',
-            status: 'completed',
-        }))
-
-        // waitUntil, not a bare floating promise: the wallet has ALREADY been
-        // debited for the whole batch by this point, so a lambda freeze right
-        // after the response would leave that debit with no matching
-        // wallet_transactions rows — an audit gap on a money path, and a larger
-        // one here than on the single-order route since it covers the entire
-        // batch at once. Same fix already applied to data/purchase and the v2
-        // airtime route (review finding m2).
-        waitUntil((supabase.from('wallet_transactions') as any).insert(txInserts)
-            .then(() => {}).catch((e: any) => console.error('[API Data Bulk] Tx insert error:', e)))
-
-        // ── Background fulfillment ────────────────────────────────────────
-        if (createdOrders && (createdOrders as any[]).length > 0) {
-            waitUntil((async () => {
-                try {
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('email, first_name, last_name')
-                        .eq('id', userId)
-                        .single()
-
-                    const userName = `${(userData as any)?.first_name || ''} ${(userData as any)?.last_name || ''}`.trim() || 'Customer'
-                    const userEmail = (userData as any)?.email || 'Unknown'
-
-                    // Fulfill each order â€” queued (unregistered MTN) orders are held.
-                    for (const createdOrder of createdOrders as any[]) {
-                        if (createdOrder.status === 'queued') {
-                            console.log(`[API Bulk] Order ${createdOrder.id} QUEUED for MTN number registration â€” fulfillment held`)
-                            continue
-                        }
-                        try {
-                            await triggerFulfillment(createdOrder.id, createdOrder.network, { email: userEmail, name: userName })
-                        } catch (err) {
-                            console.error(`[API Bulk] Fulfillment error for ${createdOrder.id}:`, err)
-                        }
+        // ── Fulfil in the background ──────────────────────────────────────
+        waitUntil((async () => {
+            try {
+                const { data: userData } = await supabase.from('users').select('email, first_name, last_name').eq('id', userId).single()
+                const name = `${(userData as any)?.first_name || ''} ${(userData as any)?.last_name || ''}`.trim() || 'Customer'
+                const email = (userData as any)?.email || 'Unknown'
+                for (const created of placed.orders) {
+                    try {
+                        await triggerFulfillment(created.id, created.network, { email, name })
+                    } catch (err) {
+                        console.error(`[API Bulk] Fulfillment error for ${created.id}:`, err)
                     }
-                } catch (bgError) {
-                    console.error('[API Bulk] Background fulfillment error:', bgError)
                 }
-            })())
-        }
+            } catch (bgError) {
+                console.error('[API Bulk] Background fulfillment error:', bgError)
+            }
+        })())
 
-        // ── Return response ───────────────────────────────────────────────
-        logApiRequest({
-            apiKeyId, userId,
-            endpoint, method: 'POST',
-            statusCode: 200, responseTimeMs: Date.now() - startTime, ip,
-        })
-
-        // Strip "API-" prefix from references in response for developer clarity
-        const responseOrders = (createdOrders as any[]).map((o: any) => ({
-            order_id: o.id,
-            reference: o.reference_code.replace(/^API-/, ''),
-            status: o.status === 'queued' ? 'queued' : 'pending',
-            network: o.network,
-            size: o.size,
-            recipient: o.phone_number,
-            price: parseFloat(String(o.price)),
-        }))
+        done(200)
 
         return apiSuccess({
-            orders_placed: chargeableOrders.length,
-            total_cost: totalCost,
-            new_balance: newBalance,
-            orders: responseOrders,
-            skipped,
+            orders_placed: placed.orders.length,
+            total_cost: placed.total,
+            new_balance: placed.newBalance,
+            orders: placed.orders.map((o, i) => ({
+                order_id: o.id,
+                // Strip the internal "API-" prefix so developers see the reference they sent.
+                reference: o.reference_code.replace(/^API-/, ''),
+                status: 'pending',
+                network: o.network,
+                size: o.size,
+                recipient: o.phone_number,
+                price: items[i].price,
+            })),
         }, meta)
-
     } catch (error: any) {
         console.error('[API Bulk] Exception:', error.message)
-        logApiRequest({
-            apiKeyId: auth.apiKeyId, userId: auth.userId,
-            endpoint, method: 'POST',
-            statusCode: 500, responseTimeMs: Date.now() - startTime,
-            ip, errorMessage: error.message,
-        })
+        done(500, error.message)
         return apiError(500, 'Internal server error')
     }
 }

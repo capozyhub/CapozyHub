@@ -547,19 +547,6 @@ const BULK_API_SAMPLES: Record<ApiLangTab, string> = {
     'Python': `import requests\nr = requests.post('${API_BASE}/data/bulk',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'},\n  json={'orders': [\n    {'network':'MTN','volume_gb':5,'recipient':'0551617309','reference':'b_001'},\n    {'network':'Telecel','volume_gb':2,'recipient':'0201234567','reference':'b_002'},\n  ]}\n)\nprint(r.json())`,
 }
 
-function verifyApiSamples(path: string): Record<ApiLangTab, string> {
-    return {
-        'cURL': `curl -X POST ${API_BASE}${path} \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"network":"MTN","recipient":"0551617309"}'`,
-        'Node.js': `const res = await fetch('${API_BASE}${path}', {\n  method: 'POST',\n  headers: { 'Authorization': '${API_KEY_PLACEHOLDER}', 'Content-Type': 'application/json' },\n  body: JSON.stringify({ network: 'MTN', recipient: '0551617309' }),\n});\nconsole.log(await res.json());`,
-        'PHP': `<?php\n$ch = curl_init('${API_BASE}${path}');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY_PLACEHOLDER}', 'Content-Type: application/json'],\n  CURLOPT_POSTFIELDS => json_encode(['network' => 'MTN', 'recipient' => '0551617309']),\n]);\necho curl_exec($ch); curl_close($ch);`,
-        'Python': `import requests\nr = requests.post('${API_BASE}${path}',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'},\n  json={'network': 'MTN', 'recipient': '0551617309'}\n)\nprint(r.json())`,
-    }
-}
-
-const VERIFY_API_SAMPLES = verifyApiSamples('/data/verify-number')
-const VERIFY_S1_API_SAMPLES = verifyApiSamples('/data/verify-number/server-1')
-const VERIFY_S2_API_SAMPLES = verifyApiSamples('/data/verify-number/server-2')
-
 const BALANCE_API_SAMPLES: Record<ApiLangTab, string> = {
     'cURL': `curl -X GET ${API_BASE}/wallet/balance \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}"`,
     'Node.js': `const res = await fetch('${API_BASE}/wallet/balance', {\n  headers: { 'Authorization': '${API_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
@@ -645,9 +632,6 @@ const REF_TOC: Record<RefTabKey, { id: string; label: string }[]> = {
         { id: 'ref-std-packages', label: 'GET /packages' },
         { id: 'ref-std-purchase', label: 'POST /data/purchase' },
         { id: 'ref-std-bulk', label: 'POST /data/bulk' },
-        { id: 'ref-std-verify-s1', label: 'POST /data/verify-number/server-1' },
-        { id: 'ref-std-verify-s2', label: 'POST /data/verify-number/server-2' },
-        { id: 'ref-std-verify', label: 'POST /data/verify-number' },
         { id: 'ref-std-balance', label: 'GET /wallet/balance' },
         { id: 'ref-std-status', label: 'GET /orders/:reference' },
         { id: 'ref-std-meta', label: 'Networks & Errors' },
@@ -803,7 +787,8 @@ function StandardApiTab() {
                 notes={[
                     'reference is your idempotency key — sending the same reference twice returns the existing order without charging.',
                     'network is case-sensitive: MTN, Telecel, AT-iShare, AT-BigTime.',
-                    'recipient must be 0XXXXXXXXX (10 digits, starts with 0).',
+                    'recipient is a Ghana mobile number: 0XXXXXXXXX (10 digits) or 233XXXXXXXXX.',
+                    'reference: 3-100 characters, letters, numbers and . _ : - only.',
                 ]}
                 samples={PURCHASE_API_SAMPLES}
             />
@@ -815,56 +800,8 @@ function StandardApiTab() {
                 description="Purchase up to 100 data bundles in one atomic batch. All orders succeed or none are charged."
                 requestBody={`{\n  "orders": [\n    { "network": "MTN", "volume_gb": 5, "recipient": "0551617309", "reference": "b_001" },\n    { "network": "Telecel", "volume_gb": 2, "recipient": "0201234567", "reference": "b_002" }\n  ]\n}`}
                 responseBody={`{\n  "success": true,\n  "data": {\n    "orders_placed": 2,\n    "total_cost": 7.00,\n    "new_balance": 113.50,\n    "orders": [{ "order_id": "...", "status": "pending", "reference": "b_001" }]\n  }\n}`}
-                notes={['Max 100 orders per request.', 'Atomic: if any order fails validation, none are placed.']}
+                notes={['Max 100 orders per request.', 'Atomic: if any order fails validation, none are placed and nothing is charged.', 'A reference is optional per order; if you send one it must be unique in the batch (3-100 characters: letters, numbers and . _ : - only).', 'Sending the same references again returns the existing orders without charging (is_duplicate: true).']}
                 samples={BULK_API_SAMPLES}
-            />
-            </div>
-
-            <div id="ref-std-verify-s1" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="POST" path="/api/v2/data/verify-number/server-1"
-                description="The actual registration state on Server 1 — tells you whether an MTN number is registered on Server 1 specifically. If only Server 1 is currently accepted, use it as your checkout gate."
-                requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "server": 1,\n    "allowed": true\n  }\n}`}
-                notes={[
-                    'A number can be registered on one server and not the other. Watch platform announcements for which server(s) are currently accepted.',
-                    'An unregistered number is automatically submitted for registration — check again soon (no fixed turnaround).',
-                    'Does not fail open: if Server 1 cannot be reached it returns 502 instead of a guess.',
-                    'Rate limit: 20/min per key, shared across all three verify-number endpoints.',
-                ]}
-                samples={VERIFY_S1_API_SAMPLES}
-            />
-            </div>
-
-            <div id="ref-std-verify-s2" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="POST" path="/api/v2/data/verify-number/server-2"
-                description="The actual registration state on Server 2 — tells you whether an MTN number is registered on Server 2 specifically. If only Server 2 is currently accepted, use it as your checkout gate."
-                requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "server": 2,\n    "allowed": false\n  }\n}`}
-                notes={[
-                    'A number can be registered on one server and not the other. Watch platform announcements for which server(s) are currently accepted.',
-                    'An unregistered number is automatically submitted for registration — check again soon (no fixed turnaround).',
-                    'Does not fail open: if Server 2 cannot be reached it returns 502 instead of a guess.',
-                    'Rate limit: 20/min per key, shared across all three verify-number endpoints.',
-                ]}
-                samples={VERIFY_S2_API_SAMPLES}
-            />
-            </div>
-
-            <div id="ref-std-verify" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="POST" path="/api/v2/data/verify-number"
-                description="Server 1 and Server 2 combined — allowed: true when the number is registered on either. Use it as your checkout gate only when both servers are announced as accepted; otherwise check the accepted server's endpoint. It does not say which server holds the number — use the server endpoints for that."
-                requestBody={`{\n  "network": "MTN",\n  "recipient": "0551617309"\n}`}
-                responseBody={`{\n  "success": true,\n  "data": {\n    "recipient": "0551617309",\n    "network": "MTN",\n    "allowed": true\n  }\n}`}
-                notes={[
-                    'Follows the server(s) the platform currently accepts, so it equals "Server 1 or Server 2" only while both are accepted.',
-                    'Non-MTN networks always return allowed: true immediately.',
-                    'Fails open on an upstream outage (allowed: true) — treat true as "likely fine to proceed"; /data/purchase re-verifies at order time.',
-                    'Rate limit: 20/min per key, shared across all three verify-number endpoints.',
-                ]}
-                samples={VERIFY_API_SAMPLES}
             />
             </div>
 

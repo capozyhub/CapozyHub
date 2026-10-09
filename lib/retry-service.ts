@@ -10,7 +10,6 @@
 import { isRetryEligible, checkRetryCooldown, resolveRetryFundingWallet } from '@/lib/retry-eligibility'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { generateReferenceCode } from '@/lib/utils'
-import { checkMtnWhitelistGate } from '@/lib/mtn-whitelist-gate'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
@@ -24,7 +23,6 @@ export type RetryOutcome =
   | 'not_retryable'
   | 'retry_too_soon'
   | 'retry_locked'
-  | 'not_whitelisted'
   | 'paystack_refund_no_wallet'
   | 'insufficient_balance'
   | 'order_not_found'
@@ -135,24 +133,6 @@ export async function retryOrder(admin: any, params: RetryOrderParams): Promise<
       orderId,
       retryAfter: cooldown.retryAfter?.toISOString(),
       until: cooldown.reason === 'retry_locked' ? cooldown.retryAfter?.toISOString() : undefined,
-    }
-  }
-
-  // MTN AgentPortal whitelist gate — applies to BOTH retry modes (no-charge
-  // re-dispatch and paid new-order retry), before claim_order_retry is ever
-  // called: a still-failed order gets a doomed retry for free otherwise (burning
-  // one of its limited attempts before the 24h lockout), and a refunded order
-  // would get re-charged for a number that's certain to fail again for the same
-  // reason. Independent of the number-registration gate; no-ops entirely when
-  // the admin toggle is off, and fails open on any AgentPortal/DB error —
-  // identical behavior to every purchase surface, just applied here too.
-  const whitelistGate = await checkMtnWhitelistGate(o.phone_number, o.network, o.category)
-  if (whitelistGate.blocked) {
-    return {
-      ok: false,
-      outcome: 'not_whitelisted',
-      message: whitelistGate.reason || 'This number is not currently eligible for MTN data.',
-      orderId,
     }
   }
 

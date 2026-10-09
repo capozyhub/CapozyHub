@@ -33,7 +33,6 @@ function statusForOutcome(outcome: RetryOutcome): number {
     case 'invalid_charge_amount':
     case 'owner_not_found':
     case 'no_wallet_user':
-    case 'not_whitelisted':
       return 400
     case 'invalid_actor_role':
     case 'error':
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
       const summary = { ok: 0, skipped: 0, failed: 0, total: results.length }
       for (const r of results) {
         if (r.ok) summary.ok++
-        else if (r.outcome === 'retry_locked' || r.outcome === 'retry_too_soon' || r.outcome === 'not_retryable' || r.outcome === 'paystack_refund_no_wallet' || r.outcome === 'retry_already_in_progress' || r.outcome === 'not_whitelisted') summary.skipped++
+        else if (r.outcome === 'retry_locked' || r.outcome === 'retry_too_soon' || r.outcome === 'not_retryable' || r.outcome === 'paystack_refund_no_wallet' || r.outcome === 'retry_already_in_progress') summary.skipped++
         else summary.failed++
       }
 

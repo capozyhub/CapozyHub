@@ -14,10 +14,8 @@ function assertMissingSlide(ids: string[], id: string, label: string) {
     if (ids.includes(id)) throw new Error(`${label}: expected slide "${id}" to be ABSENT, got [${ids.join(', ')}]`)
 }
 
-let whitelistOpened = 0
 const base = {
     hasShop: true,
-    onOpenWhitelistCheck: () => { whitelistOpened++ },
 }
 
 // ── Subagent: never recruit, never upgrade ──────────────────────────────────
@@ -48,22 +46,9 @@ const base = {
     assertHasSlide(ids, 'upgrade-account', 'customer')
 }
 
-// ── MTN whitelist check slide: every role, opens the checker, replaces the OTP slide ──
+// ── The MTN whitelist slide is gone: no supplier registration check anywhere ──
 for (const role of ['customer', 'agent', 'dealer', 'subagent', null]) {
-    const slides = buildDashboardSlides({ ...base, role })
-    const ids = slides.map(s => s.id)
-    assertHasSlide(ids, 'mtn-whitelist', `whitelist slide for ${String(role)}`)
-    assertMissingSlide(ids, 'verify-phone', `OTP slide must be gone for ${String(role)}`)
-    const slide = slides.find(s => s.id === 'mtn-whitelist')!
-    if (!('onClick' in slide.cta)) throw new Error('whitelist CTA must be an in-page action')
-    const before = whitelistOpened
-    slide.cta.onClick()
-    if (whitelistOpened !== before + 1) throw new Error('whitelist CTA must call onOpenWhitelistCheck')
-    // Supplier names and turnaround promises must never reach users
-    const copy = `${slide.title} ${slide.body} ${slide.cta.label}`.toLowerCase()
-    for (const banned of ['agentportal', 'agent portal', 'bundleportal', 'bundle portal', '24 hour', '24h']) {
-        if (copy.includes(banned)) throw new Error(`whitelist slide copy must not contain "${banned}"`)
-    }
+    assertMissingSlide(buildDashboardSlides({ ...base, role }).map(s => s.id), 'mtn-whitelist', `no whitelist slide for ${String(role)}`)
 }
 
 // ── No shop surfaces the launch-shop slide, even for subagents ─────────────

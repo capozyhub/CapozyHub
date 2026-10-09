@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useUI } from '@/contexts/ui-context'
@@ -17,11 +16,6 @@ import { OrderMix } from '@/components/dashboard/home/OrderMix'
 import { QuickActions } from '@/components/dashboard/home/QuickActions'
 import { RecentOrders, type RecentOrder } from '@/components/dashboard/home/RecentOrders'
 import { MembershipCard } from '@/components/dashboard/home/MembershipCard'
-
-const MtnWhitelistChecker = dynamic(
-    () => import('@/components/mtn-whitelist-checker').then(m => m.MtnWhitelistChecker),
-    { ssr: false },
-)
 
 interface ActiveWebsiteRequest {
     id: string
@@ -63,9 +57,6 @@ export default function DashboardPage() {
     const [data, setData] = useState<HomeData | null>(null)
     const [failed, setFailed] = useState(false)
     const [range, setRange] = useState<Range>(7)
-    // Mounted on first open only, so the checker's code isn't loaded until someone asks for it.
-    const [whitelistMounted, setWhitelistMounted] = useState(false)
-    const [whitelistOpen, setWhitelistOpen] = useState(false)
 
     const userId = dbUser?.id
 
@@ -189,14 +180,9 @@ export default function DashboardPage() {
                         hasShop: data.hasShop,
                         announcement: activeAnnouncement,
                         onOpenAnnouncement: reopenAnnouncement,
-                        onOpenWhitelistCheck: () => {
-                            setWhitelistMounted(true)
-                            setWhitelistOpen(true)
-                        },
                     })}
                 />
             </section>
-            {whitelistMounted && <MtnWhitelistChecker open={whitelistOpen} onOpenChange={setWhitelistOpen} />}
         </div>
     )
 }

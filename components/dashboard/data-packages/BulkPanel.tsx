@@ -24,8 +24,6 @@ interface ValidationResult extends ParsedLine {
     isValid: boolean
     errorMessage?: string
     packageId?: string
-    /** Set only for MTN rows when the whitelist gate is on and the number is blocked. */
-    whitelistStatus?: 'blocked'
 }
 
 interface BulkSuccess {
@@ -33,7 +31,6 @@ interface BulkSuccess {
     totalCost: number
     newBalance: number
     orders: { phoneNumber: string; volume: number; packagePrice: number }[]
-    skipped: { phone: string; reason: string }[]
 }
 
 interface BulkPanelProps {
@@ -101,9 +98,8 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
     const [batchRef, setBatchRef] = useState('')
     const [success, setSuccess] = useState<BulkSuccess | null>(null)
 
-    const valid = useMemo(() => results.filter(r => r.isValid && r.whitelistStatus !== 'blocked'), [results])
+    const valid = useMemo(() => results.filter(r => r.isValid), [results])
     const invalidCount = results.filter(r => !r.isValid).length
-    const blockedCount = results.filter(r => r.whitelistStatus === 'blocked').length
     const total = useMemo(() => valid.reduce((s, r) => s + r.packagePrice, 0), [valid])
 
     const reset = () => { setResults([]); setPreviewDone(false) }
@@ -128,33 +124,6 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
             return { ...line, packagePrice: getPrice(pkg), packageId: pkg.id, isValid: true }
         })
 
-    // MTN only: ask which of these numbers the supplier has not registered yet, if that gate is on.
-    const markUnregistered = async (rows: ValidationResult[]): Promise<ValidationResult[]> => {
-        const candidates = rows.filter(r => r.isValid)
-        if (network !== 'MTN' || candidates.length === 0) return rows
-        try {
-            const settingsRes = await fetch('/api/admin-settings?keys=mtn_agentportal_whitelist_gate_enabled,mtn_bundleportal_whitelist_gate_enabled', { cache: 'no-store' })
-            const settings = await settingsRes.json()
-            const on = (v: unknown) => v === true || v === 'true'
-            if (!(on(settings?.mtn_agentportal_whitelist_gate_enabled) || on(settings?.mtn_bundleportal_whitelist_gate_enabled))) return rows
-
-            const check = await fetch('/api/mtn-whitelist/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ msisdns: candidates.map(r => r.phoneNumber) }),
-            })
-            const payload = await check.json()
-            if (!check.ok || !payload?.success || !payload.data) return rows
-            const blocked = new Set<string>(
-                (payload.data.results as { normalized: string; allowed: boolean }[]).filter(r => !r.allowed).map(r => r.normalized),
-            )
-            return rows.map(r => (r.isValid && blocked.has(validateGhanaianPhone(r.phoneNumber).normalizedNumber) ? { ...r, whitelistStatus: 'blocked' as const } : r))
-        } catch {
-            // This preview is a convenience only. The server re-checks every number before charging.
-            return rows
-        }
-    }
-
     const preview = async () => {
         setValidating(true)
         try {
@@ -168,15 +137,13 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
             }
             if (lines.length > MAX_ROWS) { toast.error(`Up to ${MAX_ROWS} rows at a time`); return }
 
-            const checked = await markUnregistered(validate(lines))
+            const checked = validate(lines)
             setResults(checked)
 
-            const ok = checked.filter(r => r.isValid && r.whitelistStatus !== 'blocked')
+            const ok = checked.filter(r => r.isValid)
             const cost = ok.reduce((s, r) => s + r.packagePrice, 0)
             const bad = checked.filter(r => !r.isValid).length
-            const blocked = checked.filter(r => r.whitelistStatus === 'blocked').length
             if (bad > 0) toast.error(`${bad} invalid ${bad === 1 ? 'entry' : 'entries'}: check the network or phone numbers`)
-            if (blocked > 0) toast.error(`${blocked} ${blocked === 1 ? 'number is' : 'numbers are'} not registered yet and will be skipped`)
             if (ok.length === 0) { toast.error('No valid orders found'); return }
             if (balance < cost) { toast.error(`Insufficient balance: need ${formatCurrency(cost)}, have ${formatCurrency(balance)}`); return }
 
@@ -212,20 +179,12 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                 return
             }
 
-            // The server may skip numbers our preview did not catch (the gate changed in between).
-            // Skipped numbers are never charged, and the summary must say so.
-            const skipped: { phone: string; reason: string }[] = data.skipped ?? []
-            const skippedSet = new Set(skipped.map(s => s.phone))
             setSuccess({
                 ordersPlaced: data.ordersPlaced,
                 totalCost: data.totalCost,
                 newBalance: data.newBalance,
-                orders: valid
-                    .filter(o => !skippedSet.has(validateGhanaianPhone(o.phoneNumber).normalizedNumber as string))
-                    .map(o => ({ phoneNumber: o.phoneNumber, volume: o.volume, packagePrice: o.packagePrice })),
-                skipped,
+                orders: valid.map(o => ({ phoneNumber: o.phoneNumber, volume: o.volume, packagePrice: o.packagePrice })),
             })
-            if (skipped.length > 0) toast.error(`${skipped.length} ${skipped.length === 1 ? 'number was' : 'numbers were'} skipped and not charged`)
             setText(''); setFile(null); reset(); setBatchRef('')
             onPlaced(typeof data.newBalance === 'number' ? data.newBalance : null)
         } catch (e: any) {
@@ -309,7 +268,6 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
                         <p className="text-sm font-semibold">
                             <span className="text-emerald-600 dark:text-emerald-400">{valid.length} valid</span>
-                            {blockedCount > 0 && <span className="text-muted-foreground"> · <span className="text-brand-700 dark:text-brand-500">{blockedCount} not registered</span></span>}
                             {invalidCount > 0 && <span className="text-muted-foreground"> · <span className="text-red-500">{invalidCount} invalid</span></span>}
                         </p>
                         <div className="flex items-center gap-4 text-xs">
@@ -327,14 +285,13 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                         {results.map((r, i) => (
                             <li key={`${r.lineNumber}-${i}`} className="group flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-foreground/[0.03]">
                                 <span className="flex min-w-0 items-center gap-2.5">
-                                    <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', !r.isValid ? 'bg-red-500' : r.whitelistStatus === 'blocked' ? 'bg-amber-500' : 'bg-emerald-500')} />
+                                    <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', !r.isValid ? 'bg-red-500' : 'bg-emerald-500')} />
                                     <span className="truncate text-sm font-medium">{r.phoneNumber}</span>
                                 </span>
                                 <span className="flex flex-shrink-0 items-center gap-3 text-xs">
                                     <span className="text-muted-foreground">{r.volume}GB</span>
                                     {!r.isValid ? <span className="text-red-500">{r.errorMessage}</span>
-                                        : r.whitelistStatus === 'blocked' ? <span className="text-amber-600">Not registered, skipped</span>
-                                            : <span className="font-semibold">{formatCurrency(r.packagePrice)}</span>}
+                                        : <span className="font-semibold">{formatCurrency(r.packagePrice)}</span>}
                                     <button
                                         type="button"
                                         aria-label={`Remove ${r.phoneNumber}`}
@@ -390,14 +347,6 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                                         </li>
                                     ))}
                                 </ul>
-                            )}
-                            {success.skipped.length > 0 && (
-                                <div className="rounded-2xl border border-amber-300/60 bg-amber-500/10 p-3 text-sm">
-                                    <p className="font-semibold text-amber-700 dark:text-amber-400">{success.skipped.length} skipped, not charged</p>
-                                    <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                                        {success.skipped.map((s, i) => <li key={i}>{s.phone}: {s.reason}</li>)}
-                                    </ul>
-                                </div>
                             )}
                             <div className="flex gap-3">
                                 <Button variant="outline" className="flex-1" onClick={() => setSuccess(null)}>Done</Button>

@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { Search, LayoutGrid, List, Wifi } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
-import { MtnWhitelistInlineCheck } from '@/components/mtn-whitelist-checker'
 import { NetworkSelectorCard } from './NetworkSelectorCard'
 import { PackageCard, type StorefrontPackage } from './PackageCard'
 import { ServiceChargeSheet, type ChargeDescriptor } from './ServiceChargeSheet'
@@ -56,9 +55,6 @@ export function StorefrontDataTab({ shopSlug, packages, oosNetworks = [], brandN
                     <NetworkSelectorCard key={n} network={n} selected={network === n} onClick={() => setNetwork(n)} />
                 ))}
             </div>
-
-            {/* MTN delivery is gated behind a registration list — let the guest check before paying */}
-            {network === 'MTN' && <MtnWhitelistInlineCheck />}
 
             <div className="flex gap-2">
                 <div className="relative flex-1">

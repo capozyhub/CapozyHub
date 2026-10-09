@@ -13,8 +13,6 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
-import { resolveOrderQueueing } from '@/lib/number-registration'
-import { checkMtnWhitelistGate } from '@/lib/mtn-whitelist-gate'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { placeDataOrders, isValidClientReference } from '@/lib/data-orders/place'
@@ -105,14 +103,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'This phone number is not allowed' }, { status: 400 })
         }
 
-        // MTN whitelist gate: independent of the number-registration queue below. When the admin
-        // switch is on, an MTN number the supplier has not whitelisted is refused outright
-        // (no charge, no order).
-        const whitelistGate = await checkMtnWhitelistGate(recipient, p.network, p.category)
-        if (whitelistGate.blocked) {
-            return NextResponse.json({ error: whitelistGate.reason }, { status: 400 })
-        }
-
         const buyerResult = await loadBuyer(supabase, userId)
         if (!buyerResult.ok) {
             return NextResponse.json({ error: buyerResult.error }, { status: buyerResult.status })
@@ -166,12 +156,7 @@ export async function POST(request: NextRequest) {
         }
         priceToCharge = Math.round(priceToCharge * 100) / 100
 
-        // An unregistered MTN recipient is held as 'queued' until the supplier confirms the
-        // number. Manual categories (mashup) are never auto-fulfilled, so they are never queued.
         const autoFulfil = shouldAutoFulfill(p.category)
-        const queueDecision = autoFulfil
-            ? await resolveOrderQueueing(recipient, p.network)
-            : { queue: false, canonicalPhone: null }
 
         const referenceCode: string = clientReferenceCode || generateReferenceCode()
 
@@ -183,7 +168,7 @@ export async function POST(request: NextRequest) {
             price: priceToCharge,
             cost_price: Number(p.cost_price) || 0,
             role_at_time: ['admin', 'sub-admin', 'subagent'].includes(buyer.role ?? '') ? (buyer.role as string) : pricingRole,
-            status: queueDecision.queue ? 'queued' : 'pending',
+            status: 'pending',
             fulfillment_method: autoFulfil ? 'auto' : 'manual',
             category: p.category || 'data',
         }])
@@ -232,9 +217,7 @@ export async function POST(request: NextRequest) {
 
                 const firstName = buyer.first_name || 'Customer'
 
-                if (queueDecision.queue) {
-                    console.log(`[Purchase] Order ${order.id} QUEUED for MTN number registration: fulfilment held`)
-                } else if (autoFulfil) {
+                if (autoFulfil) {
                     await triggerFulfillment(order.id, p.network, {
                         email: buyer.email || 'Unknown',
                         name: `${firstName} ${buyer.last_name || ''}`.trim() || 'Customer',

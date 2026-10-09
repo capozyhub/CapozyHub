@@ -1,6 +1,6 @@
 // lib/promo-carousel/dashboard-slides.ts
 import {
-    ShieldCheck, UserPlus, TrendingUp, Store,
+    UserPlus, TrendingUp, Store,
     Wifi, PhoneCall, IdCard, GraduationCap, Zap, Megaphone,
 } from 'lucide-react'
 import type { PromoSlide } from './types'
@@ -8,8 +8,6 @@ import type { PromoSlide } from './types'
 export interface DashboardSlideContext {
     role: string | null | undefined
     hasShop: boolean
-    /** Opens the MTN whitelist checker dialog. */
-    onOpenWhitelistCheck: () => void
     /** Latest active platform announcement, if any. The slide needs both this and the opener. */
     announcement?: { title: string } | null
     onOpenAnnouncement?: () => void
@@ -32,19 +30,6 @@ export function buildDashboardSlides(ctx: DashboardSlideContext): PromoSlide[] {
             cta: { label: 'Read Announcement', onClick: onOpenAnnouncement },
         })
     }
-
-    // MTN only delivers to registered (whitelisted) numbers; the checker also submits any
-    // unregistered number to MTN, so the copy promises no turnaround and names no supplier.
-    slides.push({
-        id: 'mtn-whitelist',
-        theme: 'rose',
-        eyebrowIcon: ShieldCheck,
-        eyebrow: 'MTN',
-        title: 'Check your MTN number',
-        body: 'MTN data only reaches registered numbers. Check yours now — numbers that are not registered are sent to MTN automatically.',
-        icon: ShieldCheck,
-        cta: { label: 'Check Number', onClick: ctx.onOpenWhitelistCheck },
-    })
 
     if (ctx.role === 'agent' || ctx.role === 'dealer') {
         slides.push({

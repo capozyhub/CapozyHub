@@ -4,8 +4,6 @@ import { createServerClient } from '@/lib/supabase'
 import { generateReferenceCode } from '@/lib/utils'
 import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
-import { resolveOrderQueueing } from '@/lib/number-registration'
-import { checkMtnWhitelistGateBatch } from '@/lib/mtn-whitelist-gate'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
@@ -160,36 +158,11 @@ export async function POST(request: NextRequest) {
             }, { status: 400 })
         }
 
-        // MTN whitelist gate: blocked rows are left out entirely (never charged, never created),
-        // so the buyer only pays for numbers that can be delivered to right now.
-        const whitelistResults = await checkMtnWhitelistGateBatch(
-            validated.map(v => ({ phoneNumber: v.order.recipient, network: v.pkg.network, category: v.pkg.category })),
-        )
-        const skipped: { phone: string; reason: string }[] = []
-        const chargeable = validated.filter(v => {
-            const result = whitelistResults.get(v.order.recipient)
-            if (result?.blocked) {
-                skipped.push({ phone: v.order.recipient, reason: result.reason || 'Not yet whitelisted' })
-                return false
-            }
-            return true
-        })
-
-        if (chargeable.length === 0) {
-            return NextResponse.json(
-                { error: 'None of these numbers are registered to receive MTN data yet. We\'ve submitted them for registration. Please try again soon.', skipped },
-                { status: 400 },
-            )
-        }
-
-        // Unregistered MTN numbers are held 'queued'; decided per row (each may differ).
-        const queueDecisions = await Promise.all(chargeable.map(v => resolveOrderQueueing(v.order.recipient, v.pkg.network)))
-
         const referenceCodes = normalizedBatchRef
-            ? chargeable.map((_, i) => `${normalizedBatchRef}-${i}`)
-            : chargeable.map(() => generateReferenceCode())
+            ? validated.map((_, i) => `${normalizedBatchRef}-${i}`)
+            : validated.map(() => generateReferenceCode())
 
-        const items: PlaceItem[] = chargeable.map((v, i) => ({
+        const items: PlaceItem[] = validated.map((v, i) => ({
             reference_code: referenceCodes[i],
             phone_number: v.order.recipient,
             network: v.pkg.network,
@@ -197,7 +170,7 @@ export async function POST(request: NextRequest) {
             price: v.price,
             cost_price: Number(v.pkg.cost_price) || 0,
             role_at_time: isAdminUser ? (buyer.role as string) : pricingRole,
-            status: queueDecisions[i].queue ? 'queued' : 'pending',
+            status: 'pending',
             fulfillment_method: 'auto',
             category: v.pkg.category || 'data',
         }))
@@ -227,12 +200,7 @@ export async function POST(request: NextRequest) {
         const userEmail = buyer.email || 'Unknown'
 
         waitUntil((async () => {
-            // Queued orders (unregistered MTN numbers) are held: no dispatch.
-            const dispatchable = createdOrders.filter(o => o.status !== 'queued')
-            const queuedCount = createdOrders.length - dispatchable.length
-            if (queuedCount > 0) {
-                console.log(`[BulkPurchase] ${queuedCount}/${createdOrders.length} orders QUEUED for MTN number registration: fulfilment held`)
-            }
+            const dispatchable = createdOrders
             const results = await Promise.allSettled(
                 dispatchable.map(order => dispatchOrder(order, { email: userEmail, name: userName })),
             )
@@ -264,7 +232,6 @@ export async function POST(request: NextRequest) {
             ordersPlaced: createdOrders.length,
             totalCost,
             newBalance: placed.newBalance,
-            skipped,
         })
     } catch (error) {
         console.error('Bulk purchase error:', error)
