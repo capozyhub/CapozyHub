@@ -30,12 +30,12 @@ export function ComplaintDialog({ order, onClose, onFiled }: ComplaintDialogProp
                 body: JSON.stringify({ orderId: order.id, description: text }),
             })
             const data = await res.json().catch(() => ({}))
-            if (!res.ok) throw new Error(data.error || 'Could not file the complaint')
-            toast.success('Complaint filed. Our team will review it.')
+            if (!res.ok) throw new Error(data.error || 'We could not send your report. Please try again.')
+            toast.success('Thanks. We’ll look into it.')
             onFiled(order.id)
             onClose()
         } catch (e: any) {
-            toast.error(e.message || 'Could not file the complaint')
+            toast.error(e.message || 'We could not send your report. Please try again.')
         } finally {
             setSending(false)
         }
@@ -55,12 +55,12 @@ export function ComplaintDialog({ order, onClose, onFiled }: ComplaintDialogProp
                 </DialogClose>
                 <div className="space-y-4 px-6 pb-7 pt-8">
                     <div className="pr-8">
-                        <DialogTitle className="font-display text-xl font-semibold">Report a problem</DialogTitle>
+                        <DialogTitle className="font-display text-xl font-semibold">What went wrong?</DialogTitle>
                         <p className="break-all font-mono text-xs text-muted-foreground">{order?.reference_code}</p>
                     </div>
                     <Textarea
-                        aria-label="What went wrong?"
-                        placeholder="For example: the PIN says it was already used."
+                        aria-label="Describe the problem"
+                        placeholder="Tell us what happened, for example: the website says this PIN was already used."
                         value={text}
                         onChange={e => setText(e.target.value)}
                         rows={4}
@@ -69,7 +69,7 @@ export function ComplaintDialog({ order, onClose, onFiled }: ComplaintDialogProp
                     <div className="flex gap-3">
                         <Button variant="outline" className="flex-1" onClick={onClose} disabled={sending}>Cancel</Button>
                         <Button className="flex-1" onClick={submit} disabled={sending || !text.trim()}>
-                            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send report'}
+                            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
                         </Button>
                     </div>
                 </div>

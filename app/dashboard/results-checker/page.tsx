@@ -8,10 +8,10 @@ import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import type { RCOrder, RCType } from '@/components/dashboard/results-checker/meta'
-import { BuyPanel } from '@/components/dashboard/results-checker/BuyPanel'
-import { HistoryPanel } from '@/components/dashboard/results-checker/HistoryPanel'
+import { ShopView } from '@/components/dashboard/results-checker/ShopView'
+import { VaultPanel } from '@/components/dashboard/results-checker/VaultPanel'
 
-type Tab = 'buy' | 'history'
+type Tab = 'buy' | 'vouchers'
 
 export default function ResultsCheckerPage() {
     const { dbUser } = useAuth()
@@ -21,22 +21,25 @@ export default function ResultsCheckerPage() {
     const [types, setTypes] = useState<RCType[]>([])
     const [orders, setOrders] = useState<RCOrder[]>([])
     const [balance, setBalance] = useState(0)
+    // The server decides whether buying is on and how many can be bought at once; the page just shows it.
     const [enabled, setEnabled] = useState(true)
     const [maxQty, setMaxQty] = useState(50)
     const [loading, setLoading] = useState(true)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [ordersLoading, setOrdersLoading] = useState(false)
 
     const loadTypes = useCallback(async () => {
-        const [typesRes, settings] = await Promise.all([
-            fetch('/api/results-checker/types', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-            (supabase as any).from('admin_settings').select('key,value').in('key', ['results_checker_enabled', 'results_checker_max_quantity']),
-        ])
-        setTypes(typesRes?.types ?? [])
-        const map: Record<string, string> = {}
-        for (const r of settings?.data ?? []) map[r.key] = r.value
-        setEnabled(map.results_checker_enabled !== 'false')
-        const max = parseInt(map.results_checker_max_quantity ?? '', 10)
-        if (Number.isFinite(max) && max > 0) setMaxQty(max)
+        try {
+            const res = await fetch('/api/results-checker/types', { cache: 'no-store' })
+            const json = await res.json()
+            if (!res.ok || !json.types) throw new Error()
+            setTypes(json.types)
+            setEnabled(json.enabled !== false)
+            if (Number.isFinite(json.maxQuantity) && json.maxQuantity > 0) setMaxQty(json.maxQuantity)
+            setLoadFailed(false)
+        } catch {
+            setLoadFailed(true)
+        }
     }, [])
 
     const loadWallet = useCallback(async () => {
@@ -54,7 +57,7 @@ export default function ResultsCheckerPage() {
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(50)
-        if (error) toast.error('Could not load your orders')
+        if (error) toast.error('We could not load your vouchers.')
         else setOrders(data ?? [])
         setOrdersLoading(false)
     }, [userId])
@@ -72,20 +75,20 @@ export default function ResultsCheckerPage() {
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">Results checker</h1>
-                    <p className="text-sm text-muted-foreground">Buy WAEC checker vouchers from your wallet. PINs show up the moment you pay.</p>
+                <div className="max-w-xl">
+                    <h1 className="font-display text-3xl font-bold tracking-tight">Results checker</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">Pick your exam, pay from your wallet, and your serial number and PIN appear straight away.</p>
                 </div>
                 <Link href="/dashboard/wallet" className="neu-raised-sm neu-press rounded-2xl px-4 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                    <p className="text-xs text-muted-foreground">Wallet</p>
+                    <p className="text-xs text-muted-foreground">Your wallet</p>
                     <p className="font-display text-lg font-bold leading-tight tabular-nums">{formatCurrency(balance)}</p>
                 </Link>
             </div>
 
             <div role="tablist" className="well flex w-fit gap-1 rounded-2xl p-1">
-                {([['buy', 'Buy'], ['history', `Order history${orders.length ? ` (${orders.length})` : ''}`]] as const).map(([key, label]) => (
+                {([['buy', 'Buy'], ['vouchers', `My vouchers${orders.length ? ` · ${orders.length}` : ''}`]] as const).map(([key, label]) => (
                     <button
                         key={key}
                         type="button"
@@ -102,8 +105,14 @@ export default function ResultsCheckerPage() {
             {loading ? (
                 <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
             ) : tab === 'buy' ? (
-                <div className="max-w-xl">
-                    <BuyPanel
+                loadFailed ? (
+                    <div className="surface rounded-3xl p-8 text-center">
+                        <p className="font-display text-lg font-semibold">We couldn’t load the exams</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Check your connection and try again.</p>
+                        <button type="button" onClick={loadTypes} className="clay-gold mt-4 rounded-xl px-5 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Try again</button>
+                    </div>
+                ) : (
+                    <ShopView
                         types={types}
                         enabled={enabled}
                         maxQty={maxQty}
@@ -111,16 +120,18 @@ export default function ResultsCheckerPage() {
                         ownPhone={dbUser?.phone_number ?? undefined}
                         ownEmail={dbUser?.email ?? undefined}
                         onPurchased={onPurchased}
+                        onViewVouchers={() => setTab('vouchers')}
                     />
-                </div>
+                )
             ) : (
-                <HistoryPanel
+                <VaultPanel
                     orders={orders}
                     loading={ordersLoading}
                     ownPhone={dbUser?.phone_number ?? undefined}
                     ownEmail={dbUser?.email ?? undefined}
                     onRefresh={loadOrders}
                     onComplaintFiled={id => setOrders(prev => prev.map(o => (o.id === id ? { ...o, results_checker_complaints: [{ id: 'new', status: 'open' }] } : o)))}
+                    onBuy={() => setTab('buy')}
                 />
             )}
         </div>
