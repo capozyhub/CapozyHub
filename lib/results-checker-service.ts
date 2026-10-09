@@ -102,7 +102,9 @@ export async function getMaxQuantity(): Promise<number> {
         .select('value')
         .eq('key', 'results_checker_max_quantity')
         .single()
-    return data ? parseInt(data.value, 10) : 50
+    const parsed = data ? parseInt(data.value, 10) : NaN
+    // A missing or malformed setting must never switch the cap off (NaN compares false with everything).
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 50
 }
 
 export async function getRCSettings(): Promise<Record<string, string>> {
@@ -290,12 +292,56 @@ export async function calculateRCPrice(params: {
 // ─── Wallet Purchase Flow ──────────────────────────────────────────────────
 
 /**
+ * The ONE place a voucher order is priced for a member: role price and bulk tier, then the
+ * sub-agent override, which replaces the unit price entirely and fails closed when pricing is not
+ * configured. The quote endpoint and the purchase both call this, so what the page shows and what
+ * the wallet is charged cannot drift apart.
+ * Throws SUB_AGENT_PRICING_UNAVAILABLE.
+ */
+export async function priceVoucherOrder(
+    db: any,
+    params: { userId: string; userRole: string; type: RCType; quantity: number; shopMarkup?: number },
+): Promise<{ breakdown: RCBreakdown; recruiterMargin: { recruiterId: string; amount: number } | null; isSubAgent: boolean }> {
+    const { userId, userRole, type, quantity, shopMarkup = 0 } = params
+    let recruiterMargin: { recruiterId: string; amount: number } | null = null
+    let subAgentUnitPrice: number | null = null
+
+    // "No pricing configured" and "configured at zero markup" both resolve to a markup of 0 below,
+    // so unconfigured sub-agents are blocked here explicitly (spec C4: unconfigured = unbuyable).
+    const preCtx = await resolveSubAgentContext(db, userId)
+    if (
+        preCtx.isSub && preCtx.effectiveActive && preCtx.recruiterId
+        && !(await hasSubAgentPricingConfigured(db, preCtx.recruiterId, userId, 'results_checker', type.id))
+    ) {
+        throw new Error('SUB_AGENT_PRICING_UNAVAILABLE')
+    }
+
+    const subCtx = await resolveSubAgentRcCost(db, userId, type, quantity)
+    if (subCtx.isSub) {
+        if (!subCtx.ok) throw new Error('SUB_AGENT_PRICING_UNAVAILABLE')
+        subAgentUnitPrice = subCtx.subCost
+        if (subCtx.recruiterEarns > 0 && subCtx.recruiterId) {
+            recruiterMargin = { recruiterId: subCtx.recruiterId, amount: subCtx.recruiterEarns * quantity }
+        }
+    }
+
+    // No Paystack fee for wallet purchases.
+    const breakdown = await calculateRCPrice({ type, quantity, userRole, shopMarkup })
+    if (subAgentUnitPrice !== null) {
+        const overriddenSubtotal = parseFloat(((subAgentUnitPrice + breakdown.shopMarkup) * quantity).toFixed(2))
+        breakdown.unitPrice = subAgentUnitPrice
+        breakdown.subtotal = overriddenSubtotal
+        breakdown.total = overriddenSubtotal + (breakdown.paystackFee ?? 0)
+    }
+    return { breakdown, recruiterMargin, isSubAgent: subCtx.isSub }
+}
+/**
  * Full wallet-based purchase flow.
  *   1. Price it server-side (role, bulk tier, sub-agent override); sub-agent pricing fails closed.
  *   2. place_results_checker_order does the rest in ONE database transaction: wallet debit, order,
  *      voucher assignment, recruiter earning, completion and ledger row.
  * Throws INSUFFICIENT_BALANCE, INSUFFICIENT_INVENTORY, RECENT_DUPLICATE, REFERENCE_IN_USE,
- * SUB_AGENT_PRICING_UNAVAILABLE, VOUCHER_TYPE_NOT_FOUND, WALLET_NOT_FOUND or PAYMENT_FAILED.
+ * PRICE_CHANGED, SUB_AGENT_PRICING_UNAVAILABLE, VOUCHER_TYPE_NOT_FOUND, WALLET_NOT_FOUND or PAYMENT_FAILED.
  * `duplicate: true` means the same member already placed this reference; nothing was charged.
  */
 export async function purchaseWithWallet(params: {
@@ -320,6 +366,8 @@ export async function purchaseWithWallet(params: {
     referenceCode?: string
     /** Refuse the same type + quantity from the same member inside this many seconds (0 = off). */
     dedupeSeconds?: number
+    /** The total the member confirmed on screen. A mismatch throws PRICE_CHANGED before any charge. */
+    expectedTotal?: number
 }): Promise<{ order: RCOrder; vouchers: RCVoucher[]; newBalance: number; duplicate: boolean }> {
     const {
         userId, userRole, typeId, quantity, shopId = null, shopMarkup = 0,
@@ -333,53 +381,13 @@ export async function purchaseWithWallet(params: {
     const type = await getTypeById(typeId)
     if (!type || !type.is_active) throw new Error('VOUCHER_TYPE_NOT_FOUND')
 
-    // Sub-agent pricing overrides the role price entirely (spec C2) — fails closed
-    // before any wallet deduction (spec C7).
-    //
-    // Was dashboard-only (review finding I1, gated on `source !== 'api'`) — lifted
-    // 2026-09-17 (spec §11 lift) once app/api/v2/resultschecker/purchase stopped
-    // 403-blocking sub-agents outright. purchaseWithWallet is the SHARED function
-    // behind both app/api/results-checker/purchase (dashboard, source defaults to
-    // 'website') and app/api/v2/resultschecker/purchase (source: 'api') — now runs
-    // identically for both, same as every other product's sub-agent wiring.
-    let recruiterMargin: { recruiterId: string; amount: number } | null = null
-    let subAgentUnitPrice: number | null = null
-    {
-        // Server-side teeth for spec C4's "unconfigured = unbuyable" guarantee (Task 11):
-        // resolveSubAgentRcCost treats "no pricing configured" and "configured at zero markup"
-        // identically (both resolve through resolveSubAgentMarkup returning 0), so the
-        // dashboard hide alone doesn't stop a raw dashboard-path call. Checked BEFORE the cost
-        // resolver via our own resolveSubAgentContext call, then the SAME fail-closed convention
-        // (throw SUB_AGENT_PRICING_UNAVAILABLE) this function already uses just below.
-        const preCtx = await resolveSubAgentContext(db, userId)
-        if (
-            preCtx.isSub && preCtx.effectiveActive && preCtx.recruiterId
-            && !(await hasSubAgentPricingConfigured(db, preCtx.recruiterId, userId, 'results_checker', type.id))
-        ) {
-            throw new Error('SUB_AGENT_PRICING_UNAVAILABLE')
-        }
+    // The exact price this member pays, sub-agent pricing included (fails closed before any money moves).
+    const { breakdown, recruiterMargin } = await priceVoucherOrder(db, { userId, userRole, type, quantity, shopMarkup })
 
-        const subCtx = await resolveSubAgentRcCost(db, userId, type, quantity)
-        if (subCtx.isSub) {
-            if (!subCtx.ok) {
-                throw new Error('SUB_AGENT_PRICING_UNAVAILABLE')
-            }
-            subAgentUnitPrice = subCtx.subCost
-            if (subCtx.recruiterEarns > 0 && subCtx.recruiterId) {
-                recruiterMargin = { recruiterId: subCtx.recruiterId, amount: subCtx.recruiterEarns * quantity }
-            }
-        }
+    // The member confirmed a total on screen; if prices moved since, stop and let them re-confirm.
+    if (params.expectedTotal !== undefined && Math.abs(params.expectedTotal - breakdown.total) > 0.005) {
+        throw new Error('PRICE_CHANGED')
     }
-
-    // Calculate price (server-side, no Paystack fee for wallet purchases)
-    const breakdown = await calculateRCPrice({ type, quantity, userRole, shopMarkup })
-    if (subAgentUnitPrice !== null) {
-        const overriddenSubtotal = parseFloat(((subAgentUnitPrice + breakdown.shopMarkup) * quantity).toFixed(2))
-        breakdown.unitPrice = subAgentUnitPrice
-        breakdown.subtotal = overriddenSubtotal
-        breakdown.total = overriddenSubtotal + (breakdown.paystackFee ?? 0)
-    }
-
     // Caller's own reference (v2 API, or the dashboard's per-attempt key) wins so the idempotency
     // lookup, the UNIQUE(reference_code) backstop and the echoed-back reference all line up.
     const referenceCode = params.referenceCode ?? `RC-${generateReferenceCode()}`

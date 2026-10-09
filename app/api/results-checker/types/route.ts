@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
-import { getAvailableTypes, getTypeById, getPriceForRole } from '@/lib/results-checker-service'
+import { getAvailableTypes, getTypeById, getPriceForRole, isRCEnabled, getMaxQuantity } from '@/lib/results-checker-service'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { resolveSubAgentRcCost } from '@/lib/sub-agent-rc-pricing'
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             // Optional auth — silently continue as guest
         }
 
-        const types = await getAvailableTypes()
+        const [types, enabled, maxQuantity] = await Promise.all([getAvailableTypes(), isRCEnabled(), getMaxQuantity()])
 
         // Return role-adjusted prices (never expose cost_price)
         const result: any[] = types.map(type => ({
@@ -84,6 +84,9 @@ export async function GET(request: NextRequest) {
         if (db && userId) {
             const ctx = await resolveSubAgentContext(db, userId)
             if (ctx.isSub) {
+                // A sub-agent's price is worked out per quantity by the quote endpoint; the admin bulk
+                // tiers do not apply to them, so showing those tiers would advertise prices they never get.
+                for (const t of result) t.bulk_pricing = []
                 if (!ctx.effectiveActive || !ctx.recruiter || !ctx.recruiterId) {
                     // Fail closed, same as resolveSubAgentRcCost: an inactive/unlinked
                     // sub cannot transact, so nothing is purchasable for them.
@@ -125,7 +128,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({ success: true, types: result, userRole })
+        return NextResponse.json({ success: true, types: result, userRole, enabled, maxQuantity })
     } catch (error) {
         console.error('[RC Types] Error:', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

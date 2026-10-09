@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
         }
 
-        const { typeId, quantity, recipientPhone, recipientEmail, referenceCode: clientReference } = body ?? {}
+        const { typeId, quantity, recipientPhone, recipientEmail, referenceCode: clientReference, expectedTotal } = body ?? {}
 
         if (!typeId || !quantity) {
             return NextResponse.json({ error: 'Missing required fields: typeId, quantity' }, { status: 400 })
@@ -54,6 +55,15 @@ export async function POST(request: NextRequest) {
         }
         if (clientReference !== undefined && clientReference !== null && !isValidClientReference(clientReference)) {
             return NextResponse.json({ error: 'Invalid reference' }, { status: 400 })
+        }
+
+        // The total the member saw and confirmed (from /api/results-checker/quote). Optional.
+        let confirmedTotal: number | undefined
+        if (expectedTotal !== undefined && expectedTotal !== null) {
+            confirmedTotal = Number(expectedTotal)
+            if (!Number.isFinite(confirmedTotal) || confirmedTotal <= 0) {
+                return NextResponse.json({ error: 'Invalid total' }, { status: 400 })
+            }
         }
 
         // ── Buyer: must exist and not be suspended ────────────────────────
@@ -109,13 +119,16 @@ export async function POST(request: NextRequest) {
             customerName,
             referenceCode: clientReference ?? `RC-${generateReferenceCode()}`,
             dedupeSeconds: 30,
+            expectedTotal: confirmedTotal,
         })
 
-        // Vouchers go out after the response. A replayed order was already delivered the first time.
+        // Vouchers go out after the response. waitUntil keeps the function alive until delivery
+        // finishes: a bare floating promise can be frozen with the response and the message never sent.
+        // A replayed order was already delivered the first time.
         if (!duplicate) {
             const orderForDelivery = { ...order, customer_phone: customerPhone, customer_email: customerEmail, customer_name: customerName }
-            deliverVouchers(orderForDelivery, vouchers)
-                .catch((err: any) => console.error('[RC Purchase] Delivery error:', err))
+            waitUntil(deliverVouchers(orderForDelivery, vouchers)
+                .catch((err: any) => console.error('[RC Purchase] Delivery error:', err)))
         }
 
         return NextResponse.json({
@@ -142,6 +155,8 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Vouchers sold out. Please try again later.' }, { status: 400 })
             case 'RECENT_DUPLICATE':
                 return NextResponse.json({ error: 'Duplicate order detected. Please wait 30 seconds before placing the same order again.', isDuplicate: true }, { status: 409 })
+            case 'PRICE_CHANGED':
+                return NextResponse.json({ error: 'The price just changed. Please review the new total and try again.', priceChanged: true }, { status: 409 })
             case 'REFERENCE_IN_USE':
                 return NextResponse.json({ error: 'This reference is already in use. Please try again.' }, { status: 409 })
             case 'VOUCHER_TYPE_NOT_FOUND':
