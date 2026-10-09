@@ -291,13 +291,12 @@ export async function calculateRCPrice(params: {
 
 /**
  * Full wallet-based purchase flow.
- * Mirrors app/api/airtime/create/route.ts exactly:
- *   1. Atomic wallet deduction via deduct_wallet_balance RPC
- *   2. Create order record
- *   3. Assign vouchers via RPC (all-or-nothing)
- *   4. On failure → refund wallet → throw
- *   5. Finalize sale → mark completed
- *   6. Fire-and-forget wallet_transactions record
+ *   1. Price it server-side (role, bulk tier, sub-agent override); sub-agent pricing fails closed.
+ *   2. place_results_checker_order does the rest in ONE database transaction: wallet debit, order,
+ *      voucher assignment, recruiter earning, completion and ledger row.
+ * Throws INSUFFICIENT_BALANCE, INSUFFICIENT_INVENTORY, RECENT_DUPLICATE, REFERENCE_IN_USE,
+ * SUB_AGENT_PRICING_UNAVAILABLE, VOUCHER_TYPE_NOT_FOUND, WALLET_NOT_FOUND or PAYMENT_FAILED.
+ * `duplicate: true` means the same member already placed this reference; nothing was charged.
  */
 export async function purchaseWithWallet(params: {
     userId: string
@@ -319,11 +318,13 @@ export async function purchaseWithWallet(params: {
     apiKeyId?: string | null
     source?: string
     referenceCode?: string
-}): Promise<{ order: RCOrder; vouchers: RCVoucher[]; newBalance: number }> {
+    /** Refuse the same type + quantity from the same member inside this many seconds (0 = off). */
+    dedupeSeconds?: number
+}): Promise<{ order: RCOrder; vouchers: RCVoucher[]; newBalance: number; duplicate: boolean }> {
     const {
         userId, userRole, typeId, quantity, shopId = null, shopMarkup = 0,
         customerPhone = null, customerEmail = null, customerName = null,
-        apiKeyId = null, source = 'website',
+        apiKeyId = null, source = 'website', dedupeSeconds = 0,
     } = params
     const supabase = createServerClient()
     const db = supabase as any
@@ -379,157 +380,64 @@ export async function purchaseWithWallet(params: {
         breakdown.total = overriddenSubtotal + (breakdown.paystackFee ?? 0)
     }
 
-    // ── Atomic wallet deduction (mirrors airtime/create L156-160) ─────────
-    const { data: deductResult, error: deductError } = await db
-        .rpc('deduct_wallet_balance', {
-            p_user_id: userId,
-            p_amount: breakdown.total,
-        })
+    // Caller's own reference (v2 API, or the dashboard's per-attempt key) wins so the idempotency
+    // lookup, the UNIQUE(reference_code) backstop and the echoed-back reference all line up.
+    const referenceCode = params.referenceCode ?? `RC-${generateReferenceCode()}`
 
-    if (deductError) {
-        if (deductError.message?.includes('INSUFFICIENT_BALANCE')) {
-            throw new Error('INSUFFICIENT_BALANCE')
+    // ── ONE transaction: debit + order + vouchers + recruiter earning + ledger ─────
+    // place_results_checker_order either does all of it or none of it, so a failure here (no
+    // stock, no balance, a reused reference) leaves the wallet exactly as it was: nothing to refund.
+    const { data, error } = await db.rpc('place_results_checker_order', {
+        p_user_id: userId,
+        p_dedupe_seconds: dedupeSeconds,
+        p_order: {
+            reference_code:     referenceCode,
+            user_role:          userRole,
+            shop_id:            shopId,
+            type_id:            typeId,
+            type_name:          type.name,
+            quantity,
+            unit_price:         breakdown.unitPrice,
+            shop_markup:        breakdown.shopMarkup,
+            cost_price_at_time: type.cost_price,
+            total_paid:         breakdown.total,
+            source,
+            api_key_id:         apiKeyId,
+            // Persisted on the order so a later resend (button or retry cron) has someone to deliver to.
+            customer_phone:     customerPhone,
+            customer_email:     customerEmail,
+            customer_name:      customerName,
+            recruiter_id:       recruiterMargin?.recruiterId ?? null,
+            recruiter_amount:   recruiterMargin?.amount ?? 0,
+        },
+    })
+
+    if (error) {
+        const text = `${error.message ?? ''} ${error.details ?? ''}`
+        for (const code of ['INSUFFICIENT_BALANCE', 'INSUFFICIENT_INVENTORY', 'RECENT_DUPLICATE', 'WALLET_NOT_FOUND']) {
+            if (text.includes(code)) throw new Error(code)
         }
-        console.error('[RC Service] Wallet deduction error:', deductError)
+        // reference_code is globally unique: this reference already belongs to someone else.
+        if (error.code === '23505' || text.includes('duplicate key')) throw new Error('REFERENCE_IN_USE')
+        console.error('[RC Service] place_results_checker_order failed:', error)
+        throw new Error('PAYMENT_FAILED')
+    }
+    if (!data?.order?.id || !Array.isArray(data.vouchers)) {
+        console.error('[RC Service] place_results_checker_order returned an unexpected shape:', data)
         throw new Error('PAYMENT_FAILED')
     }
 
-    const walletRow = deductResult?.[0] || deductResult
-    const walletId = walletRow?.wallet_id
-    const newBalance: number = walletRow?.new_balance ?? 0
+    const order = data.order as RCOrder
+    const vouchers = data.vouchers as RCVoucher[]
 
-    if (!walletId) throw new Error('WALLET_NOT_FOUND')
-
-    // Caller's own reference (v2 API) wins so the idempotency lookup, the
-    // UNIQUE(reference_code) backstop, and the echoed-back reference all line
-    // up with what the caller searched for. Otherwise generate as before.
-    const referenceCode = params.referenceCode ?? `RC-${generateReferenceCode()}`
-
-    // ── Create pending order record ───────────────────────────────────────
-    const { data: order, error: orderError } = await db
-        .from('results_checker_orders')
-        .insert({
-            user_id:           userId,
-            user_role:         userRole,
-            shop_id:           shopId,
-            type_id:           typeId,
-            type_name:         type.name,
-            quantity,
-            unit_price:        breakdown.unitPrice,
-            shop_markup:       breakdown.shopMarkup,
-            cost_price_at_time: type.cost_price,
-            total_paid:        breakdown.total,
-            status:            'pending',
-            payment_status:    'completed',
-            // Paid from the wallet above — without this the column default ('momo') applied.
-            payment_method:    'wallet',
-            reference_code:    referenceCode,
-            source,
-            api_key_id:        apiKeyId,
-            // Persisted (not just merged in-memory for the first delivery attempt) so
-            // resendVouchers() — called by the admin/user resend button AND the
-            // fulfill-pending-rc-vouchers retry cron — can actually reach the customer
-            // on every subsequent attempt, not just the one right after purchase.
-            customer_phone:    customerPhone,
-            customer_email:    customerEmail,
-            customer_name:     customerName,
-        })
-        .select()
-        .single()
-
-    if (orderError || !order) {
-        // Refund wallet via the atomic RPC — never an absolute write from a cached `newBalance`
-        // snapshot (that races with concurrent top-ups/deductions). Matches airtime/create.
-        await db.rpc('credit_wallet_balance', { p_user_id: userId, p_amount: breakdown.total })
-        console.error('[RC Service] Order creation error:', orderError)
-        throw new Error('ORDER_CREATION_FAILED')
+    if (data.duplicate) {
+        // Same member, same reference: the order already exists. Nothing was charged this time.
+        const { data: wallet } = await db.from('wallets').select('balance').eq('user_id', userId).maybeSingle()
+        return { order, vouchers, newBalance: Number(wallet?.balance ?? 0), duplicate: true }
     }
 
-    // ── Assign vouchers via RPC (all-or-nothing) ──────────────────────────
-    const { data: vouchers, error: assignError } = await db
-        .rpc('assign_results_checker_vouchers', {
-            p_type_id:  typeId,
-            p_quantity: quantity,
-            p_order_id: order.id,
-        })
-
-    if (assignError || !vouchers || vouchers.length === 0) {
-        // Refund wallet via the atomic RPC (no racy absolute write) — insufficient inventory
-        await db.rpc('credit_wallet_balance', { p_user_id: userId, p_amount: breakdown.total })
-        // Mark order as failed
-        await db.from('results_checker_orders')
-            .update({ status: 'failed', updated_at: new Date().toISOString() })
-            .eq('id', order.id)
-
-        throw new Error('INSUFFICIENT_INVENTORY')
-    }
-
-    // ── Finalize sale ────────────────────────────────────────────────────
-    await db.rpc('finalize_results_checker_sale', {
-        p_order_id: order.id,
-        p_user_id:  userId,
-    })
-
-    const inventoryIds: string[] = vouchers.map((v: RCVoucher) => v.id)
-
-    // Sub-agent purchase: credit the ONE direct recruiter (spec C3). MUST happen before the
-    // completed-status UPDATE below — that UPDATE is what fires the trigger that credits the
-    // recruiter's wallet, and the trigger can only find a row that already exists. Getting this
-    // ordering backwards means the trigger fires against nothing and the recruiter is never
-    // credited, silently, with no error (verified against this file's actual synchronous
-    // pending→completed transition before this plan was written).
-    if (recruiterMargin) {
-        await recordPendingSubAgentEarning(db, {
-            orderReference: referenceCode,
-            orderTable: 'results_checker_orders',
-            recruiterId: recruiterMargin.recruiterId,
-            subUserId: userId,
-            amount: recruiterMargin.amount,
-        }).catch((e) => console.error('[RC Service] recordPendingSubAgentEarning threw:', e))
-    }
-
-    // ── Update order → completed ─────────────────────────────────────────
-    const { data: completedOrder } = await db
-        .from('results_checker_orders')
-        .update({
-            status:        'completed',
-            payment_status:'completed',
-            inventory_ids: inventoryIds,
-            fulfilled_at:  new Date().toISOString(),
-            updated_at:    new Date().toISOString(),
-        })
-        .eq('id', order.id)
-        .select()
-        .single()
-
-    // ── Wallet transaction record ─────────────────────────────────────────
-    // waitUntil, not a bare floating promise: the wallet has ALREADY been
-    // debited above, so a lambda freeze right after the response would leave
-    // that debit with no matching wallet_transactions row — an audit gap on a
-    // money path (review finding m2, third and last instance).
-    //
-    // Safe to call from this shared service because purchaseWithWallet has
-    // exactly TWO callers and both are request handlers — verified, not
-    // assumed: app/api/results-checker/purchase/route.ts (dashboard) and
-    // app/api/v2/resultschecker/purchase/route.ts (developer API). An earlier
-    // pass left this one unwrapped out of caution that the service might run
-    // outside a request context; it does not. If a cron caller is ever added,
-    // it must supply its own context rather than call this directly.
-    waitUntil((db.from('wallet_transactions') as any).insert({
-        wallet_id:   walletId,
-        user_id:     userId,
-        type:        'debit',
-        amount:      breakdown.total,
-        description: `Results Checker: ${quantity}x ${type.name}`,
-        reference:   referenceCode,
-        source:      'results_checker',
-        status:      'completed',
-    }).then(() => {}).catch((e: any) =>
-        console.error('[RC Service] Wallet tx insert error:', e)
-    ))
-
-    // ── In-app notification (fire-and-forget) ─────────────────────────────
-    ;(db.from('notifications') as any).insert({
+    // ── In-app notification (best effort; the sale itself is already complete) ──
+    waitUntil((db.from('notifications') as any).insert({
         user_id:    userId,
         title:      'Results Checker Voucher Purchased',
         message:    `${quantity}x ${type.name} voucher(s) ready. Ref: ${referenceCode}`,
@@ -537,15 +445,10 @@ export async function purchaseWithWallet(params: {
         action_url: '/dashboard/results-checker',
     }).then(() => {}).catch((e: any) =>
         console.error('[RC Service] Notification insert error:', e)
-    )
+    ))
 
-    return {
-        order:      completedOrder || order,
-        vouchers:   vouchers as RCVoucher[],
-        newBalance,
-    }
+    return { order, vouchers, newBalance: Number(data.new_balance), duplicate: false }
 }
-
 // ─── Shop Order Processing (webhook handler) ───────────────────────────────
 
 /**

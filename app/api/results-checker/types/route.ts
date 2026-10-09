@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
 import { getAvailableTypes, getTypeById, getPriceForRole } from '@/lib/results-checker-service'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { resolveSubAgentRcCost } from '@/lib/sub-agent-rc-pricing'
+import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 
 /**
  * GET /api/results-checker/types
@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
         let db: any = null
         let userId: string | null = null
         try {
-            const cookieStore = await cookies()
             const supabaseUser = await createRouteClient()
             const { data: { user } } = await supabaseUser.auth.getUser()
             if (user) {
@@ -50,12 +49,11 @@ export async function GET(request: NextRequest) {
                 db = createServerClient() as any
                 const { data: profile } = await db
                     .from('users')
-                    .select('role')
+                    .select('role, agent_expires_at, dealer_expires_at')
                     .eq('id', user.id)
                     .single()
-                if (profile?.role === 'dealer') userRole = 'dealer'
-                else if (profile?.role === 'agent') userRole = 'agent'
-                else userRole = 'customer'
+                // Expiry-aware, like the purchase: a lapsed reseller is shown (and charged) customer prices.
+                userRole = effectiveRoleFromExpiry(profile?.role, profile?.agent_expires_at ?? null, profile?.dealer_expires_at ?? null)
             }
         } catch {
             // Optional auth — silently continue as guest

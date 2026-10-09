@@ -9,6 +9,7 @@ import {
 } from '@/lib/results-checker-pricing'
 import { phoneSchema, emailSchema } from '@/lib/validation'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
+import { loadBuyer } from '@/lib/data-orders/guards'
 
 // ============================================================================
 // POST /api/v2/resultschecker/purchase
@@ -77,9 +78,9 @@ export async function POST(request: NextRequest) {
             done(400, 'Invalid quantity')
             return apiError(400, 'Quantity must be a positive integer')
         }
-        if (!reference || typeof reference !== 'string' || reference.length < 3 || reference.length > 100) {
+        if (!reference || typeof reference !== 'string' || !/^[A-Za-z0-9._:\-]{3,100}$/.test(reference)) {
             done(400, 'Invalid reference')
-            return apiError(400, 'reference is required (3-100 characters) — your unique transaction ID for idempotency')
+            return apiError(400, 'reference is required: 3-100 characters, letters, numbers and . _ : - only. This is your unique transaction ID for idempotency.')
         }
         const referenceCode = `API-${reference}`
 
@@ -100,10 +101,11 @@ export async function POST(request: NextRequest) {
             }, { version: 'v2' })
         }
 
-        const { data: userRow } = await (supabase.from('users') as any).select('id').eq('id', userId).single()
-        if (!userRow) {
-            done(404, 'User not found')
-            return apiError(404, 'User not found')
+        // The key owner must exist and not be suspended.
+        const buyerResult = await loadBuyer(supabase, userId)
+        if (!buyerResult.ok) {
+            done(buyerResult.status, buyerResult.error)
+            return apiError(buyerResult.status, buyerResult.error)
         }
         // Expiry-aware, so a lapsed reseller is priced the same here as on the
         // storefront and USSD (both already use effectiveRoleFromExpiry).
@@ -179,13 +181,9 @@ export async function POST(request: NextRequest) {
                 done(404, 'Type not found')
                 return apiError(404, 'Voucher type not found or unavailable')
             }
-            // purchaseWithWallet throws this when the order insert fails, which for an
-            // API caller is nearly always the global UNIQUE(reference_code) rejecting a
-            // reference already used (possibly by another account — the constraint is not
-            // per-user). Unmapped it surfaced as a bare 500 "Internal server error", which
-            // tells the developer nothing actionable. purchaseWithWallet reverses its own
-            // debit before throwing, so the wallet really is untouched.
-            if (err.message === 'ORDER_CREATION_FAILED') {
+            // The global UNIQUE(reference_code) rejected a reference another account already used.
+            // The purchase runs in one transaction, so the wallet really is untouched.
+            if (err.message === 'REFERENCE_IN_USE') {
                 done(409, 'Reference already in use')
                 return apiError(409, 'This reference is already in use. Your wallet was not charged. Choose a different reference.')
             }
