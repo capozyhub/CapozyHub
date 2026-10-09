@@ -802,3 +802,8 @@ html[data-perf='lite'] .swoosh-reveal,
 html[data-perf='lite'] .animate-in { animation: none !important; }
 html[data-perf='lite'] [class*='backdrop-blur'] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 html[data-perf='lite'] * { scroll-behavior: auto !important; }
+
+@keyframes cz-bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.cz-bar { transform-box: fill-box; transform-origin: bottom; animation: cz-bar-grow 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .cz-bar { animation: none; } }
+html[data-perf='lite'] .cz-bar { animation: none; }
