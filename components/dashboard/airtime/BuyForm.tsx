@@ -99,7 +99,8 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
     }
 
     return (
-        <div className="space-y-5">
+        <div className="grid max-w-2xl gap-6 xl:max-w-none xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+        <div className="min-w-0 space-y-5">
             {mashupAvailable && (
                 <div role="tablist" aria-label="Product" className="well flex gap-1 rounded-2xl p-1">
                     {([['airtime', 'Airtime', Phone], ['mashup', 'MTN Mashup', Zap]] as const).map(([key, label, Icon]) => (
@@ -205,8 +206,28 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                 </span>
             </label>
 
-            {bundle && typed > 0 && <MashupEstimate bundle={bundle} />}
-            {quote && <PriceBreakdown quote={quote} typed={typed} mode={mode} feeOnTop={feeOnTop} />}
+        </div>
+
+        {/* Summary: beside the form on wide screens, below it on phones and tablets. */}
+        <aside aria-label="Summary" className="surface min-w-0 space-y-4 rounded-3xl p-5 xl:sticky xl:top-24">
+            <h2 className="font-display text-lg font-semibold">Summary</h2>
+
+            {!quote ? (
+                <p className="rounded-2xl bg-foreground/[0.04] p-4 text-sm text-muted-foreground">
+                    Choose a network, enter a number and an amount to see what you’ll pay.
+                </p>
+            ) : (
+                <>
+                    {bundle && typed > 0 && <MashupEstimate bundle={bundle} />}
+                    <PriceBreakdown quote={quote} typed={typed} mode={mode} feeOnTop={feeOnTop} />
+                    {balance !== null && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Wallet <span className="font-semibold text-foreground">{formatCurrency(balance)}</span></span>
+                            {canAfford && <span>After <span className="font-semibold text-foreground">{formatCurrency(balance - quote.totalPaid)}</span></span>}
+                        </div>
+                    )}
+                </>
+            )}
 
             {quote && balance !== null && !canAfford ? (
                 <div className="space-y-2">
@@ -220,7 +241,7 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                     {quote ? `Continue · ${formatCurrency(quote.totalPaid)}` : 'Continue'}
                 </Button>
             )}
-
+        </aside>
             <OrderDialog draft={draft} onClose={() => setDraft(null)} onPlaced={afterPlaced} onViewHistory={onViewHistory} />
         </div>
     )

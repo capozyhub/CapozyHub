@@ -45,7 +45,7 @@ export const OrderPanel = forwardRef<HTMLElement, OrderPanelProps>(function Orde
     const canPay = !!quoteOk && shortfall === 0 && p.enabled && !p.phoneError && !p.emailError && !p.paying
 
     return (
-        <aside ref={ref} aria-label="Your order" className="surface space-y-5 rounded-3xl p-5 lg:sticky lg:top-24">
+        <aside ref={ref} aria-label="Your order" className="surface space-y-5 rounded-3xl p-5 xl:sticky xl:top-24">
             <h2 className="font-display text-lg font-semibold">Your order</h2>
 
             {!type ? (

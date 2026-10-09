@@ -40,7 +40,7 @@ export default function AirtimePage() {
     }
 
     return (
-        <div className="space-y-5">
+        <div className="mx-auto w-full max-w-6xl space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight">Airtime &amp; Mashup</h1>
@@ -76,9 +76,7 @@ export default function AirtimePage() {
                         <p className="mt-1 text-sm text-muted-foreground">We could not load the current prices. Refresh the page to try again.</p>
                     </div>
                 ) : (
-                    <div className="max-w-xl">
-                        <BuyForm settings={settings} role={role} balance={balance} onPlaced={onPlaced} onViewHistory={() => setTab('history')} />
-                    </div>
+                    <BuyForm settings={settings} role={role} balance={balance} onPlaced={onPlaced} onViewHistory={() => setTab('history')} />
                 )
             ) : (
                 <HistoryPanel reloadKey={historyKey} />

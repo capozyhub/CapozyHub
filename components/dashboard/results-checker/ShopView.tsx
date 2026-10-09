@@ -57,7 +57,7 @@ export function ShopView({ types, enabled, maxQty, balance, ownPhone, ownEmail, 
 
     const select = (id: string) => {
         setTypeId(prev => (prev === id ? '' : id))
-        if (typeId !== id && typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+        if (typeId !== id && typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
             setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
         }
     }
@@ -116,7 +116,7 @@ export function ShopView({ types, enabled, maxQty, balance, ownPhone, ownEmail, 
                 </div>
             )}
 
-            <div className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] ${enabled ? '' : 'pointer-events-none opacity-50'}`}>
+            <div className={`grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start ${enabled ? '' : 'pointer-events-none opacity-50'}`}>
                 <section aria-label="Choose an exam">
                     {types.length === 0 ? (
                         <div className="flex flex-col items-center gap-2 py-16 text-muted-foreground">
@@ -124,7 +124,7 @@ export function ShopView({ types, enabled, maxQty, balance, ownPhone, ownEmail, 
                             <p className="text-sm">No results checkers on sale right now.</p>
                         </div>
                     ) : (
-                        <div role="radiogroup" aria-label="Exam" className="grid gap-4 sm:grid-cols-2">
+                        <div role="radiogroup" aria-label="Exam" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                             {types.map(t => <ExamCard key={t.id} type={t} selected={t.id === typeId} onSelect={() => select(t.id)} />)}
                         </div>
                     )}

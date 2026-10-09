@@ -80,7 +80,7 @@ export function VaultPanel({ orders, loading, ownPhone, ownEmail, onRefresh, onC
                 <p className="py-16 text-center text-sm text-muted-foreground">Nothing matches that. Try another search or time.</p>
             ) : (
                 <>
-                    <ul className="space-y-3">
+                    <ul className="max-w-4xl space-y-3">
                         {visible.map(o => <VaultItem key={o.id} order={o} ownPhone={ownPhone} ownEmail={ownEmail} onReport={setReporting} />)}
                     </ul>
                     {orders.length >= HISTORY_LIMIT && <p className="pb-16 text-center text-xs text-muted-foreground">Showing your latest {HISTORY_LIMIT} orders.</p>}

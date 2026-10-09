@@ -136,7 +136,7 @@ export function HistoryPanel({ reloadKey }: { reloadKey: number }) {
                     <p className="text-sm">{orders.length === 0 ? 'You have not bought any airtime yet' : 'No orders match these filters'}</p>
                 </div>
             ) : (
-                <ul className="grid gap-3 pb-16 lg:grid-cols-2">
+                <ul className="grid gap-3 pb-16 xl:grid-cols-2 2xl:grid-cols-3">
                     {visible.map(o => <OrderCard key={o.id} order={o} />)}
                 </ul>
             )}

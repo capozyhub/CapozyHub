@@ -75,7 +75,7 @@ export default function ResultsCheckerPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="mx-auto w-full max-w-7xl space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="max-w-xl">
                     <h1 className="font-display text-3xl font-bold tracking-tight">Results checker</h1>
