@@ -28,7 +28,7 @@ export function ThemeToggle({ brandName }: { brandName?: string }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-2 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                <Button variant="ghost" size="icon" className="neu-raised-sm neu-press relative h-10 w-10 rounded-full border-0 text-muted-foreground hover:bg-transparent hover:text-foreground">
                     <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     <span className="sr-only">Toggle theme</span>
@@ -37,7 +37,7 @@ export function ThemeToggle({ brandName }: { brandName?: string }) {
             <DialogContent aria-describedby={undefined} className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
                 <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="text-xl font-bold tracking-tight">Select Theme</DialogTitle>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Choose your preferred appearance</p>
+                    <p className="text-xs text-muted-foreground font-medium">Choose how {BRAND.name} looks on this device</p>
                 </DialogHeader>
                 <div className="p-4 grid gap-3">
                     {themes.map((t) => {
@@ -80,8 +80,8 @@ export function ThemeToggle({ brandName }: { brandName?: string }) {
                         )
                     })}
                 </div>
-                <div className="bg-muted/30 p-4 text-[10px] text-center text-muted-foreground font-medium uppercase tracking-widest border-t">
-                    {brandName || BRAND.name} • UI PRESET
+                <div className="bg-muted/30 p-4 text-xs text-center text-muted-foreground font-medium border-t">
+                    {brandName || BRAND.name}
                 </div>
             </DialogContent>
         </Dialog>

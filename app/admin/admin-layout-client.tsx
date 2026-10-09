@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { contentOffset, HEADER_SPACER } from '@/components/dashboard/shell'
 import { useUI } from '@/contexts/ui-context'
 import { useNotificationModal } from '@/hooks/useNotificationModal'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
@@ -114,22 +115,22 @@ export default function AdminLayoutClient({
     }
 
     return (
-        <div className="min-h-screen bg-[#E5E7EB] dark:bg-[#000000]">
+        <div className="min-h-screen bg-neu">
             <TermsGate minVersion={adminSettings['terms_min_acceptable_version'] || ''} effectiveDate={adminSettings['terms_effective_date']} />
             <DashboardSidebar />
             <div className={cn(
                 "relative transition-[padding-left] duration-200 min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip",
-                isCollapsed ? "lg:pl-20" : "lg:pl-80"
+                contentOffset(isCollapsed)
             )}>
                 <DashboardHeader
                     onOpenNotifications={handleOpenNotifications}
                     unreadCount={unreadCount}
                 />
-                <div className="h-16 flex-shrink-0" />
+                <div className={HEADER_SPACER} />
                 <main className="p-4 lg:p-6 flex-1 max-lg:pb-[calc(80px+env(safe-area-inset-bottom,0px))]">
                     {children}
                 </main>
-                <CopyrightFooter adminSettings={adminSettings} className="hidden md:block bg-[#E5E7EB]/50 dark:bg-[#000000]/50" />
+                <CopyrightFooter adminSettings={adminSettings} className="hidden md:block" />
                 <FloatingRefreshButton />
                 <BottomNav />
             </div>

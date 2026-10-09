@@ -1,43 +1,22 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { FileText } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { userNavItems, adminNavItems, shopNavItems } from '@/components/dashboard/sidebar'
+import { LayoutDashboard } from 'lucide-react'
+import { resolveNavItem } from '@/components/dashboard/nav-config'
 
-const ALL_NAV_ITEMS = [
-    ...userNavItems,
-    ...adminNavItems,
-    ...shopNavItems,
-]
-
-function resolvePageTitle(pathname: string | null): string {
-    if (!pathname) return 'Dashboard'
-    const match = ALL_NAV_ITEMS
-        .filter(item => {
-            if (item.href === '/dashboard' || item.href === '/admin') {
-                return pathname === item.href
-            }
-            return pathname.startsWith(item.href)
-        })
-        .sort((a, b) => b.href.length - a.href.length)[0]
-    return match?.label ?? 'Dashboard'
-}
-
-export function HybridHeaderTitle({ role }: { role?: string }) {
+/** Page title with the icon of the menu entry that owns the current route. */
+export function HybridHeaderTitle() {
     const pathname = usePathname()
-    const roleTextClass =
-        role === 'agent' ? 'text-black' :
-        role === 'dealer' ? 'text-white' :
-        ''
+    const item = resolveNavItem(pathname)
+    const Icon = item?.icon ?? LayoutDashboard
 
     return (
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-primary/10">
-                <FileText className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <h1 className={cn('text-sm font-bold tracking-tight truncate', roleTextClass)}>
-                {resolvePageTitle(pathname)}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="neu-inset hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-brand-700 dark:text-brand-500 sm:flex">
+                <Icon className="h-[18px] w-[18px]" />
+            </span>
+            <h1 className="truncate font-display text-base font-semibold leading-none tracking-tight lg:text-lg">
+                {item?.label ?? 'Dashboard'}
             </h1>
         </div>
     )

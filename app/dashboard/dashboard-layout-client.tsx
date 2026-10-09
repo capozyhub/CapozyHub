@@ -19,6 +19,7 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { PageAccessGuard } from '@/components/dashboard/page-access-guard'
 import { cn } from '@/lib/utils'
+import { contentOffset, HEADER_SPACER } from '@/components/dashboard/shell'
 import { useUI } from '@/contexts/ui-context'
 import { SuspendedAccount } from '@/components/dashboard/SuspendedAccount'
 import { CopyrightFooter } from '@/components/CopyrightFooter'
@@ -117,7 +118,7 @@ export default function DashboardLayoutClient({
     // a feature needs one, so a missing phone never blocks the dashboard.
     if (isLoading || !user || !dbUser) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#E5E7EB] dark:bg-[#000000]">
+            <div className="min-h-screen flex items-center justify-center bg-neu">
                 <BrandLoader fullScreen={false} />
             </div>
         )
@@ -136,21 +137,21 @@ export default function DashboardLayoutClient({
 
     if (isSuspended && !suspensionExempt) {
         return (
-            <div className="min-h-screen bg-[#E5E7EB] dark:bg-[#000000] relative">
+            <div className="min-h-screen bg-neu relative">
                 <DashboardSidebar communityLink={communityLink} />
                 <div className={cn(
-                    "relative transition-all duration-300 ease-in-out min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip",
-                    isCollapsed ? "lg:pl-20" : "lg:pl-80"
+                    "relative transition-[padding-left] duration-300 ease-out min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip",
+                    contentOffset(isCollapsed)
                 )}>
                     <DashboardHeader
                         onOpenNotifications={handleOpenNotifications}
                         unreadCount={unreadCount}
                     />
-                    <div className="h-16 flex-shrink-0" />
+                    <div className={HEADER_SPACER} />
                     <main className="p-4 lg:p-6 flex-1">
                         <SuspendedAccount />
                     </main>
-                    <CopyrightFooter adminSettings={adminSettings} className="bg-[#E5E7EB]/50 dark:bg-[#000000]/50" />
+                    <CopyrightFooter adminSettings={adminSettings}  />
                 </div>
                 <NotificationModal
                     isOpen={notifOpen}
@@ -165,7 +166,7 @@ export default function DashboardLayoutClient({
 
     return (
         <ModalQueueProvider>
-        <div className="min-h-screen bg-[#E5E7EB] dark:bg-[#000000] relative">
+        <div className="min-h-screen bg-neu relative">
             <TermsGate minVersion={adminSettings['terms_min_acceptable_version'] || ''} effectiveDate={adminSettings['terms_effective_date']} />
             <SystemAnnouncementModal />
 
@@ -184,20 +185,20 @@ export default function DashboardLayoutClient({
             <SessionExpiryModal />
             <DashboardSidebar communityLink={communityLink} />
             <div className={cn(
-                "relative transition-all duration-300 ease-in-out min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip",
-                isCollapsed ? "lg:pl-20" : "lg:pl-80"
+                "relative transition-[padding-left] duration-300 ease-out min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip",
+                contentOffset(isCollapsed)
             )}>
                 <DashboardHeader
                     onOpenNotifications={handleOpenNotifications}
                     unreadCount={unreadCount}
                 />
-                <div className="h-16 flex-shrink-0" />
+                <div className={HEADER_SPACER} />
                 <main className="p-4 lg:p-6 flex-1 max-lg:pb-[calc(80px+env(safe-area-inset-bottom,0px))]">
                     <PageAccessGuard>
                         {children}
                     </PageAccessGuard>
                 </main>
-                <CopyrightFooter adminSettings={adminSettings} className="hidden md:block bg-[#E5E7EB]/50 dark:bg-[#000000]/50" />
+                <CopyrightFooter adminSettings={adminSettings} className="hidden md:block" />
             </div>
 
             {/* ── Notification Modal (root-level, portals to document.body) ── */}
@@ -251,31 +252,30 @@ function PushPermissionToast({
                     exit={{ y: 40, opacity: 0, scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 >
-                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700/70 shadow-2xl backdrop-blur-xl">
-                        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 flex items-center justify-center mt-0.5">
-                            <Bell className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-gray-900 dark:text-white text-xs font-bold mb-0.5">Stay in the loop</p>
-                            <p className="text-gray-500 dark:text-zinc-400 text-[11px] leading-relaxed">Get instant alerts for orders, payouts, and important updates.</p>
-                            <div className="flex items-center gap-2 mt-2.5">
+                    <div className="neu-raised flex items-start gap-3 rounded-3xl p-4">
+                        <span className="clay-gold flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl">
+                            <Bell className="h-[18px] w-[18px]" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-display text-sm font-semibold text-foreground">Stay in the loop</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">Get instant alerts for orders, payouts and important updates.</p>
+                            <div className="mt-3 flex items-center gap-3">
                                 <button
                                     type="button"
                                     onClick={onEnable}
                                     disabled={isSubscribing}
-                                    className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-bold transition-all disabled:opacity-60"
+                                    className="clay-gold rounded-xl px-3.5 py-1.5 text-xs font-bold disabled:opacity-60"
                                 >
-                                    {isSubscribing ? 'Enabling…' : 'Enable notifications'}
+                                    {isSubscribing ? 'Enabling…' : 'Turn on alerts'}
                                 </button>
-                                <button type="button" onClick={onDismiss}
-                                    className="text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 text-[11px] font-medium transition-colors">
+                                <button type="button" onClick={onDismiss} className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
                                     Not now
                                 </button>
                             </div>
                         </div>
                         <button type="button" onClick={onDismiss} aria-label="Dismiss"
-                            className="flex-shrink-0 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300">
-                            <X className="w-3.5 h-3.5" />
+                            className="neu-inset flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
+                            <X className="h-3.5 w-3.5" />
                         </button>
                     </div>
                 </motion.div>

@@ -13,6 +13,7 @@ import {
     Store, Tag, TrendingUp, User, Users, Wallet, Wifi,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { roleConfig, resolveRoleKey } from '@/lib/roles'
 import { useAuth } from '@/contexts/auth-context'
 import { useUI } from '@/contexts/ui-context'
 import { useModalQueueContextSafe } from '@/contexts/modal-queue-context'
@@ -27,11 +28,8 @@ const USER_REGISTRY: Record<string, { label: string; icon: LucideIcon }> = {
     '/dashboard/results-checker': { label: 'Results',   icon: FileText },
     '/dashboard/transactions':    { label: 'Activity',  icon: Activity },
     '/dashboard/notifications':   { label: 'Alerts',    icon: Bell },
-    '/dashboard/utilities':       { label: 'Utilities', icon: Lightbulb },
     '/dashboard/complaints':      { label: 'Support',   icon: Headphones },
     '/dashboard/afa-orders':      { label: 'AFA',       icon: BadgeCheck },
-    '/dashboard/developers':      { label: 'Dev',       icon: Code2 },
-    '/dashboard/sms':             { label: 'SMS',       icon: Send },
     '/dashboard/airtime':         { label: 'Airtime',   icon: Phone },
     '/dashboard/profile':         { label: 'Profile',   icon: User },
     '/dashboard/upgrade':         { label: 'Upgrade',   icon: Crown },
@@ -39,87 +37,25 @@ const USER_REGISTRY: Record<string, { label: string; icon: LucideIcon }> = {
 }
 
 const ADMIN_REGISTRY: Record<string, { label: string; icon: LucideIcon }> = {
-    '/admin/ishare':              { label: 'iShare',      icon: Wifi },
-    '/admin/utilities':           { label: 'Utilities',   icon: Lightbulb },
     '/admin/shops/withdrawals':   { label: 'Withdrawals', icon: Banknote },
     '/admin/shops/settings':      { label: 'Sh.Settings', icon: Settings },
     '/admin/profits-history':     { label: 'Profits',     icon: TrendingUp },
     '/admin/afa-management':      { label: 'AFA',         icon: BadgeCheck },
     '/admin/sms-broadcast':       { label: 'SMS',         icon: MessageSquare },
-    '/admin/sms-platform':        { label: 'SMS Plat.',   icon: Send },
     '/admin/momo-claims':         { label: 'MoMo',        icon: Wallet },
     '/admin/results-checker':     { label: 'Results',     icon: FileText },
-    '/admin/profit-logs':         { label: 'Profit Logs', icon: TrendingUp },
-    '/admin/transactions':        { label: 'Txns',        icon: Activity },
-    '/admin/mtn-logs':            { label: 'MTN Logs',    icon: Activity },
-    '/admin/dealerships':         { label: 'Dealers',     icon: Store },
-    '/admin/memberships':         { label: 'Members',     icon: Users },
     '/admin/complaints':          { label: 'Complaints',  icon: MessageSquare },
     '/admin/announcements':       { label: 'Announce',    icon: Bell },
     '/admin/api-keys':            { label: 'API Keys',    icon: Key },
     '/admin/packages':            { label: 'Packages',    icon: Package },
     '/admin/settings':            { label: 'Settings',    icon: Settings },
     '/admin/finance':             { label: 'Finance',     icon: Banknote },
-    '/admin/datagod':             { label: 'DataGod',     icon: Activity },
     '/admin/shops':               { label: 'Shops',       icon: Store },
     '/admin/roles':               { label: 'Roles',       icon: Users },
     '/admin/users':               { label: 'Users',       icon: Users },
     '/admin':                     { label: 'Dashboard',   icon: Shield },
 }
 
-// ── Role-based colors — bar background mirrors the sidebar ───────────────────
-const ROLE_COLORS = {
-    admin: {
-        barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
-        barBorder:  'border-gray-300 dark:border-gray-800',
-        barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-red-600',
-        activeText: 'text-white dark:text-black',
-        inactiveIcon: 'text-gray-500 dark:text-gray-400',
-    },
-    'sub-admin': {
-        barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
-        barBorder:  'border-gray-300 dark:border-gray-800',
-        barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-yellow-400',
-        activeText: 'text-black',
-        inactiveIcon: 'text-gray-500 dark:text-gray-400',
-    },
-    dealer: {
-        barBg:      'bg-gradient-to-b from-violet-600 to-violet-800',
-        barBorder:  'border-violet-900/30',
-        barShadow:  'shadow-[0_-2px_20px_rgba(124,58,237,0.35)]',
-        activeBg:   'bg-white',
-        activeText: 'text-violet-800',  // 7.1:1 contrast on white
-        inactiveIcon: 'text-white/80',  // boosted for legibility on violet
-    },
-    agent: {
-        barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
-        barBorder:  'border-gray-300 dark:border-gray-800',
-        barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-yellow-400',
-        activeText: 'text-black',
-        inactiveIcon: 'text-gray-500 dark:text-gray-400',
-    },
-    customer: {
-        barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
-        barBorder:  'border-gray-300 dark:border-gray-800',
-        barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-brand-600',
-        activeText: 'text-white',
-        inactiveIcon: 'text-gray-500 dark:text-gray-400',
-    },
-    subagent: {
-        barBg:      'bg-[#E5E7EB] dark:bg-[#000000]',
-        barBorder:  'border-gray-300 dark:border-gray-800',
-        barShadow:  'shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_20px_rgba(0,0,0,0.5)]',
-        activeBg:   'bg-[#0D9488]',
-        activeText: 'text-white',
-        inactiveIcon: 'text-gray-500 dark:text-gray-400',
-    },
-} as const
-
-type RoleKey = keyof typeof ROLE_COLORS
 
 type NavItem = {
     label: string
@@ -137,7 +73,7 @@ export function BottomNav() {
     // Hint is permanently dismissed only when the user clicks "Got it".
     // Until then it reappears on every dashboard load.
     const [hintSeen, setHintSeen] = useState(() =>
-        typeof window !== 'undefined' && !!localStorage.getItem('kfg_nav_tip_ack')
+        typeof window !== 'undefined' && !!localStorage.getItem('cz_nav_tip_ack')
     )
     const [hintReady, setHintReady] = useState(false)
     const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -199,16 +135,11 @@ export function BottomNav() {
     const handleHintGotIt = useCallback(() => {
         setHintSeen(true)
         setHintReady(false)
-        localStorage.setItem('kfg_nav_tip_ack', '1')
+        localStorage.setItem('cz_nav_tip_ack', '1')
     }, [])
 
-    const role: RoleKey = isAdmin
-        ? 'admin'
-        : isSubAdmin
-            ? 'sub-admin'
-            : ((dbUser?.role as RoleKey) ?? 'customer')
-
-    const colors = ROLE_COLORS[role] ?? ROLE_COLORS.customer
+    const roleKey = resolveRoleKey({ isAdmin, isSubAdmin, role: dbUser?.role })
+    const role = roleConfig[roleKey]
     const isAdminArea = isAdmin || isSubAdmin
 
     const handleSidebarToggle = useCallback(() => {
@@ -261,19 +192,18 @@ export function BottomNav() {
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     >
-                        <div className="relative bg-slate-900 dark:bg-slate-100 rounded-2xl px-4 py-3 shadow-2xl max-w-xs w-full">
-                            {/* Arrow pointer */}
-                            <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 dark:bg-slate-100 rotate-45 rounded-[3px]" />
+                        <div className="neu-raised relative w-full max-w-xs rounded-2xl px-4 py-3">
+                            <div className="absolute -bottom-[6px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[3px] bg-neu" />
 
-                            <p className="text-white dark:text-slate-900 text-[12px] font-semibold text-center mb-2.5 leading-snug">
+                            <p className="mb-2.5 text-center text-[13px] font-semibold leading-snug text-foreground">
                                 Tap the active tab again to open the side menu
                             </p>
                             <button
                                 type="button"
                                 onClick={handleHintGotIt}
-                                className="w-full py-1.5 rounded-xl bg-white/20 dark:bg-slate-900/20 hover:bg-white/30 dark:hover:bg-slate-900/30 active:scale-95 transition-all text-white dark:text-slate-900 text-[11px] font-bold tracking-wide"
+                                className="clay-gold w-full rounded-xl py-1.5 text-xs font-bold"
                             >
-                                Got it!
+                                Got it
                             </button>
                         </div>
                     </motion.div>
@@ -290,78 +220,66 @@ export function BottomNav() {
                         exit={{ y: 100, opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
                     >
-                        <div className="flex items-stretch gap-2">
-                            {/* Dedicated sidebar opener — always-visible, obvious entry to the side menu */}
+                        <div className="flex items-stretch gap-2.5">
+                            {/* Dedicated sidebar opener: always-visible entry to the side menu */}
                             <button
                                 type="button"
                                 onClick={handleSidebarToggle}
                                 aria-label="Open side menu"
-                                className={cn(
-                                    'flex-shrink-0 w-14 rounded-full flex items-center justify-center border active:scale-90 transition-transform',
-                                    colors.barBg,
-                                    colors.barBorder,
-                                    colors.barShadow,
-                                    colors.inactiveIcon
-                                )}
+                                className="neu-raised neu-press flex h-[3.75rem] w-[3.75rem] flex-shrink-0 items-center justify-center rounded-full text-muted-foreground"
                             >
-                                <Menu className="w-6 h-6 stroke-[2.2]" />
+                                <Menu className="h-6 w-6 stroke-[2.2]" />
                             </button>
-                            <LayoutGroup id="kfg-bottom-nav">
-                            <div className={cn(
-                                'flex-1 min-w-0 rounded-full flex items-center p-2.5 border',
-                                colors.barBg,
-                                colors.barBorder,
-                                colors.barShadow
-                            )}>
-                                {navItems.map((item) => {
-                                    const Icon = item.icon
-                                    return (
-                                        <motion.div
-                                            key={item.label}
-                                            layout
-                                            className={cn('relative min-w-0', item.isActive ? 'flex-[2]' : 'flex-1')}
-                                            transition={{ type: 'spring', stiffness: 500, damping: 42 }}
-                                        >
-                                            <Link
-                                                href={item.href}
-                                                onClick={(e) => {
-                                                    if (item.isActive) {
-                                                        e.preventDefault()
-                                                        handleSidebarToggle()
-                                                    }
-                                                }}
-                                                className="relative flex items-center justify-center h-12 w-full rounded-full overflow-hidden active:opacity-75 transition-opacity"
+                            <LayoutGroup id="cz-bottom-nav">
+                                <nav aria-label="Quick links" className="neu-raised flex min-w-0 flex-1 items-center rounded-full p-1.5">
+                                    {navItems.map((item) => {
+                                        const Icon = item.icon
+                                        return (
+                                            <motion.div
+                                                key={item.label}
+                                                layout
+                                                className={cn('relative min-w-0', item.isActive ? 'flex-[2]' : 'flex-1')}
+                                                transition={{ type: 'spring', stiffness: 500, damping: 42 }}
                                             >
-                                                {item.isActive && (
-                                                    <motion.div
-                                                        layoutId="kfg-active-pill"
-                                                        className={cn('absolute inset-0 rounded-full', colors.activeBg)}
-                                                        transition={{ type: 'spring', stiffness: 500, damping: 42 }}
-                                                    />
-                                                )}
-                                                {item.isActive ? (
-                                                    /* Active pill: icon + label + always-visible sidebar toggle hint */
-                                                    <div className={cn('relative z-10 flex items-center gap-1.5 px-3', colors.activeText)}>
-                                                        <Icon className="w-[18px] h-[18px] stroke-[2.2] flex-shrink-0" />
-                                                        <span className="text-[11px] font-bold whitespace-nowrap truncate">
-                                                            {item.label}
-                                                        </span>
-                                                        <Menu className="w-2.5 h-2.5 opacity-40 flex-shrink-0" />
-                                                    </div>
-                                                ) : (
-                                                    /* Inactive: icon stacked above tiny label */
-                                                    <div className={cn('relative z-10 flex flex-col items-center justify-center gap-0.5 w-full', colors.inactiveIcon)}>
-                                                        <Icon className="w-[18px] h-[18px] stroke-[2] flex-shrink-0" />
-                                                        <span className="text-[9px] font-semibold leading-none tracking-tight truncate max-w-full px-1">
-                                                            {item.label}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </Link>
-                                        </motion.div>
-                                    )
-                                })}
-                            </div>
+                                                <Link
+                                                    href={item.href}
+                                                    aria-current={item.isActive ? 'page' : undefined}
+                                                    onClick={(e) => {
+                                                        if (item.isActive) {
+                                                            e.preventDefault()
+                                                            handleSidebarToggle()
+                                                        }
+                                                    }}
+                                                    className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-full transition-opacity active:opacity-75"
+                                                >
+                                                    {item.isActive && (
+                                                        <motion.div
+                                                            layoutId="cz-active-pill"
+                                                            className="absolute inset-0 rounded-full"
+                                                            style={{
+                                                                background: role.gradient,
+                                                                boxShadow: `0 4px 10px ${role.glow}, inset -2px -3px 6px rgba(0,0,0,0.2), inset 2px 3px 6px rgba(255,255,255,0.45)`,
+                                                            }}
+                                                            transition={{ type: 'spring', stiffness: 500, damping: 42 }}
+                                                        />
+                                                    )}
+                                                    {item.isActive ? (
+                                                        <div className="relative z-10 flex items-center gap-1.5 px-3" style={{ color: role.ink }}>
+                                                            <Icon className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.2]" />
+                                                            <span className="truncate whitespace-nowrap text-xs font-bold">{item.label}</span>
+                                                            <Menu className="h-2.5 w-2.5 flex-shrink-0 opacity-50" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="relative z-10 flex w-full flex-col items-center justify-center gap-0.5 text-muted-foreground">
+                                                            <Icon className="h-[18px] w-[18px] flex-shrink-0 stroke-[2]" />
+                                                            <span className="max-w-full truncate px-1 text-[10px] font-semibold leading-none">{item.label}</span>
+                                                        </div>
+                                                    )}
+                                                </Link>
+                                            </motion.div>
+                                        )
+                                    })}
+                                </nav>
                             </LayoutGroup>
                         </div>
                     </motion.div>
