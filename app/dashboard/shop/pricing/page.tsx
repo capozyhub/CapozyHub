@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BRAND } from '@/lib/brand'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -442,7 +443,7 @@ export default function ShopPricingPage() {
         return null
     }
 
-    const shopUrl = shop ? `https://shop.kingflexygh.com/${shop.shop_slug}` : ''
+    const shopUrl = shop ? `https://${BRAND.shopHost}/${shop.shop_slug}` : ''
 
     const copyLink = async () => {
         await navigator.clipboard.writeText(shopUrl)
@@ -1064,7 +1065,7 @@ export default function ShopPricingPage() {
                                     </span>
                                     {lockedByAdmin && (
                                         <span className="text-[10px] text-amber-600">
-                                            Temporarily unavailable platform-wide — set by KiNG FLEXY
+                                            Temporarily unavailable platform-wide — set by Capozy Hub
                                         </span>
                                     )}
                                 </div>

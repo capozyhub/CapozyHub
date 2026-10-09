@@ -20,6 +20,7 @@ import {
     IdCard,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { BRAND } from '@/lib/brand'
 
 interface LandingDataPackage { network: string; volume: string; price: string }
 interface LandingAgentPlan { key: string; title: string; duration: string; price: string; oldPrice?: string; badge?: string }
@@ -297,8 +298,8 @@ export default function AdminSettingsPage() {
             setWhatsappChannelLink(s.whatsapp_channel_link || '')
             setWhatsappAdminNumber(s.whatsapp_admin_number || '')
             setWhatsappCommunityLink(s.whatsapp_community_link || '')
-            setFooterCopyrightText(s.footer_copyright_text || '2026 KiNG FLEXY TECHNOLOGIES LTD')
-            setFooterBrandingText(s.footer_branding_text || 'KiNG FLEXY TECHNOLOGIES')
+            setFooterCopyrightText(s.footer_copyright_text || `${new Date().getFullYear()} ${BRAND.name}`)
+            setFooterBrandingText(s.footer_branding_text || BRAND.name)
             setAutoFulfillment(s.auto_fulfillment_enabled === 'true')
 
             const tryParseArray = (raw: unknown, fallback: unknown[]) => {
@@ -570,7 +571,7 @@ export default function AdminSettingsPage() {
                 <TabsContent value="general" className="space-y-4 mt-4">
                     <SettingsPanel title="Support Information" description="Contact details displayed to users" icon={Mail}>
                         <SettingField label="Support Email" hint="Displayed on help and contact pages">
-                            <Input value={supportEmail} onChange={e => setSupportEmail(e.target.value)} placeholder="support@kingflexydataltd.com" className="max-w-sm" />
+                            <Input value={supportEmail} onChange={e => setSupportEmail(e.target.value)} placeholder="support@capozygh.com" className="max-w-sm" />
                         </SettingField>
                     </SettingsPanel>
 
@@ -593,16 +594,16 @@ export default function AdminSettingsPage() {
 
                     <SettingsPanel title="Guest Storefront Configuration" description="Default shop users are directed to when buying as a guest without creating an account." icon={Store}>
                         <SettingField label="Guest Store URL" hint="Changes to this link will instantly update all unauthenticated app pages.">
-                            <Input value={guestStorefrontUrl} onChange={e => setGuestStorefrontUrl(e.target.value)} placeholder="https://kingflexygh.com/shop/your-shop" />
+                            <Input value={guestStorefrontUrl} onChange={e => setGuestStorefrontUrl(e.target.value)} placeholder="https://shop.capozygh.com/your-shop" />
                         </SettingField>
                     </SettingsPanel>
 
                     <SettingsPanel title="Copyright & Branding" description={'Configure the copyright text and "Powered by" labels used in footers.'} icon={Shield}>
                         <SettingField label="Platform Copyright Text" hint="Used on Dashboard and Admin footer: © [Text]. All rights reserved.">
-                            <Input value={footerCopyrightText} onChange={e => setFooterCopyrightText(e.target.value)} placeholder="e.g. 2026 KiNG FLEXY TECHNOLOGIES LTD" />
+                            <Input value={footerCopyrightText} onChange={e => setFooterCopyrightText(e.target.value)} placeholder={`e.g. ${new Date().getFullYear()} ${BRAND.name}`} />
                         </SettingField>
                         <SettingField label="Storefront Branding Label (Powered by)" hint="Plain text label shown on shop footers: Powered by [Text].">
-                            <Input value={footerBrandingText} onChange={e => setFooterBrandingText(e.target.value)} placeholder="e.g. KiNG FLEXY TECHNOLOGIES" />
+                            <Input value={footerBrandingText} onChange={e => setFooterBrandingText(e.target.value)} placeholder={`e.g. ${BRAND.name}`} />
                         </SettingField>
                     </SettingsPanel>
                 </TabsContent>

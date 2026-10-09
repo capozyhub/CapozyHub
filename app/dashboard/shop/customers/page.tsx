@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -82,7 +83,7 @@ export default function ShopCustomersPage() {
         toast.success('Customer list updated')
     }
 
-    const shopUrl = shopSlug ? `https://shop.kingflexygh.com/${shopSlug}` : ''
+    const shopUrl = shopSlug ? `https://${BRAND.shopHost}/${shopSlug}` : ''
     const shareText = `🛍️ Buy affordable data bundles, airtime & vouchers from ${shopName || 'my shop'}: ${shopUrl}`
 
     const copyLink = async () => {

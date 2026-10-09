@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -273,7 +274,7 @@ export default function ShopDashboardPage() {
         }
     }, [dbUser, isAdmin, isSubAdmin, filter])
 
-    const shopUrl = shop ? `https://shop.kingflexygh.com/${shop.shop_slug}` : ''
+    const shopUrl = shop ? `https://${BRAND.shopHost}/${shop.shop_slug}` : ''
 
     const copyLink = async () => {
         await navigator.clipboard.writeText(shopUrl)

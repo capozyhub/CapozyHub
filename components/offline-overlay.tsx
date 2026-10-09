@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BRAND } from '@/lib/brand'
 
 export function OfflineOverlay() {
     const [isOffline, setIsOffline] = useState(false)
-    const [shopName, setShopName] = useState('KiNG FLEXY GH')
+    const [shopName, setShopName] = useState<string>(BRAND.name)
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -20,7 +21,7 @@ export function OfflineOverlay() {
                         setShopName(title)
                     }
                 } else {
-                    setShopName('KiNG FLEXY GH')
+                    setShopName(BRAND.name)
                 }
             }
 

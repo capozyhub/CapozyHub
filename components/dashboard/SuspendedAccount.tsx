@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { BRAND } from '@/lib/brand'
 import { Ban, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -51,7 +52,7 @@ export function SuspendedAccount() {
                     </div>
 
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium pt-4 border-t border-border">
-                        KiNG FLEXY GH Support System
+                        {BRAND.name} Support
                     </p>
                 </CardContent>
             </Card>
