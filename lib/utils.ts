@@ -22,7 +22,10 @@ export function formatDate(date: string | Date): string {
 
 export function generateReferenceCode(): string {
     const timestamp = Date.now().toString(36).toUpperCase()
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+    // crypto, not Math.random: this doubles as the purchase idempotency key, so it should not be guessable.
+    const bytes = new Uint8Array(5)
+    crypto.getRandomValues(bytes)
+    const random = Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').substring(0, 8).toUpperCase()
     return `GHD-${timestamp}-${random}`
 }
 

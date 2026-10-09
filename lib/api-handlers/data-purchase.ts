@@ -7,9 +7,9 @@
 //   gates → role-based pricing → atomic wallet deduction → insert order →
 //   background fulfillment via the SHARED lib/fulfillment-trigger.ts
 //
-// Money-path ordering is unchanged by the port: every gate that can reject an
-// order still runs BEFORE the wallet is touched, and the compensating
-// credit_wallet_balance still runs on any insert failure.
+// Every gate that can reject an order runs BEFORE the wallet is touched, and the debit,
+// the order row and the ledger row are then written by ONE database call
+// (place_data_orders), so a failure can never leave a charge without an order.
 import { NextRequest } from 'next/server'
 import {
     validateApiKey,
@@ -29,6 +29,9 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
+import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { findBlacklistedPhones } from '@/lib/data-orders/guards'
+import { placeDataOrders } from '@/lib/data-orders/place'
 
 // Valid network names (exact, case-sensitive)
 const VALID_NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
@@ -95,18 +98,16 @@ export async function handleDataPurchase(request: NextRequest) {
             return apiError(400, 'recipient phone number is required')
         }
 
-        const cleanPhone = recipient.replace(/\s+/g, '')
-        const ghanaPhoneRegex = /^0\d{9}$/
-
-        if (!ghanaPhoneRegex.test(cleanPhone)) {
+        // One canonical number for every check and for the order row (see lib/data-orders/phone).
+        const cleanPhone = toCanonicalPhone(recipient)
+        if (!cleanPhone) {
             logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Invalid phone format' })
-            return apiError(400, 'Invalid phone number. Use format: 0XXXXXXXXX (10 digits, must start with 0)')
+            return apiError(400, 'Invalid phone number. Use a Ghana mobile number: 0XXXXXXXXX (10 digits) or 233XXXXXXXXX')
         }
-
         // ── Validate reference (idempotency key) ──────────────────────────
-        if (!reference || typeof reference !== 'string' || reference.length < 3 || reference.length > 100) {
+        if (!reference || typeof reference !== 'string' || !/^[A-Za-z0-9._:\-]{3,100}$/.test(reference)) {
             logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Invalid reference' })
-            return apiError(400, 'reference is required (3-100 characters). This is your unique transaction ID for idempotency.')
+            return apiError(400, 'reference is required: 3-100 characters, letters, numbers and . _ : - only. This is your unique transaction ID for idempotency.')
         }
 
         // Prefix API references to avoid collision with web references
@@ -165,19 +166,19 @@ export async function handleDataPurchase(request: NextRequest) {
         }
 
         // ── Check phone blacklist ─────────────────────────────────────────
-        const { data: blacklisted } = await supabase
-            .from('phone_blacklist')
-            .select('id')
-            .eq('phone_number', cleanPhone)
-            .single()
-
-        if (blacklisted) {
+        let blocked: Set<string>
+        try {
+            blocked = await findBlacklistedPhones(supabase, [cleanPhone])
+        } catch (e) {
+            console.error('[API Data Purchase] blacklist check unavailable:', e)
+            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 503, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Blacklist check unavailable' })
+            return apiError(503, 'Could not verify the recipient right now. Please try again.')
+        }
+        if (blocked.has(cleanPhone)) {
             logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Phone blacklisted' })
-            // Generic message — do not confirm the number is on a blacklist
-            // (prevents enumeration of the blacklist via probe responses).
+            // Generic message: do not confirm the number is on a blacklist.
             return apiError(400, 'Order cannot be processed for this recipient')
         }
-
         // MTN AgentPortal whitelist gate — pre-deduction, alongside the existing
         // blacklist/OOS checks. Unlike the blacklist message above, this one is
         // deliberately specific: it's an operational status the developer needs
@@ -245,88 +246,51 @@ export async function handleDataPurchase(request: NextRequest) {
             return apiError(409, 'This package is temporarily unavailable')
         }
 
-        // ── Atomic wallet deduction ───────────────────────────────────────
-        const { data: deductResult, error: deductError } = await (supabase as any)
-            .rpc('deduct_wallet_balance', {
-                p_user_id: userId,
-                p_amount: priceToCharge,
-            })
+        // ── Pay and create the order in one database transaction ──────────
+        // An unregistered MTN recipient is held 'queued' until the supplier confirms the number.
+        const queueDecision = await resolveOrderQueueing(cleanPhone, (pkg as any).network)
 
-        if (deductError) {
-            if (deductError.message?.includes('INSUFFICIENT_BALANCE')) {
+        priceToCharge = Math.round(priceToCharge * 100) / 100
+        const placed = await placeDataOrders(supabase, userId, [{
+            reference_code: referenceCode,
+            phone_number: cleanPhone,
+            network: (pkg as any).network,
+            size: (pkg as any).size,
+            price: priceToCharge,
+            cost_price: Number((pkg as any).cost_price) || 0,
+            // The tier the customer was actually CHARGED at (effectiveRole), not the raw
+            // users.role: a lapsed dealer billed at customer rates must not leave a row
+            // claiming role_at_time='dealer'.
+            role_at_time: effectiveRole,
+            status: queueDecision.queue ? 'queued' : 'pending',
+            fulfillment_method: 'auto',
+            category: (pkg as any).category || 'data',
+            source: 'api',
+            api_key_id: apiKeyId,
+        }])
+
+        if (!placed.ok) {
+            if (placed.code === 'INSUFFICIENT_BALANCE') {
                 logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 400, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Insufficient balance' })
                 return apiError(400, 'Insufficient wallet balance')
             }
-            console.error('[API Data Purchase] Wallet deduction error:', deductError)
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Wallet deduction failed' })
-            return apiError(500, 'Failed to process payment')
-        }
-
-        const walletRow = deductResult?.[0] || deductResult
-        const walletId = walletRow?.wallet_id
-        const newBalance = walletRow?.new_balance
-
-        if (!walletId) {
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 404, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Wallet not found' })
-            return apiError(404, 'Wallet not found')
-        }
-
-        // MTN number-registration gate: hold unregistered MTN recipients as 'queued'.
-        const queueDecision = await resolveOrderQueueing(cleanPhone, (pkg as any).network)
-
-        // ── Create order ──────────────────────────────────────────────────
-        const { data: order, error: orderError } = await (supabase
-            .from('orders') as any)
-            .insert({
-                user_id: userId,
-                phone_number: cleanPhone,
-                network: (pkg as any).network,
-                size: (pkg as any).size,
-                price: priceToCharge,
-                cost_price_at_time: (pkg as any).cost_price || 0,
-                // Records the tier the customer was actually CHARGED at, which is
-                // why it uses effectiveRole rather than the raw users.role: a
-                // lapsed dealer billed at customer rates should not leave a row
-                // claiming role_at_time='dealer'. Matches how airtime_orders.user_role
-                // is stamped on the v2 airtime route.
-                role_at_time: effectiveRole,
-                status: queueDecision.queue ? 'queued' : 'pending',
-                payment_status: 'paid',
-                reference_code: referenceCode,
-                fulfillment_method: 'auto',
-                source: 'api',
-                api_key_id: apiKeyId,
-            })
-            .select()
-            .single()
-
-        if (orderError) {
-            console.error('[API Data Purchase] Order insert error:', orderError)
-            // Refund the debited amount atomically so a transient insert failure
-            // (or a duplicate-reference collision) never costs the developer money.
-            const { error: refundError } = await (supabase as any)
-                .rpc('credit_wallet_balance', { p_user_id: userId, p_amount: priceToCharge })
-            if (refundError) {
-                console.error(`[API Data Purchase] CRITICAL: refund failed for ${referenceCode}, manual reconciliation required:`, refundError)
-                logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Order insert failed; refund failed' })
-                return apiError(500, 'Order processing failed. Your wallet has been debited. Please contact support with your reference code for assistance.')
-            }
-            // orders_reference_code_key is a GLOBAL unique constraint (verified on
-            // the live DB), not per-user, and references are developer-chosen
-            // plaintext. So the overwhelmingly likely cause here is a reference
-            // another tenant already used — the user-scoped lookup above found
-            // nothing, and this insert then collided. Telling that caller to
-            // "please try again" is advice that will fail identically forever;
-            // they need to change the reference. Same fix already applied to the
-            // v2 airtime/results-checker/AFA endpoints (review finding m1/I5).
-            if (orderError.code === '23505' || orderError.message?.includes('duplicate key')) {
+            if (placed.code === 'REFERENCE_IN_USE') {
+                // orders.reference_code is globally unique and references are developer-chosen, so the
+                // likely cause is a reference another account already used. Nothing was charged.
                 logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 409, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Reference already in use' })
                 return apiError(409, 'This reference is already in use. Your wallet was not charged. Choose a different reference.')
             }
-            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: 'Order insert failed; refunded' })
+            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 500, responseTimeMs: Date.now() - startTime, ip, errorMessage: placed.message })
             return apiError(500, 'Order could not be placed. Your wallet was not charged. Please try again.')
         }
+        if (placed.duplicate) {
+            // A concurrent request with the same reference won the race: same answer as the replay check above.
+            logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 200, responseTimeMs: Date.now() - startTime, ip })
+            return apiSuccess({ reference, is_duplicate: true }, { ...meta, message: 'Order already exists with this reference' })
+        }
 
+        const order = placed.orders[0]
+        const newBalance = placed.newBalance
         // Sub-agent purchase: credit the ONE direct recruiter (spec C3, C4 — a pending row
         // now, credited by the trigger only once the order actually completes). Never
         // blocks the purchase — the sub already paid, the data must still ship.
@@ -340,23 +304,6 @@ export async function handleDataPurchase(request: NextRequest) {
             }).catch((e) => console.error('[API Data Purchase] recordPendingSubAgentEarning threw:', e))
         }
 
-        // ── Wallet transaction ────────────────────────────────────────────
-        // waitUntil, not a bare floating promise: the wallet has ALREADY been
-        // debited by this point, so a lambda freeze immediately after the response
-        // would leave the debit with no matching wallet_transactions row — an
-        // audit gap on a money path. Same fix already applied to the v2 airtime
-        // route (review finding m2).
-        waitUntil((supabase.from('wallet_transactions') as any).insert({
-            wallet_id: walletId,
-            user_id: userId,
-            type: 'debit',
-            amount: priceToCharge,
-            description: `API data purchase: ${(pkg as any).size} for ${cleanPhone}`,
-            reference: referenceCode,
-            source: 'purchase',
-            status: 'completed',
-        }).then(() => {}).catch((e: any) => console.error('[API Data Purchase] Tx insert error:', e)))
-
         // ── Background: Fulfillment ───────────────────────────────────────
         waitUntil((async () => {
             try {
@@ -367,11 +314,11 @@ export async function handleDataPurchase(request: NextRequest) {
                     .single()
 
                 if (queueDecision.queue) {
-                    console.log(`[API Data Purchase] Order ${(order as any).id} QUEUED for MTN number registration — fulfillment held`)
+                    console.log(`[API Data Purchase] Order ${order.id} QUEUED for MTN number registration — fulfillment held`)
                     return
                 }
                 const firstName = (userData as any)?.first_name || 'Customer'
-                await triggerFulfillment((order as any).id, (pkg as any).network, {
+                await triggerFulfillment(order.id, (pkg as any).network, {
                     email: (userData as any)?.email || 'Unknown',
                     name: `${firstName} ${(userData as any)?.last_name || ''}`.trim() || 'Customer',
                 })
@@ -388,7 +335,7 @@ export async function handleDataPurchase(request: NextRequest) {
         })
 
         return apiSuccess({
-            order_id: (order as any).id,
+            order_id: order.id,
             reference: reference,
             status: queueDecision.queue ? 'queued' : 'pending',
             network: (pkg as any).network,
