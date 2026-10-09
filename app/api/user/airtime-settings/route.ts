@@ -51,7 +51,10 @@ export async function GET(request: NextRequest) {
             .select('key, value')
             .in('key', AIRTIME_SETTING_KEYS)
 
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        if (error) {
+            console.error('[User Airtime Settings] lookup failed:', error.message)
+            return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 })
+        }
 
         const settings: Record<string, string> = {}
         for (const row of (data || [])) settings[row.key] = String(row.value)
