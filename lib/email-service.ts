@@ -1,17 +1,16 @@
 ﻿/**
- * Brevo Email Service
- * 
- * This service handles all transactional emails using Brevo (formerly Sendinblue).
- * Premium high-end email templates for KiNG FLEXY TECHNOLOGIES LTD.
+ * Resend Email Service
+ *
+ * This service handles all transactional emails using Resend, the only
+ * configured provider. Premium high-end email templates for Capozy Hub.
  */
 
-// @ts-ignore - Brevo SDK doesn't have complete type definitions
-import * as SibApiV3Sdk from '@getbrevo/brevo'
 import { createClient } from '@supabase/supabase-js'
 import { sendAdminPushNotification } from './push-service'
 import { Resend } from 'resend'
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend"
 import { Redis } from '@upstash/redis'
+import { BRAND } from './brand'
+import { getSiteUrl } from './site-url'
 
 const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -25,14 +24,6 @@ function getResend(): Resend {
     if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY)
     return resendClient
 }
-const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY || '' })
-
-// Initialize API instance with API key
-const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi()
-
-// Set API key using the correct method
-// @ts-ignore - SDK type definitions are incomplete
-apiInstance.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY || '')
 
 /**
  * SECURITY (stored XSS): HTML-escape any user-controlled value before
@@ -54,12 +45,6 @@ function escapeHtml(value: unknown): string {
         .replace(/'/g, '&#39;')
 }
 
-// Sender configuration
-const DEFAULT_SENDER = {
-    name: process.env.BREVO_SENDER_NAME || 'KiNG FLEXY TECHNOLOGIES',
-    email: process.env.BREVO_SENDER_EMAIL || 'support@kingflexygh.com'
-}
-
 interface SendEmailOptions {
     to: string
     toName?: string
@@ -74,50 +59,19 @@ interface EmailResult {
 }
 
 /**
- * Core function to send transactional email via Brevo
+ * Core function that actually talks to Resend. Every exported send function
+ * below routes through this  -  Resend is the only configured provider, so
+ * there is no other provider left to fall back to.
  */
-export async function sendEmail(options: SendEmailOptions, senderEmail?: string): Promise<EmailResult> {
-    if (!process.env.BREVO_API_KEY) {
-        console.warn('BREVO_API_KEY not set. Email not sent.')
+async function sendViaResend(options: SendEmailOptions, senderEmail: string): Promise<EmailResult> {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY not set. Email not sent.')
         return { success: false, error: 'Email service not configured' }
     }
 
     try {
-        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail()
-
-        sendSmtpEmail.sender = senderEmail ? { name: process.env.BREVO_SENDER_NAME || 'KiNG FLEXY GH', email: senderEmail } : DEFAULT_SENDER
-        sendSmtpEmail.to = [{ email: options.to, name: options.toName || options.to }]
-        sendSmtpEmail.subject = options.subject
-        sendSmtpEmail.htmlContent = options.htmlContent
-
-        const data = await apiInstance.sendTransacEmail(sendSmtpEmail)
-        const rawMessageId = data.body?.messageId || data.response?.headers?.['x-message-id']
-        const messageId = Array.isArray(rawMessageId) ? rawMessageId[0] : rawMessageId
-        console.log('Email sent successfully:', messageId)
-
-        return { success: true, messageId }
-    } catch (error: any) {
-        console.error('Failed to send email:', error.response?.body || error.message)
-        return {
-            success: false,
-            error: error.response?.body?.message || error.message || 'Failed to send email'
-        }
-    }
-}
-
-/**
- * Core function to send critical transactional email via Resend
- * Automatically falls back to Brevo if Resend fails.
- */
-export async function sendResendEmail(options: SendEmailOptions, senderEmail: string = 'receipts@kingflexygh.com'): Promise<EmailResult> {
-    if (!process.env.RESEND_API_KEY) {
-        console.warn('RESEND_API_KEY not set. Falling back to MailerSend → Brevo.')
-        return sendMailerSendEmail(options, senderEmail)
-    }
-
-    try {
         const data = await getResend().emails.send({
-            from: `KiNG FLEXY GH <${senderEmail}>`,
+            from: `${BRAND.name} <${senderEmail}>`,
             to: options.toName ? `${options.toName} <${options.to}>` : options.to,
             subject: options.subject,
             html: options.htmlContent,
@@ -125,48 +79,39 @@ export async function sendResendEmail(options: SendEmailOptions, senderEmail: st
 
         if (data.error) {
             console.error('Resend API Error:', data.error)
-            console.warn('Falling back to MailerSend → Brevo...')
-            return sendMailerSendEmail(options, senderEmail)
+            return { success: false, error: data.error.message }
         }
 
         console.log('Email sent successfully via Resend:', data.data?.id)
         return { success: true, messageId: data.data?.id }
     } catch (error: any) {
         console.error('Failed to send email via Resend:', error.message)
-        console.warn('Falling back to MailerSend → Brevo...')
-        return sendMailerSendEmail(options, senderEmail)
+        return { success: false, error: error.message || 'Failed to send email' }
     }
 }
 
 /**
- * Core function to send time-sensitive transactional email via MailerSend
- * Automatically falls back to Brevo if MailerSend fails.
+ * General-purpose transactional email. Kept as its own export (rather than
+ * folded into sendResendEmail) since callers pass their own senderEmail.
  */
-export async function sendMailerSendEmail(options: SendEmailOptions, senderEmail: string = 'support@kingflexygh.com'): Promise<EmailResult> {
-    if (!process.env.MAILERSEND_API_KEY) {
-        console.warn('MAILERSEND_API_KEY not set. Falling back to Brevo.')
-        return sendEmail(options, senderEmail)
-    }
+export async function sendEmail(options: SendEmailOptions, senderEmail: string = `support@${BRAND.domain}`): Promise<EmailResult> {
+    return sendViaResend(options, senderEmail)
+}
 
-    try {
-        const sentFrom = new Sender(senderEmail, "KiNG FLEXY GH")
-        const recipients = [new Recipient(options.to, options.toName || options.to)]
+/**
+ * Critical transactional email (orders, payments). Same Resend path as
+ * sendEmail  -  kept separate so call sites that reach for "the resilient one"
+ * stay meaningful if a second provider is ever added back.
+ */
+export async function sendResendEmail(options: SendEmailOptions, senderEmail: string = `receipts@${BRAND.domain}`): Promise<EmailResult> {
+    return sendViaResend(options, senderEmail)
+}
 
-        const emailParams = new EmailParams()
-            .setFrom(sentFrom)
-            .setTo(recipients)
-            .setSubject(options.subject)
-            .setHtml(options.htmlContent)
-
-        const response = await mailerSend.email.send(emailParams)
-
-        console.log('Email sent successfully via MailerSend')
-        return { success: true }
-    } catch (error: any) {
-        console.error('Failed to send email via MailerSend:', error)
-        console.warn('Falling back to Brevo...')
-        return sendEmail(options, senderEmail)
-    }
+/**
+ * Time-sensitive transactional email (shop payouts, memberships).
+ */
+export async function sendMailerSendEmail(options: SendEmailOptions, senderEmail: string = `support@${BRAND.domain}`): Promise<EmailResult> {
+    return sendViaResend(options, senderEmail)
 }
 
 /**
@@ -545,9 +490,9 @@ function generateProfessionalTemplate(title: string, content: string, accentColo
             <div class="header">
                 <div class="logo-container">
                     <div class="logo-icon">
-                        <span class="logo-text">K</span>
+                        <span class="logo-text">${BRAND.nameFirst.charAt(0)}</span>
                     </div>
-                    <div class="brand-name"><span style="color: #ffffff;">KiNG </span><span style="color: #FFCC00;">FLEXY GH</span></div>
+                    <div class="brand-name"><span style="color: #ffffff;">${BRAND.nameFirst} </span><span style="color: #FFCC00;">${BRAND.nameSecond}</span></div>
                     <div class="brand-tagline">Powering Digital Services in Ghana</div>
                 </div>
             </div>
@@ -556,16 +501,16 @@ function generateProfessionalTemplate(title: string, content: string, accentColo
             </div>
             <div class="footer">
                 <div class="footer-links">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL}" class="footer-link">Website</a>
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" class="footer-link">Dashboard</a>
-                    <a href="mailto:support@kingflexygh.com" class="footer-link">Support</a>
+                    <a href="${getSiteUrl()}" class="footer-link">Website</a>
+                    <a href="${getSiteUrl()}/dashboard" class="footer-link">Dashboard</a>
+                    <a href="mailto:support@${BRAND.domain}" class="footer-link">Support</a>
                 </div>
                 <p class="footer-text">
                     Questions? Reply to this email or contact us at<br>
-                    <strong>support@kingflexygh.com</strong>
+                    <strong>support@${BRAND.domain}</strong>
                 </p>
                 <p class="footer-copyright">
-                    © ${new Date().getFullYear()} KiNG FLEXY TECHNOLOGIES LTD. All rights reserved.<br>
+                    © ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.<br>
                     Powering Digital Services in Ghana
                 </p>
             </div>
@@ -591,7 +536,7 @@ export async function sendWelcomeEmail(
         <p class="subtitle">Your account has been successfully created</p>
         
         <p class="message-text">
-            Thank you for joining <strong>KiNG FLEXY GH</strong>  -  Ghana's premier digital
+            Thank you for joining <strong>${BRAND.name}</strong>  -  Ghana's premier digital
             services platform. Your account has been successfully created and
             you're now part of an exclusive community.
         </p>
@@ -620,7 +565,7 @@ export async function sendWelcomeEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard" class="cta-button">
                 Access Your Dashboard
             </a>
         </div>
@@ -636,7 +581,7 @@ export async function sendWelcomeEmail(
     return sendEmail({
         to: email,
         toName: firstName,
-        subject: `Welcome to KiNG FLEXY GH, ${firstName}`,
+        subject: `Welcome to ${BRAND.name}, ${firstName}`,
         htmlContent: generateProfessionalTemplate('Welcome', content)
     })
 }
@@ -696,7 +641,7 @@ export async function sendOrderSuccessEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/my-orders" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/my-orders" class="cta-button">
                 Track Your Order
             </a>
         </div>
@@ -707,7 +652,7 @@ export async function sendOrderSuccessEmail(
         toName: firstName,
         subject: `Order Confirmed - ${orderDetails.referenceCode}`,
         htmlContent: generateProfessionalTemplate('Order Confirmed', content)
-    }, 'receipts@kingflexygh.com')
+    }, `receipts@${BRAND.domain}`)
 }
 
 /**
@@ -774,7 +719,7 @@ export async function sendOrderFailedEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/my-orders" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/my-orders" class="cta-button">
                 File a Complaint
             </a>
         </div>
@@ -785,7 +730,7 @@ export async function sendOrderFailedEmail(
         toName: firstName,
         subject: `Order Failed - ${orderDetails.referenceCode}`,
         htmlContent: generateProfessionalTemplate('Order Failed', content, '#ef4444')
-    }, 'receipts@kingflexygh.com')
+    }, `receipts@${BRAND.domain}`)
 }
 
 /**
@@ -840,7 +785,7 @@ export async function sendWalletTopupSuccessEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/data-packages" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/data-packages" class="cta-button">
                 Buy Data Now
             </a>
         </div>
@@ -851,7 +796,7 @@ export async function sendWalletTopupSuccessEmail(
         toName: firstName,
         subject: `Wallet Credited - GHS ${amount.toFixed(2)}`,
         htmlContent: generateProfessionalTemplate('Wallet Credited', content, '#10b981')
-    }, 'receipts@kingflexygh.com')
+    }, `receipts@${BRAND.domain}`)
 }
 
 /**
@@ -916,7 +861,7 @@ export async function sendWalletTopupFailedEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/wallet" class="cta-button">
                 Try Again
             </a>
         </div>
@@ -927,7 +872,7 @@ export async function sendWalletTopupFailedEmail(
         toName: firstName,
         subject: `Payment Failed - GHS ${amount.toFixed(2)}`,
         htmlContent: generateProfessionalTemplate('Payment Failed', content, '#ef4444')
-    }, 'receipts@kingflexygh.com')
+    }, `receipts@${BRAND.domain}`)
 }
 
 /**
@@ -979,7 +924,7 @@ export async function sendComplaintResolvedEmail(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/complaints" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/complaints" class="cta-button">
                 View Complaint
             </a>
         </div>
@@ -990,7 +935,7 @@ export async function sendComplaintResolvedEmail(
         toName: firstName,
         subject: `Complaint Update - ${complaintDetails.orderRef} [${statusText}]`,
         htmlContent: generateProfessionalTemplate(`Complaint ${statusText}`, content, statusColor)
-    }, 'support@kingflexygh.com')
+    }, `support@${BRAND.domain}`)
 }
 
 /**
@@ -1055,7 +1000,7 @@ export async function sendAdminNewComplaintAlert(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/complaints" class="cta-button">
+            <a href="${getSiteUrl()}/admin/complaints" class="cta-button">
                 Process Complaint
             </a>
         </div>
@@ -1072,7 +1017,7 @@ export async function sendAdminNewComplaintAlert(
         toName: 'Admin',
         subject: `[New Complaint] ${complaintDetails.title} - ${complaintDetails.orderRef}`,
         htmlContent: generateProfessionalTemplate('New Complaint', content, '#ef4444')
-    }, 'admin@kingflexygh.com')
+    }, `admin@${BRAND.domain}`)
 }
 
 /**
@@ -1082,7 +1027,7 @@ export async function sendPermanentAgentUpgradeSuccessEmail(
     email: string,
     firstName: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Permanent Agent Status Activated</h1>
         <p class="subtitle">Lifetime access to premium data rates</p>
@@ -1093,7 +1038,7 @@ export async function sendPermanentAgentUpgradeSuccessEmail(
         
         <div class="highlight-box">
             <p class="highlight-text">
-                You now have <strong>unlimited, lifetime access</strong> to KiNG FLEXY GH's lowest agent pricing. Your account will never expire, and you will never need to renew your subscription again.
+                You now have <strong>unlimited, lifetime access</strong> to ${BRAND.name}'s lowest agent pricing. Your account will never expire, and you will never need to renew your subscription again.
             </p>
         </div>
         
@@ -1117,7 +1062,7 @@ export async function sendPermanentAgentUpgradeSuccessEmail(
         toName: firstName,
         subject: `Permanent Agent Status Activated`,
         htmlContent: generateProfessionalTemplate('Permanent Agent', content, '#4f46e5')
-    }, 'billing@kingflexygh.com')
+    }, `billing@${BRAND.domain}`)
 }
 
 /**
@@ -1128,14 +1073,14 @@ export async function sendDealerActivationSuccessEmail(
     firstName: string,
     expiryDate: string | Date
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const formatted = new Date(expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const content = `
         <h1 class="greeting">Dealer Status Activated!</h1>
         <p class="subtitle">Welcome to the highest reseller rank on the platform</p>
 
         <p class="message-text">
-            Hi ${firstName}, congratulations on becoming a <strong>Dealer</strong> on KiNG FLEXY GH!
+            Hi ${firstName}, congratulations on becoming a <strong>Dealer</strong> on ${BRAND.name}!
             You now have access to the most discounted prices on the platform.
         </p>
 
@@ -1188,7 +1133,7 @@ export async function sendDealerActivationSuccessEmail(
         toName: firstName,
         subject: `Dealer Status Activated  -  Expires ${formatted}`,
         htmlContent: generateProfessionalTemplate('Dealer Activated', content, '#7C3AED')
-    }, 'billing@kingflexygh.com')
+    }, `billing@${BRAND.domain}`)
 }
 
 /**
@@ -1199,7 +1144,7 @@ export async function sendDealerExtensionSuccessEmail(
     firstName: string,
     newExpiryDate: string | Date
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const formatted = new Date(newExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const content = `
         <h1 class="greeting">Dealer Membership Extended!</h1>
@@ -1255,7 +1200,7 @@ export async function sendDealerExtensionSuccessEmail(
         toName: firstName,
         subject: `Dealer Membership Extended  -  New Expiry: ${formatted}`,
         htmlContent: generateProfessionalTemplate('Dealer Extended', content, '#7C3AED')
-    }, 'billing@kingflexygh.com')
+    }, `billing@${BRAND.domain}`)
 }
 
 // ==========================================
@@ -1383,7 +1328,7 @@ export async function sendAdminNewUserAlert(
         </div>
         
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/users" class="cta-button">
+            <a href="${getSiteUrl()}/admin/users" class="cta-button">
                 View in Admin Panel
             </a>
         </div>
@@ -1400,7 +1345,7 @@ export async function sendAdminNewUserAlert(
         toName: 'Admin',
         subject: `New User: ${userDetails.firstName} ${userDetails.lastName}`,
         htmlContent: generateProfessionalTemplate('New User Alert', content)
-    }, 'admin@kingflexygh.com')
+    }, `admin@${BRAND.domain}`)
 }
 
 // ==========================================
@@ -1415,7 +1360,7 @@ export async function sendShopPricingApprovedEmail(
     firstName: string,
     shopName: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Pricing Approved</h1>
         <p class="subtitle">Your shop prices are now live</p>
@@ -1438,7 +1383,7 @@ export async function sendShopPricingRejectedEmail(
     shopName: string,
     reason: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Pricing Needs Revision</h1>
         <p class="subtitle">Your pricing submission was returned</p>
@@ -1459,7 +1404,7 @@ export async function sendShopProfileApprovedEmail(
     firstName: string,
     shopName: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Your Shop is Approved</h1>
         <p class="subtitle">Welcome to the King Flexy Shop Network</p>
@@ -1485,7 +1430,7 @@ export async function sendShopProfileRejectedEmail(
     shopName: string,
     reason: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Shop Application  -  Action Required</h1>
         <p class="subtitle">Your shop application needs attention</p>
@@ -1509,7 +1454,7 @@ export async function sendShopWithdrawalProcessedEmail(
     momoNumber: string,
     network: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     // Escape user-controlled strings (H1) + mask the destination number (M2),
     // matching the admin withdrawal-request alert.
     const maskNum = (n: string) => !n ? '' : n.length <= 4 ? '****' : '*'.repeat(n.length - 4) + n.slice(-4)
@@ -1529,10 +1474,10 @@ export async function sendShopWithdrawalProcessedEmail(
             <div class="info-row"><span class="info-label">Date</span><span class="info-value">${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
         </div>
         <div style="text-align: center; margin: 25px 0;"><span class="status-badge status-success">Completed</span></div>
-        <p class="message-text">Thank you for selling with KiNG FLEXY GH. Keep growing!</p>
+        <p class="message-text">Thank you for selling with ${BRAND.name}. Keep growing!</p>
         <div class="cta-container"><a href="${siteUrl}/dashboard/shop/withdraw" class="cta-button">View Withdrawal History</a></div>
     `
-    return sendMailerSendEmail({ to: email, toName: firstName, subject: `Net Payout of GH${netAmount.toFixed(2)} Sent  -  ${shopName}`, htmlContent: generateProfessionalTemplate('Payout Successful', content, '#10b981') }, 'billing@kingflexygh.com')
+    return sendMailerSendEmail({ to: email, toName: firstName, subject: `Net Payout of GH${netAmount.toFixed(2)} Sent  -  ${shopName}`, htmlContent: generateProfessionalTemplate('Payout Successful', content, '#10b981') }, `billing@${BRAND.domain}`)
 }
 
 /**
@@ -1545,7 +1490,7 @@ export async function sendShopWithdrawalRejectedEmail(
     amount: number,
     adminNote: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Withdrawal Request  -  Action Required</h1>
         <p class="subtitle">Your withdrawal request was not approved</p>
@@ -1559,7 +1504,7 @@ export async function sendShopWithdrawalRejectedEmail(
         <div style="text-align: center; margin: 25px 0;"><span class="status-badge status-failed">Rejected</span></div>
         <div class="cta-container"><a href="${siteUrl}/dashboard/shop/withdraw" class="cta-button">Update &amp; Resubmit</a></div>
     `
-    return sendMailerSendEmail({ to: email, toName: firstName, subject: `Withdrawal Request Rejected  -  ${shopName}`, htmlContent: generateProfessionalTemplate('Withdrawal Rejected', content, '#ef4444') }, 'billing@kingflexygh.com')
+    return sendMailerSendEmail({ to: email, toName: firstName, subject: `Withdrawal Request Rejected  -  ${shopName}`, htmlContent: generateProfessionalTemplate('Withdrawal Rejected', content, '#ef4444') }, `billing@${BRAND.domain}`)
 }
 
 // ==========================================
@@ -1573,7 +1518,7 @@ export async function sendAdminShopPricingSubmissionAlert(details: {
     shopName: string; ownerName: string; ownerEmail: string; shopId: string; date: string
 }): Promise<EmailResult> {
     const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New Pricing Submission</h1>
         <p class="subtitle">A shop owner has submitted pricing for review</p>
@@ -1592,7 +1537,7 @@ export async function sendAdminShopPricingSubmissionAlert(details: {
         url: `/admin/shops/${details.shopId}`
     }).catch(e => console.error('[Pricing Alert] Admin push error:', e))
 
-    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `New Pricing Submission  -  ${details.shopName}`, htmlContent: generateProfessionalTemplate('Pricing Submission', content) }, 'admin@kingflexygh.com')
+    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `New Pricing Submission  -  ${details.shopName}`, htmlContent: generateProfessionalTemplate('Pricing Submission', content) }, `admin@${BRAND.domain}`)
 }
 
 /**
@@ -1602,7 +1547,7 @@ export async function sendAdminNewShopRegistrationAlert(details: {
     shopName: string; ownerName: string; ownerEmail: string; date: string
 }): Promise<EmailResult> {
     const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New Shop Registration</h1>
         <p class="subtitle">A new shop is awaiting your approval</p>
@@ -1622,7 +1567,7 @@ export async function sendAdminNewShopRegistrationAlert(details: {
         url: `/admin/shops`
     }).catch(e => console.error('[Shop Registration Alert] Admin push error:', e))
 
-    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `New Shop Registration  -  ${details.shopName}`, htmlContent: generateProfessionalTemplate('New Shop Registration', content) }, 'admin@kingflexygh.com')
+    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `New Shop Registration  -  ${details.shopName}`, htmlContent: generateProfessionalTemplate('New Shop Registration', content) }, `admin@${BRAND.domain}`)
 }
 
 /**
@@ -1648,7 +1593,7 @@ export async function sendAdminShopWithdrawalRequestAlert(details: {
     const maskNum = (n: string) => !n ? '' : n.length <= 4 ? '****' : '*'.repeat(n.length - 4) + n.slice(-4)
 
     const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const badge = details.isResubmission
         ? `<div style="text-align:center;margin:20px 0;"><span style="background:#7c3aed;color:#fff;padding:6px 16px;border-radius:50px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Resubmission</span></div>`
         : ''
@@ -1681,7 +1626,7 @@ export async function sendAdminShopWithdrawalRequestAlert(details: {
         url: `/admin/shops/withdrawals`
     }).catch(e => console.error('[Withdrawal Alert] Admin push error:', e))
 
-    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `${details.isResubmission ? 'Resubmission' : 'New Withdrawal'}  -  GH${details.amount.toFixed(2)} from ${details.shopName}`, htmlContent: generateProfessionalTemplate('Withdrawal Request', content) }, 'admin@kingflexygh.com')
+    return sendEmail({ to: adminEmail, toName: 'Admin', subject: `${details.isResubmission ? 'Resubmission' : 'New Withdrawal'}  -  GH${details.amount.toFixed(2)} from ${details.shopName}`, htmlContent: generateProfessionalTemplate('Withdrawal Request', content) }, `admin@${BRAND.domain}`)
 }
 
 /**
@@ -1693,7 +1638,7 @@ export async function sendAdminNewAfaApplicationAlert(details: {
     region: string
 }, toEmail?: string): Promise<EmailResult> {
     const adminEmail = toEmail || process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New AFA Membership Application</h1>
         <p class="subtitle">A new application has been submitted for review</p>
@@ -1712,7 +1657,7 @@ export async function sendAdminNewAfaApplicationAlert(details: {
         url: `/admin/afa-management`
     }).catch(e => console.error('[AFA Alert] Admin push error:', e))
 
-    return sendEmail({ to: adminEmail, toName: 'Admin', subject: ' New AFA Membership Application - ' + details.applicantName, htmlContent: generateProfessionalTemplate('New AFA Application', content) }, 'admin@kingflexygh.com')
+    return sendEmail({ to: adminEmail, toName: 'Admin', subject: ' New AFA Membership Application - ' + details.applicantName, htmlContent: generateProfessionalTemplate('New AFA Application', content) }, `admin@${BRAND.domain}`)
 }
 
 // ==========================================
@@ -1848,7 +1793,7 @@ export async function sendResultsCheckerDeliveryEmail(
         </div>
 
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/results-checker" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/results-checker" class="cta-button">
                 View My Orders
             </a>
         </div>
@@ -1890,7 +1835,7 @@ export async function sendAdminRCOrderEmail(orderDetails: {
 
 /**
  * Send MoMo claim success email to the claiming user.
- * Uses the existing Brevo premium template system (emerald accent).
+ * Uses the existing premium template system (emerald accent).
  */
 export async function sendMomoClaimSuccessEmail(
     email: string,
@@ -1979,7 +1924,7 @@ export async function sendMomoClaimSuccessEmail(
         </div>
 
         <div class="cta-container">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/data-packages" class="cta-button">
+            <a href="${getSiteUrl()}/dashboard/data-packages" class="cta-button">
                 Buy Data Now
             </a>
         </div>
@@ -2009,7 +1954,7 @@ export async function sendAgentRenewalReminderEmail(
     email: string,
     firstName: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Agent Role Expiring Soon</h1>
         <p class="subtitle">Your premium agent access needs renewal</p>
@@ -2045,7 +1990,7 @@ export async function sendDealerRenewalReminderEmail(
     email: string,
     firstName: string
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Dealer Role Expiring Soon</h1>
         <p class="subtitle">Your premium dealer access is expiring in less than 48 hours</p>
@@ -2092,7 +2037,7 @@ export async function sendShopSalesSummaryEmail(
         topSellingNetwork: string
     }
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const successRate = stats.totalOrders > 0 
         ? Math.round((stats.successfulOrders / stats.totalOrders) * 100) 
         : 0
@@ -2144,7 +2089,6 @@ export async function sendShopSalesSummaryEmail(
         </div>
     `
 
-    // Uses Brevo for automated reports to avoid hitting limits on transactional IPs
     return sendEmail({
         to: email,
         toName: firstName,
@@ -2164,7 +2108,7 @@ export async function sendAutoUpgradeFailedEmail(
     currentBalance: number,
     requiredAmount: number
 ): Promise<EmailResult> {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kingflexygh.com'
+    const siteUrl = getSiteUrl()
     const shortfall = (requiredAmount - currentBalance).toFixed(2)
 
     const content = `
@@ -2216,3 +2160,5 @@ export async function sendAutoUpgradeFailedEmail(
         htmlContent: generateProfessionalTemplate('Auto-Upgrade Failed', content, '#ef4444')
     })
 }
+
+
