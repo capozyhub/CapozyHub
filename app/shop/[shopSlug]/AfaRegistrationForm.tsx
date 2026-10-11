@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { ShieldCheck } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 import { VALID_REGIONS } from '@/lib/afa-validation'
 
 interface AfaRegistrationFormProps {
@@ -14,6 +16,16 @@ interface AfaRegistrationFormProps {
      * MoMo charge via /api/shop/afa/charge — no redirect, no KYC in Paystack metadata).
      */
     onSubmitDetails: (formData: Record<string, any>, guestEmail: string) => void
+}
+
+const GC_PATTERN = /^GHA-\d{9}-\d$/
+
+/** Digits typed in → GHA-XXXXXXXXX-X, built up as the person types. */
+function maskGc(raw: string): string {
+    const digits = raw.replace(/\D/g, '').slice(0, 10)
+    if (digits.length === 0) return ''
+    if (digits.length <= 9) return 'GHA-' + digits
+    return 'GHA-' + digits.slice(0, 9) + '-' + digits[9]
 }
 
 export default function AfaRegistrationForm({ shopSlug: _shopSlug, displayPrice, onSubmitDetails }: AfaRegistrationFormProps) {
@@ -33,8 +45,12 @@ export default function AfaRegistrationForm({ shopSlug: _shopSlug, displayPrice,
             toast.error('Enter a valid phone number (0XXXXXXXXX)')
             return
         }
-        if (!fullName.trim() || !idNumber.trim() || !region || !location.trim() || !occupation.trim() || !dob) {
-            toast.error('Please fill in all required fields')
+        if (!GC_PATTERN.test(idNumber.trim())) {
+            toast.error('Check the Ghana Card number', { description: 'Format: GHA-XXXXXXXXX-X' })
+            return
+        }
+        if (!fullName.trim() || !region || !location.trim() || !occupation.trim() || !dob) {
+            toast.error('Fill in every field above')
             return
         }
         if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -45,7 +61,7 @@ export default function AfaRegistrationForm({ shopSlug: _shopSlug, displayPrice,
             full_name: fullName,
             phone: cleanPhone,
             id_type: 'Ghana Card',
-            id_number: idNumber,
+            id_number: idNumber.trim(),
             region,
             location,
             occupation,
@@ -53,49 +69,73 @@ export default function AfaRegistrationForm({ shopSlug: _shopSlug, displayPrice,
         }, email.trim())
     }
 
-    const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500'
+    const field = 'w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500'
+    const labelCls = 'mb-1 block text-xs font-semibold text-muted-foreground'
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
-                <p className="text-xs text-amber-800 dark:text-amber-300">
-                    Register your SIM with your Ghana Card. Your details are sent securely and used only for this registration.
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-start gap-2.5 rounded-xl border border-border bg-card/60 p-3.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                    We only use these details to register this number — they go straight to the AFA system, not anywhere else.
                 </p>
             </div>
 
-            <input required value={fullName} onChange={e => setFullName(e.target.value)} maxLength={100}
-                placeholder="Full Name (as on Ghana Card)" className={inputCls} />
-
-            <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel"
-                placeholder="Phone Number to register (0XXXXXXXXX)" className={inputCls} />
-
-            <input required value={idNumber} onChange={e => setIdNumber(e.target.value.toUpperCase())}
-                placeholder="Ghana Card Number (GHA-XXXXXXXXX-X)" className={inputCls} />
-
-            <select required value={region} onChange={e => setRegion(e.target.value)} className={inputCls}>
-                <option value="">Select Region</option>
-                {VALID_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-
-            <input required value={location} onChange={e => setLocation(e.target.value)} maxLength={100}
-                placeholder="Town / Area" className={inputCls} />
-
-            <input required value={occupation} onChange={e => setOccupation(e.target.value)} maxLength={100}
-                placeholder="Occupation" className={inputCls} />
-
-            <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                    Date of Birth (must be 18+)
-                </label>
-                <input required type="date" value={dob} onChange={e => setDob(e.target.value)} className={inputCls} />
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label className={labelCls}>Full name</label>
+                    <input required value={fullName} onChange={e => setFullName(e.target.value)} maxLength={100}
+                        placeholder="As on the Ghana Card" className={field} />
+                </div>
+                <div>
+                    <label className={labelCls}>Phone to register</label>
+                    <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel"
+                        placeholder="0XXXXXXXXX" className={field} />
+                </div>
             </div>
 
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254}
-                placeholder="Email (optional — for your receipt)" className={inputCls} />
+            <div>
+                <label className={labelCls}>Ghana Card number</label>
+                <input required value={idNumber} onChange={e => setIdNumber(maskGc(e.target.value))}
+                    placeholder="GHA-XXXXXXXXX-X" className={cn(field, 'font-mono')} />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label className={labelCls}>Region</label>
+                    <select required value={region} onChange={e => setRegion(e.target.value)} className={field}>
+                        <option value="">Select region</option>
+                        {VALID_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className={labelCls}>Town / area</label>
+                    <input required value={location} onChange={e => setLocation(e.target.value)} maxLength={100}
+                        placeholder="e.g. Kumasi" className={field} />
+                </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label className={labelCls}>Occupation</label>
+                    <input required value={occupation} onChange={e => setOccupation(e.target.value)} maxLength={100}
+                        placeholder="e.g. Trader" className={field} />
+                </div>
+                <div>
+                    <label className={labelCls}>Date of birth (18+)</label>
+                    <input required type="date" value={dob} onChange={e => setDob(e.target.value)} className={field} />
+                </div>
+            </div>
+
+            <div>
+                <label className={labelCls}>Email <span className="font-normal">(optional — for your receipt)</span></label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254}
+                    placeholder="you@example.com" className={field} />
+            </div>
 
             <button type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-60 px-4 py-3 text-sm font-black text-white transition-colors">
-                Continue to Payment{displayPrice ? ` — GHS ${displayPrice.toFixed(2)}` : ''}
+                className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.99] disabled:opacity-60 px-4 py-3 text-sm font-bold text-white transition-all">
+                Continue to payment{displayPrice ? ` — GHS ${displayPrice.toFixed(2)}` : ''}
             </button>
         </form>
     )

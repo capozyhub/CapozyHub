@@ -8,6 +8,7 @@ import { resolveSubAgentAfaCost, AFA_PRODUCT_REF } from '@/lib/sub-agent-afa-pri
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
+import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { waitUntil } from '@vercel/functions'
 
 // Allowlists, ID format patterns and field length caps now live in
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
         }
 
         const userId = authUser.id
+
+        // Mirrors the developer API's per-key limit (app/api/afa/register) — this
+        // route had no throttle at all, letting a logged-in user hammer a path that
+        // does a pricing fetch, sub-agent pricing resolution, a wallet RPC, and an
+        // admin-email fan-out per call.
+        const rl = consumeRateLimit(`afa-register:${userId}`, 10, 60_000)
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many registration attempts. Please wait.' }, { status: 429 })
+        }
 
         // ── Parse request body ────────────────────────────────────
         let body: any
