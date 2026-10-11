@@ -28,6 +28,37 @@ async function checkRateLimit(userId: string, supabaseAdmin: any): Promise<boole
     return (count || 0) < 3
 }
 
+// ── Distinct-transaction-ID cap ────────────────────────────────────
+// MoMo transaction IDs are telco-assigned and roughly sequential, so someone
+// holding one real ID (e.g. from their own top-up) could try nearby IDs hoping
+// to land on another user's still-unclaimed transaction before its rightful
+// owner claims it. The per-request rate limit above slows that down but does
+// not stop it across many short windows. A legitimate claim is the same ID
+// tried once (or retried after a typo) — it is never 3+ genuinely different
+// IDs. Capping distinct IDs per user per hour makes guessing economically
+// pointless without touching anyone's one real claim.
+const DISTINCT_ID_WINDOW_MS = 60 * 60 * 1000
+const DISTINCT_ID_CAP = 2
+
+async function exceedsDistinctIdCap(userId: string, txnId: string, supabaseAdmin: any): Promise<boolean> {
+    const since = new Date(Date.now() - DISTINCT_ID_WINDOW_MS).toISOString()
+    const { data, error } = await (supabaseAdmin
+        .from('momo_claim_attempts') as any)
+        .select('transaction_id_input')
+        .eq('user_id', userId)
+        .neq('result', 'rate_limited')
+        .gte('created_at', since)
+
+    if (error) {
+        console.error('[ClaimMoMo] Distinct-ID cap DB check failed:', error.message)
+        return true // fail-closed, same posture as checkRateLimit
+    }
+
+    const distinctIds = new Set<string>((data as { transaction_id_input: string }[]).map(r => r.transaction_id_input))
+    if (distinctIds.has(txnId)) return false // retrying the same ID is always allowed
+    return distinctIds.size >= DISTINCT_ID_CAP
+}
+
 // ── Input sanitization ───────────────────────────────────────────
 function sanitizeTransactionId(raw: string): string | null {
     // Strip all non-digit characters
@@ -174,6 +205,19 @@ export async function POST(request: NextRequest) {
             })
             return NextResponse.json(
                 { error: 'Too many attempts. Please wait 30 seconds before trying again.' },
+                { status: 429 }
+            )
+        }
+
+        // ── Distinct-ID cap check ───────────────────────────────
+        if (await exceedsDistinctIdCap(authUser.id, txnId, supabaseAdmin)) {
+            await (supabaseAdmin.from('momo_claim_attempts') as any).insert({
+                user_id: authUser.id,
+                transaction_id_input: txnId,
+                result: 'distinct_id_cap_exceeded',
+            })
+            return NextResponse.json(
+                { error: 'You can only try a couple of different transaction IDs per hour. If this is your real transaction, double-check the digits and try again shortly, or contact support.' },
                 { status: 429 }
             )
         }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
+import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 export async function POST(request: NextRequest) {
     try {
@@ -31,6 +32,14 @@ export async function POST(request: NextRequest) {
         const { data: { user: authUser } } = await supabase.auth.getUser()
         if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // No local limiter existed here — the route was otherwise correctly scoped to
+        // the caller's own reference, but nothing stopped the caller from brute-forcing
+        // OTP guesses against their own in-flight charge beyond whatever Paystack itself enforces.
+        const rl = consumeRateLimit(`charge-otp:${authUser.id}`, 10, 60_000)
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many OTP attempts. Please wait.' }, { status: 429 })
         }
 
         const { data: paymentRow } = await (supabaseAdmin.from('wallet_payments') as any)
