@@ -176,6 +176,13 @@ export default function AdminSettingsPage() {
     // Snapshot of last-saved values (as a stable JSON string) for dirty-tracking
     // and changed-keys-only saves. Set once after load and reset after each save.
     const baselineRef = useRef<string | null>(null)
+    // Keys that actually have a row in admin_settings right now. A key NOT in here
+    // is a field only ever shown with its hardcoded display default (e.g. AFA price
+    // fields default to '15') — on a fresh table that default equals the baseline
+    // buildUpdates() captures too, so isDirty/changed would both read "unchanged"
+    // and Save would silently never write it, even though nothing was ever saved.
+    // Any key missing here is always treated as dirty until it is actually written.
+    const presentKeysRef = useRef<Set<string> | null>(null)
 
     // Single source for the full settings payload — used by both save and
     // dirty-detection so they can never drift.
@@ -239,7 +246,10 @@ export default function AdminSettingsPage() {
         landingTestimonials,
     ])
 
-    const isDirty = baselineRef.current !== null && baselineRef.current !== JSON.stringify(buildUpdates())
+    const isDirty = baselineRef.current !== null && (
+        baselineRef.current !== JSON.stringify(buildUpdates()) ||
+        buildUpdates().some(u => !presentKeysRef.current?.has(u.key))
+    )
 
     useEffect(() => {
         if (!authLoading && isSubAdmin && !isAdmin) {
@@ -271,6 +281,8 @@ export default function AdminSettingsPage() {
         try {
             const { data, error } = await (supabase.from('admin_settings') as any).select('key, value')
             if (error) throw error
+
+            presentKeysRef.current = new Set((data as { key: string }[]).map(row => row.key))
 
             const s = (data as { key: string; value: string }[]).reduce((acc: Record<string, string>, curr) => {
                 acc[curr.key] = curr.value
@@ -489,7 +501,10 @@ export default function AdminSettingsPage() {
         const allUpdates = buildUpdates()
         const baseline: { key: string; value: string }[] = baselineRef.current ? JSON.parse(baselineRef.current) : []
         const baseMap = Object.fromEntries(baseline.map(u => [u.key, u.value]))
-        const changed = allUpdates.filter(u => u.value !== baseMap[u.key])
+        // A key with no row in the DB yet is always "changed", even if its value
+        // still matches the field's hardcoded display default — otherwise a never-
+        // touched default (e.g. the AFA price fields' '15') would never get written.
+        const changed = allUpdates.filter(u => u.value !== baseMap[u.key] || !presentKeysRef.current?.has(u.key))
 
         if (changed.length === 0) {
             toast.success('No changes to save')
@@ -500,6 +515,7 @@ export default function AdminSettingsPage() {
         try {
             const { error } = await (supabase.from('admin_settings') as any).upsert(changed, { onConflict: 'key' })
             if (error) throw error
+            changed.forEach(u => presentKeysRef.current?.add(u.key))
             baselineRef.current = JSON.stringify(allUpdates)
             toast.success(`Saved ${changed.length} change${changed.length !== 1 ? 's' : ''}`)
         } catch (error) {
