@@ -8,7 +8,7 @@
 // no real data unless --order-id points at a real order.
 //
 // Options:
-//   --url=<endpoint>        default: https://www.kingflexygh.com/api/webhooks/bundleportal
+//   --url=<endpoint>        default: https://www.capozygh.com/api/webhooks/bundleportal
 //                            use http://localhost:3000/api/webhooks/bundleportal for local testing
 //   --order-id=<uuid>       default: random UUID (guaranteed no match, safe smoke test)
 //   --event=order.completed|order.failed|order.cancelled|order.refunded   default: order.completed
@@ -54,7 +54,7 @@ async function run() {
         process.exit(1)
     }
 
-    const url = args.url || 'https://www.kingflexygh.com/api/webhooks/bundleportal'
+    const url = args.url || 'https://www.capozygh.com/api/webhooks/bundleportal'
     const orderId = args['order-id'] || crypto.randomUUID()
     const isRandom = !args['order-id']
     const event = ['order.completed', 'order.failed', 'order.cancelled', 'order.refunded'].includes(args.event || '')

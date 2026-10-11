@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 import { getAuthCookieDomain, getAuthCookieOptions } from '@/lib/cookie-domain'
-import { isV2Path, API_V2_HOST } from '@/lib/api-version'
+import { isDevApiPath, DEV_API_HOST } from '@/lib/developer-api'
 
 // Salt for hashing API keys into rate-limit bucket IDs. Must be set in env.
 // Without this, the public key_prefix alone would be enough to address — and
@@ -15,7 +15,7 @@ const API_KEY_SHAPE = /^kf_live_[a-f0-9]{32}$/
 
 // Write endpoints that must NOT serve traffic when the rate limiter is down.
 // Stored as VERSION-AGNOSTIC suffixes (matched against the normalised apiSuffix,
-// e.g. '/api/v2/data/purchase' -> '/data/purchase') so that porting a money route
+// e.g. '/api/data/purchase' -> '/data/purchase') so that porting a money route
 // to a new API version cannot silently drop its fail-closed protection.
 const API_FAIL_CLOSED_SUFFIXES: ReadonlySet<string> = new Set([
     '/data/purchase',
@@ -102,7 +102,7 @@ const fallbackCriticalLimits: Record<string, InMemoryLimitConfig> = {
     '/api/shop/withdraw': { maxRequests: 3, windowMs: 60 * 60 * 1000 },
     // KFG SMS: send debits credits + hits Hubtel; purchase debits the main
     // wallet. Keep a per-Lambda backstop if Redis is down (audit L-4).
-    '/api/sms/campaigns': { maxRequests: 5, windowMs: 60 * 1000 },
+    '/api/sms/my-campaigns': { maxRequests: 5, windowMs: 60 * 1000 },
     '/api/sms/purchase': { maxRequests: 5, windowMs: 60 * 1000 },
     // Sub-agent creation mints a real Supabase Auth account (final-review C1)
     // — a Redis outage must not silently drop this to a fully unmetered
@@ -143,7 +143,7 @@ const redis = REDIS_CONFIGURED
 // against its own threshold. Before these prefixes existed — and before the
 // developer-API catch-all was given its own `api-unrouted:` identifier
 // namespace — all 65 shared Upstash's default and collided: 12 requests to
-// /api/v2/ping (general, 100/min) drove /api/v1/packages (10/min) to a false
+// /api/ping (general, 100/min) drove /api/v1/packages (10/min) to a false
 // 429. The convention for limiters IN THIS FILE is `kfg:<propertyName>`. Limiters
 // defined in lib/ use their own bare, distinct prefixes (e.g. 'rc-retrieve').
 // What matters globally is that no two limiters anywhere share a prefix —
@@ -243,7 +243,7 @@ const rateLimiters = REDIS_CONFIGURED ? {
     // ── Support & Cron ────────────────────────────────────────
     supportChat: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:supportChat' }),
     cron: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:cron' }),
-    // ── Developer API v2 ──────────────────────────────────────
+    // ── Developer API ──────────────────────────────────────
     apiPackages: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:apiPackages' }),
     apiBalance: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:apiBalance' }),
     apiStatus: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:apiStatus' }),
@@ -390,7 +390,7 @@ export async function middleware(request: NextRequest) {
 
     // === CORS PREFLIGHT HANDLER ===
     // Handle OPTIONS preflight FIRST, before any Supabase logic.
-    const isDevApi = isV2Path(pathname)
+    const isDevApi = isDevApiPath(pathname)
 
     if (request.method === 'OPTIONS') {
         if (isDevApi) {
@@ -410,7 +410,7 @@ export async function middleware(request: NextRequest) {
     const hostname = request.headers.get('host') || ''
 
     // === API HOST CONFINEMENT (api.capozygh.com) ===
-    // The API host serves ONLY the public developer API (/api/v2/**) — NOT
+    // The API host serves ONLY the public developer API (/api/**) — NOT
     // the whole /api/** surface. The original check here
     // only redirected non-/api/ PAGE paths, which left every INTERNAL route
     // (/api/admin/*, /api/cron/*, /api/user/*, /api/webhooks/*, /api/shop/*,
@@ -425,7 +425,7 @@ export async function middleware(request: NextRequest) {
     // that went live more recently and was missed. Confining to the actual
     // public API paths closes it. 307 (temporary), not 301, so no browser
     // pins the redirect.
-    if (hostname === API_V2_HOST && !isDevApi) {
+    if (hostname === DEV_API_HOST && !isDevApi) {
         return NextResponse.redirect(new URL(pathname + request.nextUrl.search, 'https://capozygh.com'), 307)
     }
 
@@ -473,7 +473,7 @@ export async function middleware(request: NextRequest) {
     //   /join, /join/*  → owner-branded sub-agent onboarding
     //   /{slug}         → the sub-agent's storefront (rewritten to /shop-domain/{slug})
     // Everything app-facing (dashboard/admin/auth/download) is redirected to the
-    // canonical domain — keeps KiNG FLEXY identity off the de-branded host and
+    // canonical domain — keeps Capozy Hub identity off the de-branded host and
     // removes an admin-login phishing surface. STORE_HOST is env-driven (see top).
     const isStoreSubdomain = hostname === STORE_HOST || hostname.startsWith('store.')
     if (isStoreSubdomain) {
@@ -553,7 +553,7 @@ export async function middleware(request: NextRequest) {
     // === ORIGIN ENFORCEMENT FOR API ROUTES ===
     // For cross-origin requests (Origin header present) to API routes,
     // block the request if origin is not in the allowlist.
-    // EXCEPTION: /api/v2/ routes have open CORS (called by external developers).
+    // EXCEPTION: /api/ routes have open CORS (called by external developers).
     if (origin && pathname.startsWith('/api') && !isDevApi && !isAllowedOrigin(origin)) {
         console.warn(`[CORS] Blocked request from untrusted origin: ${origin} → ${pathname}`)
         return new NextResponse(
@@ -563,7 +563,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // === DEVELOPER API FAST PATH ===
-    // Skip Supabase session creation for /api/v2/ routes (saves ~200ms). API
+    // Skip Supabase session creation for /api/ routes (saves ~200ms). API
     // key auth is handled in the route handlers via lib/api-auth.ts.
     if (isDevApi) {
         const ip = getIP(request)
@@ -572,10 +572,8 @@ export async function middleware(request: NextRequest) {
         // DIFFERENT namespace on purpose — see the comment on that arm.
         let apiBucketPrefix = 'api'
 
-        // Version-agnostic endpoint matching: /api/v2/packages normalises to
-        // '/packages'. Kept as a `/api/v\d+/` strip (not hardcoded to v2) so a
-        // future API version needs no edit here.
-        const apiSuffix = pathname.replace(/^\/api\/v\d+\//, '/')
+        // Endpoint matching: /api/packages normalises to '/packages'.
+        const apiSuffix = pathname.replace(/^\/api\//, '/')
 
         if (rateLimiters) {
             if (apiSuffix === '/packages') {
@@ -612,13 +610,13 @@ export async function middleware(request: NextRequest) {
                 apiLimiter = rateLimiters.general
                 apiBucketPrefix = 'api-unrouted'
             }
-            // AUTH CONSTRAINT for every /api/v2/** route: this fast path skips
+            // AUTH CONSTRAINT for every /api/** route: this fast path skips
             // Supabase session creation AND serves open CORS
-            // (Access-Control-Allow-Origin: *). v2 routes MUST therefore
+            // (Access-Control-Allow-Origin: *). developer-API routes MUST therefore
             // authenticate via API key (validateApiKey in lib/api-auth.ts) and
             // MUST NOT use cookie/session auth (createRouteClient) — there is no
             // session here to read, and open CORS makes a cookie-authed route
-            // genuinely unsafe. Enforced by an eslint override on app/api/v2/**.
+            // genuinely unsafe. Enforced by an eslint override on the developer-API route files.
         }
 
         if (apiLimiter) {
@@ -653,7 +651,7 @@ export async function middleware(request: NextRequest) {
                     return setCORSHeaders(errResponse, origin, true)
                 }
             } catch (error) {
-                console.error('[RateLimiter] API v2 Redis error:', error)
+                console.error('[RateLimiter] developer API Redis error:', error)
                 // Fail CLOSED on money-moving endpoints; fail open on reads.
                 if (API_FAIL_CLOSED_SUFFIXES.has(apiSuffix)) {
                     const errResponse = NextResponse.json(
@@ -665,7 +663,7 @@ export async function middleware(request: NextRequest) {
             }
         }
 
-        // Return early — no Supabase session needed for API v2 routes
+        // Return early — no Supabase session needed for developer API routes
         const apiResponse = NextResponse.next({ request: { headers: request.headers } })
         return addNoCacheHeaders(setCORSHeaders(apiResponse, origin, true))
     }
@@ -803,7 +801,7 @@ export async function middleware(request: NextRequest) {
         } else if (pathname.startsWith('/api/admin')) {
             limiter = rateLimiters.admin
             identifier = authUser?.id ?? ip
-        } else if (pathname === '/api/sms/campaigns' && request.method === 'POST') {
+        } else if (pathname === '/api/sms/my-campaigns' && request.method === 'POST') {
             limiter = rateLimiters.smsSend
             identifier = authUser?.id ?? ip
         } else if (pathname.startsWith('/api/sms')) {

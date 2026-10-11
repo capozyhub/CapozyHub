@@ -24,7 +24,7 @@ import {
     Loader2, Clock, Gauge, Wallet, BadgeCheck, Code2,
 } from 'lucide-react'
 
-// ── Types (mirror /api/sms/account + /api/sms/campaigns payloads) ────────────
+// ── Types (mirror /api/sms/account + /api/sms/my-campaigns payloads) ────────────
 
 type PolicyOk   = { canSend: true; sender: string; senderSource: 'own' | 'pool' | 'platform'; filterProfile: string }
 type PolicyDown = { canSend: false; reason: string; message: string }
@@ -136,7 +136,7 @@ export default function SmsOverviewPage() {
         try {
             const [accRes, campRes] = await Promise.all([
                 fetch('/api/sms/account'),
-                fetch('/api/sms/campaigns?page=0&pageSize=50'),
+                fetch('/api/sms/my-campaigns?page=0&pageSize=50'),
             ])
             const accJson = await accRes.json().catch(() => null)
 
@@ -196,7 +196,7 @@ export default function SmsOverviewPage() {
             if (res.ok && json?.success) {
                 toast.success(next
                     ? 'Your order confirmations will now send from your sender ID'
-                    : 'Order confirmations switched back to KINGFLEXY')
+                    : 'Order confirmations switched back to CAPOZYHUB')
             } else {
                 setUseOwnSender(prev)
                 toast.error(json?.error || 'Could not update this setting')
@@ -416,7 +416,7 @@ export default function SmsOverviewPage() {
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold">Use my sender ID for order confirmations</p>
                                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                                            Your data, airtime and results-checker purchase confirmations will arrive from your approved sender ID instead of KINGFLEXY.
+                                            Your data, airtime and results-checker purchase confirmations will arrive from your approved sender ID instead of CAPOZYHUB.
                                         </p>
                                     </div>
                                 </div>

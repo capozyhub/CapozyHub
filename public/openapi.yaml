@@ -1,19 +1,19 @@
 openapi: 3.0.3
 info:
-  title: KiNG FLEXY GH Developer API
-  version: "2.0.0"
+  title: Capozy Hub Developer API
+  version: "1.0.0"
   description: |
-    The public developer API for KiNG FLEXY GH — Ghana digital services
+    The public developer API for Capozy Hub — Ghana digital services
     (MTN/Telecel/AirtelTigo data bundles, airtime, results-checker vouchers,
     MTN AFA registration, utility bill payments, and SMS).
 
-    **v2 is the only live API** — v1 was fully ported and then retired
+    **There is a single live API.**
     (owner decision, 2026-08-31; all developers were notified and confirmed
-    before the cutover). Every endpoint below lives under `/api/v2`.
+    before the cutover). Every endpoint below lives under `/api`.
 
     ### Response envelope
     Every endpoint returns one of two shapes:
-    - Success: `{ "success": true, "data": { ... }, "meta": { "timestamp": "...", "version": "v2" } }`
+    - Success: `{ "success": true, "data": { ... }, "meta": { "timestamp": "..." } }`
     - Error: `{ "success": false, "error": { "code": 400, "message": "..." } }`
 
     ### Ghana only
@@ -43,11 +43,11 @@ info:
     not merely a per-account one, so pick references unlikely to collide
     with another developer's.
   contact:
-    name: KiNG FLEXY GH
-    url: https://kingflexygh.com/developers
+    name: Capozy Hub
+    url: https://capozygh.com/developers
 
 servers:
-  - url: https://api.kingflexygh.com/api/v2
+  - url: https://api.capozygh.com/api
     description: Production (only environment — there is no staging/sandbox base URL)
 
 security:
@@ -1345,7 +1345,6 @@ components:
           type: object
           properties:
             timestamp: { type: string, format: date-time }
-            version: { type: string, enum: [v2] }
 
     ApiErrorEnvelope:
       type: object

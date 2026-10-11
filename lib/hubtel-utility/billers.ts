@@ -232,7 +232,7 @@ export function parseAccountQuery(biller: UtilityBiller, data: unknown): Utility
  * `sessionId` field AND any raw provider row whose `Display` (case-insensitive) is
  * "sessionid" — Hubtel echoes the session back through BOTH places. Every other biller's
  * info passes through unchanged (their raw rows never carry a sessionId row, so the filter
- * is a no-op for them). Shared by the dashboard lookup route (app/api/utilities/lookup)
+ * is a no-op for them). Shared by the dashboard lookup route (app/api/utilities/verify)
  * and the storefront guest lookup route (app/api/shop/utility/lookup) so both surfaces
  * scrub identically.
  */

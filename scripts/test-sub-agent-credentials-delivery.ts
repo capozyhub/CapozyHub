@@ -28,8 +28,8 @@ async function testOnboardingIncludesDomain() {
     )
     assert(result.smsDelivered === true, 'onboarding: sms delivered')
     assert(result.emailDelivered === true, 'onboarding: email delivered')
-    assert(smsCalls[0].message.includes('agent.kingflexygh.com'), 'onboarding sms includes login domain')
-    assert(emailCalls[0].htmlContent.includes('agent.kingflexygh.com'), 'onboarding email includes login domain')
+    assert(smsCalls[0].message.includes('agent.capozygh.com'), 'onboarding sms includes login domain')
+    assert(emailCalls[0].htmlContent.includes('agent.capozygh.com'), 'onboarding email includes login domain')
     assert(smsCalls[0].message.includes('ABCD-EFGH-JKLM'), 'onboarding sms includes the key')
     assert(!JSON.stringify(result).includes('ABCD-EFGH-JKLM'), 'plaintext key never in the returned result')
 }

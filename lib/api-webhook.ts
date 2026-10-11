@@ -10,7 +10,7 @@
 //
 // Call this from INSIDE each product's own terminal-state-setting code
 // (dispatchAirtimeFulfillment, purchaseWithWallet, the AFA status-update
-// path, dispatchUtilityCore) — not only from the new v2 route handlers —
+// path, dispatchUtilityCore) — not only from the new developer-API route handlers —
 // so a webhook fires no matter which trigger finalized the order (the
 // initial API call, a retry cron, or an admin action).
 import { createHmac } from 'crypto'

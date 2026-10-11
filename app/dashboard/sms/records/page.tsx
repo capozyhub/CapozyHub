@@ -111,7 +111,7 @@ export default function SmsRecordsPage() {
         try {
             const qs = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) })
             if (statusFilter) qs.set('status', statusFilter)
-            const res = await fetch(`/api/sms/campaigns?${qs.toString()}`)
+            const res = await fetch(`/api/sms/my-campaigns?${qs.toString()}`)
             const json = await res.json().catch(() => null)
             if (!json?.success) throw new Error(json?.error || 'Failed to load campaign records')
             setCampaigns(json.data.campaigns as Campaign[])
@@ -138,7 +138,7 @@ export default function SmsRecordsPage() {
         setCancelling(true)
         setCancelError(null)
         try {
-            const res = await fetch(`/api/sms/campaigns/${cancelTarget.id}`, { method: 'DELETE' })
+            const res = await fetch(`/api/sms/my-campaigns/${cancelTarget.id}`, { method: 'DELETE' })
             const json = await res.json().catch(() => null)
             if (!json?.success) throw new Error(json?.error || 'Could not cancel campaign')
             toast.success(`Campaign cancelled — ${(json.data?.refunded_credits ?? 0).toLocaleString()} credit(s) refunded`)

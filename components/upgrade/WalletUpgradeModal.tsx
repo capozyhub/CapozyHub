@@ -291,7 +291,7 @@ export default function WalletUpgradeModal({
                         'text-center text-[10px] font-medium',
                         isDealer ? 'text-violet-400/60' : 'text-muted-foreground'
                     )}>
-                        Payment is instant and deducted directly from your Flexy-Wallet.
+                        Payment is instant and deducted directly from your Capozy Wallet.
                     </p>
                 </div>
             </div>

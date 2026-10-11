@@ -224,7 +224,7 @@ export async function resolveShopRCMarkup(
  * Single source of truth so a lapsed reseller is priced identically on every surface.
  *
  * MOVED to lib/effective-role.ts and re-exported here so existing importers keep working.
- * It had to leave this file so lib/api-auth.ts could use it for the v2 API without pulling
+ * It had to leave this file so lib/api-auth.ts could use it for the developer API without pulling
  * in this whole service (import cycle). See that module for the boundary convention.
  */
 export { effectiveRoleFromExpiry } from '@/lib/effective-role'
@@ -354,7 +354,7 @@ export async function purchaseWithWallet(params: {
     customerPhone?: string | null
     customerEmail?: string | null
     customerName?: string | null
-    // API v2 threading (Task 6 / CONTROLLER RULING R2): the dashboard caller
+    // API threading (Task 6 / CONTROLLER RULING R2): the dashboard caller
     // (app/api/results-checker/purchase/route.ts) never passes any of these
     // three, so the defaults below MUST reproduce today's exact behaviour —
     // source falls back to the results_checker_orders column default
@@ -388,7 +388,7 @@ export async function purchaseWithWallet(params: {
     if (params.expectedTotal !== undefined && Math.abs(params.expectedTotal - breakdown.total) > 0.005) {
         throw new Error('PRICE_CHANGED')
     }
-    // Caller's own reference (v2 API, or the dashboard's per-attempt key) wins so the idempotency
+    // Caller's own reference (developer API, or the dashboard's per-attempt key) wins so the idempotency
     // lookup, the UNIQUE(reference_code) backstop and the echoed-back reference all line up.
     const referenceCode = params.referenceCode ?? `RC-${generateReferenceCode()}`
 

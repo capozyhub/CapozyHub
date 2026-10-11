@@ -1,7 +1,7 @@
 -- =============================================================================
 -- MTN whitelist per-server allow-cache
 --
--- The checker UI and the public /api/v2/data/verify-number/server-{1,2}
+-- The checker UI and the public /api/data/verify-number/server-{1,2}
 -- endpoints check ONE supplier at a time (Server 1 = AgentPortal, Server 2 =
 -- Bundle Portal). Same permanent allow-cache rule as mtn_whitelist_status: once
 -- a number is confirmed allowed on a server it is never re-checked there;

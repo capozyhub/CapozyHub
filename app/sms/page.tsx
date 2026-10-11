@@ -29,8 +29,8 @@ import { cn } from '@/lib/utils'
 import { SMS_API_ENDPOINTS } from '@/content/sms-api-docs'
 
 // ── API sample content (matches /developers SMS API section) ───────────────────
-const SEND_CURL = SMS_API_ENDPOINTS.find(e => e.path === '/api/v2/sms/send')!.codeSamples['cURL']
-const STATUS_CURL = SMS_API_ENDPOINTS.find(e => e.path === '/api/v2/sms/messages/{campaignId}')!.codeSamples['cURL']
+const SEND_CURL = SMS_API_ENDPOINTS.find(e => e.path === '/api/sms/send')!.codeSamples['cURL']
+const STATUS_CURL = SMS_API_ENDPOINTS.find(e => e.path === '/api/sms/messages/{campaignId}')!.codeSamples['cURL']
 const KEY = 'kf_sms_live_your_api_key_here'
 
 // ── Motion helper (respects reduced-motion) ────────────────────────────────────
@@ -423,7 +423,7 @@ export default function SmsPage() {
                             <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3 border-b border-slate-800">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border tracking-wide font-mono bg-brand-500/15 text-brand-400 border-brand-500/30">POST</span>
-                                    <code className="text-xs sm:text-sm font-mono font-semibold text-slate-200 truncate">/api/v2/sms/send</code>
+                                    <code className="text-xs sm:text-sm font-mono font-semibold text-slate-200 truncate">/api/sms/send</code>
                                 </div>
                                 <CopyButton text={SEND_CURL} />
                             </div>
@@ -435,7 +435,7 @@ export default function SmsPage() {
                             <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3 border-y border-slate-800 bg-slate-900/40">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border tracking-wide font-mono bg-emerald-500/15 text-emerald-400 border-emerald-500/30">GET</span>
-                                    <code className="text-xs sm:text-sm font-mono font-semibold text-slate-200 truncate">/api/v2/sms/messages/{'{id}'}</code>
+                                    <code className="text-xs sm:text-sm font-mono font-semibold text-slate-200 truncate">/api/sms/messages/{'{id}'}</code>
                                 </div>
                                 <CopyButton text={STATUS_CURL} />
                             </div>

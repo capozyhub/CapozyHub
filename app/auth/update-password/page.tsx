@@ -9,7 +9,7 @@ import { ClayButton, Notice, PasswordField, PasswordRules } from '@/components/a
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE } from '@/lib/password-validation'
-const RECOVERY_SESSION_KEY = 'kingflexy_password_recovery_active'
+const RECOVERY_SESSION_KEY = 'capozy_password_recovery_active'
 
 function getRecoveryContext() {
     if (typeof window === 'undefined') {

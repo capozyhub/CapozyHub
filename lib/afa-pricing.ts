@@ -4,7 +4,7 @@
 //
 // ── WHY THIS EXISTS ────────────────────────────────────────────────────────
 // The role→price mapping was duplicated across the dashboard price route, the
-// dashboard registration route, the v2 developer API and the shop storefront
+// dashboard registration route, the developer API and the shop storefront
 // checkout. Every one of those copies read only afa_price_customer /
 // afa_price_agent, so `afa_price_dealer` — which IS configured and IS exposed
 // in the admin UI — was dead config and dealers were silently charged the

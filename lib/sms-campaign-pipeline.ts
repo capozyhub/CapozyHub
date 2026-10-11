@@ -1,8 +1,8 @@
 /**
  * User SMS Platform — campaign pipeline (KFT SMS).
  *
- * ONE implementation shared by the dashboard route (/api/sms/campaigns), the
- * developer API (/api/v2/sms/send) and the dispatch cron — so the policy
+ * ONE implementation shared by the dashboard route (/api/sms/my-campaigns), the
+ * developer API (/api/sms/send) and the dispatch cron — so the policy
  * gates, money contracts and claim discipline can never drift apart.
  *
  * Money/claim contracts (Stage-2 review):

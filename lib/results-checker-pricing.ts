@@ -39,7 +39,7 @@ export interface RCBreakdown {
 // Shared verbatim across every RC route that can reject a purchase/preview because a
 // recruited sub-agent's pricing engine returned !ok (review findings C1/m6, final review of
 // docs/superpowers/plans/2026-09-10-subagent-storefront-afa-rc-wiring.md). Originally
-// hardcoded independently in app/api/results-checker/purchase, app/api/v2/resultschecker/
+// hardcoded independently in app/api/results-checker/purchase, app/api/resultschecker/
 // purchase, and the storefront initialize/charge routes — four copies that could (and, per
 // that review, started to) drift. Import this pair instead of re-typing the string.
 export const SUB_AGENT_PRICING_UNAVAILABLE_MESSAGE = 'Pricing is not available for this service right now'

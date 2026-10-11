@@ -58,11 +58,11 @@ interface ApiLogItem {
     user?: { name: string; email: string } | null
 }
 
-// Version-agnostic suffixes (no leading /api/v1 or /api/v2) — v1 is retired
+// Version-agnostic suffixes (no leading /api/v1 or /api) — v1 is retired
 // for NEW traffic but historical api_logs rows still carry /api/v1/* from
 // before the port, and this log viewer reads both eras. Matching on the
 // version-stripped suffix, the same trick middleware.ts uses for its
-// fail-closed set, means a v2 request gets its friendly label too instead of
+// fail-closed set, means a developer-API request gets its friendly label too instead of
 // silently falling back to generic "API Request".
 const ENDPOINT_LABELS: Record<string, string> = {
     '/data/purchase':  'Data Purchase',

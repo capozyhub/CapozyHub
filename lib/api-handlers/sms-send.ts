@@ -1,5 +1,5 @@
 // lib/api-handlers/sms-send.ts
-// Handler for POST /api/v2/sms/send.
+// Handler for POST /api/sms/send.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Auth: API key. Additional gate: the key owner's SMS account must be in
@@ -29,13 +29,11 @@ import {
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { createCampaign, getSmsAccountContext } from '@/lib/sms-campaign-pipeline'
-import { versionMeta } from '@/lib/api-version'
 
 export async function handleSmsSend(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -126,7 +124,7 @@ export async function handleSmsSend(request: NextRequest) {
             sent: outcome.campaign!.sent,
             failed: outcome.campaign!.failed,
             balance: outcome.campaign!.balance,
-        }, meta)
+        })
     } catch (e: any) {
         console.error('[API SMS Send] error:', e?.message)
         done(500, e?.message)

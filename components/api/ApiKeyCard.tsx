@@ -215,7 +215,7 @@ export function ApiKeyCard({
                 )}
                 {keyType === 'sms' && (
                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        For the SMS API (/api/v2/sms/*). Active immediately — no admin approval needed since your business is already approved.
+                        For the SMS API (/api/sms/*). Active immediately — no admin approval needed since your business is already approved.
                     </p>
                 )}
 
@@ -452,7 +452,7 @@ function DeveloperWarningModal({
                 {/* Body */}
                 <div className="p-5 sm:p-6 space-y-4 text-sm text-slate-700 dark:text-slate-300">
                     <p>
-                        The Developer API is intended for <strong>software developers integrating KiNG FLEXY GH into their own apps or platforms</strong> — not for casual use or for resale of unmodified KiNG FLEXY GH services.
+                        The Developer API is intended for <strong>software developers integrating Capozy Hub into their own apps or platforms</strong> — not for casual use or for resale of unmodified Capozy Hub services.
                     </p>
 
                     <div className="rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 p-4 space-y-2">

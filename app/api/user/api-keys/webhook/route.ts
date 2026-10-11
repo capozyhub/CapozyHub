@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
         // Scoped to the caller's own key already (no cross-account attack
         // surface), but nothing stopped a single user hammering this in a
         // loop — repeated writes each cost a DB round-trip plus a cache
-        // invalidation. 10/min matches the money-path v2 write endpoints.
+        // invalidation. 10/min matches the money-path developer-API write endpoints.
         const rl = consumeRateLimit(`api-keys-webhook-put:${authUser.id}`, 10, 60_000)
         if (!rl.allowed) {
             return NextResponse.json({ error: `Too many requests. Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s` }, { status: 429 })

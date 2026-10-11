@@ -3,7 +3,7 @@
 // page. Edit here, not in the consuming pages.
 //
 // Uses a dedicated kf_sms_live_ placeholder (not the general kf_live_ one)
-// because /api/v2/sms/* requires an sms-type key — a standard key is
+// because /api/sms/* requires an sms-type key — a standard key is
 // rejected there (see lib/api-auth.ts's key-type scope guard, shipped
 // earlier in this plan).
 //
@@ -11,7 +11,7 @@
 // is now the only live base URL. Every code sample and path literal below was
 // still pointing at v1 until this fix, since this file predates the port.
 
-const SMS_BASE = 'https://api.kingflexygh.com/api/v2'
+const SMS_BASE = 'https://api.capozygh.com/api'
 const SMS_KEY = 'kf_sms_live_your_api_key_here'
 
 export const SMS_BUSINESS_MODE_NOTICE =
@@ -40,7 +40,7 @@ export interface SmsApiEndpointDoc {
 export const SMS_API_ENDPOINTS: SmsApiEndpointDoc[] = [
     {
         method: 'POST',
-        path: '/api/v2/sms/send',
+        path: '/api/sms/send',
         description: 'Send an SMS to one or many recipients. Small sends (≤500 recipients) dispatch immediately and return per-send results; larger sends are queued and processed within a minute.',
         requestBody: `{\n  "message": "Your order #123 is ready. Thank you!",\n  "recipients": ["0551234567", "0209876543"],\n  "sender": "AcmeGH",\n  "reference": "order-123"\n}`,
         responseBody: `{\n  "success": true,\n  "data": {\n    "campaignId": "uuid-...",\n    "status": "completed",\n    "recipients": 2,\n    "segments": 1,\n    "creditsCharged": 2,\n    "sender": "AcmeGH",\n    "sent": 2,\n    "failed": 0,\n    "balance": 498\n  }\n}`,
@@ -62,7 +62,7 @@ export const SMS_API_ENDPOINTS: SmsApiEndpointDoc[] = [
     },
     {
         method: 'GET',
-        path: '/api/v2/sms/senders',
+        path: '/api/sms/senders',
         description: 'List the sender IDs this API key may send under — your approved own sender IDs plus the shared pool senders. Use these exact values for the sender field.',
         responseBody: `{\n  "success": true,\n  "data": {\n    "mode": "business",\n    "defaultSender": "AcmeGH",\n    "senders": [\n      { "sender": "AcmeGH", "type": "own", "isDefault": true },\n      { "sender": "KFT SMS", "type": "pool", "isDefault": false }\n    ]\n  }\n}`,
         notes: [
@@ -77,7 +77,7 @@ export const SMS_API_ENDPOINTS: SmsApiEndpointDoc[] = [
     },
     {
         method: 'GET',
-        path: '/api/v2/sms/messages/{campaignId}',
+        path: '/api/sms/messages/{campaignId}',
         description: 'Delivery status for a send. Returns the campaign summary, a delivery rollup, and per-recipient statuses (100 per page).',
         queryParams: [
             { name: 'page', type: 'number', required: false, desc: 'Zero-based page of per-recipient rows (100/page)' },
@@ -101,7 +101,7 @@ export const SMS_API_ENDPOINTS: SmsApiEndpointDoc[] = [
         // the v1->v2 port but was never documented here. Added while auditing
         // this file for stale v1 base URLs (Phase 4 / OpenAPI spec work).
         method: 'GET',
-        path: '/api/v2/sms/campaigns',
+        path: '/api/sms/campaigns',
         description: 'List your recent SMS campaigns, newest first — a discovery endpoint that complements GET /sms/messages/{campaignId} for when you don\'t already have a campaign id on hand.',
         queryParams: [
             { name: 'page', type: 'number', required: false, desc: 'Zero-based page, 30 per page (default 0)' },
@@ -123,11 +123,11 @@ export const SMS_API_ENDPOINTS: SmsApiEndpointDoc[] = [
     },
     {
         method: 'GET',
-        path: '/api/v2/sms/balance',
+        path: '/api/sms/balance',
         description: 'Your SMS credit balance and account mode.',
         responseBody: `{\n  "success": true,\n  "data": {\n    "credits": 498,\n    "totalPurchased": 600,\n    "totalUsed": 102,\n    "mode": "business",\n    "accountStatus": "active"\n  }\n}`,
         notes: [
-            'SMS credits are separate from your GHS wallet — buy bundles at kingflexygh.com/dashboard/sms/credits.',
+            'SMS credits are separate from your GHS wallet — buy bundles at capozygh.com/dashboard/sms/credits.',
             'Check balance before large campaigns; sends fail with HTTP 402 when credits are insufficient.',
         ],
         codeSamples: {

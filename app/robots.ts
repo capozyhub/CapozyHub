@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: ['/api/', '/admin/', '/dashboard/'],
             },
         ],
-        sitemap: 'https://kingflexygh.com/sitemap.xml',
+        sitemap: 'https://capozygh.com/sitemap.xml',
     }
 }

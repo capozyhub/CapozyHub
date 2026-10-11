@@ -1,5 +1,5 @@
 // lib/api-handlers/sms-campaigns.ts
-// Handler for GET /api/v2/sms/campaigns.
+// Handler for GET /api/sms/campaigns.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Lists recent campaigns for the caller's SMS account. Complements
@@ -21,9 +21,8 @@ import {
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { getSmsAccountContext } from '@/lib/sms-campaign-pipeline'
-import { versionMeta } from '@/lib/api-version'
 
-// 30 to match MAX_RECORDS on every v2 list endpoint. Lowered from 50 rather
+// 30 to match MAX_RECORDS on every developer-API list endpoint. Lowered from 50 rather
 // than capped with a hard .limit() so paging still reaches every campaign —
 // callers who want more walk ?page=, and webhooks cover the live updates.
 const PAGE_SIZE = 30
@@ -33,7 +32,6 @@ export async function handleSmsCampaigns(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -101,7 +99,7 @@ export async function handleSmsCampaigns(request: NextRequest) {
         }
 
         done(200)
-        return apiSuccess({ campaigns: campaigns ?? [], page }, meta)
+        return apiSuccess({ campaigns: campaigns ?? [], page })
     } catch (e: any) {
         console.error('[API SMS Campaigns] error:', e?.message)
         done(500, e?.message)

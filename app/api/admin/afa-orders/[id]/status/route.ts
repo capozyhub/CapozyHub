@@ -6,7 +6,7 @@ import { logAdminAction } from '@/lib/admin-audit'
 // ============================================================================
 // PATCH /api/admin/afa-orders/[id]/status
 //
-// Closes a Phase 3 finding recorded during the API v2 build (SDD ledger, Task 7):
+// Closes a Phase 3 finding recorded during the developer API build (SDD ledger, Task 7):
 // admin AFA status changes previously happened CLIENT-SIDE from the admin
 // browser (app/admin/afa-management/page.tsx, direct supabase-js .update()),
 // with RLS as the only authorization and NO server-side audit trail. This

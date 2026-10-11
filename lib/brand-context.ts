@@ -1,7 +1,7 @@
 // lib/brand-context.ts
 // =============================================================================
 // White-label brand resolution (spec §12, Phase 11). ONE server-side source of
-// truth for "what brand does this user see?" so no KiNG FLEXY chrome leaks to a
+// truth for "what brand does this user see?" so no Capozy Hub chrome leaks to a
 // sub-agent. A sub sees THEIR OWN storefront brand (or a neutral fallback); every
 // other user sees the platform brand.
 //
@@ -13,7 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { BRAND } from '@/lib/brand'
 
 export interface BrandContext {
-    /** true when the viewer is a sub-agent → hide all KiNG FLEXY chrome. */
+    /** true when the viewer is a sub-agent → hide all Capozy Hub chrome. */
     debranded: boolean
     /** Display name shown in the shell (the sub's own shop name, or the platform name). */
     name: string
@@ -21,7 +21,7 @@ export interface BrandContext {
     logoUrl: string | null
     /** Accent colour for the shell. */
     accent: string
-    /** Neutral "powered by" label for de-branded surfaces (never "KiNG FLEXY"). */
+    /** Neutral "powered by" label for de-branded surfaces (never "Capozy Hub"). */
     poweredBy: string
 }
 

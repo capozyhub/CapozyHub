@@ -108,7 +108,7 @@ export function normalizeGhanaPhone(raw: string): string | null {
 export async function sendHubtelSMS(options: SMSOptions): Promise<SMSResult> {
     const clientId     = process.env.HUBTEL_CLIENT_ID
     const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'KINGFLEXY').substring(0, 11)
+    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
 
     if (!clientId || !clientSecret) {
         return { success: false, error: 'HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET not configured.' }
@@ -166,7 +166,7 @@ export async function sendHubtelBatchSMS(
 ): Promise<{ batchId?: string; batchIds: string[]; sent: number; failed: number; errors: string[] }> {
     const clientId     = process.env.HUBTEL_CLIENT_ID
     const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'KINGFLEXY').substring(0, 11)
+    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
     const From = (senderOverride || defaultSender).substring(0, 11)
 
     if (!clientId || !clientSecret) {
@@ -244,7 +244,7 @@ export async function sendHubtelSimpleBatchSMS(
 ): Promise<{ batchId?: string; batchIds: string[]; sent: number; failed: number; errors: string[] }> {
     const clientId     = process.env.HUBTEL_CLIENT_ID
     const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'KINGFLEXY').substring(0, 11)
+    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
     const From = (senderOverride || defaultSender).substring(0, 11)
 
     if (!clientId || !clientSecret) {
@@ -334,7 +334,7 @@ export interface CampaignChunkResult {
  *
  * Contract differences vs the admin-broadcast batch helpers above:
  *  - `sender` is REQUIRED. Campaign traffic must NEVER inherit the platform
- *    env default (a business-mode campaign falling back to KINGFLEXY would
+ *    env default (a business-mode campaign falling back to CAPOZYHUB would
  *    ship relaxed-filter content under the platform brand).
  *  - `phones` must already be normalized (233XXXXXXXXX) — the campaign
  *    pipeline normalizes once and persists sms_messages rows first.
@@ -602,7 +602,7 @@ export async function sendSMS(options: SMSOptions): Promise<SMSResult> {
  */
 export async function sendMnotifySMS(options: SMSOptions): Promise<SMSResult> {
     const apiKey = process.env.MNOTIFY_API_KEY
-    const defaultSender = process.env.MNOTIFY_SENDER_ID || 'KINGFLEXY'
+    const defaultSender = process.env.MNOTIFY_SENDER_ID || 'CAPOZYHUB'
 
     if (!apiKey) {
         const error = 'MNOTIFY_API_KEY not configured in environment variables.'
@@ -730,7 +730,7 @@ export async function sendWalletTopupSuccessSMS(
         newBalance: number
     }
 ) {
-    const message = `Your top-up was successful! GHS ${details.amount.toFixed(2)} has been added to your Flexy-Wallet. New balance: GHS ${details.newBalance.toFixed(2)}. Thank you!`
+    const message = `Your top-up was successful! GHS ${details.amount.toFixed(2)} has been added to your Capozy Wallet. New balance: GHS ${details.newBalance.toFixed(2)}. Thank you!`
 
     // ROUTE: Moolre
     return sendSMS({
@@ -749,7 +749,7 @@ export async function sendWelcomeSMS(
 ) {
     // DISABLED AS REQUESTED
     /*
-    const message = `Hello! Welcome to KiNG FLEXY GH. All we do here is instant Delivery (PA-TU-PA) start ordering your package now. Chat us on WhatsApp:578065809`
+    const message = `Hello! Welcome to Capozy Hub. All we do here is instant Delivery (PA-TU-PA) start ordering your package now. Chat us on WhatsApp:578065809`
 
     return sendSMS({
         recipient: phoneNumber,
@@ -882,7 +882,7 @@ export async function sendAgentRenewalReminderSMS(
     phoneNumber: string,
     firstName: string
 ) {
-    const message = `Hi ${firstName}, your Agent plan expires in under 48hrs. Enable Auto-Upgrade in Settings so your Flexy-Wallet covers renewal, or renew at kingflexygh.com`
+    const message = `Hi ${firstName}, your Agent plan expires in under 48hrs. Enable Auto-Upgrade in Settings so your Capozy Wallet covers renewal, or renew at capozygh.com`
 
     return sendSMS({
         recipient: phoneNumber,
@@ -897,7 +897,7 @@ export async function sendDealerRenewalReminderSMS(
     phoneNumber: string,
     firstName: string
 ) {
-    const message = `Hi ${firstName}, your Dealer plan expires in under 48hrs. Enable Auto-Upgrade in Settings so your Flexy-Wallet covers renewal, or renew at kingflexygh.com`
+    const message = `Hi ${firstName}, your Dealer plan expires in under 48hrs. Enable Auto-Upgrade in Settings so your Capozy Wallet covers renewal, or renew at capozygh.com`
 
     return sendSMS({
         recipient: phoneNumber,
@@ -1238,7 +1238,7 @@ export async function sendAdminRCOrderAlertSMS(
 
 /**
  * Send SMS when auto-upgrade succeeds — wallet had sufficient funds.
- * Template: "Hi [Name]! Your [plan] was auto-renewed from your Flexy-Wallet.
+ * Template: "Hi [Name]! Your [plan] was auto-renewed from your Capozy Wallet.
  *            Active until [date]. Balance: GHS[balance]."
  */
 export async function sendAutoUpgradeSuccessSMS(
@@ -1256,15 +1256,15 @@ export async function sendAutoUpgradeSuccessSMS(
     ]
     const formattedDate = `${month} ${day}${suffix}, ${year}`
 
-    const message = `Hi ${firstName}! Your ${planLabel} was auto-renewed from your Flexy-Wallet. Active until ${formattedDate}. Balance: GHS ${newBalance.toFixed(2)}.`
+    const message = `Hi ${firstName}! Your ${planLabel} was auto-renewed from your Capozy Wallet. Active until ${formattedDate}. Balance: GHS ${newBalance.toFixed(2)}.`
 
     return sendSMS({ recipient: phoneNumber, message })
 }
 
 /**
  * Send SMS when auto-upgrade FAILS due to insufficient wallet balance.
- * Template: "Hi [Name], auto-renewal for [plan] failed. Flexy-Wallet: GHS[balance],
- *            needed GHS[required]. Top up to continue: kingflexygh.com"
+ * Template: "Hi [Name], auto-renewal for [plan] failed. Capozy Wallet: GHS[balance],
+ *            needed GHS[required]. Top up to continue: capozygh.com"
  */
 export async function sendAutoUpgradeFailedSMS(
     phoneNumber: string,
@@ -1275,7 +1275,7 @@ export async function sendAutoUpgradeFailedSMS(
 ): Promise<SMSResult> {
     const shortfall = (requiredAmount - currentBalance).toFixed(2)
 
-    const message = `Hi ${firstName}, auto-renewal for your ${planLabel} failed. Flexy-Wallet: GHS ${currentBalance.toFixed(2)}, needed GHS ${requiredAmount.toFixed(2)}. Top up to continue: kingflexygh.com`
+    const message = `Hi ${firstName}, auto-renewal for your ${planLabel} failed. Capozy Wallet: GHS ${currentBalance.toFixed(2)}, needed GHS ${requiredAmount.toFixed(2)}. Top up to continue: capozygh.com`
 
     return sendSMS({ recipient: phoneNumber, message })
 }

@@ -1,5 +1,5 @@
 // lib/api-handlers/data-purchase.ts
-// Handler for POST /api/v2/data/purchase.
+// Handler for POST /api/data/purchase.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Mirrors app/api/orders/purchase/route.ts's flow:
@@ -22,7 +22,6 @@ import {
 import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
 import { triggerFulfillment } from '@/lib/fulfillment-trigger'
-import { versionMeta } from '@/lib/api-version'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
@@ -39,7 +38,6 @@ export async function handleDataPurchase(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -134,7 +132,7 @@ export async function handleDataPurchase(request: NextRequest) {
                 recipient: existingOrder.phone_number,
                 price: parseFloat(String(existingOrder.price)),
                 is_duplicate: true,
-            }, { ...meta, message: 'Order already exists with this reference' })
+            }, { message: 'Order already exists with this reference' })
         }
 
         // ── Resolve package by network + volume_gb ────────────────────────
@@ -266,7 +264,7 @@ export async function handleDataPurchase(request: NextRequest) {
         if (placed.duplicate) {
             // A concurrent request with the same reference won the race: same answer as the replay check above.
             logApiRequest({ apiKeyId, userId, endpoint, method: 'POST', statusCode: 200, responseTimeMs: Date.now() - startTime, ip })
-            return apiSuccess({ reference, is_duplicate: true }, { ...meta, message: 'Order already exists with this reference' })
+            return apiSuccess({ reference, is_duplicate: true }, { message: 'Order already exists with this reference' })
         }
 
         const order = placed.orders[0]
@@ -319,7 +317,7 @@ export async function handleDataPurchase(request: NextRequest) {
             recipient: cleanPhone,
             price: priceToCharge,
             new_balance: newBalance,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Data Purchase] Exception:', error.message)

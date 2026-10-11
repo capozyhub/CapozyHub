@@ -4,9 +4,8 @@
 
 import { BRAND } from '@/lib/brand'
 
-// API_BASE still names the old API host/version: the public API rename (no v1/v2 in
-// paths, Capozy-branded host and key prefixes) is scheduled for Stage 2.
-export const API_BASE = 'https://api.kingflexygh.com/api/v2'
+// API_BASE is the public developer API base URL: no version segment in the path.
+export const API_BASE = 'https://api.capozygh.com/api'
 export const SITE = BRAND.siteUrl
 
 export type KeyType = 'standard' | 'commission' | 'sms'
@@ -172,7 +171,7 @@ export function llmsTxt(): string {
     lines.push('')
     lines.push('## Getting an API key')
     lines.push('')
-    lines.push(`Sign in or register at ${SITE}/auth, then follow the steps in ${SITE}/developers#authentication (Dashboard > Developer API). Keys are shown once and need admin approval before they go live. The agent.kingflexygh.com site is only a login page for existing sub-agent accounts and is not where developers sign up.`)
+    lines.push(`Sign in or register at ${SITE}/auth, then follow the steps in ${SITE}/developers#authentication (Dashboard > Developer API). Keys are shown once and need admin approval before they go live. The agent.capozygh.com site is only a login page for existing sub-agent accounts and is not where developers sign up.`)
     lines.push('')
     return lines.join('\n')
 }

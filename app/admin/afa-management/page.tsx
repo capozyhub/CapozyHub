@@ -206,7 +206,7 @@ export default function AdminAfaManagementPage() {
             // allowlist validation, and lib/admin-audit.ts (see
             // app/api/admin/afa-orders/[id]/status/route.ts). The old direct
             // client-side .update() had RLS as its only authorization and left
-            // no audit trail — a gap recorded during the API v2 build.
+            // no audit trail — a gap recorded during the developer API build.
             const res = await fetch(`/api/admin/afa-orders/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -284,7 +284,7 @@ export default function AdminAfaManagementPage() {
                 `Submitted On     : ${format(new Date(app.created_at), 'dd MMM yyyy, hh:mm a')}`,
                 '',
                 '============================================',
-                'Submitted via KingFlexy Dashboard',
+                'Submitted via Capozy Dashboard',
                 '============================================',
             ]
 

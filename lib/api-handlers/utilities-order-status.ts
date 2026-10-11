@@ -1,5 +1,5 @@
 // lib/api-handlers/utilities-order-status.ts
-// Handler for GET /api/v2/utilities/orders/:reference. See
+// Handler for GET /api/utilities/orders/:reference. See
 // lib/api-handlers/packages.ts for why handlers live here.
 //
 // Only returns orders belonging to the authenticated user — never a global
@@ -20,7 +20,6 @@ import {
     getClientIp,
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
-import { apiVersionFromPath, versionMeta } from '@/lib/api-version'
 import { REASON_MESSAGES } from '@/lib/api-order-failure'
 
 // Only echo refund_reason when it's exactly one of the fixed, sanitized
@@ -39,8 +38,7 @@ export async function handleUtilitiesOrderStatus(
     const ip = getClientIp(request)
     // Normalised, NOT the raw pathname — this path carries the caller's utility
     // order reference. See lib/api-handlers/order-status.ts for the same reasoning.
-    const endpoint = `/api/${apiVersionFromPath(request.nextUrl.pathname)}/utilities/orders/:reference`
-    const meta = versionMeta(request.nextUrl.pathname)
+    const endpoint = `/api/utilities/orders/:reference`
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -106,7 +104,7 @@ export async function handleUtilitiesOrderStatus(
             ...(order.status === 'refunded' && KNOWN_REASON_MESSAGES.has(order.refund_reason) ? { reason: order.refund_reason } : {}),
             created_at: order.created_at,
             updated_at: order.updated_at,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Utilities Order Status] Exception:', error.message)

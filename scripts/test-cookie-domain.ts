@@ -17,9 +17,9 @@ async function run() {
     assert.strictEqual(getAuthCookieDomain(), undefined, 'whitespace env must yield undefined')
 
     // 3. Real value → passed through verbatim
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '.kingflexygh.com'
-    assert.strictEqual(getAuthCookieDomain(), '.kingflexygh.com')
-    assert.deepStrictEqual(getAuthCookieOptions(), { domain: '.kingflexygh.com' })
+    process.env.NEXT_PUBLIC_COOKIE_DOMAIN = '.capozygh.com'
+    assert.strictEqual(getAuthCookieDomain(), '.capozygh.com')
+    assert.deepStrictEqual(getAuthCookieOptions(), { domain: '.capozygh.com' })
 
     console.log('ALL PASS — cookie-domain helper')
 }

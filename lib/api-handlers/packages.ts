@@ -1,15 +1,15 @@
 // lib/api-handlers/packages.ts
 //
-// Handler for GET /api/v2/packages. See lib/api-handlers/README-style note below.
+// Handler for GET /api/packages. See lib/api-handlers/README-style note below.
 //
 // ── WHY HANDLERS LIVE HERE AND NOT IN THE ROUTE FILES ──────────────────────
-// This file used to be shared between /api/v1/packages and /api/v2/packages
+// This file used to be shared between /api/v1/packages and /api/packages
 // during the v1→v2 migration (v1 has since been retired and removed — the
 // route file is gone, this handler is not). The one-body-per-endpoint
 // discipline stays: the one thing this codebase has proven repeatedly is that
 // a second copy of a route body drifts. Three private copies of the
 // fulfillment dispatcher drifted until two of them could not reach the only
-// suppliers that were actually switched on; the airtime and AFA v2 routes
+// suppliers that were actually switched on; the airtime and AFA developer-API routes
 // duplicated dashboard money logic and diverged on day one (review finding
 // I6/I5). Keeping each endpoint's body here, with the route file as a thin
 // re-export, is what prevents that class of bug.
@@ -22,7 +22,6 @@ import {
     logApiRequest,
     getClientIp,
 } from '@/lib/api-auth'
-import { versionMeta } from '@/lib/api-version'
 
 const VALID_NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
 
@@ -30,7 +29,6 @@ export async function handlePackages(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -136,7 +134,7 @@ export async function handlePackages(request: NextRequest) {
         return apiSuccess({
             packages: shaped,
             total: shaped.length,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Packages] Error:', error.message)

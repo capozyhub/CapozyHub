@@ -14,11 +14,10 @@ import { parseSettingNumber } from '@/lib/paystack-fees'
 import { isUtilityBiller, UTILITY_BILLERS, makeUtilityReference } from '@/lib/hubtel-utility/billers'
 import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { dispatchUtilityFulfillment } from '@/lib/utility-fulfillment'
-import { versionMeta } from '@/lib/api-version'
 
 // ============================================================================
 // lib/api-handlers/utilities-pay.ts
-// Handler for POST /api/v2/utilities/pay.
+// Handler for POST /api/utilities/pay.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Place a utility-bill order via the developer API (commission keys only).
@@ -47,7 +46,6 @@ export async function handleUtilitiesPay(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -204,7 +202,7 @@ export async function handleUtilitiesPay(request: NextRequest) {
                     order_id: existingOrder.id,
                     status: existingOrder.status,
                     already_processed: true,
-                }, meta)
+                })
             }
         }
 
@@ -339,7 +337,7 @@ export async function handleUtilitiesPay(request: NextRequest) {
             amount: roundedAmount,
             commission_share_percent: commissionSharePercent,
             new_balance: newBalance,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Utilities Pay] Exception:', error.message)

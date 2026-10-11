@@ -2,7 +2,7 @@
 //
 // validateAfaRegistration is the single source of AFA input validation for BOTH
 // the dashboard (app/api/user/afa-registration) and the developer API
-// (app/api/v2/afa/register). It gates a KYC-bearing money endpoint, so the
+// (app/api/afa/register). It gates a KYC-bearing money endpoint, so the
 // allowlists, the fail-closed ID check and the 18+ rule are pinned here.
 import { validateAfaRegistration, VALID_REGIONS, ageOn } from '@/lib/afa-validation'
 

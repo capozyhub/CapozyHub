@@ -1,7 +1,7 @@
 // lib/user-role-status.ts
 // Resolves a user's role into a status object answering "am I still a
 // dealer/agent, and for how many more days?" — used by
-// GET /api/v2/account/role. Mirrors the active/expired logic already used
+// GET /api/account/role. Mirrors the active/expired logic already used
 // for pricing (data/purchase's isActiveDealerV1/isActiveAgentV1 pattern and
 // effectiveRoleFromExpiry() in lib/results-checker-service.ts): a NULL
 // expiry means permanent/lifetime; a non-NULL expiry that has passed means

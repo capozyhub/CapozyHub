@@ -134,7 +134,7 @@ export default function RecordsDetailClient({ campaignId }: { campaignId: string
         try {
             const qs = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) })
             if (statusFilter) qs.set('status', statusFilter)
-            const res = await fetch(`/api/sms/campaigns/${encodeURIComponent(campaignId)}?${qs.toString()}`)
+            const res = await fetch(`/api/sms/my-campaigns/${encodeURIComponent(campaignId)}?${qs.toString()}`)
             const json = await res.json().catch(() => null)
             if (res.status === 404) throw new Error('Campaign not found')
             if (!json?.success) throw new Error(json?.error || 'Failed to load campaign')
@@ -161,7 +161,7 @@ export default function RecordsDetailClient({ campaignId }: { campaignId: string
             const rows: string[][] = [['recipient', 'status', 'detail', 'updated_at']]
             let p = 0
             for (;;) {
-                const res = await fetch(`/api/sms/campaigns/${encodeURIComponent(campaignId)}?page=${p}&pageSize=${EXPORT_PAGE_SIZE}`)
+                const res = await fetch(`/api/sms/my-campaigns/${encodeURIComponent(campaignId)}?page=${p}&pageSize=${EXPORT_PAGE_SIZE}`)
                 const json = await res.json().catch(() => null)
                 if (!json?.success) throw new Error(json?.error || 'Export failed while fetching recipients')
                 const msgs: MessageRow[] = json.data.messages ?? []

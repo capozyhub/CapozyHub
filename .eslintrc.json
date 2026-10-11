@@ -10,7 +10,34 @@
   },
   "overrides": [
     {
-      "files": ["app/api/v2/**/*.ts", "app/api/v2/**/*.tsx"],
+      "files": [
+        "app/api/account/role/route.ts",
+        "app/api/afa/orders/route.ts",
+        "app/api/afa/orders/*/route.ts",
+        "app/api/afa/register/route.ts",
+        "app/api/airtime/orders/route.ts",
+        "app/api/airtime/orders/*/route.ts",
+        "app/api/airtime/purchase/route.ts",
+        "app/api/data/bulk/route.ts",
+        "app/api/data/purchase/route.ts",
+        "app/api/orders/[[]reference]/route.ts",
+        "app/api/packages/route.ts",
+        "app/api/resultschecker/orders/route.ts",
+        "app/api/resultschecker/orders/*/route.ts",
+        "app/api/resultschecker/purchase/route.ts",
+        "app/api/resultschecker/types/route.ts",
+        "app/api/sms/balance/route.ts",
+        "app/api/sms/campaigns/route.ts",
+        "app/api/sms/messages/*/route.ts",
+        "app/api/sms/send/route.ts",
+        "app/api/sms/senders/route.ts",
+        "app/api/utilities/billers/route.ts",
+        "app/api/utilities/lookup/route.ts",
+        "app/api/utilities/orders/*/route.ts",
+        "app/api/utilities/pay/route.ts",
+        "app/api/wallet/balance/route.ts",
+        "app/api/wallet/topup/route.ts"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -19,18 +46,18 @@
               {
                 "name": "@/lib/supabase-server",
                 "importNames": ["createRouteClient", "createServerComponentClient"],
-                "message": "v2 developer-API routes must authenticate by API key via validateApiKey() from '@/lib/api-auth', never by cookie/session. middleware.ts skips Supabase session creation for /api/v2/* AND serves open CORS (Access-Control-Allow-Origin: *), so a cookie-authed v2 route would be a CSRF hole. See .claude/skills/kingflexy-developer-api/SKILL.md."
+                "message": "developer-API routes must authenticate by API key via validateApiKey() from '@/lib/api-auth', never by cookie/session. middleware.ts skips Supabase session creation for the public developer-API paths AND serves open CORS (Access-Control-Allow-Origin: *), so a cookie-authed developer-API route would be a CSRF hole. See .claude/skills/kingflexy-developer-api/SKILL.md."
               },
               {
                 "name": "next/headers",
                 "importNames": ["cookies"],
-                "message": "v2 developer-API routes must not read cookies — they authenticate by API key via validateApiKey() from '@/lib/api-auth'. See .claude/skills/kingflexy-developer-api/SKILL.md."
+                "message": "developer-API routes must not read cookies — they authenticate by API key via validateApiKey() from '@/lib/api-auth'. See .claude/skills/kingflexy-developer-api/SKILL.md."
               }
             ],
             "patterns": [
               {
                 "group": ["**/lib/supabase-server", "**/lib/supabase-server.ts", "**/supabase-server"],
-                "message": "v2 developer-API routes must authenticate by API key via validateApiKey() from '@/lib/api-auth', never by cookie/session — relative-path imports of supabase-server are blocked for the same reason as the aliased path. See .claude/skills/kingflexy-developer-api/SKILL.md."
+                "message": "developer-API routes must authenticate by API key via validateApiKey() from '@/lib/api-auth', never by cookie/session — relative-path imports of supabase-server are blocked for the same reason as the aliased path. See .claude/skills/kingflexy-developer-api/SKILL.md."
               }
             ]
           }

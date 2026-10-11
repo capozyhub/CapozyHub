@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Resend Email Service
  *
  * This service handles all transactional emails using Resend, the only
@@ -1407,7 +1407,7 @@ export async function sendShopProfileApprovedEmail(
     const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">Your Shop is Approved</h1>
-        <p class="subtitle">Welcome to the King Flexy Shop Network</p>
+        <p class="subtitle">Welcome to the Capozy Hub Shop Network</p>
         <p class="message-text">Hi ${escapeHtml(firstName)}, your shop <strong>${escapeHtml(shopName)}</strong> has been approved. Set your prices to go live!</p>
         <div class="info-card">
             <div class="info-card-header"><div class="info-card-icon">i</div><span class="info-card-title">Next Steps</span></div>
@@ -1879,7 +1879,7 @@ export async function sendMomoClaimSuccessEmail(
 
         <p class="message-text">
             Hi ${firstName}, your MoMo claim has been successfully processed and your
-            Flexy-Wallet has been credited. You can now use your balance to purchase
+            Capozy Wallet has been credited. You can now use your balance to purchase
             data bundles for any network.
         </p>
 
@@ -1997,7 +1997,7 @@ export async function sendDealerRenewalReminderEmail(
 
         <p class="message-text">
             Hi ${firstName}, your Dealer Role plan is expiring in less than 48 hours.
-            Enable Auto-Upgrade in your dashboard settings so your Flexy-Wallet covers the renewal automatically —
+            Enable Auto-Upgrade in your dashboard settings so your Capozy Wallet covers the renewal automatically —
             or renew manually before it expires to keep your Dealer benefits uninterrupted.
         </p>
 
@@ -2116,7 +2116,7 @@ export async function sendAutoUpgradeFailedEmail(
         <p class="subtitle">Your wallet balance was insufficient to renew your membership</p>
 
         <p class="message-text">
-            Hi ${firstName}, your scheduled auto-upgrade for <strong>${planLabel}</strong> could not be completed because your Flexy-Wallet balance was too low. Auto-upgrade has been temporarily disabled.
+            Hi ${firstName}, your scheduled auto-upgrade for <strong>${planLabel}</strong> could not be completed because your Capozy Wallet balance was too low. Auto-upgrade has been temporarily disabled.
         </p>
 
         <div class="info-card">
@@ -2139,7 +2139,7 @@ export async function sendAutoUpgradeFailedEmail(
         </div>
 
         <p class="message-text">
-            To restore your membership and re-enable auto-upgrade, top up your Flexy-Wallet with at least <strong>GHS ${shortfall}</strong> then head to the Upgrade page to re-enable auto-upgrade.
+            To restore your membership and re-enable auto-upgrade, top up your Capozy Wallet with at least <strong>GHS ${shortfall}</strong> then head to the Upgrade page to re-enable auto-upgrade.
         </p>
 
         <div style="text-align: center; margin: 25px 0;">

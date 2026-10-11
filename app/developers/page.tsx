@@ -25,9 +25,9 @@ const TOC = [
     { id: 'response-format', label: 'Response Format', icon: Code2 },
     { id: 'endpoints', label: 'Endpoints', icon: List },
     { id: 'account-role', label: 'Account & Role', icon: UserCheck },
-    { id: 'airtime', label: 'Airtime (v2)', icon: Smartphone },
-    { id: 'resultschecker', label: 'Results Checker (v2)', icon: GraduationCap },
-    { id: 'afa', label: 'AFA Registration (v2)', icon: BadgeCheck },
+    { id: 'airtime', label: 'Airtime', icon: Smartphone },
+    { id: 'resultschecker', label: 'Results Checker', icon: GraduationCap },
+    { id: 'afa', label: 'AFA Registration', icon: BadgeCheck },
     { id: 'sms', label: 'SMS API', icon: MessageSquare },
     { id: 'utilities', label: 'Utility Bills', icon: Percent },
     { id: 'tips', label: 'Tips & Recommendations', icon: Lightbulb },
@@ -248,7 +248,7 @@ function DocTable({ head, rows }: { head: string[]; rows: (string | React.ReactN
 // developers were notified and confirmed). BASE now points at the ONLY live
 // API surface; every sample below inherits the flip automatically since they
 // all interpolate ${BASE} rather than hardcoding a version.
-const BASE = 'https://api.kingflexygh.com/api/v2'
+const BASE = 'https://api.capozygh.com/api'
 const KEY = 'kf_live_your_api_key_here'
 const CS_KEY = 'kf_cs_live_your_commission_key_here'
 
@@ -568,38 +568,38 @@ r = requests.get(f'${BASE}/utilities/orders/{ref}',
 print(r.json())`,
 }
 
-// ─── v2 Endpoint Data ───────────────────────────────────────────────────────
-// V2_BASE and BASE are now the same string — the full v1→v2 port completed
+// ─── Endpoint Data ───────────────────────────────────────────────────────
+// API_BASE and BASE are now the same string — the full v1→v2 port completed
 // and v1 is retired. Kept as a separate name (rather than merged into BASE)
 // because these product sections (Account & Role, Airtime, Results Checker,
 // AFA Registration) were added before the port and this avoids re-touching
 // every sample in this block for a purely cosmetic rename.
-const V2_BASE = 'https://api.kingflexygh.com/api/v2'
-const V2_KEY = KEY // same key material — one standard key for the whole v2 API
+const API_BASE = 'https://api.capozygh.com/api'
+const API_KEY = KEY // same key material — one standard key for the whole API
 
 const ACCOUNT_ROLE_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/account/role \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/account/role', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/account/role \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/account/role', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/account/role');
+$ch = curl_init('${API_BASE}/account/role');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
-r = requests.get('${V2_BASE}/account/role',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get('${API_BASE}/account/role',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
 const AIRTIME_PURCHASE_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X POST ${V2_BASE}/airtime/purchase \\
+    'cURL': `curl -X POST ${API_BASE}/airtime/purchase \\
   -H "Authorization: ${CS_KEY}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -608,7 +608,7 @@ const AIRTIME_PURCHASE_SAMPLES: Record<LangTab, string> = {
     "amount": 10,
     "reference": "air_001"
   }'`,
-    'Node.js': `const res = await fetch('${V2_BASE}/airtime/purchase', {
+    'Node.js': `const res = await fetch('${API_BASE}/airtime/purchase', {
   method: 'POST',
   headers: { 'Authorization': '${CS_KEY}', 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -618,7 +618,7 @@ const AIRTIME_PURCHASE_SAMPLES: Record<LangTab, string> = {
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/airtime/purchase');
+$ch = curl_init('${API_BASE}/airtime/purchase');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_POST => true,
@@ -635,7 +635,7 @@ echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
 r = requests.post(
-  '${V2_BASE}/airtime/purchase',
+  '${API_BASE}/airtime/purchase',
   headers={'Authorization': '${CS_KEY}'},
   json={
     'network': 'MTN', 'beneficiary_phone': '0551617309',
@@ -646,14 +646,14 @@ print(r.json())`,
 }
 
 const AIRTIME_ORDERS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/airtime/orders \\
+    'cURL': `curl -X GET ${API_BASE}/airtime/orders \\
   -H "Authorization: ${CS_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/airtime/orders', {
+    'Node.js': `const res = await fetch('${API_BASE}/airtime/orders', {
   headers: { 'Authorization': '${CS_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/airtime/orders');
+$ch = curl_init('${API_BASE}/airtime/orders');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
@@ -661,20 +661,20 @@ curl_setopt_array($ch, [
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
-r = requests.get('${V2_BASE}/airtime/orders',
+r = requests.get('${API_BASE}/airtime/orders',
   headers={'Authorization': '${CS_KEY}'})
 print(r.json())`,
 }
 
 const AIRTIME_STATUS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/airtime/orders/air_001 \\
+    'cURL': `curl -X GET ${API_BASE}/airtime/orders/air_001 \\
   -H "Authorization: ${CS_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/airtime/orders/air_001', {
+    'Node.js': `const res = await fetch('${API_BASE}/airtime/orders/air_001', {
   headers: { 'Authorization': '${CS_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/airtime/orders/air_001');
+$ch = curl_init('${API_BASE}/airtime/orders/air_001');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
@@ -682,44 +682,44 @@ curl_setopt_array($ch, [
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 ref = 'air_001'
-r = requests.get(f'${V2_BASE}/airtime/orders/{ref}',
+r = requests.get(f'${API_BASE}/airtime/orders/{ref}',
   headers={'Authorization': '${CS_KEY}'})
 print(r.json())`,
 }
 
 const RC_TYPES_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/resultschecker/types \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/resultschecker/types', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/resultschecker/types \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/resultschecker/types', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/resultschecker/types');
+$ch = curl_init('${API_BASE}/resultschecker/types');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
-r = requests.get('${V2_BASE}/resultschecker/types',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get('${API_BASE}/resultschecker/types',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
 const RC_PURCHASE_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X POST ${V2_BASE}/resultschecker/purchase \\
-  -H "Authorization: ${V2_KEY}" \\
+    'cURL': `curl -X POST ${API_BASE}/resultschecker/purchase \\
+  -H "Authorization: ${API_KEY}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "typeId": "uuid-of-a-type-from-GET-types",
     "quantity": 1,
     "reference": "rc_001"
   }'`,
-    'Node.js': `const res = await fetch('${V2_BASE}/resultschecker/purchase', {
+    'Node.js': `const res = await fetch('${API_BASE}/resultschecker/purchase', {
   method: 'POST',
-  headers: { 'Authorization': '${V2_KEY}', 'Content-Type': 'application/json' },
+  headers: { 'Authorization': '${API_KEY}', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     typeId: 'uuid-of-a-type-from-GET-types',
     quantity: 1, reference: 'rc_001',
@@ -729,12 +729,12 @@ const RC_PURCHASE_SAMPLES: Record<LangTab, string> = {
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/resultschecker/purchase');
+$ch = curl_init('${API_BASE}/resultschecker/purchase');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_POST => true,
   CURLOPT_HTTPHEADER => [
-    'Authorization: ${V2_KEY}',
+    'Authorization: ${API_KEY}',
     'Content-Type: application/json',
   ],
   CURLOPT_POSTFIELDS => json_encode([
@@ -746,8 +746,8 @@ echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
 r = requests.post(
-  '${V2_BASE}/resultschecker/purchase',
-  headers={'Authorization': '${V2_KEY}'},
+  '${API_BASE}/resultschecker/purchase',
+  headers={'Authorization': '${API_KEY}'},
   json={
     'typeId': 'uuid-of-a-type-from-GET-types',
     'quantity': 1, 'reference': 'rc_001',
@@ -757,50 +757,50 @@ print(r.json())`,
 }
 
 const RC_ORDERS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/resultschecker/orders \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/resultschecker/orders', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/resultschecker/orders \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/resultschecker/orders', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/resultschecker/orders');
+$ch = curl_init('${API_BASE}/resultschecker/orders');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
-r = requests.get('${V2_BASE}/resultschecker/orders',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get('${API_BASE}/resultschecker/orders',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
 const RC_STATUS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/resultschecker/orders/rc_001 \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/resultschecker/orders/rc_001', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/resultschecker/orders/rc_001 \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/resultschecker/orders/rc_001', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/resultschecker/orders/rc_001');
+$ch = curl_init('${API_BASE}/resultschecker/orders/rc_001');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 ref = 'rc_001'
-r = requests.get(f'${V2_BASE}/resultschecker/orders/{ref}',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get(f'${API_BASE}/resultschecker/orders/{ref}',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
 const AFA_REGISTER_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X POST ${V2_BASE}/afa/register \\
-  -H "Authorization: ${V2_KEY}" \\
+    'cURL': `curl -X POST ${API_BASE}/afa/register \\
+  -H "Authorization: ${API_KEY}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "reference": "afa_001",
@@ -812,9 +812,9 @@ const AFA_REGISTER_SAMPLES: Record<LangTab, string> = {
     "region": "Greater Accra",
     "location": "Madina"
   }'`,
-    'Node.js': `const res = await fetch('${V2_BASE}/afa/register', {
+    'Node.js': `const res = await fetch('${API_BASE}/afa/register', {
   method: 'POST',
-  headers: { 'Authorization': '${V2_KEY}', 'Content-Type': 'application/json' },
+  headers: { 'Authorization': '${API_KEY}', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     reference: 'afa_001',
     full_name: 'Kwame Mensah', phone: '0551617309',
@@ -824,12 +824,12 @@ const AFA_REGISTER_SAMPLES: Record<LangTab, string> = {
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/afa/register');
+$ch = curl_init('${API_BASE}/afa/register');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_POST => true,
   CURLOPT_HTTPHEADER => [
-    'Authorization: ${V2_KEY}',
+    'Authorization: ${API_KEY}',
     'Content-Type: application/json',
   ],
   CURLOPT_POSTFIELDS => json_encode([
@@ -843,8 +843,8 @@ echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
 r = requests.post(
-  '${V2_BASE}/afa/register',
-  headers={'Authorization': '${V2_KEY}'},
+  '${API_BASE}/afa/register',
+  headers={'Authorization': '${API_KEY}'},
   json={
     'reference': 'afa_001',
     'full_name': 'Kwame Mensah', 'phone': '0551617309',
@@ -856,44 +856,44 @@ print(r.json())`,
 }
 
 const AFA_ORDERS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/afa/orders \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/afa/orders', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/afa/orders \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/afa/orders', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/afa/orders');
+$ch = curl_init('${API_BASE}/afa/orders');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
-r = requests.get('${V2_BASE}/afa/orders',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get('${API_BASE}/afa/orders',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
 const AFA_STATUS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${V2_BASE}/afa/orders/afa_001 \\
-  -H "Authorization: ${V2_KEY}"`,
-    'Node.js': `const res = await fetch('${V2_BASE}/afa/orders/afa_001', {
-  headers: { 'Authorization': '${V2_KEY}' },
+    'cURL': `curl -X GET ${API_BASE}/afa/orders/afa_001 \\
+  -H "Authorization: ${API_KEY}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/afa/orders/afa_001', {
+  headers: { 'Authorization': '${API_KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
-$ch = curl_init('${V2_BASE}/afa/orders/afa_001');
+$ch = curl_init('${API_BASE}/afa/orders/afa_001');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${V2_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 ref = 'afa_001'
-r = requests.get(f'${V2_BASE}/afa/orders/{ref}',
-  headers={'Authorization': '${V2_KEY}'})
+r = requests.get(f'${API_BASE}/afa/orders/{ref}',
+  headers={'Authorization': '${API_KEY}'})
 print(r.json())`,
 }
 
@@ -994,11 +994,11 @@ export default function DevelopersPage() {
                             <Code2 className="w-5 h-5" />
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 rounded-full px-3 py-1">v2 — the only live API</span>
+                            <span className="text-xs font-bold bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 rounded-full px-3 py-1">The live API</span>
                         </div>
                     </div>
                     <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-3 leading-tight">
-                        KiNG FLEXY GH<br /><span className="text-violet-300">Developer API</span>
+                        Capozy Hub<br /><span className="text-violet-300">Developer API</span>
                     </h1>
                     <p className="text-sm sm:text-lg text-white/75 max-w-xl mb-8">
                         One API for Ghana digital services: data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bills. Integrate using your wallet balance and agent pricing.
@@ -1088,7 +1088,7 @@ export default function DevelopersPage() {
                                     <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Getting Your API Key</h3>
                                     <ol className="space-y-2">
                                         {[
-                                            'Log in to your KingFlexyGh account (agent role required)',
+                                            'Log in to your Capozy Hub account (agent role required)',
                                             'Navigate to Dashboard → Developer API',
                                             'Click Generate API Key and accept the policy',
                                             'Copy and store the key — it will not be shown again',
@@ -1116,7 +1116,7 @@ export default function DevelopersPage() {
                                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                                             <Check className="w-3.5 h-3.5" /> Success
                                         </p>
-                                        <CodeBlock code={`{\n  "success": true,\n  "data": { ... },\n  "meta": {\n    "timestamp": "2026-...",\n    "version": "v2"\n  }\n}`} />
+                                        <CodeBlock code={`{\n  "success": true,\n  "data": { ... },\n  "meta": {\n    "timestamp": "2026-..."\n  }\n}`} />
                                     </div>
                                     <div className="space-y-2">
                                         <p className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5">
@@ -1135,7 +1135,7 @@ export default function DevelopersPage() {
                             <div className="space-y-6">
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/packages"
+                                    method="GET" path="/api/packages"
                                     description="List all available data packages with pricing for your account role. Call this first to discover valid network and size combinations."
                                     queryParams={[
                                         { name: 'network', type: 'string', required: false, desc: 'Filter by network: MTN, Telecel, AT-iShare, AT-BigTime (case-sensitive)' },
@@ -1151,13 +1151,13 @@ export default function DevelopersPage() {
                                 />
 
                                 <EndpointSection
-                                    method="POST" path="/api/v2/data/purchase"
+                                    method="POST" path="/api/data/purchase"
                                     description="Purchase a single data bundle for a recipient phone number. Deducts from your wallet instantly."
                                     requestBody={`{\n  "network": "MTN",\n  "volume_gb": 5,\n  "recipient": "0551617309",\n  "reference": "order_001"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "pending",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "new_balance": 120.50\n  }\n}`}
                                     notes={[
                                         'reference is your idempotency key — sending the same reference twice returns the existing order without double-charging.',
-                                        'status starts as "pending". Poll GET /api/v2/orders/{reference} to track it.',
+                                        'status starts as "pending". Poll GET /api/orders/{reference} to track it.',
                                         'network must be one of: MTN, Telecel, AT-iShare, AT-BigTime (case-sensitive).',
                                         'volume_gb must match an available package. Use GET /packages to confirm.',
                                         'recipient must be a Ghana mobile number: 0XXXXXXXXX (10 digits) or 233XXXXXXXXX.',
@@ -1166,7 +1166,7 @@ export default function DevelopersPage() {
                                 />
 
                                 <EndpointSection
-                                    method="POST" path="/api/v2/data/bulk"
+                                    method="POST" path="/api/data/bulk"
                                     description="Purchase up to 100 data bundles in a single batch. The batch is all-or-nothing: a validation failure (invalid network, package not found, out of stock, blocked recipient) rejects the whole batch and nothing is charged."
                                     requestBody={`{\n  "orders": [\n    {\n      "network": "MTN",\n      "volume_gb": 5,\n      "recipient": "0551617309",\n      "reference": "b_001"\n    },\n    {\n      "network": "Telecel",\n      "volume_gb": 2,\n      "recipient": "0201234567",\n      "reference": "b_002"\n    }\n  ]\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "orders_placed": 2,\n    "total_cost": 7.00,\n    "new_balance": 113.50,\n    "orders": [\n      { "order_id": "...", "reference": "b_001", "status": "pending" }\n    ]\n  }\n}`}
@@ -1180,18 +1180,18 @@ export default function DevelopersPage() {
                                 />
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/wallet/balance"
+                                    method="GET" path="/api/wallet/balance"
                                     description="Retrieve your current wallet balance in GHS. Use before large orders to verify you have sufficient funds."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "balance": 124.50,\n    "currency": "GHS"\n  }\n}`}
                                     notes={[
-                                        'Top up your wallet via the web dashboard at kingflexygh.com/dashboard/wallet.',
+                                        'Top up your wallet via the web dashboard at capozygh.com/dashboard/wallet.',
                                         'Check balance before bulk orders to prevent partial failures due to insufficient funds.',
                                     ]}
                                     codeSamples={BALANCE_SAMPLES}
                                 />
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/orders/{reference}"
+                                    method="GET" path="/api/orders/{reference}"
                                     description="Check the fulfillment status of an order using the reference code you provided when placing it."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "completed",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "source": "api",\n    "created_at": "2026-..."\n  }\n}`}
                                     notes={[
@@ -1210,7 +1210,7 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 4. Account & Role (v2) */}
+                        {/* 4. Account & Role */}
                         <section id="account-role" className="space-y-5">
                             <SectionHeading id="account-role" num={4} label="Account & Role" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -1218,7 +1218,7 @@ export default function DevelopersPage() {
                             </p>
                             <div className="space-y-6">
                                 <EndpointSection
-                                    method="GET" path="/api/v2/account/role"
+                                    method="GET" path="/api/account/role"
                                     description="Returns your current role and, for dealer/agent, the days remaining before it lapses."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "role": "dealer",\n    "is_active": true,\n    "is_permanent": false,\n    "expires_at": "2026-...",\n    "days_remaining": 12\n  }\n}`}
                                     notes={[
@@ -1231,37 +1231,37 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 5. Airtime (v2) */}
+                        {/* 5. Airtime */}
                         <section id="airtime" className="space-y-5">
-                            <SectionHeading id="airtime" num={5} label="Airtime (v2)" />
+                            <SectionHeading id="airtime" num={5} label="Airtime" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Send MTN, Telecel, or AT airtime to a beneficiary at face value — no fee — on behalf of your customers,
-                                and earn a share of KiNG FLEXY GH&apos;s provider commission on every top-up. This endpoint only accepts a{' '}
+                                and earn a share of Capozy Hub&apos;s provider commission on every top-up. This endpoint only accepts a{' '}
                                 <IC>Commission Services</IC> key (prefix <IC>kf_cs_live_...</IC>); a <IC>standard</IC> key is rejected with{' '}
                                 <IC>403</IC>.
                             </p>
                             <div className="space-y-6">
                                 <EndpointSection
-                                    method="POST" path="/api/v2/airtime/purchase"
+                                    method="POST" path="/api/airtime/purchase"
                                     description="Send airtime to a beneficiary at face value from your wallet. Auto-dispatches in the background — poll GET /airtime/orders/{reference} for the final status."
                                     requestBody={`{\n  "network": "MTN",\n  "beneficiary_phone": "0551617309",\n  "amount": 10,\n  "reference": "air_001"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "air_001",\n    "status": "pending",\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "airtime_amount": 10,\n    "fee_amount": 0,\n    "total_paid": 10,\n    "new_balance": 90\n  }\n}`}
                                     notes={[
                                         'reference is your idempotency key (3–100 chars) — a repeat with the SAME reference and body returns the existing order instead of charging again; a reused reference against a DIFFERENT order returns 409 and your wallet is not charged.',
-                                        'fee_amount is always 0 — the beneficiary receives the full amount at face value; your earnings come from a share of KiNG FLEXY GH\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
+                                        'fee_amount is always 0 — the beneficiary receives the full amount at face value; your earnings come from a share of Capozy Hub\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
                                         'Rate limit: 10/min.',
                                     ]}
                                     codeSamples={AIRTIME_PURCHASE_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/airtime/orders"
+                                    method="GET" path="/api/airtime/orders"
                                     description="List your most recent airtime orders."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "orders": [ { "order_id": "uuid-...", "reference": "air_001", "status": "completed", "network": "MTN", "airtime_amount": 10 } ]\n  }\n}`}
                                     notes={['Returns at most 30 records, newest first. Rate limit: 30/min.']}
                                     codeSamples={AIRTIME_ORDERS_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/airtime/orders/{reference}"
+                                    method="GET" path="/api/airtime/orders/{reference}"
                                     description="Check the status of one airtime order using the reference you sent when placing it."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "air_001",\n    "status": "refunded",\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "airtime_amount": 10,\n    "reason": "The transaction could not be completed by the payment provider."\n  }\n}`}
                                     notes={['Rate limit: 30/min.', 'Status flow: pending → processing → completed | failed | refunded. A definitive provider failure auto-refunds your wallet — status becomes "refunded" and `reason` is present with a short, fixed explanation (never raw provider text).']}
@@ -1270,47 +1270,47 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 6. Results Checker (v2) */}
+                        {/* 6. Results Checker */}
                         <section id="resultschecker" className="space-y-5">
-                            <SectionHeading id="resultschecker" num={6} label="Results Checker (v2)" />
+                            <SectionHeading id="resultschecker" num={6} label="Results Checker" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Sell WAEC/BECE/WASSCE results checker vouchers. Same <IC>standard</IC> key.
                             </p>
                             <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4 text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
                                 <strong>Vouchers are returned directly in the purchase response</strong> — there is no separate
                                 &quot;retrieve voucher&quot; call. <IC>recipientPhone</IC> / <IC>recipientEmail</IC> are optional
-                                and have no fallback to your own account: omit both and KiNG FLEXY GH sends nothing — you own
+                                and have no fallback to your own account: omit both and Capozy Hub sends nothing — you own
                                 delivering the voucher to your customer.
                             </div>
                             <div className="space-y-6">
                                 <EndpointSection
-                                    method="GET" path="/api/v2/resultschecker/types"
+                                    method="GET" path="/api/resultschecker/types"
                                     description="List available voucher types with YOUR OWN role-based price and current stock."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "types": [ { "type_id": "uuid-...", "name": "WAEC BECE", "price": 18, "available_count": 412, "is_active": true } ]\n  }\n}`}
                                     notes={['Rate limit: 30/min.']}
                                     codeSamples={RC_TYPES_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="POST" path="/api/v2/resultschecker/purchase"
+                                    method="POST" path="/api/resultschecker/purchase"
                                     description="Buy voucher(s). Stock is checked BEFORE your wallet is touched — insufficient stock is rejected upfront, never charged then refunded."
                                     requestBody={`{\n  "typeId": "uuid-of-a-type-from-GET-types",\n  "quantity": 1,\n  "reference": "rc_001",\n  "recipientPhone": "0551617309",\n  "recipientEmail": "customer@example.com"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order": { "id": "uuid-...", "reference": "rc_001", "status": "completed", "type_name": "WAEC BECE", "quantity": 1, "unit_price": 18, "total_paid": 18 },\n    "vouchers": [ { "id": "uuid-...", "pin": "1234-5678-9012", "serial_number": "SN-000123" } ],\n    "new_balance": 82\n  }\n}`}
                                     notes={[
-                                        'recipientPhone / recipientEmail are OPTIONAL. Pass either (or both) to also have KiNG FLEXY GH deliver the voucher by SMS/email as a courtesy — the vouchers array in this response is always the authoritative copy either way.',
+                                        'recipientPhone / recipientEmail are OPTIONAL. Pass either (or both) to also have Capozy Hub deliver the voucher by SMS/email as a courtesy — the vouchers array in this response is always the authoritative copy either way.',
                                         'reference is your idempotency key — a reused reference against a different order returns 409, wallet untouched.',
                                         'Rate limit: 10/min.',
                                     ]}
                                     codeSamples={RC_PURCHASE_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/resultschecker/orders"
+                                    method="GET" path="/api/resultschecker/orders"
                                     description="List your most recent results checker orders."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "orders": [ { "id": "uuid-...", "reference": "rc_001", "status": "completed", "type_name": "WAEC BECE", "quantity": 1 } ]\n  }\n}`}
                                     notes={['Returns at most 30 records, newest first. Rate limit: 30/min.']}
                                     codeSamples={RC_ORDERS_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/resultschecker/orders/{reference}"
+                                    method="GET" path="/api/resultschecker/orders/{reference}"
                                     description="Look up one order, including its vouchers again if you need to recover them."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order": { "id": "uuid-...", "reference": "rc_001", "status": "completed" },\n    "vouchers": [ { "id": "uuid-...", "pin": "1234-5678-9012", "serial_number": "SN-000123" } ]\n  }\n}`}
                                     notes={['Rate limit: 30/min.']}
@@ -1319,15 +1319,15 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 7. AFA Registration (v2) */}
+                        {/* 7. AFA Registration */}
                         <section id="afa" className="space-y-5">
-                            <SectionHeading id="afa" num={7} label="AFA Registration (v2)" />
+                            <SectionHeading id="afa" num={7} label="AFA Registration" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Register an MTN AFA agent on behalf of your customer. Same <IC>standard</IC> key.
                             </p>
                             <div className="space-y-6">
                                 <EndpointSection
-                                    method="POST" path="/api/v2/afa/register"
+                                    method="POST" path="/api/afa/register"
                                     description="Submit an AFA registration. Requires a valid Ghana Card and a supported region."
                                     requestBody={`{\n  "reference": "afa_001",\n  "full_name": "Kwame Mensah",\n  "phone": "0551617309",\n  "id_type": "Ghana Card",\n  "id_number": "GHA-123456789-0",\n  "date_of_birth": "1995-04-12",\n  "region": "Greater Accra",\n  "location": "Madina"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "afa_001",\n    "status": "pending",\n    "new_balance": 64.0\n  }\n}`}
@@ -1342,14 +1342,14 @@ export default function DevelopersPage() {
                                     codeSamples={AFA_REGISTER_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/afa/orders"
+                                    method="GET" path="/api/afa/orders"
                                     description="List your most recent AFA registrations."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "orders": [ { "id": "uuid-...", "reference": "afa_001", "status": "pending" } ]\n  }\n}`}
                                     notes={['Returns at most 30 records, newest first. Rate limit: 30/min.']}
                                     codeSamples={AFA_ORDERS_SAMPLES}
                                 />
                                 <EndpointSection
-                                    method="GET" path="/api/v2/afa/orders/{reference}"
+                                    method="GET" path="/api/afa/orders/{reference}"
                                     description="Check the status of one AFA registration."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "id": "uuid-...",\n    "reference": "afa_001",\n    "status": "processing"\n  }\n}`}
                                     notes={[
@@ -1398,14 +1398,14 @@ export default function DevelopersPage() {
                             <SectionHeading id="utilities" num={9} label="Utility Bills (Commission)" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Pay ECG, Ghana Water, DSTV, GOtv, or StarTimes bills at face value on behalf of your customers — and earn a
-                                share of KiNG FLEXY GH&apos;s provider commission on every payment.
+                                share of Capozy Hub&apos;s provider commission on every payment.
                             </p>
                             <div className="rounded-xl border border-violet-200 dark:border-violet-800/50 bg-violet-50 dark:bg-violet-900/15 p-4 text-xs text-violet-800 dark:text-violet-300 leading-relaxed space-y-2">
                                 <p>
                                     <strong>Separate key required.</strong> These four endpoints only accept a{' '}
                                     <strong>Commission Services key</strong> (prefix <IC>kf_cs_live_...</IC>) — a standard key is rejected with{' '}
                                     <IC>403</IC>. The reverse is also true: a Commission Services key is rejected with <IC>403</IC> on every
-                                    other <IC>/api/v2/*</IC> endpoint (packages, data purchases, wallet, SMS, etc.).
+                                    other <IC>/api/*</IC> endpoint (packages, data purchases, wallet, SMS, etc.).
                                 </p>
                                 <p>
                                     Generate one from <Link href="/dashboard/api" className="underline font-semibold">Dashboard → Developer API</Link> — no shop
@@ -1422,7 +1422,7 @@ export default function DevelopersPage() {
                             <div className="space-y-6">
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/utilities/billers"
+                                    method="GET" path="/api/utilities/billers"
                                     description="Full biller catalog for utility bill payments — including currently disabled billers, so you can build your UI without hardcoding which ones are live."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "billers": [\n      {\n        "key": "ecg",\n        "label": "ECG Prepaid & Postpaid",\n        "enabled": true,\n        "account_label": "Meter number",\n        "requires_phone": true,\n        "lookup_by": "phone",\n        "links_phone_to_account": true,\n        "has_amount_due": true\n      },\n      {\n        "key": "dstv",\n        "label": "DSTV",\n        "enabled": true,\n        "account_label": "Smartcard number",\n        "requires_phone": false,\n        "lookup_by": "account",\n        "links_phone_to_account": false,\n        "has_amount_due": true\n      }\n    ],\n    "min_amount": 1,\n    "max_amount": 1000,\n    "currency": "GHS"\n  }\n}`}
                                     notes={[
@@ -1437,7 +1437,7 @@ export default function DevelopersPage() {
                                 />
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/utilities/lookup"
+                                    method="GET" path="/api/utilities/lookup"
                                     description="Verify an account before paying. Always show your customer the returned name (or, for ECG, the linked meters) and get their confirmation before calling /pay."
                                     queryParams={[
                                         { name: 'biller', type: 'string', required: true, desc: 'One of: ecg, ghana_water, dstv, gotv, startimes' },
@@ -1465,7 +1465,7 @@ export default function DevelopersPage() {
                                 </div>
 
                                 <EndpointSection
-                                    method="POST" path="/api/v2/utilities/pay"
+                                    method="POST" path="/api/utilities/pay"
                                     description="Pay a bill at face value from your wallet. Auto-dispatches to the biller in the background — poll GET /orders/{reference} for the final status."
                                     requestBody={`{\n  "biller": "dstv",\n  "account": "7041234567",\n  "amount": 65.00,\n  "reference": "bill_dstv_7041234567_01"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "order_id": "uuid-...",\n    "status": "pending",\n    "biller": "dstv",\n    "account": "7041234567",\n    "amount": 65.00,\n    "commission_share_percent": 40,\n    "new_balance": 435.00\n  }\n}`}
@@ -1482,7 +1482,7 @@ export default function DevelopersPage() {
                                 />
 
                                 <EndpointSection
-                                    method="GET" path="/api/v2/utilities/orders/{reference}"
+                                    method="GET" path="/api/utilities/orders/{reference}"
                                     description="Poll the fulfillment status of a utility bill order using the reference from the /pay response. Only returns orders that belong to your own account."
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "status": "refunded",\n    "payment_status": "paid",\n    "biller": "dstv",\n    "account_number": "7041234567",\n    "account_name": "KWAME MENSAH",\n    "amount": 65.00,\n    "commission_earned": null,\n    "reason": "The transaction could not be completed by the payment provider.",\n    "created_at": "2026-...",\n    "updated_at": "2026-..."\n  }\n}`}
                                     notes={[
@@ -1670,7 +1670,7 @@ export default function DevelopersPage() {
                                 </a>
                             </div>
                             <p className="mt-6 text-xs text-slate-400 dark:text-slate-600">
-                                © {new Date().getFullYear()} KiNG FLEXY TECHNOLOGIES LTD · Need help? Contact support via your dashboard.
+                                © {new Date().getFullYear()} Capozy Hub · Need help? Contact support via your dashboard.
                             </p>
                         </div>
 

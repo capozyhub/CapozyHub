@@ -1,6 +1,6 @@
 // ============================================================================
 // lib/api-handlers/data-bulk.ts
-// Handler for POST /api/v2/data/bulk.
+// Handler for POST /api/data/bulk.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Place up to MAX_BULK_ORDERS data orders in one batch via the API:
@@ -24,7 +24,6 @@ import { generateReferenceCode } from '@/lib/utils'
 import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
 import { triggerFulfillment } from '@/lib/fulfillment-trigger'
-import { versionMeta } from '@/lib/api-version'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
@@ -50,7 +49,6 @@ export async function handleDataBulk(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -251,7 +249,7 @@ export async function handleDataBulk(request: NextRequest) {
                     recipient: o.phone_number,
                     price: parseFloat(String(o.price)),
                 })),
-            }, { ...meta, message: 'These orders already exist' })
+            }, { message: 'These orders already exist' })
         }
 
         // Sub-agent: credit the direct recruiter's margin per item as a pending row, released by a
@@ -305,7 +303,7 @@ export async function handleDataBulk(request: NextRequest) {
                 recipient: o.phone_number,
                 price: items[i].price,
             })),
-        }, meta)
+        })
     } catch (error: any) {
         console.error('[API Bulk] Exception:', error.message)
         done(500, error.message)

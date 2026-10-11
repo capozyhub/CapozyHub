@@ -11,7 +11,7 @@ const MAX_INPUT_LEN = 30
 /**
  * POST /api/shop/utility/lookup — guest name-verification lookup for storefront utility
  * bill purchases (no auth). Structurally a guest-facing sibling of
- * app/api/utilities/lookup/route.ts (the dashboard lookup route): same per-biller
+ * app/api/utilities/verify/route.ts (the dashboard lookup route): same per-biller
  * destination/mobile mapping, same queryUtilityAccount call, same
  * sanitizeAccountInfoForClient scrub — with a shop-resolution + shop-gate layer in front,
  * mirroring the RC storefront pair's shop-resolution conventions
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: `${def.label} is currently unavailable` }, { status: 503 })
         }
 
-        // ── Map inputs per biller (identical to app/api/utilities/lookup/route.ts) ───
+        // ── Map inputs per biller (identical to app/api/utilities/verify/route.ts) ───
         // ecg: queries BY PHONE — prefer the explicit phone field, falling back to
         // `account` (the UI's generic identifier field may carry the phone for ECG).
         // ghana_water: destination = meter (account), mobile = phone (validated above).

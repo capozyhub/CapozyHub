@@ -2,10 +2,10 @@
 //
 // Single source of truth for AFA registration input validation, shared by the
 // dashboard route (app/api/user/afa-registration) and the developer API
-// (app/api/v2/afa/register).
+// (app/api/afa/register).
 //
 // ── WHY THIS EXISTS (review finding I6) ────────────────────────────────────
-// The v2 AFA route duplicated the dashboard's region allowlist, Ghana Card
+// The developer-API AFA route duplicated the dashboard's region allowlist, Ghana Card
 // regex, field length caps, free-text rejection and 18+ DOB arithmetic. Two
 // copies of a KYC allowlist is a bad shape: adding Ghana's next region, or
 // tightening the ID format, would have to happen twice, and whichever copy was
@@ -13,7 +13,7 @@
 //
 // Pure and dependency-free — no DB, no auth, no response shaping — so each
 // caller keeps its own error envelope (the dashboard returns NextResponse.json,
-// the API returns the v2 envelope) and this stays unit-testable.
+// the API returns the developer-API envelope) and this stays unit-testable.
 
 export const VALID_ID_TYPES = ['Ghana Card'] as const
 

@@ -18,7 +18,7 @@
 --       app/api/airtime/create/route.ts     'web'
 --       lib/ussd/fulfillment/airtime.ts     'ussd_shop'
 --       lib/shop-order-processor.ts         'shop'
---       app/api/v2/airtime/purchase/route.ts 'api'   (already did)
+--       app/api/airtime/purchase/route.ts 'api'   (already did)
 --     so the default is a safety net rather than the mechanism. A DEFAULT alone
 --     would mislabel every USSD and storefront order as 'web' — which is exactly
 --     why the original migration deliberately avoided one before the backfill.

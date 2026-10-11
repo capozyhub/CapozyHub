@@ -1,5 +1,5 @@
 // lib/api-handlers/wallet-balance.ts
-// Handler for GET /api/v2/wallet/balance.
+// Handler for GET /api/wallet/balance.
 // See lib/api-handlers/packages.ts for why handlers live here.
 import { NextRequest } from 'next/server'
 import {
@@ -10,13 +10,11 @@ import {
     logApiRequest,
     getClientIp,
 } from '@/lib/api-auth'
-import { versionMeta } from '@/lib/api-version'
 
 export async function handleWalletBalance(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -69,7 +67,7 @@ export async function handleWalletBalance(request: NextRequest) {
         return apiSuccess({
             balance: parseFloat(String((wallet as any).balance)) || 0,
             currency: 'GHS',
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Wallet Balance] Error:', error.message)

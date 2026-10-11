@@ -9,7 +9,7 @@
 // real order.
 //
 // Options:
-//   --url=<endpoint>       default: https://www.kingflexygh.com/api/webhooks/agentportal
+//   --url=<endpoint>       default: https://www.capozygh.com/api/webhooks/agentportal
 //                          use http://localhost:3000/api/webhooks/agentportal for local testing
 //   --reference=<uuid>     default: random UUID (guaranteed no match, safe smoke test)
 //   --status=success|failed   default: success
@@ -56,7 +56,7 @@ async function run() {
         process.exit(1)
     }
 
-    const url = args.url || 'https://www.kingflexygh.com/api/webhooks/agentportal'
+    const url = args.url || 'https://www.capozygh.com/api/webhooks/agentportal'
     const reference = args.reference || crypto.randomUUID()
     const isRandom = !args.reference
     const status = args.status === 'failed' ? 'failed' : 'success'

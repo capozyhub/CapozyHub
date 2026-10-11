@@ -176,7 +176,7 @@ export function UtilityFlowSheet({
         try {
             const body: Record<string, string> = { biller, account: params.account }
             if (biller === 'ecg' || biller === 'ghana_water') body.phone = params.phone
-            const res = await fetch('/api/utilities/lookup', {
+            const res = await fetch('/api/utilities/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),

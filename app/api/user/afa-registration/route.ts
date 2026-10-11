@@ -11,7 +11,7 @@ import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { waitUntil } from '@vercel/functions'
 
 // Allowlists, ID format patterns and field length caps now live in
-// lib/afa-validation.ts, shared with app/api/v2/afa/register. They are
+// lib/afa-validation.ts, shared with app/api/afa/register. They are
 // deliberately NOT re-declared here: leaving a local copy behind is exactly
 // how the two surfaces drifted in the first place (review finding I6) — the
 // next person to add a region would edit whichever copy they found.
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
         // ── Phone validation + normalization (M3) ──────────────────
         // Stays here rather than moving into the shared validator: this route
-        // and the v2 API normalise phones with the same helpers but the shared
+        // and the developer API normalise phones with the same helpers but the shared
         // module deliberately doesn't own that step (see lib/afa-validation.ts).
         // Runs FIRST so formData.phone is normalised before its length cap is
         // checked, preserving the original ordering exactly.
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         // (stored-XSS defence in depth — these fields are rendered into admin
         // email and in-app notification HTML), the ID type + region allowlists,
         // the fail-closed ID format check, and the 18+ age check all live in
-        // lib/afa-validation.ts, shared with app/api/v2/afa/register (review
+        // lib/afa-validation.ts, shared with app/api/afa/register (review
         // finding I6). Order and messages are unchanged from the copy this
         // replaces — two copies of a KYC allowlist would drift the moment
         // Ghana gains a region or the Ghana Card format tightens.

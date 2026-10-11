@@ -1,9 +1,9 @@
 // lib/api-handlers/utilities-lookup.ts
-// Handler for GET /api/v2/utilities/lookup.
+// Handler for GET /api/utilities/lookup.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Name-verification lookup for the developer API. Structurally the API sibling
-// of app/api/utilities/lookup/route.ts (dashboard) and
+// of app/api/utilities/verify/route.ts (dashboard) and
 // app/api/shop/utility/lookup/route.ts (storefront guest): same per-biller
 // destination/mobile mapping, same queryUtilityAccount call, same
 // sanitizeAccountInfoForClient scrub (Ghana Water's sessionId NEVER reaches a
@@ -23,7 +23,6 @@ import {
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { isUtilityBiller, UTILITY_BILLERS, sanitizeAccountInfoForClient } from '@/lib/hubtel-utility/billers'
 import { queryUtilityAccount } from '@/lib/hubtel-utility/service'
-import { versionMeta } from '@/lib/api-version'
 
 const MAX_INPUT_LEN = 30
 
@@ -31,7 +30,6 @@ export async function handleUtilitiesLookup(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -116,7 +114,7 @@ export async function handleUtilitiesLookup(request: NextRequest) {
             return apiError(503, `${def.label} is currently unavailable`)
         }
 
-        // ── Map inputs per biller (identical to app/api/utilities/lookup/route.ts) ──
+        // ── Map inputs per biller (identical to app/api/utilities/verify/route.ts) ──
         // ecg: queries BY PHONE — prefer the explicit phone field, falling back to
         // `account` (a caller may pass the phone number in the generic account field).
         // ghana_water: destination = meter (account), mobile = phone (validated above).
@@ -153,7 +151,7 @@ export async function handleUtilitiesLookup(request: NextRequest) {
             amount_due: info.amountDue,
             bouquet: info.bouquet,
             meters: info.meters,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Utilities Lookup] Exception:', error.message)

@@ -97,7 +97,7 @@ export default function ResetPasswordPage() {
         try {
             const { error: otpError } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: 'recovery' })
             if (otpError) { setError(otpError.message); return }
-            window.sessionStorage.setItem('kingflexy_password_recovery_active', 'true')
+            window.sessionStorage.setItem('capozy_password_recovery_active', 'true')
             toast.success('Code accepted. Choose a new password.')
             router.push('/auth/update-password')
         } catch {

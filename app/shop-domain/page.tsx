@@ -174,13 +174,13 @@ export default function ShopDomainDiscoveryPage() {
                         <BrandLogo width={112} height={112} priority />
                     </div>
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide mb-3 uppercase text-white">
-                        Welcome to <span>KiNG</span> <span className="text-brand-500">FLEXY GH</span> Stores
+                        Welcome to <span>Capozy</span> <span className="text-brand-500">Hub</span> Stores
                     </h1>
                     <p className="text-sm sm:text-base text-gray-300 font-medium mb-1">
                         Powering Digital Services in Ghana
                     </p>
                     <p className="text-xs text-gray-500 tracking-widest uppercase font-bold">
-                        By KiNG <span className="text-brand-500">FLEXY GH</span> Technologies
+                        By <span className="text-brand-500">Capozy Hub</span>
                     </p>
                 </div>
             </header>
@@ -241,7 +241,7 @@ export default function ShopDomainDiscoveryPage() {
                                     </a>
                                 ) : (
                                     <a
-                                        href="https://kingflexygh.com"
+                                        href="https://capozygh.com"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-primary text-black rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
@@ -440,7 +440,7 @@ export default function ShopDomainDiscoveryPage() {
                         <BrandLogo width={48} height={48} />
                     </div>
                     <p className="text-sm text-gray-400 font-medium mb-4">
-                        © 2026 KiNG FLEXY TECHNOLOGIES LTD. All rights reserved.
+                        © 2026 Capozy Hub. All rights reserved.
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-6">
                         <a href="#terms" className="text-sm text-gray-300 hover:text-white transition-colors font-medium">
@@ -448,7 +448,7 @@ export default function ShopDomainDiscoveryPage() {
                         </a>
                     </div>
                     <p className="text-xs text-gray-600 font-medium max-w-sm mx-auto">
-                        This is an official KiNG <span className="text-brand-500">FLEXY GH</span> storefront directory
+                        This is an official <span className="text-brand-500">Capozy Hub</span> storefront directory
                     </p>
                 </div>
             </footer>

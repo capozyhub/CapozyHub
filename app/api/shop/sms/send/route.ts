@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
         // SMS is Hubtel-pinned (no Moolre/mNotify fallback) in exchange for
         // real delivery tracking. See docs/superpowers/specs/
         // 2026-08-22-shop-sms-delivery-tracking-design.md §5, §8.
-        const batchSender = approvedSender || (process.env.HUBTEL_SENDER_ID || 'KINGFLEXY').substring(0, 11)
+        const batchSender = approvedSender || (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
         const batch = await sendHubtelShopBatchSMS(recipients, message, batchSender)
 
         const sent = batch.ok ? batch.results.length : 0

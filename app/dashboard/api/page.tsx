@@ -81,7 +81,7 @@ const QUICK_START_TABS = ['cURL', 'Node.js', 'PHP', 'Python'] as const
 type QuickStartTab = (typeof QUICK_START_TABS)[number]
 
 const QUICK_START_CODE: Record<QuickStartTab, string> = {
-    'cURL': `curl -X POST https://api.kingflexygh.com/api/v2/data/purchase \\
+    'cURL': `curl -X POST https://api.capozygh.com/api/data/purchase \\
   -H "Authorization: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -90,7 +90,7 @@ const QUICK_START_CODE: Record<QuickStartTab, string> = {
     "recipient": "0551617309",
     "reference": "order_001"
   }'`,
-    'Node.js': `const res = await fetch('https://api.kingflexygh.com/api/v2/data/purchase', {
+    'Node.js': `const res = await fetch('https://api.capozygh.com/api/data/purchase', {
   method: 'POST',
   headers: {
     'Authorization': 'YOUR_API_KEY',
@@ -106,7 +106,7 @@ const QUICK_START_CODE: Record<QuickStartTab, string> = {
 const data = await res.json();
 console.log(data);`,
     'PHP': `<?php
-$ch = curl_init('https://api.kingflexygh.com/api/v2/data/purchase');
+$ch = curl_init('https://api.capozygh.com/api/data/purchase');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_POST => true,
@@ -123,7 +123,7 @@ echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
 r = requests.post(
-  'https://api.kingflexygh.com/api/v2/data/purchase',
+  'https://api.capozygh.com/api/data/purchase',
   headers={
     'Authorization': 'YOUR_API_KEY',
     'Content-Type': 'application/json',
@@ -447,7 +447,7 @@ export default function ApiDashboardPage() {
                     <div className="p-5 space-y-4">
                         <div>
                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Base URL</p>
-                            <CodeBlock code="https://api.kingflexygh.com/api/v2" />
+                            <CodeBlock code="https://api.capozygh.com/api" />
                         </div>
                         <div>
                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Authentication Header</p>
@@ -498,7 +498,7 @@ export default function ApiDashboardPage() {
 // v1 has been fully ported and eliminated (owner decision, 2026-08-31) — this
 // is now the only live base URL. Every sample below interpolates ${API_BASE}
 // rather than a hardcoded version, so the flip propagates automatically.
-const API_BASE = 'https://api.kingflexygh.com/api/v2'
+const API_BASE = 'https://api.capozygh.com/api'
 const API_KEY_PLACEHOLDER = 'kf_live_your_api_key_here'
 const COMMISSION_KEY_PLACEHOLDER = 'kf_cs_live_your_commission_key_here'
 
@@ -766,7 +766,7 @@ function StandardApiTab() {
             {/* Endpoints */}
             <div id="ref-std-packages" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/packages"
+                method="GET" path="/api/packages"
                 description="List available data packages with pricing for your account role. Use this to discover valid network/size combinations before placing orders."
                 queryParams={[
                     { name: 'network', type: 'string', required: false, desc: 'Filter: MTN | Telecel | AT-iShare | AT-BigTime' },
@@ -780,7 +780,7 @@ function StandardApiTab() {
 
             <div id="ref-std-purchase" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="POST" path="/api/v2/data/purchase"
+                method="POST" path="/api/data/purchase"
                 description="Purchase a single data bundle. Deducts from your wallet atomically."
                 requestBody={`{\n  "network": "MTN",\n  "volume_gb": 5,\n  "recipient": "0551617309",\n  "reference": "order_001"\n}`}
                 responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "pending",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "new_balance": 120.50\n  }\n}`}
@@ -796,7 +796,7 @@ function StandardApiTab() {
 
             <div id="ref-std-bulk" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="POST" path="/api/v2/data/bulk"
+                method="POST" path="/api/data/bulk"
                 description="Purchase up to 100 data bundles in one atomic batch. All orders succeed or none are charged."
                 requestBody={`{\n  "orders": [\n    { "network": "MTN", "volume_gb": 5, "recipient": "0551617309", "reference": "b_001" },\n    { "network": "Telecel", "volume_gb": 2, "recipient": "0201234567", "reference": "b_002" }\n  ]\n}`}
                 responseBody={`{\n  "success": true,\n  "data": {\n    "orders_placed": 2,\n    "total_cost": 7.00,\n    "new_balance": 113.50,\n    "orders": [{ "order_id": "...", "status": "pending", "reference": "b_001" }]\n  }\n}`}
@@ -807,17 +807,17 @@ function StandardApiTab() {
 
             <div id="ref-std-balance" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/wallet/balance"
+                method="GET" path="/api/wallet/balance"
                 description="Retrieve your current wallet balance in GHS. Top up via the dashboard wallet page."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "balance": 124.50,\n    "currency": "GHS"\n  }\n}`}
-                notes={['Top up at kingflexygh.com/dashboard/wallet.', 'Check before bulk orders to avoid insufficient balance failures.']}
+                notes={['Top up at capozygh.com/dashboard/wallet.', 'Check before bulk orders to avoid insufficient balance failures.']}
                 samples={BALANCE_API_SAMPLES}
             />
             </div>
 
             <div id="ref-std-status" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/orders/{reference}"
+                method="GET" path="/api/orders/{reference}"
                 description="Check the fulfillment status of an order by its reference code."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "order_001",\n    "status": "completed",\n    "network": "MTN",\n    "size": "5GB",\n    "recipient": "0551617309",\n    "price": 4.50,\n    "source": "api",\n    "created_at": "2026-..."\n  }\n}`}
                 notes={['Status flow: pending → processing → completed | failed.', 'Poll this after placing an order to confirm delivery.']}
@@ -894,12 +894,12 @@ function CommissionApiTab() {
             <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                     Pay ECG, Ghana Water, DSTV, GOtv, or StarTimes bills — or send MTN, Telecel, or AT airtime — at face value on
-                    behalf of your customers, and earn a share of KiNG FLEXY GH's provider commission on every transaction. This is a
+                    behalf of your customers, and earn a share of Capozy Hub's provider commission on every transaction. This is a
                     separate product from the Data API above: the endpoints below only accept a{' '}
                     <strong className="text-foreground">Commission Services key</strong> (prefix{' '}
                     <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">kf_cs_live_...</code>), and reject a standard key
                     with <code className="font-mono text-muted-foreground text-xs">403</code>. The reverse is also true — a Commission Services key is
-                    rejected with <code className="font-mono text-muted-foreground text-xs">403</code> on every other <code className="font-mono text-muted-foreground text-xs">/api/v2/*</code> endpoint (packages, data purchases, wallet, SMS, etc.).
+                    rejected with <code className="font-mono text-muted-foreground text-xs">403</code> on every other <code className="font-mono text-muted-foreground text-xs">/api/*</code> endpoint (packages, data purchases, wallet, SMS, etc.).
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4">
                     <div className="rounded-xl bg-muted/50 p-4">
@@ -926,7 +926,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-billers" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/utilities/billers"
+                method="GET" path="/api/utilities/billers"
                 description="Full biller catalog for utility bill payments — including currently disabled billers, so you can build your UI without hardcoding which ones are live."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "billers": [\n      {\n        "key": "ecg",\n        "label": "ECG Prepaid & Postpaid",\n        "enabled": true,\n        "account_label": "Meter number",\n        "requires_phone": true,\n        "lookup_by": "phone",\n        "links_phone_to_account": true,\n        "has_amount_due": true\n      },\n      {\n        "key": "dstv",\n        "label": "DSTV",\n        "enabled": true,\n        "account_label": "Smartcard number",\n        "requires_phone": false,\n        "lookup_by": "account",\n        "links_phone_to_account": false,\n        "has_amount_due": true\n      }\n    ],\n    "min_amount": 1,\n    "max_amount": 1000,\n    "currency": "GHS"\n  }\n}`}
                 notes={[
@@ -943,7 +943,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-lookup" className="scroll-mt-6 space-y-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/utilities/lookup"
+                method="GET" path="/api/utilities/lookup"
                 description="Verify an account before paying. Always show your customer the returned name (or, for ECG, the linked meters) and get their confirmation before calling /pay."
                 queryParams={[
                     { name: 'biller', type: 'string', required: true, desc: 'One of: ecg, ghana_water, dstv, gotv, startimes' },
@@ -972,7 +972,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-pay" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="POST" path="/api/v2/utilities/pay"
+                method="POST" path="/api/utilities/pay"
                 description="Pay a bill at face value from your wallet. Auto-dispatches to the biller in the background — poll GET /orders/{reference} for the final status."
                 requestBody={`{\n  "biller": "dstv",\n  "account": "7041234567",\n  "amount": 65.00,\n  "reference": "bill_dstv_7041234567_01"\n}`}
                 responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "order_id": "uuid-...",\n    "status": "pending",\n    "biller": "dstv",\n    "account": "7041234567",\n    "amount": 65.00,\n    "commission_share_percent": 40,\n    "new_balance": 435.00\n  }\n}`}
@@ -991,7 +991,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-status" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/utilities/orders/{reference}"
+                method="GET" path="/api/utilities/orders/{reference}"
                 description="Poll the fulfillment status of a utility bill order using the reference from the /pay response. Only returns orders that belong to your own account."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "status": "refunded",\n    "payment_status": "paid",\n    "biller": "dstv",\n    "account_number": "7041234567",\n    "account_name": "KWAME MENSAH",\n    "amount": 65.00,\n    "commission_earned": null,\n    "reason": "The transaction could not be completed by the payment provider.",\n    "created_at": "2026-...",\n    "updated_at": "2026-..."\n  }\n}`}
                 notes={[
@@ -1016,7 +1016,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-airtime-purchase" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="POST" path="/api/v2/airtime/purchase"
+                method="POST" path="/api/airtime/purchase"
                 description="Send airtime to a beneficiary at face value from your wallet. Auto-dispatches in the background — poll GET /airtime/orders/{reference} for the final status."
                 requestBody={`{\n  "network": "MTN",\n  "beneficiary_phone": "0551617309",\n  "amount": 20.00,\n  "reference": "airtime_001"\n}`}
                 responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "airtime_001",\n    "status": "pending",\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "airtime_amount": 20.00,\n    "fee_amount": 0,\n    "total_paid": 20.00,\n    "new_balance": 415.00\n  }\n}`}
@@ -1024,7 +1024,7 @@ function CommissionApiTab() {
                     'reference is your idempotency key — sending the same reference twice returns the existing order without charging (is_duplicate: true).',
                     'network is one of MTN, Telecel, AT — a different value set from the Data API\'s network codes (which distinguish AT-iShare / AT-BigTime); airtime has no such distinction.',
                     'beneficiary_phone must be 0XXXXXXXXX (10 digits, starts with 0).',
-                    'fee_amount is always 0 on the Commission Services key — the beneficiary receives the full amount at face value; your earnings come from a share of KiNG FLEXY GH\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
+                    'fee_amount is always 0 on the Commission Services key — the beneficiary receives the full amount at face value; your earnings come from a share of Capozy Hub\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
                     'amount must fall within the live per-role min/max limits configured by an admin.',
                 ]}
                 samples={AIRTIME_PURCHASE_SAMPLES}
@@ -1033,7 +1033,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-airtime-orders" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/airtime/orders"
+                method="GET" path="/api/airtime/orders"
                 description="Your most recent airtime orders, newest first, capped at 30 records."
                 queryParams={[
                     { name: 'status', type: 'string', required: false, desc: 'Filter: pending | processing | completed | failed | refunded' },
@@ -1046,7 +1046,7 @@ function CommissionApiTab() {
 
             <div id="ref-com-airtime-status" className="scroll-mt-6">
             <ApiEndpointBlock
-                method="GET" path="/api/v2/airtime/orders/{reference}"
+                method="GET" path="/api/airtime/orders/{reference}"
                 description="Poll the fulfillment status of an airtime order using the reference from the /purchase response. Only returns orders that belong to your own account."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "airtime_001",\n    "status": "refunded",\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "airtime_amount": 20.00,\n    "fee_amount": 0,\n    "total_paid": 20.00,\n    "reason": "The transaction could not be completed by the payment provider.",\n    "created_at": "2026-...",\n    "updated_at": "2026-..."\n  }\n}`}
                 notes={['Status flow: pending → processing → completed | failed | refunded.', 'reason is present only on an auto-refunded order (status "refunded") — a short human-readable sentence explaining why the provider\'s failure was treated as definitive.', 'Poll this after placing an order to confirm delivery.']}

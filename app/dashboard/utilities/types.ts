@@ -31,7 +31,7 @@ export interface UtilityLookupMeter {
 }
 
 /**
- * Client-safe lookup result — the shape returned by POST /api/utilities/lookup
+ * Client-safe lookup result — the shape returned by POST /api/utilities/verify
  * (UtilityAccountInfo with sessionId always stripped to null by the server).
  */
 export interface UtilityLookupInfo {

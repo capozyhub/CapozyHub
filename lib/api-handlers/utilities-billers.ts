@@ -1,12 +1,12 @@
 // lib/api-handlers/utilities-billers.ts
-// Handler for GET /api/v2/utilities/billers.
+// Handler for GET /api/utilities/billers.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Commission keys only. Two independent gates cover this:
 //   * the CENTRAL keyTypeScopeGuard in lib/api-auth.ts keeps a `standard` key
 //     out of /api/v{N}/utilities/* — its RESTRICTED_SCOPES patterns are
 //     version-agnostic (/^\/api\/v\d+\/utilities(?:\/|$)/), so this endpoint is
-//     protected identically on v2 with no change needed.
+//     protected identically on the developer API with no change needed.
 //   * requireKeyType below is the mirror-image check, since the central guard
 //     only restricts commission keys AWAY from other paths.
 import { NextRequest } from 'next/server'
@@ -22,13 +22,11 @@ import {
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { parseSettingNumber } from '@/lib/paystack-fees'
 import { UTILITY_BILLER_KEYS, UTILITY_BILLERS } from '@/lib/hubtel-utility/billers'
-import { versionMeta } from '@/lib/api-version'
 
 export async function handleUtilitiesBillers(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -97,7 +95,7 @@ export async function handleUtilitiesBillers(request: NextRequest) {
             min_amount: parseSettingNumber(settingsMap['utility_min_amount'], 1),
             max_amount: parseSettingNumber(settingsMap['utility_max_amount'], 1000),
             currency: 'GHS',
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Utilities Billers] Exception:', error.message)

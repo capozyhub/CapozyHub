@@ -1,5 +1,5 @@
 // lib/api-handlers/sms-message-status.ts
-// Handler for GET /api/v2/sms/messages/{id}.
+// Handler for GET /api/sms/messages/{id}.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // {id} = the campaignId returned by POST /sms/send. Returns the campaign
@@ -16,9 +16,8 @@ import {
     requireKeyType,
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
-import { apiVersionFromPath, versionMeta } from '@/lib/api-version'
 
-// 30 to match MAX_RECORDS on every v2 list endpoint. Was an inline 100 with no
+// 30 to match MAX_RECORDS on every developer-API list endpoint. Was an inline 100 with no
 // named constant. Paging still reaches every message via ?page= — only the page
 // size shrank. The `delivery` rollup below is an exact per-status COUNT over the
 // WHOLE campaign and is deliberately unaffected, so a caller can still see the
@@ -36,8 +35,7 @@ export async function handleSmsMessageStatus(
     // campaign id, which would otherwise become a distinct high-cardinality
     // endpoint value in api_logs for every campaign ever polled. The v1 route
     // logged the '[id]' form; preserved, just made version-aware.
-    const endpoint = `/api/${apiVersionFromPath(request.nextUrl.pathname)}/sms/messages/[id]`
-    const meta = versionMeta(request.nextUrl.pathname)
+    const endpoint = `/api/sms/messages/[id]`
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -93,7 +91,7 @@ export async function handleSmsMessageStatus(
         const { data: messages } = await mq
 
         done(200)
-        return apiSuccess({ campaign, delivery: rollup, messages: messages ?? [], page }, meta)
+        return apiSuccess({ campaign, delivery: rollup, messages: messages ?? [], page })
     } catch (e: any) {
         console.error('[API SMS Status] error:', e?.message)
         done(500, e?.message)

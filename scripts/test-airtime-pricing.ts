@@ -2,7 +2,7 @@
 //
 // quoteAirtime is now the single source of airtime fee arithmetic for BOTH the
 // dashboard (app/api/airtime/create) and the developer API
-// (app/api/v2/airtime/purchase). It decides what a customer is charged, so the
+// (app/api/airtime/purchase). It decides what a customer is charged, so the
 // two fee modes and the fallback constants are pinned here.
 import { quoteAirtime, quoteAirtimeCommission } from '@/lib/airtime-pricing'
 

@@ -2,10 +2,10 @@
 //
 // Single source of truth for airtime limits and fee arithmetic, shared by the
 // dashboard route (app/api/airtime/create) and the developer API
-// (app/api/v2/airtime/purchase).
+// (app/api/airtime/purchase).
 //
 // ── WHY THIS EXISTS (review finding I6) ────────────────────────────────────
-// The v2 airtime route was written as a full second copy of the dashboard's
+// The developer-API airtime route was written as a full second copy of the dashboard's
 // pricing block: the same settings-key construction, min/max limits, fee-rate
 // defaults and exact/inclusive fee arithmetic, ~80 lines duplicated line for
 // line. Two fee tables that must be changed in lockstep forever is exactly the
@@ -22,7 +22,7 @@
 // already do, for their own kill-switches) and pass the map in. That keeps this
 // unit-testable without mocking Supabase and lets each caller keep its own
 // error-response shape — the dashboard returns NextResponse.json, the API
-// returns the v2 envelope.
+// returns the developer-API envelope.
 
 /** Maps a network name to the token used inside admin_settings keys. */
 export const AIRTIME_NETWORK_KEY_MAP: Record<string, string> = {
@@ -126,7 +126,7 @@ export function quoteAirtime(params: {
 
 /**
  * Zero-fee variant of quoteAirtime, used ONLY by the developer API's
- * commission-key airtime purchase route (app/api/v2/airtime/purchase). API
+ * commission-key airtime purchase route (app/api/airtime/purchase). API
  * buyers pay Hubtel's face value exactly -- no markup fee -- because they earn
  * a share of Hubtel's REAL commission instead (see lib/api-auth.ts's
  * credit_airtime_commission RPC call sites). Still enforces the same

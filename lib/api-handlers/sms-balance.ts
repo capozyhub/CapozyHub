@@ -1,10 +1,10 @@
 // lib/api-handlers/sms-balance.ts
-// Handler for GET /api/v2/sms/balance.
+// Handler for GET /api/sms/balance.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // SMS keys only — the central keyTypeScopeGuard's RESTRICTED_SCOPES pattern
 // (/^\/api\/v\d+\/sms(?:\/|$)/) is version-agnostic, so this is gated
-// identically on v2; requireKeyType below is the mirror-image check.
+// identically on the developer API; requireKeyType below is the mirror-image check.
 import { NextRequest } from 'next/server'
 import {
     validateApiKey,
@@ -16,13 +16,11 @@ import {
     requireKeyType,
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
-import { versionMeta } from '@/lib/api-version'
 
 export async function handleSmsBalance(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -50,7 +48,7 @@ export async function handleSmsBalance(request: NextRequest) {
             .select('id, mode, status').eq('user_id', userId).maybeSingle()
         if (!account) {
             done(200)
-            return apiSuccess({ credits: 0, mode: null, note: 'SMS account not initialised — open the SMS dashboard first' }, meta)
+            return apiSuccess({ credits: 0, mode: null, note: 'SMS account not initialised — open the SMS dashboard first' })
         }
         const { data: wallet } = await (supabase as any).from('sms_wallets')
             .select('credits, total_purchased, total_used')
@@ -63,7 +61,7 @@ export async function handleSmsBalance(request: NextRequest) {
             totalUsed: (wallet as any)?.total_used ?? 0,
             mode: (account as any).mode,
             accountStatus: (account as any).status,
-        }, meta)
+        })
     } catch (e: any) {
         console.error('[API SMS Balance] error:', e?.message)
         done(500, e?.message)

@@ -1,5 +1,5 @@
 // lib/api-handlers/order-status.ts
-// Handler for GET /api/v2/orders/:reference.
+// Handler for GET /api/orders/:reference.
 // See lib/api-handlers/packages.ts for why handlers live here.
 import { NextRequest } from 'next/server'
 import {
@@ -10,7 +10,6 @@ import {
     logApiRequest,
     getClientIp,
 } from '@/lib/api-auth'
-import { apiVersionFromPath, versionMeta } from '@/lib/api-version'
 
 export async function handleOrderStatus(
     request: NextRequest,
@@ -24,8 +23,7 @@ export async function handleOrderStatus(
     // for every order ever looked up, and put customer order references into the
     // log table. The v1 route deliberately logged the normalised ':reference'
     // form; that is preserved, just made version-aware.
-    const endpoint = `/api/${apiVersionFromPath(request.nextUrl.pathname)}/orders/:reference`
-    const meta = versionMeta(request.nextUrl.pathname)
+    const endpoint = `/api/orders/:reference`
 
     // ── Authenticate ──────────────────────────────────────────────────────
     const auth = await validateApiKey(request)
@@ -81,7 +79,7 @@ export async function handleOrderStatus(
             source: order.source,
             created_at: order.created_at,
             updated_at: order.updated_at,
-        }, meta)
+        })
 
     } catch (error: any) {
         console.error('[API Order Status] Error:', error.message)

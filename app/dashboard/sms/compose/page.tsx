@@ -9,7 +9,7 @@
  * confirm dialog and a success/queued screen.
  *
  * Contact groups are read via the RLS-scoped browser client (owner policies);
- * the send itself goes through POST /api/sms/campaigns which re-validates
+ * the send itself goes through POST /api/sms/my-campaigns which re-validates
  * everything server-side.
  */
 
@@ -383,7 +383,7 @@ export default function SmsComposePage() {
 
     // The fixed platform sender — resolvable from the server's default-path
     // policy (no requestedSender) even when the account can't currently send.
-    const platformSenderValue = data?.policy.sender || data?.account.default_sender || 'KINGFLEXY'
+    const platformSenderValue = data?.policy.sender || data?.account.default_sender || 'CAPOZYHUB'
 
     // Initialise the sender pick once the account arrives. Business mode:
     // only ever selects an approved own sender or a pool sender — never an
@@ -408,7 +408,7 @@ export default function SmsComposePage() {
         }
     }, [data, senderOptions, platformSenderValue])
 
-    const effectiveSender = sender || data?.policy.sender || data?.account.default_sender || 'KiNG FLEXY'
+    const effectiveSender = sender || data?.policy.sender || data?.account.default_sender || 'Capozy Hub'
 
     const scheduleMin = toLocalInputValue(new Date(Date.now() + 2 * 60_000))
     const scheduleMax = toLocalInputValue(new Date(Date.now() + 30 * 86_400_000))
@@ -581,7 +581,7 @@ export default function SmsComposePage() {
         setSending(true)
         setCallout(null)
         try {
-            const res = await fetch('/api/sms/campaigns', {
+            const res = await fetch('/api/sms/my-campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

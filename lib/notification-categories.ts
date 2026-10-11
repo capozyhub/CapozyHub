@@ -1,6 +1,7 @@
 // Single source of truth: notification `type` -> user-facing category.
 // Pure (no React / no DB) so it is safe to import from server push code and
 // client components alike.
+import { BRAND } from '@/lib/brand'
 
 export type NotificationCategory = 'orders' | 'payments' | 'support' | 'announcements' | 'system'
 
@@ -24,7 +25,7 @@ export const CATEGORY_DESCRIPTION: Record<NotificationCategory, string> = {
     orders: 'Order status & fulfilment updates',
     payments: 'Wallet credits, debits & payment receipts',
     support: 'Replies to your complaints & support chats',
-    announcements: 'Platform-wide alerts from KiNG FLEXY',
+    announcements: `Platform-wide alerts from ${BRAND.name}`,
     system: 'Account, role & general notices',
 }
 

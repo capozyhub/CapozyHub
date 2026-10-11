@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS afa_orders_shop_id_idx ON public.afa_orders (shop_id)
 CREATE INDEX IF NOT EXISTS afa_orders_guest_phone_idx ON public.afa_orders (guest_phone) WHERE guest_phone IS NOT NULL;
 
 -- 2. Widen source to allow shop-origin orders. 'api' MUST be included — the v2
--- developer API (app/api/v2/afa/register) stamps source='api' on every
+-- developer API (app/api/afa/register) stamps source='api' on every
 -- registration, and omitting it would break that live endpoint. No source
 -- constraint exists today; all existing rows are 'web'.
 ALTER TABLE public.afa_orders DROP CONSTRAINT IF EXISTS afa_orders_source_check;

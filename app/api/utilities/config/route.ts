@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
  * Utility Bills page (feature flag, per-biller availability, min/max amount).
  *
  * Auth'd (not public) — mirrors the exact settings keys read by
- * /api/utilities/lookup and /api/utilities/create so the page can never show
+ * /api/utilities/verify and /api/utilities/create so the page can never show
  * a biller as "on" when the mutating routes would reject it, or vice versa.
  */
 export async function GET() {

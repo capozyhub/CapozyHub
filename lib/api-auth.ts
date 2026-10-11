@@ -9,7 +9,7 @@ import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 // ============================================================================
 // Developer API — Authentication & Utilities
 // This is the API-key equivalent of createRouteClient().
-// Used by all /api/v2/ routes instead of cookie-based session auth.
+// Used by all /api/ routes instead of cookie-based session auth.
 // Never uses cookies — all auth is via API key in the Authorization header
 // (accepts both "kf_live_xxx" and "Bearer kf_live_xxx" formats).
 // ============================================================================
@@ -112,14 +112,13 @@ const DUMMY_HASH = bcrypt.hashSync('___not_a_real_api_key___', 10)
 // by a restricted type — that exclusion list is derived from RESTRICTED_SCOPES
 // itself so it can't drift out of sync.
 //
-// Each restricted key type is confined to one API section, across EVERY API
-// version. The version segment is matched as a wildcard on purpose: hardcoding
-// /api/v1/... here would silently fail OPEN when v2 routes land (a standard key
-// would be allowed into /api/v2/utilities/*, and a commission key would be 403'd
-// on its own endpoint). See .claude/skills/kingflexy-developer-api/SKILL.md.
+// Each restricted key type is confined to one API section. These prefixes must
+// track the public developer-API paths in lib/developer-api.ts: a mismatch fails
+// OPEN (a standard key reaches /api/utilities/*) or closed (a commission key is
+// 403'd on its own endpoint). See .claude/skills/kingflexy-developer-api/SKILL.md.
 const RESTRICTED_SCOPES: Record<'commission' | 'sms', RegExp> = {
-    commission: /^\/api\/v\d+\/(?:utilities|airtime)(?:\/|$)/,
-    sms: /^\/api\/v\d+\/sms(?:\/|$)/,
+    commission: /^\/api\/(?:utilities|airtime)(?:\/|$)/,
+    sms: /^\/api\/sms(?:\/|$)/,
 }
 
 function matchesPrefix(pathname: string, pattern: RegExp): boolean {
@@ -135,7 +134,7 @@ export function keyTypeScopeGuard(
             // NOTE: this branch fires when a commission/sms key is used
             // OUTSIDE its own scope. The path it landed on may itself
             // belong to another restricted type (e.g. an sms key calling
-            // /api/v1/utilities/pay) or to no restricted type at all (a
+            // /api/utilities/pay) or to no restricted type at all (a
             // plain standard-only path). Report the type that actually
             // owns the path it hit when known, falling back to "standard"
             // otherwise, so the error is never misleading.
@@ -391,7 +390,7 @@ export function resolveRateLimits(
 /**
  * Route-level guard: rejects the request unless the authenticated key matches
  * the required type. This is the OPT-IN half of key-type enforcement — the
- * /api/v2/utilities/* routes call `requireKeyType(auth, 'commission')`
+ * /api/utilities/* routes call `requireKeyType(auth, 'commission')`
  * as their first line to reject standard keys (the mirror image of the
  * central `keyTypeScopeGuard` inside validateApiKey, which already
  * rejects commission/sms keys on every OTHER route). Existing standard-only
@@ -411,24 +410,22 @@ export function requireKeyType(
 // ─── Response Helpers ───────────────────────────────────────────────────────
 
 /**
- * Standard success response for every developer-API (v2) endpoint.
- * Shape: { success: true, data: {...}, meta: { timestamp, version } }
+ * Standard success response for every developer-API endpoint.
+ * Shape: { success: true, data: {...}, meta: { timestamp } }
  */
 export function apiSuccess(data: any, meta?: Record<string, any>): NextResponse {
-    const resolvedVersion = (meta?.version as string) ?? 'v2'
     return NextResponse.json({
         success: true,
         data,
         meta: {
             timestamp: new Date().toISOString(),
-            version: resolvedVersion,
             ...meta,
         },
     })
 }
 
 /**
- * Standard error response for every developer-API (v2) endpoint.
+ * Standard error response for every developer-API endpoint.
  * Shape: { success: false, error: { code: 401, message: "..." } }
  */
 export function apiError(code: number, message: string): NextResponse {
@@ -496,7 +493,7 @@ export function isApiError(result: ApiAuthResult | NextResponse): result is Next
  * RIGHTMOST is the one Vercel actually appended. Trusting the leftmost let
  * any caller forge a fresh IP per request and defeat every per-IP rate limit
  * built on this function (guest whitelist checks, OTP send/verify, and other
- * v2 endpoints — see every call site of getClientIp).
+ * developer-API endpoints — see every call site of getClientIp).
  *
  * Order of trust:
  *   1. x-real-ip — set by the Vercel edge to the real client IP.

@@ -1,5 +1,5 @@
 // lib/api-handlers/wallet-topup.ts
-// Handler for POST /api/v2/wallet/topup.
+// Handler for POST /api/wallet/topup.
 //
 // This endpoint is a TOMBSTONE, not a live money path — MoMo wallet top-up via
 // the API was discontinued and returns 410. Kept as an informative 410 rather
@@ -9,5 +9,5 @@ import { NextRequest } from 'next/server'
 import { apiError } from '@/lib/api-auth'
 
 export async function handleWalletTopup(_request: NextRequest) {
-    return apiError(410, 'This endpoint has been removed. Top up your wallet via the KiNG FLEXY GH web dashboard.')
+    return apiError(410, 'This endpoint has been removed. Top up your wallet via the Capozy Hub web dashboard.')
 }

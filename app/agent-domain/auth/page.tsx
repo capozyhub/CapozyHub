@@ -5,7 +5,7 @@ import { KeyRound, Mail, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff } from 'l
 import { toast } from '@/lib/toast'
 
 // ─── Sub-agent access page ──────────────────────────────────────────────────
-// Rewritten to from agent.kingflexygh.com/auth by middleware.ts (Task 3). A
+// Rewritten to from agent.capozygh.com/auth by middleware.ts (Task 3). A
 // sub-agent isn't handed a memorized password — a recruiter mints them an
 // "access key" (Task 5's Regenerate flow reissues it; there is no self-service
 // recovery). This page frames the field accordingly, but the wire protocol is
@@ -106,7 +106,7 @@ export default function AgentAuthPage() {
             // is picked up everywhere — same fix app/marketplace-domain/auth/
             // AuthClient.tsx uses for this exact raw-fetch-no-context shape. A
             // soft client nav can race the cookie against /dashboard's SSR auth
-            // check; the cookie is already scoped to .kingflexygh.com (Task 3),
+            // check; the cookie is already scoped to .capozygh.com (Task 3),
             // so no cross-subdomain handoff is needed either way.
             window.location.assign('/dashboard')
         } catch {

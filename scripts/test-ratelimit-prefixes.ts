@@ -126,7 +126,7 @@ console.log(
 // Pre-existing sharing found when this guard was added (2026-09-29), not yet fixed. Each entry
 // names every owner so a THIRD call site reusing the prefix still fails loudly.
 const KNOWN_SHARED_PREFIXES: Record<string, string> = {
-    'util-lookup': 'lib/api-handlers/utilities-lookup.ts (apiKeyId) + app/api/utilities/lookup/route.ts (authUser.id) — different identifier spaces, no live collision.',
+    'util-lookup': 'lib/api-handlers/utilities-lookup.ts (apiKeyId) + app/api/utilities/verify/route.ts (authUser.id) — different identifier spaces, no live collision.',
     'sms-send': 'lib/api-handlers/sms-send.ts (apiKeyId) + app/api/shop/sms/send/route.ts (sid) — different identifier spaces, no live collision.',
     'announce-write': 'app/api/admin/announcements/route.ts + app/api/admin/announcements/[id]/route.ts — appears to be a deliberate combined create/update/delete quota per admin, not an accident.',
 }

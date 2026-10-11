@@ -1,5 +1,5 @@
 // lib/api-handlers/sms-senders.ts
-// Handler for GET /api/v2/sms/senders.
+// Handler for GET /api/sms/senders.
 // See lib/api-handlers/packages.ts for why handlers live here.
 //
 // Lists the sender IDs this API key may send under (approved own senders +
@@ -17,7 +17,6 @@ import {
 } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { loadUserSmsSettings } from '@/lib/sms-policy'
-import { versionMeta } from '@/lib/api-version'
 
 const SENDER_LIMIT = 30
 
@@ -25,7 +24,6 @@ export async function handleSmsSenders(request: NextRequest) {
     const startTime = Date.now()
     const ip = getClientIp(request)
     const endpoint = request.nextUrl.pathname
-    const meta = versionMeta(endpoint)
 
     const auth = await validateApiKey(request)
     if (isApiError(auth)) {
@@ -52,7 +50,7 @@ export async function handleSmsSenders(request: NextRequest) {
             .select('id, mode, default_sender').eq('user_id', userId).maybeSingle()
         if (!account) {
             done(200)
-            return apiSuccess({ mode: null, senders: [], note: 'SMS account not initialised — open the SMS dashboard first' }, meta)
+            return apiSuccess({ mode: null, senders: [], note: 'SMS account not initialised — open the SMS dashboard first' })
         }
 
         const [{ data: own }, settings] = await Promise.all([
@@ -80,7 +78,7 @@ export async function handleSmsSenders(request: NextRequest) {
             note: account.mode !== 'business'
                 ? 'Custom senders require business mode — register your business on the SMS dashboard.'
                 : undefined,
-        }, meta)
+        })
     } catch (e: any) {
         console.error('[API SMS Senders] error:', e?.message)
         done(500, e?.message)
