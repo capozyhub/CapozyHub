@@ -42,7 +42,8 @@ interface BulkPanelProps {
     packages: Bundle[]
     network: string
     getPrice: (pkg: Bundle) => number
-    balance: number
+    /** Null when the balance could not be read: the checks are then left to the server. */
+    balance: number | null
     onPlaced: (newBalance: number | null) => void
     /** The server says a price has moved: reload the list so the next preview uses it. */
     onPriceChanged: () => void
@@ -138,11 +139,13 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
             }
             if (bad > 0) toast.error(`${bad} invalid ${bad === 1 ? 'entry' : 'entries'}: check the network or phone numbers`)
             if (ok.length === 0) { toast.error('No valid orders found'); return }
-            if (balance < cost) { toast.error(`Insufficient balance: need ${formatCurrency(cost)}, have ${formatCurrency(balance)}`); return }
+            if (balance !== null && balance < cost) { toast.error(`Insufficient balance: need ${formatCurrency(cost)}, have ${formatCurrency(balance)}`); return }
 
             const dupes = ok.filter(r => r.duplicateOf !== undefined).length
             if (dupes > 0) toast.error(`${dupes} repeated ${dupes === 1 ? 'line' : 'lines'} (same number and bundle). Remove them if that was a mistake.`)
-            toast.success(`${ok.length} orders, ${formatCurrency(cost)} total. Balance after: ${formatCurrency(balance - cost)}`)
+            toast.success(balance === null
+                ? `${ok.length} orders, ${formatCurrency(cost)} total.`
+                : `${ok.length} orders, ${formatCurrency(cost)} total. Balance after: ${formatCurrency(balance - cost)}`)
             setBatchRef(generateReferenceCode())
             setPreviewDone(true)
         } catch (e) {
@@ -154,7 +157,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
 
     const submit = async () => {
         if (!previewDone || valid.length === 0) return
-        if (balance < total) { toast.error('Insufficient balance'); return }
+        if (balance !== null && balance < total) { toast.error('Insufficient balance'); return }
         setSubmitting(true)
         try {
             const res = await fetch('/api/orders/bulk-purchase', {
@@ -334,12 +337,12 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                 <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground">{valid.length}</span> valid {valid.length === 1 ? 'row' : 'rows'}
                     {valid.length > 0 && <> · <span className="font-semibold text-foreground">{formatCurrency(total)}</span></>}
-                    {' · '}Wallet {formatCurrency(balance)}
+                    {' · '}Wallet {balance === null ? '—' : formatCurrency(balance)}
                 </p>
                 <Button variant="outline" size="sm" onClick={preview} disabled={validating || (inputType === 'text' ? !text.trim() : !file)} className="gap-1.5">
                     {validating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} Preview price
                 </Button>
-                {valid.length > 0 && balance < total ? (
+                {valid.length > 0 && balance !== null && balance < total ? (
                     <Button asChild size="sm"><Link href="/dashboard/wallet">Top up</Link></Button>
                 ) : (
                     <Button size="sm" onClick={submit} disabled={!previewDone || valid.length === 0 || submitting} className="gap-1.5">

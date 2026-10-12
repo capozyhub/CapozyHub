@@ -3,6 +3,9 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { loadBuyer } from '@/lib/data-orders/guards'
+import { isMashupCategory } from '@/lib/mashup'
+import { resolveSubAgentContext } from '@/lib/sub-agent-account'
+import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 
 /**
  * GET /api/dashboard/packages: the bundles a signed-in member can buy, each with ONE price,
@@ -14,8 +17,9 @@ import { loadBuyer } from '@/lib/data-orders/guards'
  * on the storefronts) and `your_price` (what THIS member pays, worked out here from their
  * role and expiry, the same way the purchase route will charge it).
  *
- * A sub-agent's real price depends on what their recruiter set; the page overlays that from
- * /api/dashboard/subagents/my-pricing, so `your_price` for them is the customer price.
+ * A sub-agent's price for a regular bundle depends on what their recruiter set; the page
+ * overlays that from /api/dashboard/subagents/my-pricing, so `your_price` for those is the
+ * customer price. Their mashup price is fixed (recruiter cost, no markup) and is resolved here.
  */
 export async function GET() {
     try {
@@ -48,16 +52,34 @@ export async function GET() {
             agent_expires_at: buyer.agent_expires_at,
             dealer_expires_at: buyer.dealer_expires_at,
         }
-        const packages = (data ?? []).map((p: any) => ({
-            id: p.id,
-            network: p.network,
-            size: p.size,
-            description: p.description,
-            category: p.category,
-            sort_order: p.sort_order,
-            price: Number(p.price),
-            your_price: Math.round(resolveOwnerCost(p, ctx) * 100) / 100,
-        }))
+        const subCtx = await resolveSubAgentContext(supabase, user.id)
+
+        const packages: Array<Record<string, unknown>> = []
+        for (const p of (data ?? []) as any[]) {
+            let yourPrice = resolveOwnerCost(p, ctx)
+
+            // A sub-agent buys mashup at the recruiter's cost with no markup (it is never
+            // markup-eligible). The purchase route charges exactly this, so show exactly this.
+            // Regular bundles are priced by the recruiter and overlaid from
+            // /api/dashboard/subagents/my-pricing. If the mashup price cannot be worked out the
+            // bundle is left out, the same way the purchase would refuse it.
+            if (subCtx.isSub && isMashupCategory(p.category)) {
+                const resolved = await resolveSubAgentDataCost(supabase, user.id, p.id, p, p.category)
+                if (!resolved.ok) continue
+                yourPrice = resolved.subCost
+            }
+
+            packages.push({
+                id: p.id,
+                network: p.network,
+                size: p.size,
+                description: p.description,
+                category: p.category,
+                sort_order: p.sort_order,
+                price: Number(p.price),
+                your_price: Math.round(yourPrice * 100) / 100,
+            })
+        }
 
         return NextResponse.json({ packages }, { headers: { 'Cache-Control': 'private, no-store' } })
     } catch (error) {

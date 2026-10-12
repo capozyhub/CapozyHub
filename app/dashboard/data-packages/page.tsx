@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
+import { errorMessage, readJson } from '@/components/dashboard/data-packages/api'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { filterPackagesForSubAgent, type SubAgentPricingMap } from '@/lib/sub-agent-package-filter'
 import type { Bundle } from '@/components/dashboard/data-packages/types'
@@ -50,7 +52,10 @@ export default function DataPackagesPage() {
     const [tab, setTab] = useState<Tab>('single')
     const [search, setSearch] = useState('')
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-    const [balance, setBalance] = useState(0)
+    // null = not known (loading, or the read failed). It is never shown as GHS 0, which would
+    // send a member with money to "Top up wallet".
+    const [balance, setBalance] = useState<number | null>(null)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [ordersToday, setOrdersToday] = useState(0)
     const [outOfStock, setOutOfStock] = useState<Record<string, boolean>>({})
     // Held by id and looked up in the current list, so a refresh after a price change shows the
@@ -106,11 +111,14 @@ export default function DataPackagesPage() {
 
         try {
             const res = await fetch('/api/dashboard/packages', { cache: 'no-store' })
-            const json = await res.json()
-            if (!res.ok || !Array.isArray(json.packages)) throw new Error(json?.error || 'Could not load the bundles')
+            const json = await readJson(res)
+            if (!res.ok || !Array.isArray(json.packages)) throw new Error(errorMessage(res, json, 'Could not load the bundles'))
             setPackages(json.packages)
+            setLoadFailed(false)
             try { localStorage.setItem(cacheKey, JSON.stringify({ data: json.packages, ts: Date.now() })) } catch { /* quota */ }
         } catch {
+            // Keep whatever list is already on screen (the cache); only say "failed" when there is none.
+            setLoadFailed(true)
             toast.error('Could not load the bundles')
         } finally {
             setIsLoading(false)
@@ -119,8 +127,10 @@ export default function DataPackagesPage() {
 
     const loadWallet = useCallback(async () => {
         if (!userId) return
-        const { data } = await supabase.from('wallets').select('balance').eq('user_id', userId).single()
-        setBalance((data as any)?.balance || 0)
+        const { data, error } = await supabase.from('wallets').select('balance').eq('user_id', userId).maybeSingle()
+        // A failed read leaves the balance unknown (shown as a dash); only a missing wallet is GHS 0.
+        if (error) return
+        setBalance(Number((data as any)?.balance) || 0)
     }, [userId])
 
     const loadOrdersToday = useCallback(async () => {
@@ -193,6 +203,8 @@ export default function DataPackagesPage() {
 
     const selectNetwork = (network: string) => {
         setSelectedNetwork(network)
+        // The mashup list is MTN only; picking a network means "show me that network's bundles".
+        if (tab === 'mtn_mashup') setTab('single')
         try { localStorage.setItem(NETWORK_KEY, network) } catch { /* ignore */ }
     }
     const chooseView = (mode: 'grid' | 'list') => {
@@ -237,7 +249,7 @@ export default function DataPackagesPage() {
                     <p className="text-sm text-muted-foreground">Pick a network, choose a bundle and pay from your wallet.</p>
                 </div>
                 <div className="flex gap-3">
-                    <Stat label="Wallet" value={formatCurrency(balance)} href="/dashboard/wallet" />
+                    <Stat label="Wallet" value={balance === null ? '—' : formatCurrency(balance)} href="/dashboard/wallet" />
                     <Stat label="Orders today" value={String(ordersToday)} />
                 </div>
             </div>
@@ -276,6 +288,12 @@ export default function DataPackagesPage() {
             {tab === 'single' && (
                 isLoading || (isSubAgent && !subPricingLoaded) ? (
                     <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : loadFailed && packages.length === 0 ? (
+                    <div role="alert" className="surface flex flex-col items-center gap-3 rounded-3xl p-8 text-center">
+                        <p className="font-display text-lg font-semibold">We couldn&apos;t load the bundles</p>
+                        <p className="text-sm text-muted-foreground">Check your connection and try again.</p>
+                        <Button variant="outline" onClick={() => { setIsLoading(true); loadPackages() }}>Try again</Button>
+                    </div>
                 ) : outOfStock[selectedNetwork] ? (
                     <div className="surface rounded-3xl p-8 text-center">
                         <p className="font-display text-lg font-semibold">{networkLabel(selectedNetwork)} is out of stock</p>
@@ -297,7 +315,14 @@ export default function DataPackagesPage() {
                         <p className="text-sm font-semibold">Special MTN mashup</p>
                         <p className="text-xs text-muted-foreground">Curated MTN bundles, processed by our team. Status updates appear under Order history.</p>
                     </div>
-                    <PackageGrid packages={mashup} mode={viewMode} getPrice={priceFor} onBuy={b => setSelectedId(b.id)} tag="Mashup" />
+                    {outOfStock.MTN ? (
+                        <div className="surface rounded-3xl p-8 text-center">
+                            <p className="font-display text-lg font-semibold">{networkLabel('MTN')} is out of stock</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Check back soon, or pick another network.</p>
+                        </div>
+                    ) : (
+                        <PackageGrid packages={mashup} mode={viewMode} getPrice={priceFor} onBuy={b => setSelectedId(b.id)} tag="Mashup" />
+                    )}
                 </div>
             )}
 

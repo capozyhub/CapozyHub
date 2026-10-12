@@ -102,6 +102,34 @@ async function main() {
     assertEqual(r.recruiterEarns, 0, 'mashup: recruiterEarns is 0')
 }
 
+// ── The category real packages carry is 'mtn_mashup': it must get the same zero markup,
+//    even when the recruiter has a default markup row for that package ──
+{
+    let pricingTableTouched = false
+    const db = {
+        from(table: string) {
+            if (table === 'sub_agent_pricing' || table === 'sub_agent_default_pricing') {
+                pricingTableTouched = true
+            }
+            const rows: any[] =
+                table === 'sub_agents' ? [{ user_id: 'kofi', upline_user_id: 'lead', status: 'active' }] :
+                table === 'users' ? [LIFETIME_AGENT_ROW] :
+                table === 'sub_agent_default_pricing' ? [{ recruiter_id: 'lead', product_type: 'data', product_ref: 'pkg-1', markup: 2 }] : []
+            let filtered = [...rows]
+            const builder: any = {
+                select() { return builder },
+                eq(col: string, val: any) { filtered = filtered.filter(r => r[col] === val); return builder },
+                async maybeSingle() { return { data: filtered[0] ?? null, error: null } },
+            }
+            return builder
+        },
+    } as any
+    const r = await resolveSubAgentDataCost(db, 'kofi', 'pkg-1', PKG, 'mtn_mashup')
+    assertEqual(pricingTableTouched, false, 'mtn_mashup: pricing tables never queried')
+    assertEqual(r.subCost, 4, 'mtn_mashup: subCost = recruiterCost exactly, the default markup row is ignored')
+    assertEqual(r.recruiterEarns, 0, 'mtn_mashup: recruiterEarns is 0')
+}
+
 // ── Suspended sub: fails closed ──
 {
     const db = fakeDb({

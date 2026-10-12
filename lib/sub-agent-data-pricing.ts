@@ -12,6 +12,7 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentMarkup } from '@/lib/sub-agent-pricing'
 import { computeSubAgentCost } from '@/lib/pricing/sub-agent-cost'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
+import { isMashupCategory } from '@/lib/mashup'
 
 export interface SubAgentDataCostResult {
     ok: boolean
@@ -30,9 +31,14 @@ const FAIL_CLOSED = (reason: string): SubAgentDataCostResult =>
 
 /**
  * Resolve what a sub-agent pays for a data/mashup package, and what their
- * recruiter earns. `category === 'mashup'` forces markup to 0 WITHOUT querying
+ * recruiter earns. A mashup category forces markup to 0 WITHOUT querying
  * either pricing table (spec C9) — the zero is structural, not a looked-up value
  * that happens to be zero.
+ *
+ * The category stored on data_packages rows is 'mtn_mashup' (MASHUP_CATEGORY). This used to
+ * compare against the string 'mashup' only, which no real package ever has, so a recruiter's
+ * default markup could have applied to mashup. The bare 'mashup' spelling is still accepted
+ * for the callers and tests that pass it.
  */
 export async function resolveSubAgentDataCost(
     db: SupabaseClient,
@@ -48,7 +54,7 @@ export async function resolveSubAgentDataCost(
     }
 
     const recruiterCost = resolveOwnerCost(pkg, ctx.recruiter)
-    const markup = category === 'mashup'
+    const markup = isMashupCategory(category) || category === 'mashup'
         ? 0
         : await resolveSubAgentMarkup(db, ctx.recruiterId, subUserId, 'data', packageId)
 

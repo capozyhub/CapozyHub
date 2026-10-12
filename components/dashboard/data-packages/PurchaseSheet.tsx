@@ -28,7 +28,8 @@ interface PlacedDetails {
 interface PurchaseSheetProps {
     pkg: Bundle | null
     price: number
-    balance: number
+    /** Null when the balance could not be read: the sheet then lets the server decide. */
+    balance: number | null
     onClose: () => void
     /** Called once an order goes through, with the wallet balance after it (null if unknown). */
     onPurchased: (newBalance: number | null) => void
@@ -56,7 +57,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
         setReference(generateReferenceCode())
     }, [pkg?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    const canAfford = balance >= price
+    const canAfford = balance === null || balance >= price
 
     const onPhoneChange = (value: string) => {
         setPhone(value)
@@ -200,8 +201,8 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                 </div>
 
                                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                    <span>Wallet <span className="font-semibold text-foreground">{formatCurrency(balance)}</span></span>
-                                    {canAfford && <span>After <span className="font-semibold text-foreground">{formatCurrency(balance - price)}</span></span>}
+                                    <span>Wallet <span className="font-semibold text-foreground">{balance === null ? '—' : formatCurrency(balance)}</span></span>
+                                    {balance !== null && canAfford && <span>After <span className="font-semibold text-foreground">{formatCurrency(balance - price)}</span></span>}
                                 </div>
 
                                 {canAfford ? (
