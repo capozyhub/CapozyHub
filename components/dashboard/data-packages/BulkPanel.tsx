@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
-import { CheckCircle2, Download, ExternalLink, Eye, FileSpreadsheet, FileText, Loader2, Upload, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, ExternalLink, Eye, FileSpreadsheet, FileText, Loader2, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/lib/toast'
@@ -13,18 +13,22 @@ import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
 import { carrierFamily } from './network-meta'
 import { errorMessage, isPriceChanged, readJson } from './api'
-
-interface ParsedLine {
-    lineNumber: number
-    phoneNumber: string
-    volume: number
-}
+import {
+    findDuplicates,
+    parseBulkRows,
+    parseBulkText,
+    type ParsedLine,
+    type ParseOutcome,
+    type SkippedLine,
+} from '@/lib/data-orders/bulk-parse'
 
 interface ValidationResult extends ParsedLine {
     packagePrice: number
     isValid: boolean
     errorMessage?: string
     packageId?: string
+    /** Line number of the first identical phone + volume above this one. */
+    duplicateOf?: number
 }
 
 interface BulkSuccess {
@@ -45,45 +49,21 @@ interface BulkPanelProps {
 }
 
 const MAX_ROWS = 500
+// 500 rows of "phone, volume" is a few KB. Anything near this is not a bulk sheet, and the
+// whole file is read into memory before a single row can be counted.
+const MAX_FILE_BYTES = 1024 * 1024
 
-function parseText(text: string): ParsedLine[] {
-    return text
-        .trim()
-        .split('\n')
-        .map((line, index): ParsedLine | null => {
-            const parts = line.trim().split(/\s+/)
-            if (parts.length < 2) return null
-            const volume = parseFloat(parts[1].toLowerCase().replace('gb', ''))
-            if (Number.isNaN(volume)) return null
-            return { lineNumber: index + 1, phoneNumber: parts[0], volume }
-        })
-        .filter((l): l is ParsedLine => l !== null)
-}
-
-function parseSheet(file: File): Promise<ParsedLine[]> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = e => {
-            try {
-                const workbook = XLSX.read(e.target?.result, { type: 'binary' })
-                const sheet = workbook.Sheets[workbook.SheetNames[0]]
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][]
-                const lines = rows
-                    .map((row, i): ParsedLine | null => {
-                        const phone = String(row[0] ?? '').trim()
-                        const volume = parseFloat(String(row[1] ?? '').toLowerCase().replace('gb', '').trim())
-                        if (!phone || phone.toLowerCase().includes('phone') || Number.isNaN(volume)) return null
-                        return { lineNumber: i + 1, phoneNumber: phone, volume }
-                    })
-                    .filter((l): l is ParsedLine => l !== null)
-                resolve(lines)
-            } catch (err) {
-                reject(err)
-            }
-        }
-        reader.onerror = reject
-        reader.readAsBinaryString(file)
+async function parseSheet(file: File): Promise<ParseOutcome> {
+    if (file.size > MAX_FILE_BYTES) throw new Error('That file is too large. Bulk files are a few KB: use up to 500 rows.')
+    const workbook = XLSX.read(await file.arrayBuffer(), {
+        type: 'array',
+        // Stop reading after the row limit (plus header and spare rows) so a huge sheet cannot
+        // freeze the tab. More rows than that still trips the 500-order limit below.
+        sheetRows: MAX_ROWS + 25,
     })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    if (!sheet) throw new Error('That file has no sheets')
+    return parseBulkRows(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }) as unknown[][])
 }
 
 /** Buy many bundles at once from pasted lines or a spreadsheet. Prices are always set by the server. */
@@ -93,6 +73,8 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
     const [text, setText] = useState('')
     const [file, setFile] = useState<File | null>(null)
     const [results, setResults] = useState<ValidationResult[]>([])
+    // Lines the parser could not read at all. They are listed, never dropped quietly.
+    const [skipped, setSkipped] = useState<SkippedLine[]>([])
     const [validating, setValidating] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [previewDone, setPreviewDone] = useState(false)
@@ -103,12 +85,14 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
 
     const valid = useMemo(() => results.filter(r => r.isValid), [results])
     const invalidCount = results.filter(r => !r.isValid).length
+    const duplicateCount = valid.filter(r => r.duplicateOf !== undefined).length
     const total = useMemo(() => valid.reduce((s, r) => s + r.packagePrice, 0), [valid])
 
-    const reset = () => { setResults([]); setPreviewDone(false) }
+    const reset = () => { setResults([]); setSkipped([]); setPreviewDone(false) }
 
-    const validate = (lines: ParsedLine[]): ValidationResult[] =>
-        lines.map(line => {
+    const validate = (lines: ParsedLine[]): ValidationResult[] => {
+        const duplicates = findDuplicates(lines)
+        return lines.map(line => {
             const phone = validateGhanaianPhone(line.phoneNumber)
             if (!phone.isValid) return { ...line, packagePrice: 0, isValid: false, errorMessage: 'Invalid phone' }
 
@@ -124,21 +108,24 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                 return false
             })
             if (!pkg) return { ...line, packagePrice: 0, isValid: false, errorMessage: `No ${line.volume}GB package` }
-            return { ...line, packagePrice: getPrice(pkg), packageId: pkg.id, isValid: true }
+            return { ...line, packagePrice: getPrice(pkg), packageId: pkg.id, isValid: true, duplicateOf: duplicates.get(line.lineNumber) }
         })
+    }
 
     const preview = async () => {
         setValidating(true)
         try {
-            let lines: ParsedLine[]
+            let parsed: ParseOutcome
             if (inputType === 'text') {
                 if (!text.trim()) { toast.error('Enter phone numbers first'); return }
-                lines = parseText(text)
+                parsed = parseBulkText(text)
             } else {
                 if (!file) { toast.error('Select a file first'); return }
-                lines = await parseSheet(file)
+                parsed = await parseSheet(file)
             }
-            if (lines.length > MAX_ROWS) { toast.error(`Up to ${MAX_ROWS} rows at a time`); return }
+            const { lines } = parsed
+            setSkipped(parsed.skipped)
+            if (lines.length + parsed.skipped.length > MAX_ROWS) { toast.error(`Up to ${MAX_ROWS} rows at a time`); setSkipped([]); return }
 
             const checked = validate(lines)
             setResults(checked)
@@ -146,15 +133,20 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
             const ok = checked.filter(r => r.isValid)
             const cost = ok.reduce((s, r) => s + r.packagePrice, 0)
             const bad = checked.filter(r => !r.isValid).length
+            if (parsed.skipped.length > 0) {
+                toast.error(`${parsed.skipped.length} ${parsed.skipped.length === 1 ? 'line' : 'lines'} could not be read and will NOT be ordered. See the list below.`)
+            }
             if (bad > 0) toast.error(`${bad} invalid ${bad === 1 ? 'entry' : 'entries'}: check the network or phone numbers`)
             if (ok.length === 0) { toast.error('No valid orders found'); return }
             if (balance < cost) { toast.error(`Insufficient balance: need ${formatCurrency(cost)}, have ${formatCurrency(balance)}`); return }
 
+            const dupes = ok.filter(r => r.duplicateOf !== undefined).length
+            if (dupes > 0) toast.error(`${dupes} repeated ${dupes === 1 ? 'line' : 'lines'} (same number and bundle). Remove them if that was a mistake.`)
             toast.success(`${ok.length} orders, ${formatCurrency(cost)} total. Balance after: ${formatCurrency(balance - cost)}`)
             setBatchRef(generateReferenceCode())
             setPreviewDone(true)
-        } catch {
-            toast.error('Could not read that data')
+        } catch (e) {
+            toast.error(e instanceof Error && e.message ? e.message : 'Could not read that data')
         } finally {
             setValidating(false)
         }
@@ -272,12 +264,33 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                 </div>
             </div>
 
+            {skipped.length > 0 && (
+                <div role="alert" className="surface overflow-hidden rounded-3xl border border-amber-500/40">
+                    <div className="flex items-start gap-2.5 px-4 py-3">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold">{skipped.length} {skipped.length === 1 ? 'line' : 'lines'} could not be read and will not be ordered</p>
+                            <p className="text-xs text-muted-foreground">Fix them and preview again, or leave them out on purpose.</p>
+                        </div>
+                    </div>
+                    <ul className="max-h-40 divide-y divide-border/50 overflow-y-auto border-t border-border/60">
+                        {skipped.map(s => (
+                            <li key={s.lineNumber} className="flex items-center justify-between gap-3 px-4 py-2 text-xs">
+                                <span className="min-w-0 truncate font-mono">Line {s.lineNumber}: {s.text}</span>
+                                <span className="flex-shrink-0 text-amber-600 dark:text-amber-400">{s.reason}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {results.length > 0 && (
                 <div className="surface overflow-hidden rounded-3xl">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
                         <p className="text-sm font-semibold">
                             <span className="text-emerald-600 dark:text-emerald-400">{valid.length} valid</span>
-                            {invalidCount > 0 && <span className="text-muted-foreground"> Â· <span className="text-red-500">{invalidCount} invalid</span></span>}
+                            {invalidCount > 0 && <span className="text-muted-foreground"> · <span className="text-red-500">{invalidCount} invalid</span></span>}
+                            {duplicateCount > 0 && <span className="text-muted-foreground"> · <span className="text-amber-600 dark:text-amber-400">{duplicateCount} repeated</span></span>}
                         </p>
                         <div className="flex items-center gap-4 text-xs">
                             {invalidCount > 0 && (
@@ -299,6 +312,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                                 </span>
                                 <span className="flex flex-shrink-0 items-center gap-3 text-xs">
                                     <span className="text-muted-foreground">{r.volume}GB</span>
+                                    {r.duplicateOf !== undefined && <span className="text-amber-600 dark:text-amber-400">Same as line {r.duplicateOf}</span>}
                                     {!r.isValid ? <span className="text-red-500">{r.errorMessage}</span>
                                         : <span className="font-semibold">{formatCurrency(r.packagePrice)}</span>}
                                     <button
@@ -319,8 +333,8 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
             <div className="surface flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
                 <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground">{valid.length}</span> valid {valid.length === 1 ? 'row' : 'rows'}
-                    {valid.length > 0 && <> Â· <span className="font-semibold text-foreground">{formatCurrency(total)}</span></>}
-                    {' Â· '}Wallet {formatCurrency(balance)}
+                    {valid.length > 0 && <> · <span className="font-semibold text-foreground">{formatCurrency(total)}</span></>}
+                    {' · '}Wallet {formatCurrency(balance)}
                 </p>
                 <Button variant="outline" size="sm" onClick={preview} disabled={validating || (inputType === 'text' ? !text.trim() : !file)} className="gap-1.5">
                     {validating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} Preview price
@@ -352,7 +366,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                                     {success.orders.map((o, i) => (
                                         <li key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
                                             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" />{o.phoneNumber}</span>
-                                            <span className="text-muted-foreground">{o.volume}GB Â· <span className="font-semibold text-foreground">{formatCurrency(o.packagePrice)}</span></span>
+                                            <span className="text-muted-foreground">{o.volume}GB · <span className="font-semibold text-foreground">{formatCurrency(o.packagePrice)}</span></span>
                                         </li>
                                     ))}
                                 </ul>

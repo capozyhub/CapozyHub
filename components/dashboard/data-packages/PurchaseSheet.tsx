@@ -172,7 +172,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <DialogTitle className="font-display text-3xl font-bold leading-none tracking-tight">{pkg.size}</DialogTitle>
-                                    <p className="mt-1 truncate text-sm text-muted-foreground">{networkLabel(pkg.network)}{pkg.description && pkg.description !== 'Instant Delivery' ? ` Â· ${pkg.description}` : ''}</p>
+                                    <p className="mt-1 truncate text-sm text-muted-foreground">{networkLabel(pkg.network)}{pkg.description && pkg.description !== 'Instant Delivery' ? ` · ${pkg.description}` : ''}</p>
                                 </div>
                                 <p className="font-display text-2xl font-bold tabular-nums">{formatCurrency(price)}</p>
                             </div>
@@ -206,7 +206,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
 
                                 {canAfford ? (
                                     <Button onClick={buy} disabled={buying || !phone || !!phoneError} className="h-12 w-full text-base">
-                                        {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processingâ€¦</> : `Pay ${formatCurrency(price)}`}
+                                        {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : `Pay ${formatCurrency(price)}`}
                                     </Button>
                                 ) : (
                                     <Button asChild className="h-12 w-full text-base">

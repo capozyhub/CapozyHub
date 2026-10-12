@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { Input } from '@/components/ui/input'
 import { filterPackagesForSubAgent, type SubAgentPricingMap } from '@/lib/sub-agent-package-filter'
 import type { Bundle } from '@/components/dashboard/data-packages/types'
@@ -62,7 +63,14 @@ export default function DataPackagesPage() {
     const [subPricingLoaded, setSubPricingLoaded] = useState(false)
     const [pricingNonce, setPricingNonce] = useState(0)
 
-    const canBulk = ['agent', 'dealer', 'admin', 'sub-admin'].includes(dbUser?.role ?? '')
+    // Same rule as the server (bulk-purchase): admins, or an agent or dealer whose tier has NOT
+    // lapsed. Going by the raw role would show a lapsed agent a tab the server then refuses.
+    const canBulk = useMemo(() => {
+        if (!dbUser) return false
+        if (dbUser.role === 'admin' || dbUser.role === 'sub-admin') return true
+        if (dbUser.role === 'subagent') return false
+        return effectiveRoleFromExpiry(dbUser.role, dbUser.agent_expires_at ?? null, (dbUser as any).dealer_expires_at ?? null) !== 'customer'
+    }, [dbUser])
 
     // Remembered choices
     useEffect(() => {
