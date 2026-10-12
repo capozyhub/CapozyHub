@@ -9,8 +9,14 @@ import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { toCanonicalPhone, recipientMatchesNetwork } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { placeDataOrders, isValidWebReference, type PlaceItem } from '@/lib/data-orders/place'
+import { mapWithLimit } from '@/lib/data-orders/pool'
 
 const MAX_BATCH = 500
+
+// Functions on this project are limited to 60s (vercel.json). Dispatch stops starting new
+// orders at 45s so the admin alert for whatever was not reached still gets sent.
+const DISPATCH_CONCURRENCY = 20
+const DISPATCH_BUDGET_MS = 45_000
 
 interface BulkOrderItem {
     packageId: string
@@ -202,27 +208,48 @@ export async function POST(request: NextRequest) {
         const createdOrders = placed.orders
         const totalCost = placed.total
 
-        await (supabase.from('notifications') as any).insert({
-            user_id: userId,
-            title: 'Bulk order placed',
-            message: `${createdOrders.length} orders have been placed. Total: GHS ${totalCost.toFixed(2)}`,
-            type: 'order_update',
-            action_url: '/dashboard/my-orders',
-        })
-
-        // Background: fulfilment and one combined alert for the admins.
+        // Everything from here on runs after the response. The member has already paid, so
+        // nothing in it may be awaited before the response or be able to turn it into an
+        // error: a failed notification must never stop the orders being dispatched.
         const userName = `${buyer.first_name || ''} ${buyer.last_name || ''}`.trim() || 'Customer'
         const userEmail = buyer.email || 'Unknown'
 
         waitUntil((async () => {
-            const dispatchable = createdOrders
-            const results = await Promise.allSettled(
-                dispatchable.map(order => dispatchOrder(order, { email: userEmail, name: userName })),
+            try {
+                await (supabase.from('notifications') as any).insert({
+                    user_id: userId,
+                    title: 'Bulk order placed',
+                    message: `${createdOrders.length} orders have been placed. Total: GHS ${totalCost.toFixed(2)}`,
+                    type: 'order_update',
+                    action_url: '/dashboard/my-orders',
+                })
+            } catch (e) {
+                console.error('[BulkPurchase] notification failed:', e)
+            }
+
+            // A bounded number at a time, and a time budget inside the function limit: 500
+            // supplier calls at once would hit rate limits, and a function killed halfway
+            // would leave orders unreported. Anything not reached is named in the admin alert.
+            const deadline = Date.now() + DISPATCH_BUDGET_MS
+            const results = await mapWithLimit(
+                createdOrders,
+                DISPATCH_CONCURRENCY,
+                order => dispatchOrder(order, { email: userEmail, name: userName }),
+                deadline,
             )
 
-            const exceptions = results
-                .filter((r): r is PromiseFulfilledResult<FulfillmentOutcome> => r.status === 'fulfilled' && !!r.value?.failed)
-                .map(r => r.value)
+            const exceptions: FulfillmentOutcome[] = []
+            results.forEach((r, i) => {
+                const order = createdOrders[i]
+                if (r.state === 'done') {
+                    if (r.value.failed) exceptions.push(r.value)
+                } else if (r.state === 'error') {
+                    console.error(`[BulkPurchase] dispatch threw for ${order.reference_code}:`, r.error)
+                    exceptions.push({ failed: true, type: 'error', reason: r.error instanceof Error ? r.error.message : 'Dispatch failed', referenceCode: order.reference_code, network: order.network })
+                } else {
+                    exceptions.push({ failed: true, type: 'skipped', reason: 'Not dispatched before the time limit: refulfil it from the admin fulfilment page', referenceCode: order.reference_code, network: order.network })
+                }
+            })
 
             // ONE summary email to the admins if anything needs attention.
             if (exceptions.length > 0) {
