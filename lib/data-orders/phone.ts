@@ -1,4 +1,4 @@
-import { validateGhanaianPhone } from '@/lib/phone-validation'
+import { getNetworkFromPrefix, validateGhanaianPhone } from '@/lib/phone-validation'
 
 /**
  * One canonical form for every recipient number: 0XXXXXXXXX, with a real Ghana mobile prefix.
@@ -16,6 +16,19 @@ export function toCanonicalPhone(raw: unknown): string | null {
     if (!/^\+?[\d\s\-()]+$/.test(trimmed)) return null
     const res = validateGhanaianPhone(trimmed)
     return res.isValid ? res.normalizedNumber : null
+}
+
+/**
+ * Is this canonical number on the carrier a bundle is for? MTN, Telecel and AT iShare bundles
+ * only work on their own carrier's numbers; AT BigTime works on any number. The dashboard
+ * checks this as you type, but a hand-made request skips the dashboard, so the purchase
+ * routes check it too: a mismatched order would only fail at the supplier and need a refund.
+ */
+export function recipientMatchesNetwork(canonical: string, packageNetwork: string): boolean {
+    if (packageNetwork === 'AT-BigTime') return true
+    const carrier = getNetworkFromPrefix(canonical.slice(0, 3))
+    const expected = packageNetwork.startsWith('AT') ? 'AirtelTigo' : packageNetwork
+    return carrier === expected
 }
 
 /** The spellings a number may have been stored under (blacklist rows were typed by hand). */

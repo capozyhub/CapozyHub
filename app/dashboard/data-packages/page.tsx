@@ -52,12 +52,15 @@ export default function DataPackagesPage() {
     const [balance, setBalance] = useState(0)
     const [ordersToday, setOrdersToday] = useState(0)
     const [outOfStock, setOutOfStock] = useState<Record<string, boolean>>({})
-    const [selected, setSelected] = useState<Bundle | null>(null)
+    // Held by id and looked up in the current list, so a refresh after a price change shows the
+    // new price in the open sheet instead of the one it was opened with.
+    const [selectedId, setSelectedId] = useState<string | null>(null)
 
     // A sub-agent only sees bundles their recruiter has priced for them, at that price.
     const isSubAgent = dbUser?.role === 'subagent'
     const [subPricing, setSubPricing] = useState<SubAgentPricingMap>({})
     const [subPricingLoaded, setSubPricingLoaded] = useState(false)
+    const [pricingNonce, setPricingNonce] = useState(0)
 
     const canBulk = ['agent', 'dealer', 'admin', 'sub-admin'].includes(dbUser?.role ?? '')
 
@@ -141,7 +144,18 @@ export default function DataPackagesPage() {
             .catch(() => { if (!cancelled) setSubPricing({}) }) // fail closed: nothing is buyable on error
             .finally(() => { if (!cancelled) setSubPricingLoaded(true) })
         return () => { cancelled = true }
-    }, [isSubAgent, selectedNetwork])
+    }, [isSubAgent, selectedNetwork, pricingNonce])
+
+    const selected = useMemo(
+        () => (selectedId ? packages.find(p => p.id === selectedId) ?? null : null),
+        [packages, selectedId],
+    )
+
+    /** The server turned a purchase down because the price moved: pull fresh prices. */
+    const refreshPrices = useCallback(() => {
+        loadPackages()
+        setPricingNonce(n => n + 1)
+    }, [loadPackages])
 
     /**
      * The price shown. `your_price` is worked out by the server from the member's role and
@@ -265,7 +279,7 @@ export default function DataPackagesPage() {
                         <p className="text-sm">{search ? 'No bundles match your search' : 'No bundles available for this network yet'}</p>
                     </div>
                 ) : (
-                    <PackageGrid packages={visible} mode={viewMode} getPrice={priceFor} onBuy={setSelected} />
+                    <PackageGrid packages={visible} mode={viewMode} getPrice={priceFor} onBuy={b => setSelectedId(b.id)} />
                 )
             )}
 
@@ -275,7 +289,7 @@ export default function DataPackagesPage() {
                         <p className="text-sm font-semibold">Special MTN mashup</p>
                         <p className="text-xs text-muted-foreground">Curated MTN bundles, processed by our team. Status updates appear under Order history.</p>
                     </div>
-                    <PackageGrid packages={mashup} mode={viewMode} getPrice={priceFor} onBuy={setSelected} tag="Mashup" />
+                    <PackageGrid packages={mashup} mode={viewMode} getPrice={priceFor} onBuy={b => setSelectedId(b.id)} tag="Mashup" />
                 </div>
             )}
 
@@ -287,6 +301,7 @@ export default function DataPackagesPage() {
                     getPrice={priceFor}
                     balance={balance}
                     onPlaced={onPurchased}
+                    onPriceChanged={refreshPrices}
                 />
             )}
 
@@ -294,8 +309,9 @@ export default function DataPackagesPage() {
                 pkg={selected}
                 price={selected ? priceFor(selected) : 0}
                 balance={balance}
-                onClose={() => setSelected(null)}
+                onClose={() => setSelectedId(null)}
                 onPurchased={onPurchased}
+                onPriceChanged={refreshPrices}
             />
         </div>
     )

@@ -6,9 +6,9 @@ import { waitUntil } from '@vercel/functions'
 import { getAdminOOSNetworks, isNetworkOOS } from '@/lib/network-stock'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
-import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { toCanonicalPhone, recipientMatchesNetwork } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
-import { placeDataOrders, type PlaceItem } from '@/lib/data-orders/place'
+import { placeDataOrders, isValidWebReference, type PlaceItem } from '@/lib/data-orders/place'
 
 const MAX_BATCH = 500
 
@@ -42,15 +42,23 @@ export async function POST(request: NextRequest) {
         }
         const userId = authUser.id
 
-        let body: { orders?: unknown; batchReference?: unknown }
+        let body: { orders?: unknown; batchReference?: unknown; expectedTotal?: unknown }
         try {
             body = await request.json()
         } catch {
             return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
         }
 
-        const { orders: rawOrders, batchReference } = body
+        // expectedTotal is what the buyer was shown for the whole batch. If the real total has
+        // moved since, the batch is refused instead of charging a different amount.
+        const { orders: rawOrders, batchReference, expectedTotal } = body
 
+        if (batchReference !== undefined && batchReference !== null && !isValidWebReference(batchReference)) {
+            return NextResponse.json({ error: 'Invalid batchReference' }, { status: 400 })
+        }
+        if (expectedTotal !== undefined && (typeof expectedTotal !== 'number' || !Number.isFinite(expectedTotal))) {
+            return NextResponse.json({ error: 'Invalid expectedTotal' }, { status: 400 })
+        }
         if (!Array.isArray(rawOrders) || rawOrders.length === 0) {
             return NextResponse.json({ error: 'No orders provided' }, { status: 400 })
         }
@@ -74,10 +82,7 @@ export async function POST(request: NextRequest) {
 
         // Optional idempotency key for the whole batch: each order's reference is derived from it,
         // so replaying the same batch is recognised and never charged twice.
-        const normalizedBatchRef =
-            typeof batchReference === 'string' && /^[A-Za-z0-9_\-]{6,80}$/.test(batchReference.trim())
-                ? batchReference.trim()
-                : null
+        const normalizedBatchRef = typeof batchReference === 'string' ? batchReference : null
 
         const supabase = createServerClient()
 
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
             const pkg = pkgMap.get(order.packageId)
             if (!pkg) { problems.push(`Row ${i + 1}: package not found`); return null }
             if (isNetworkOOS(adminOOS, pkg.network)) { problems.push(`Row ${i + 1}: ${pkg.network} is out of stock`); return null }
+            if (!recipientMatchesNetwork(order.recipient, pkg.network)) { problems.push(`Row ${i + 1}: number is not on ${pkg.network}`); return null }
             const price = Math.round(resolveOwnerCost(pkg, {
                 role: buyer.role,
                 agent_expires_at: buyer.agent_expires_at,
@@ -142,6 +148,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: problems.slice(0, 5).join('; ') + (problems.length > 5 ? ` (+${problems.length - 5} more)` : '') }, { status: 400 })
         }
         const validated = priced as Array<{ order: typeof orders[number]; pkg: any; price: number }>
+
+        const batchTotal = Math.round(validated.reduce((sum, v) => sum + v.price, 0) * 100) / 100
+        if (expectedTotal !== undefined && Math.abs(expectedTotal - batchTotal) >= 0.005) {
+            return NextResponse.json({
+                error: `The total has changed to GHS ${batchTotal.toFixed(2)}. Please preview the batch again.`,
+                code: 'PRICE_CHANGED',
+                total: batchTotal,
+            }, { status: 409 })
+        }
 
         // Blacklist: the same canonical-number check as a single purchase. Fails closed.
         let blocked: Set<string>

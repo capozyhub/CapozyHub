@@ -13,16 +13,16 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
-import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { toCanonicalPhone, recipientMatchesNetwork } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
-import { placeDataOrders, isValidClientReference } from '@/lib/data-orders/place'
+import { placeDataOrders, isValidWebReference } from '@/lib/data-orders/place'
 
 /**
  * POST /api/orders/purchase: buy one data bundle from the wallet.
  *
  * Order of work, and why it matters:
  *   1. Everything that can say no runs BEFORE any money moves: sign-in, input, stock,
- *      blacklist, whitelist, account status, price.
+ *      recipient network, blacklist, account status, price.
  *   2. The money, the order and the ledger row are written by ONE database call
  *      (place_data_orders), so a failure never leaves a charge without an order.
  *   3. Notifications and fulfilment run after the response is sent.
@@ -46,18 +46,24 @@ export async function POST(request: NextRequest) {
 
         // The browser makes up a reference for each purchase attempt. It is the idempotency
         // key: sending the same one twice (double tap, retry) can never buy twice.
-        const { packageId, phoneNumber, referenceCode: clientReferenceCode } = body
+        // expectedPrice is what the buyer was shown. If the price has moved since (an admin
+        // edit, an expired agent tier, a stale list), the purchase is refused rather than
+        // charging a different amount than the one on the button.
+        const { packageId, phoneNumber, referenceCode: clientReferenceCode, expectedPrice } = body
 
         if (!packageId || typeof packageId !== 'string') {
             return NextResponse.json({ error: 'Package ID is required' }, { status: 400 })
         }
-        if (clientReferenceCode !== undefined && !isValidClientReference(clientReferenceCode)) {
+        if (clientReferenceCode !== undefined && !isValidWebReference(clientReferenceCode)) {
             return NextResponse.json({ error: 'Invalid referenceCode' }, { status: 400 })
         }
+        if (expectedPrice !== undefined && (typeof expectedPrice !== 'number' || !Number.isFinite(expectedPrice))) {
+            return NextResponse.json({ error: 'Invalid expectedPrice' }, { status: 400 })
+        }
 
-        // One canonical number from here on. The blacklist, the whitelist, the stored order and
-        // the supplier call all see the same spelling, so none of them can be sidestepped by
-        // writing the number differently (for example 233... instead of 0...).
+        // One canonical number from here on. The blacklist, the stored order and the supplier
+        // call all see the same spelling, so none of them can be sidestepped by writing the
+        // number differently (for example 233... instead of 0...).
         const recipient = toCanonicalPhone(phoneNumber)
         if (!recipient) {
             return NextResponse.json({
@@ -90,6 +96,11 @@ export async function POST(request: NextRequest) {
         const adminOOS = await getAdminOOSNetworks(supabase)
         if (isNetworkOOS(adminOOS, p.network)) {
             return NextResponse.json({ error: `${p.network} is out of stock at the moment` }, { status: 409 })
+        }
+
+        // The dashboard checks this as you type; a hand-made request skips the dashboard.
+        if (!recipientMatchesNetwork(recipient, p.network)) {
+            return NextResponse.json({ error: `This number is not on ${p.network}` }, { status: 400 })
         }
 
         let blocked: Set<string>
@@ -155,6 +166,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'This package is temporarily unavailable' }, { status: 409 })
         }
         priceToCharge = Math.round(priceToCharge * 100) / 100
+
+        if (expectedPrice !== undefined && Math.abs(expectedPrice - priceToCharge) >= 0.005) {
+            return NextResponse.json({
+                error: `The price has changed to GHS ${priceToCharge.toFixed(2)}. Please review and try again.`,
+                code: 'PRICE_CHANGED',
+                price: priceToCharge,
+            }, { status: 409 })
+        }
 
         const autoFulfil = shouldAutoFulfill(p.category)
 

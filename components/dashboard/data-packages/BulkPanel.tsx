@@ -12,6 +12,7 @@ import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
 import { carrierFamily } from './network-meta'
+import { errorMessage, isPriceChanged, readJson } from './api'
 
 interface ParsedLine {
     lineNumber: number
@@ -39,6 +40,8 @@ interface BulkPanelProps {
     getPrice: (pkg: Bundle) => number
     balance: number
     onPlaced: (newBalance: number | null) => void
+    /** The server says a price has moved: reload the list so the next preview uses it. */
+    onPriceChanged: () => void
 }
 
 const MAX_ROWS = 500
@@ -84,7 +87,7 @@ function parseSheet(file: File): Promise<ParsedLine[]> {
 }
 
 /** Buy many bundles at once from pasted lines or a spreadsheet. Prices are always set by the server. */
-export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: BulkPanelProps) {
+export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPriceChanged }: BulkPanelProps) {
     const router = useRouter()
     const [inputType, setInputType] = useState<'text' | 'excel'>('text')
     const [text, setText] = useState('')
@@ -167,11 +170,17 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     batchReference: batchRef,
+                    expectedTotal: Math.round(total * 100) / 100,
                     orders: valid.map(o => ({ packageId: o.packageId, phoneNumber: validateGhanaianPhone(o.phoneNumber).normalizedNumber })),
                 }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Bulk order failed')
+            const data = await readJson(res)
+            if (isPriceChanged(res, data)) {
+                // Nothing was charged. Prices are reloaded and the batch must be previewed again.
+                onPriceChanged()
+                setPreviewDone(false)
+            }
+            if (!res.ok) throw new Error(errorMessage(res, data, 'Bulk order failed'))
             if (data.isDuplicate) {
                 toast.success('That batch was already placed')
                 setText(''); setFile(null); reset(); setBatchRef('')

@@ -14,6 +14,7 @@ import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
 import { carrierFamily, networkLabel } from './network-meta'
+import { errorMessage, isPriceChanged, readJson } from './api'
 
 interface PlacedDetails {
     referenceCode: string
@@ -31,10 +32,12 @@ interface PurchaseSheetProps {
     onClose: () => void
     /** Called once an order goes through, with the wallet balance after it (null if unknown). */
     onPurchased: (newBalance: number | null) => void
+    /** The server says the price has moved: reload the list so the sheet shows the new one. */
+    onPriceChanged: () => void
 }
 
 /** Pay for one bundle: a bottom sheet on phones, a dialog on larger screens. */
-export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased }: PurchaseSheetProps) {
+export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPriceChanged }: PurchaseSheetProps) {
     const router = useRouter()
     const phoneRef = useRef<HTMLInputElement>(null)
     const [phone, setPhone] = useState('')
@@ -82,10 +85,11 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased }: Pur
             const res = await fetch('/api/orders/purchase', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ packageId: pkg.id, phoneNumber: check.normalizedNumber, referenceCode: reference }),
+                body: JSON.stringify({ packageId: pkg.id, phoneNumber: check.normalizedNumber, referenceCode: reference, expectedPrice: price }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Purchase failed')
+            const data = await readJson(res)
+            if (isPriceChanged(res, data)) onPriceChanged()
+            if (!res.ok) throw new Error(errorMessage(res, data, 'Purchase failed'))
 
             const o = data.order ?? {}
             const newBalance = typeof o.new_balance === 'number' ? o.new_balance : null
