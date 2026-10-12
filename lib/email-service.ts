@@ -1,8 +1,9 @@
 /**
- * Resend Email Service
+ * Email Service
  *
- * This service handles all transactional emails using Resend, the only
- * configured provider. Premium high-end email templates for Capozy Hub.
+ * Sends transactional email via Resend, falling back to Brevo if Resend
+ * fails (Resend's free tier exhausts fast). Premium high-end email
+ * templates for Capozy Hub.
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -58,15 +59,9 @@ interface EmailResult {
     error?: string
 }
 
-/**
- * Core function that actually talks to Resend. Every exported send function
- * below routes through this  -  Resend is the only configured provider, so
- * there is no other provider left to fall back to.
- */
-async function sendViaResend(options: SendEmailOptions, senderEmail: string): Promise<EmailResult> {
+async function sendViaResendOnly(options: SendEmailOptions, senderEmail: string): Promise<EmailResult> {
     if (!process.env.RESEND_API_KEY) {
-        console.warn('RESEND_API_KEY not set. Email not sent.')
-        return { success: false, error: 'Email service not configured' }
+        return { success: false, error: 'Resend not configured' }
     }
 
     try {
@@ -78,16 +73,70 @@ async function sendViaResend(options: SendEmailOptions, senderEmail: string): Pr
         })
 
         if (data.error) {
-            console.error('Resend API Error:', data.error)
             return { success: false, error: data.error.message }
         }
 
-        console.log('Email sent successfully via Resend:', data.data?.id)
         return { success: true, messageId: data.data?.id }
     } catch (error: any) {
-        console.error('Failed to send email via Resend:', error.message)
-        return { success: false, error: error.message || 'Failed to send email' }
+        return { success: false, error: error.message || 'Failed to send email via Resend' }
     }
+}
+
+async function sendViaBrevo(options: SendEmailOptions, senderEmail: string): Promise<EmailResult> {
+    if (!process.env.BREVO_API_KEY) {
+        return { success: false, error: 'Brevo not configured' }
+    }
+
+    try {
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                sender: { name: BRAND.name, email: senderEmail },
+                to: [{ email: options.to, name: options.toName || undefined }],
+                subject: options.subject,
+                htmlContent: options.htmlContent,
+            }),
+        })
+
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+            return { success: false, error: data?.message || `Brevo responded ${res.status}` }
+        }
+
+        return { success: true, messageId: data.messageId }
+    } catch (error: any) {
+        return { success: false, error: error.message || 'Failed to send email via Brevo' }
+    }
+}
+
+/**
+ * Core function every exported send function routes through. Tries Resend
+ * first; if that fails for any reason (quota exhausted, API error, network),
+ * retries the same email via Brevo. Logs which provider actually delivered
+ * it so a real problem (bad template, bad address) doesn't get masked by a
+ * silent successful fallback.
+ */
+async function sendViaResend(options: SendEmailOptions, senderEmail: string): Promise<EmailResult> {
+    const resendResult = await sendViaResendOnly(options, senderEmail)
+    if (resendResult.success) {
+        console.log('Email sent successfully via Resend:', resendResult.messageId)
+        return resendResult
+    }
+
+    console.warn('Resend failed, falling back to Brevo:', resendResult.error)
+    const brevoResult = await sendViaBrevo(options, senderEmail)
+    if (brevoResult.success) {
+        console.log('Email sent successfully via Brevo (fallback):', brevoResult.messageId)
+        return brevoResult
+    }
+
+    console.error('Both Resend and Brevo failed to send email:', { resend: resendResult.error, brevo: brevoResult.error })
+    return { success: false, error: brevoResult.error || resendResult.error }
 }
 
 /**
@@ -99,9 +148,9 @@ export async function sendEmail(options: SendEmailOptions, senderEmail: string =
 }
 
 /**
- * Critical transactional email (orders, payments). Same Resend path as
- * sendEmail  -  kept separate so call sites that reach for "the resilient one"
- * stay meaningful if a second provider is ever added back.
+ * Critical transactional email (orders, payments). Same Resend-then-Brevo
+ * path as sendEmail  -  kept separate so call sites that reach for "the
+ * resilient one" stay meaningful.
  */
 export async function sendResendEmail(options: SendEmailOptions, senderEmail: string = `receipts@${BRAND.domain}`): Promise<EmailResult> {
     return sendViaResend(options, senderEmail)

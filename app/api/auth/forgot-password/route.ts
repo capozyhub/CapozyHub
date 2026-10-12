@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createRouteClient()
 
-    const { error } = await supabase.auth.resetPasswordForEmail(validation.data)
+    const { error } = await supabase.auth.resetPasswordForEmail(validation.data, {
+      redirectTo: getPasswordRecoveryUrl(),
+    })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
