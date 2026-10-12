@@ -6,11 +6,10 @@ import { LayoutGrid, List, Loader2, Search, Wifi } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
-import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { toast } from '@/lib/toast'
 import { Input } from '@/components/ui/input'
-import type { DataPackage } from '@/types/supabase'
 import { filterPackagesForSubAgent, type SubAgentPricingMap } from '@/lib/sub-agent-package-filter'
+import type { Bundle } from '@/components/dashboard/data-packages/types'
 import { NETWORKS, networkLabel } from '@/components/dashboard/data-packages/network-meta'
 import { NetworkTabs } from '@/components/dashboard/data-packages/NetworkTabs'
 import { PackageGrid } from '@/components/dashboard/data-packages/PackageGrid'
@@ -19,7 +18,10 @@ import { BulkPanel } from '@/components/dashboard/data-packages/BulkPanel'
 
 type Tab = 'single' | 'bulk' | 'mtn_mashup'
 
-const PKG_CACHE_KEY = 'cz-packages-cache'
+// The cached list holds this member's own prices, so the key carries their id. The old
+// un-keyed cache held raw package rows (supplier cost included) and is wiped on load.
+const PKG_CACHE_PREFIX = 'cz-packages-cache:'
+const LEGACY_PKG_CACHE_KEY = 'cz-packages-cache'
 const PKG_CACHE_TTL = 5 * 60 * 1000
 const NETWORK_KEY = 'cz-selected-network'
 const VIEW_KEY = 'cz-view-mode'
@@ -41,7 +43,7 @@ function Stat({ label, value, href }: { label: string; value: string; href?: str
 export default function DataPackagesPage() {
     const { dbUser } = useAuth()
 
-    const [packages, setPackages] = useState<DataPackage[]>([])
+    const [packages, setPackages] = useState<Bundle[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [selectedNetwork, setSelectedNetwork] = useState<string>('MTN')
     const [tab, setTab] = useState<Tab>('single')
@@ -50,7 +52,7 @@ export default function DataPackagesPage() {
     const [balance, setBalance] = useState(0)
     const [ordersToday, setOrdersToday] = useState(0)
     const [outOfStock, setOutOfStock] = useState<Record<string, boolean>>({})
-    const [selected, setSelected] = useState<DataPackage | null>(null)
+    const [selected, setSelected] = useState<Bundle | null>(null)
 
     // A sub-agent only sees bundles their recruiter has priced for them, at that price.
     const isSubAgent = dbUser?.role === 'subagent'
@@ -79,9 +81,12 @@ export default function DataPackagesPage() {
     const userId = dbUser?.id
 
     const loadPackages = useCallback(async () => {
+        if (!userId) return
+        const cacheKey = `${PKG_CACHE_PREFIX}${userId}`
         // Show the cached list at once on repeat visits, then refresh it.
         try {
-            const raw = localStorage.getItem(PKG_CACHE_KEY)
+            localStorage.removeItem(LEGACY_PKG_CACHE_KEY)
+            const raw = localStorage.getItem(cacheKey)
             if (raw) {
                 const { data, ts } = JSON.parse(raw)
                 if (Date.now() - ts < PKG_CACHE_TTL && Array.isArray(data)) { setPackages(data); setIsLoading(false) }
@@ -89,16 +94,17 @@ export default function DataPackagesPage() {
         } catch { /* ignore a bad cache */ }
 
         try {
-            const { data, error } = await supabase.from('data_packages').select('*').eq('is_available', true).order('sort_order', { ascending: true })
-            if (error) throw error
-            setPackages(data || [])
-            try { localStorage.setItem(PKG_CACHE_KEY, JSON.stringify({ data, ts: Date.now() })) } catch { /* quota */ }
+            const res = await fetch('/api/dashboard/packages', { cache: 'no-store' })
+            const json = await res.json()
+            if (!res.ok || !Array.isArray(json.packages)) throw new Error(json?.error || 'Could not load the bundles')
+            setPackages(json.packages)
+            try { localStorage.setItem(cacheKey, JSON.stringify({ data: json.packages, ts: Date.now() })) } catch { /* quota */ }
         } catch {
             toast.error('Could not load the bundles')
         } finally {
             setIsLoading(false)
         }
-    }, [])
+    }, [userId])
 
     const loadWallet = useCallback(async () => {
         if (!userId) return
@@ -138,23 +144,20 @@ export default function DataPackagesPage() {
     }, [isSubAgent, selectedNetwork])
 
     /**
-     * The price shown. The server works out the real charge the same way (resolveOwnerCost, which
-     * honours expiry), so a lapsed agent is shown, and charged, the customer price.
+     * The price shown. `your_price` is worked out by the server from the member's role and
+     * expiry (the same rule the purchase route charges by), so a lapsed agent is shown, and
+     * charged, the customer price. A sub-agent's recruiter-set price overrides it.
      */
-    const priceFor = useCallback((pkg: DataPackage): number => {
+    const priceFor = useCallback((pkg: Bundle): number => {
         if (isSubAgent) {
             const sub = subPricing[pkg.id]
             if (sub) return sub.subPrice
         }
-        return resolveOwnerCost(pkg as any, {
-            role: dbUser?.role,
-            agent_expires_at: dbUser?.agent_expires_at,
-            dealer_expires_at: (dbUser as any)?.dealer_expires_at,
-        })
-    }, [isSubAgent, subPricing, dbUser?.role, dbUser?.agent_expires_at, dbUser])
+        return pkg.your_price
+    }, [isSubAgent, subPricing])
 
     const visible = useMemo(() => {
-        let list = packages.filter(p => p.network === selectedNetwork && (p as any).category !== 'mtn_mashup')
+        let list = packages.filter(p => p.network === selectedNetwork && p.category !== 'mtn_mashup')
         if (isSubAgent) list = filterPackagesForSubAgent(list, subPricing)
         const q = search.trim().toLowerCase()
         if (q) list = list.filter(p => p.size.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
@@ -162,7 +165,7 @@ export default function DataPackagesPage() {
     }, [packages, selectedNetwork, search, isSubAgent, subPricing])
 
     const mashup = useMemo(
-        () => packages.filter(p => (p as any).category === 'mtn_mashup').sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+        () => packages.filter(p => p.category === 'mtn_mashup').sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
         [packages],
     )
 

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/lib/toast'
 import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
-import type { DataPackage } from '@/types/supabase'
+import type { Bundle } from './types'
 import { carrierFamily } from './network-meta'
 
 interface ParsedLine {
@@ -34,9 +34,9 @@ interface BulkSuccess {
 }
 
 interface BulkPanelProps {
-    packages: DataPackage[]
+    packages: Bundle[]
     network: string
-    getPrice: (pkg: DataPackage) => number
+    getPrice: (pkg: Bundle) => number
     balance: number
     onPlaced: (newBalance: number | null) => void
 }
@@ -114,7 +114,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                 return { ...line, packagePrice: 0, isValid: false, errorMessage: `Wrong network (${detected})` }
             }
             const pkg = packages.find(p => {
-                if (p.network !== network || (p as any).category === 'mtn_mashup') return false
+                if (p.network !== network || p.category === 'mtn_mashup') return false
                 const size = p.size.toLowerCase()
                 if (size.includes('gb')) return parseFloat(size.replace('gb', '').trim()) === line.volume
                 if (size.includes('mb')) return parseFloat(size.replace('mb', '').trim()) / 1000 === line.volume
@@ -268,7 +268,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
                         <p className="text-sm font-semibold">
                             <span className="text-emerald-600 dark:text-emerald-400">{valid.length} valid</span>
-                            {invalidCount > 0 && <span className="text-muted-foreground"> · <span className="text-red-500">{invalidCount} invalid</span></span>}
+                            {invalidCount > 0 && <span className="text-muted-foreground"> Â· <span className="text-red-500">{invalidCount} invalid</span></span>}
                         </p>
                         <div className="flex items-center gap-4 text-xs">
                             {invalidCount > 0 && (
@@ -310,8 +310,8 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
             <div className="surface flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
                 <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground">{valid.length}</span> valid {valid.length === 1 ? 'row' : 'rows'}
-                    {valid.length > 0 && <> · <span className="font-semibold text-foreground">{formatCurrency(total)}</span></>}
-                    {' · '}Wallet {formatCurrency(balance)}
+                    {valid.length > 0 && <> Â· <span className="font-semibold text-foreground">{formatCurrency(total)}</span></>}
+                    {' Â· '}Wallet {formatCurrency(balance)}
                 </p>
                 <Button variant="outline" size="sm" onClick={preview} disabled={validating || (inputType === 'text' ? !text.trim() : !file)} className="gap-1.5">
                     {validating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} Preview price
@@ -343,7 +343,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced }: Bu
                                     {success.orders.map((o, i) => (
                                         <li key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
                                             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" />{o.phoneNumber}</span>
-                                            <span className="text-muted-foreground">{o.volume}GB · <span className="font-semibold text-foreground">{formatCurrency(o.packagePrice)}</span></span>
+                                            <span className="text-muted-foreground">{o.volume}GB Â· <span className="font-semibold text-foreground">{formatCurrency(o.packagePrice)}</span></span>
                                         </li>
                                     ))}
                                 </ul>

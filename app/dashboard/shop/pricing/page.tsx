@@ -32,10 +32,10 @@ interface Package {
     id: string
     network: string
     size: string
+    /** The public customer price. */
     price: number
-    agent_price: number
-    dealer_price: number
-    cost_price: number
+    /** What THIS member pays for the bundle, resolved on the server from their role and expiry. */
+    your_price: number
     is_available: boolean
     sort_order: number
 }
@@ -205,7 +205,11 @@ export default function ShopPricingPage() {
             setAfaSellingPrice(shopData.afa_selling_price?.toString() ?? '')
 
             const [pkgRes, priceRes, adminRes, examRes, markupRes] = await Promise.all([
-                (supabase.from('data_packages').select('*').eq('is_available', true).order('sort_order') as any),
+                // Tier prices and supplier cost are server-only; this returns just the member's own price.
+                fetch('/api/dashboard/packages', { cache: 'no-store' })
+                    .then(res => (res.ok ? res.json() : { packages: [] }))
+                    .then(j => ({ data: (j?.packages ?? []).map((p: any) => ({ ...p, is_available: true })) }))
+                    .catch(() => ({ data: [] })),
                 // Explicit column list (not '*'): sub_price SELECT is revoked from the
                 // authenticated role (migration 20260706g), so '*' would 500 here.
                 ((supabase as any).from('shop_pricing').select('id, shop_id, package_id, selling_price, profit_margin, last_auto_updated_at').eq('shop_id', shopData.id)),
@@ -407,9 +411,7 @@ export default function ShopPricingPage() {
                                                                           // marker in lib/pricing/sub-agent-cost.ts -- so this is no
                                                                           // longer guaranteed to be the highest possible reference)
         }
-        if (dbUser?.role === 'dealer' && pkg.dealer_price > 0) return pkg.dealer_price
-        if (dbUser?.role === 'agent' && pkg.agent_price > 0) return pkg.agent_price
-        return pkg.price
+        return pkg.your_price
     }
 
     const getProfit = (pkg: Package, sellingStr: string) => {

@@ -1,18 +1,18 @@
 import { NetworkIcon } from '@/components/network-icon'
 import { cn, formatCurrency } from '@/lib/utils'
-import type { DataPackage } from '@/types/supabase'
+import type { Bundle } from './types'
 import { NETWORK_COLOR, networkLabel } from './network-meta'
 
 interface PackageGridProps {
-    packages: DataPackage[]
+    packages: Bundle[]
     mode: 'grid' | 'list'
-    getPrice: (pkg: DataPackage) => number
-    onBuy: (pkg: DataPackage) => void
+    getPrice: (pkg: Bundle) => number
+    onBuy: (pkg: Bundle) => void
     /** Small tag on each card, for example "Mashup". */
     tag?: string
 }
 
-function note(pkg: DataPackage): string | null {
+function note(pkg: Bundle): string | null {
     const d = pkg.description?.trim()
     return d && d !== 'Instant Delivery' ? d : null
 }

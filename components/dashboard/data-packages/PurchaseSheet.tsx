@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from '@/lib/toast'
 import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
-import type { DataPackage } from '@/types/supabase'
+import type { Bundle } from './types'
 import { carrierFamily, networkLabel } from './network-meta'
 
 interface PlacedDetails {
@@ -25,7 +25,7 @@ interface PlacedDetails {
 }
 
 interface PurchaseSheetProps {
-    pkg: DataPackage | null
+    pkg: Bundle | null
     price: number
     balance: number
     onClose: () => void
@@ -168,7 +168,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased }: Pur
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <DialogTitle className="font-display text-3xl font-bold leading-none tracking-tight">{pkg.size}</DialogTitle>
-                                    <p className="mt-1 truncate text-sm text-muted-foreground">{networkLabel(pkg.network)}{pkg.description && pkg.description !== 'Instant Delivery' ? ` · ${pkg.description}` : ''}</p>
+                                    <p className="mt-1 truncate text-sm text-muted-foreground">{networkLabel(pkg.network)}{pkg.description && pkg.description !== 'Instant Delivery' ? ` Â· ${pkg.description}` : ''}</p>
                                 </div>
                                 <p className="font-display text-2xl font-bold tabular-nums">{formatCurrency(price)}</p>
                             </div>
@@ -202,7 +202,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased }: Pur
 
                                 {canAfford ? (
                                     <Button onClick={buy} disabled={buying || !phone || !!phoneError} className="h-12 w-full text-base">
-                                        {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : `Pay ${formatCurrency(price)}`}
+                                        {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processingâ€¦</> : `Pay ${formatCurrency(price)}`}
                                     </Button>
                                 ) : (
                                     <Button asChild className="h-12 w-full text-base">
