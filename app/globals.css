@@ -436,19 +436,42 @@
     84%  { stroke-dashoffset: 0; opacity: 1; }
     100% { stroke-dashoffset: 0; opacity: 0; }
   }
-  .cz-loader-word { animation: cz-loader-word 1.9s ease-in-out infinite; }
-  @keyframes cz-loader-word {
-    0%, 100% { opacity: 0.55; }
-    60%, 84% { opacity: 1; }
-  }
+  /* "Capozy Hub" typed in letter by letter as the curve draws, then held and faded
+     out in the exact same 84%→100% window as .cz-loader-draw (same duration, easing
+     and iteration count, zero delay) so the name and the curve always reset together —
+     forever, not just on the first loop. Hand-tuned for the 9 letters of "Capozy Hub"
+     (C-a-p-o-z-y, H-u-b); if the brand name ever changes length, add/remove cz-loader-lN
+     rules to match — an unstyled extra letter just stays fully visible, which degrades
+     gracefully rather than breaking. */
+  .cz-loader-word { display: inline-flex; }
+  .cz-loader-letter { display: inline-block; opacity: 0; }
   @keyframes kfg-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
 
+  .cz-loader-l1 { animation: cz-loader-l1 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l1 { 0%, 7%  { opacity: 0; } 10% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l2 { animation: cz-loader-l2 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l2 { 0%, 12% { opacity: 0; } 15% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l3 { animation: cz-loader-l3 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l3 { 0%, 17% { opacity: 0; } 20% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l4 { animation: cz-loader-l4 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l4 { 0%, 22% { opacity: 0; } 25% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l5 { animation: cz-loader-l5 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l5 { 0%, 27% { opacity: 0; } 30% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l6 { animation: cz-loader-l6 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l6 { 0%, 32% { opacity: 0; } 35% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l7 { animation: cz-loader-l7 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l7 { 0%, 39% { opacity: 0; } 42% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l8 { animation: cz-loader-l8 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l8 { 0%, 44% { opacity: 0; } 47% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+  .cz-loader-l9 { animation: cz-loader-l9 1.9s cubic-bezier(0.55, 0, 0.2, 1) infinite; }
+  @keyframes cz-loader-l9 { 0%, 49% { opacity: 0; } 52% { opacity: 1; } 84% { opacity: 1; } 100% { opacity: 0; } }
+
   @media (prefers-reduced-motion: reduce) {
     .cz-loader-draw { animation: none; stroke-dashoffset: 0; }
-    .cz-loader-word { animation: none; }
+    .cz-loader-letter { animation: none; opacity: 1; }
   }
   /* Page-ready splash loader — opacity/pointer-events driven by Tailwind classes */
   .page-ready-loader {

@@ -20,6 +20,17 @@ const SIZES = {
 // filters), so it costs next to nothing on low-end phones.
 const CURVE = 'M-30 330 C 120 352 300 312 410 202 C 480 130 540 72 680 40'
 
+/** Splits a word into letter spans, each carrying the next cz-loader-lN class so the
+ * whole "Capozy Hub" types in letter by letter in lockstep with the curve — see the
+ * keyframes in globals.css for why this is class-per-letter rather than a computed delay. */
+function typedLetters(word: string, startIndex: number) {
+    return [...word].map((ch, i) => (
+        <span key={startIndex + i} className={`cz-loader-letter cz-loader-l${startIndex + i + 1}`}>
+            {ch}
+        </span>
+    ))
+}
+
 export function BrandLoader({ fullScreen = true, size, className = '' }: BrandLoaderProps) {
     const s = SIZES[size ?? (fullScreen ? 'lg' : 'md')]
 
@@ -39,7 +50,11 @@ export function BrandLoader({ fullScreen = true, size, className = '' }: BrandLo
             </svg>
             {s.word && (
                 <p className="cz-loader-word font-display text-xl font-bold tracking-tight text-foreground">
-                    {BRAND.nameFirst} <span className="text-brand-600">{BRAND.nameSecond}</span>
+                    {typedLetters(BRAND.nameFirst, 0)}
+                    {' '}
+                    <span className="text-brand-600 inline-flex">
+                        {typedLetters(BRAND.nameSecond, BRAND.nameFirst.length)}
+                    </span>
                 </p>
             )}
         </div>
