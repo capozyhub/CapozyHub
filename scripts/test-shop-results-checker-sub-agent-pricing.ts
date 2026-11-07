@@ -110,7 +110,11 @@ async function main() {
         assertEqual(overridden.subtotal, 240, 'bulk tier: subtotal = (11+1) * 20')
     }
 
-    // ── Rejection: ceiling breach fails closed — routes must 409 before any order row ──────
+    // ── Former ceiling breach: the subCost > customer ceiling reject is TEMPORARILY DISABLED
+    //    (lib/pricing/sub-agent-cost.ts, 2026-09-14 explicit user request) — a sub price above
+    //    the customer's own retail price is currently ALLOWED and computed normally, the same
+    //    as the equivalent case in scripts/test-sub-agent-rc-pricing.ts. Re-tighten this
+    //    assertion back to `ok === false` when that ceiling is re-enabled.
     {
         const db = fakeDb({
             sub_agents: [{ user_id: 'kofi', upline_user_id: 'lead', status: 'active' }],
@@ -119,9 +123,8 @@ async function main() {
             sub_agent_default_pricing: [],
         })
         const subResult = await resolveSubAgentRcCost(db, 'kofi', TYPE, 1)
-        assertEqual(subResult.ok, false, 'ceiling breach: resolver rejects (subCost 18 > customer ceiling 14)')
-        // The routes check `if (!subCostResult.ok)` and return 409 immediately — no
-        // calculateRCPrice call, no order insert, no Paystack call happens past this point.
+        assertEqual(subResult.ok, true, 'former ceiling breach is currently ALLOWED (ceiling disabled): subCost 18 > customer ceiling 14')
+        assertEqual(subResult.subCost, 18, 'subCost above customer ceiling still computed normally')
     }
 
     // ── Suspended sub-agent: resolver fails closed (route must 409, not fall through to
