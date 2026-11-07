@@ -13,7 +13,7 @@ import { toast } from '@/lib/toast'
 import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
-import { carrierFamily, NETWORK_COLOR, networkLabel } from './network-meta'
+import { carrierFamily, NETWORK_COLOR, networkClayClass, networkLabel } from './network-meta'
 import { errorMessage, isPriceChanged, readJson } from './api'
 
 interface PlacedDetails {
@@ -59,7 +59,9 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
 
     const canAfford = balance === null || balance >= price
     // Ties the sheet back to the card it was opened from — the same accent PackageGrid uses.
-    const accent = NETWORK_COLOR[(placed ?? pkg)?.network ?? ''] ?? '#8E8E8E'
+    const network = (placed ?? pkg)?.network ?? ''
+    const accent = NETWORK_COLOR[network] ?? '#8E8E8E'
+    const clay = networkClayClass(network)
 
     const onPhoneChange = (value: string) => {
         setPhone(value)
@@ -136,10 +138,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                 {placed ? (
                     <div className="space-y-5 px-6 pb-7 pt-9">
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <span
-                                className="clay-gold flex h-16 w-16 items-center justify-center rounded-full"
-                                style={{ boxShadow: `8px 10px 20px rgba(246,169,0,0.38), inset -6px -8px 12px rgba(155,98,0,0.45), inset 6px 7px 12px rgba(255,255,255,0.65), 0 0 0 3px ${accent}` }}
-                            >
+                            <span className={cn(clay, 'flex h-16 w-16 items-center justify-center rounded-full')}>
                                 <CheckCircle2 className="h-8 w-8" />
                             </span>
                             <DialogTitle className="font-display text-xl font-semibold">Order placed</DialogTitle>
@@ -209,7 +208,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                         )}
                                     </div>
                                 </div>
-                                <span className="clay-gold flex-shrink-0 rounded-2xl px-3.5 py-2 font-display text-lg font-bold tabular-nums">
+                                <span className={cn(clay, 'flex-shrink-0 rounded-2xl px-3.5 py-2 font-display text-lg font-bold tabular-nums')}>
                                     {formatCurrency(price)}
                                 </span>
                             </div>
@@ -250,7 +249,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                 </dl>
 
                                 {canAfford ? (
-                                    <Button onClick={buy} disabled={buying || !phone || !!phoneError} className="h-12 w-full text-base">
+                                    <Button variant="network" onClick={buy} disabled={buying || !phone || !!phoneError} className={cn(clay, 'h-12 w-full text-base')}>
                                         {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : `Pay ${formatCurrency(price)}`}
                                     </Button>
                                 ) : (

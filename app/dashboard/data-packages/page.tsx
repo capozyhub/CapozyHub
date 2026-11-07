@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, LayoutGrid, List, Loader2, Search, Wifi, Zap } from 'lucide-react'
+import { ArrowRight, History, LayoutGrid, List, Loader2, Plus, Search, Wifi, Zap } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
+import { useCountUp } from '@/hooks/use-count-up'
+import { BrandSwoosh } from '@/components/brand-swoosh'
 import { errorMessage, readJson } from '@/components/dashboard/data-packages/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +49,9 @@ export default function DataPackagesPage() {
     // Held by id and looked up in the current list, so a refresh after a price change shows the
     // new price in the open sheet instead of the one it was opened with.
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    // Same count-up the Home hero uses for the wallet balance, so the two statements feel like
+    // one language. Fed 0 while balance is unknown; the hero shows a dash in that case instead.
+    const countedBalance = useCountUp(balance ?? 0, 700, 2)
 
     // A sub-agent only sees bundles their recruiter has priced for them, at that price.
     const isSubAgent = dbUser?.role === 'subagent'
@@ -229,25 +234,46 @@ export default function DataPackagesPage() {
 
     return (
         <div className="space-y-5">
-            <div>
-                <h1 className="font-display text-2xl font-semibold tracking-tight">Data bundles</h1>
-                <p className="text-sm text-muted-foreground">Pick a network, choose a bundle and pay from your wallet.</p>
-            </div>
+            {/* The black stage the Home hero and auth pages use, not a plain card: this is the page's
+                one statement, everything below it is in service of "which bundle, for whom". */}
+            <section aria-label="Wallet" className="neu-night relative overflow-hidden rounded-3xl p-5 text-white sm:p-7">
+                <BrandSwoosh progress={1} className="pointer-events-none absolute -right-16 bottom-0 w-[28rem] max-w-none opacity-40 sm:-right-8 sm:opacity-50 lg:opacity-30" />
 
-            {/* Hero: the wallet balance leads, same weight as the Wallet page's own balance card. */}
-            <div className="surface flex flex-wrap items-center justify-between gap-5 rounded-3xl p-5 sm:p-6">
-                <div>
-                    <p className="text-xs text-muted-foreground">Wallet balance</p>
-                    <p className="font-display text-3xl font-bold tabular-nums">{balance === null ? '—' : formatCurrency(balance)}</p>
-                    <Link href="/dashboard/wallet" className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-500">
-                        Top up wallet <ArrowRight className="h-3 w-3" />
-                    </Link>
+                <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="min-w-0">
+                        <p className="text-sm font-medium text-white/60">Data bundles</p>
+                        <p className="mt-3 text-xs font-medium text-white/50">Wallet balance</p>
+                        <p className="mt-1 font-display text-4xl font-bold leading-none tracking-tight sm:text-5xl">
+                            <span className="mr-1.5 text-2xl font-semibold text-brand-500 sm:text-3xl">GH₵</span>
+                            {balance === null ? '—' : Number(countedBalance).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+
+                        <div className="neu-night-in mt-5 inline-flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm">
+                            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-brand-500" />
+                            <span className="text-white/70">
+                                Today <span className="font-semibold text-white">{ordersToday} {ordersToday === 1 ? 'order' : 'orders'}</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:flex-shrink-0">
+                        <Link
+                            href="/dashboard/wallet"
+                            className="clay-gold inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                        >
+                            <Plus className="h-4 w-4" /> Top up wallet
+                        </Link>
+                        <Link
+                            href="/dashboard/my-orders"
+                            className="clay-silver inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                        >
+                            <History className="h-4 w-4" /> Order history
+                        </Link>
+                    </div>
                 </div>
-                <div className="well shrink-0 rounded-2xl px-5 py-3.5 text-center">
-                    <p className="text-xs text-muted-foreground">Orders today</p>
-                    <p className="font-display text-2xl font-bold tabular-nums">{ordersToday}</p>
-                </div>
-            </div>
+            </section>
+
+            <p className="text-sm text-muted-foreground">Pick a network, choose a bundle and pay from your wallet.</p>
 
             <NetworkTabs selected={selectedNetwork} outOfStock={outOfStock} onSelect={selectNetwork} />
 

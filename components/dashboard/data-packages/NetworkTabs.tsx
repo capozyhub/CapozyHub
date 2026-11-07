@@ -16,6 +16,7 @@ export function NetworkTabs({ selected, outOfStock, onSelect }: NetworkTabsProps
             {NETWORKS.map(network => {
                 const active = selected === network
                 const out = !!outOfStock[network]
+                const color = NETWORK_COLOR[network]
                 return (
                     <button
                         key={network}
@@ -27,7 +28,12 @@ export function NetworkTabs({ selected, outOfStock, onSelect }: NetworkTabsProps
                             'relative flex flex-col items-center gap-2 rounded-[1.5rem] px-1 py-3.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:py-5',
                             active ? 'well' : 'neu-raised-sm neu-press',
                         )}
-                        style={active ? { boxShadow: `var(--neu-in), 0 0 0 2.5px ${NETWORK_COLOR[network]}` } : undefined}
+                        // A soft wash of the network's own colour on every tile, not just the chosen
+                        // one — so the four read as four distinct brands at a glance, not four
+                        // identical grey buttons that happen to differ once you pick one.
+                        style={active
+                            ? { backgroundColor: `${color}26`, boxShadow: `var(--neu-in), 0 0 0 2.5px ${color}` }
+                            : { backgroundColor: `${color}12` }}
                     >
                         {active && (
                             <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background">

@@ -166,6 +166,10 @@
   .clay-green  { --clay-a: #86EFAC; --clay-b: #16A34A; --clay-c: #166534; --clay-ink: #fff; --clay-glow: rgba(22,163,74,0.35); }
   .clay-orange { --clay-a: #FFB067; --clay-b: #F2711C; --clay-c: #C2410C; --clay-ink: #fff; --clay-glow: rgba(242,113,28,0.35); }
   .clay-yellow { --clay-a: #FFE766; --clay-b: #FFCC00; --clay-c: #D9A800; --clay-ink: #000; --clay-glow: rgba(255,204,0,0.35); }
+  /* AT iShare blue and AT BigTime purple: same recipe, so any network's own colour (see
+     NETWORK_COLOR) can drive a price badge or CTA, not just MTN gold and Telecel red. */
+  .clay-blue   { --clay-a: #5EA1E0; --clay-b: #0057B8; --clay-c: #003E82; --clay-ink: #fff; --clay-glow: rgba(0,87,184,0.35); }
+  .clay-purple { --clay-a: #B794F6; --clay-b: #7C3AED; --clay-c: #5B21B6; --clay-ink: #fff; --clay-glow: rgba(124,58,237,0.35); }
   /* Same idea on the black hero, where only a faint top-left light can show. */
   .neu-night { background-color: #111111; box-shadow: 14px 14px 30px rgba(0,0,0,0.85), -6px -6px 18px rgba(255,255,255,0.05), inset 1px 1px 0 rgba(255,255,255,0.06); }
   .neu-night-in { background-color: #080808; box-shadow: inset 5px 5px 12px rgba(0,0,0,0.9), inset -4px -4px 10px rgba(255,255,255,0.05); }

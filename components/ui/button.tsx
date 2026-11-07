@@ -20,6 +20,10 @@ const buttonVariants = cva(
                 mtn: "clay clay-yellow",
                 telecel: "clay clay-red",
                 gradient: "clay-gold",
+                // No colour of its own — pair with a `clay clay-*` className (see
+                // networkClayClass in components/dashboard/data-packages/network-meta)
+                // so a CTA can take whichever network it belongs to, not always gold.
+                network: "",
             },
             size: {
                 default: "h-10 px-4 py-2",

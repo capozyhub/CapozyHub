@@ -24,3 +24,19 @@ export function networkLabel(network: string): string {
 export function carrierFamily(network: string): string {
     return network.startsWith('AT') ? 'AirtelTigo' : network
 }
+
+/**
+ * The `.clay clay-*` class pair (see app/globals.css) that renders this network's own colour
+ * as a clay surface — gold for MTN, red for Telecel, blue for AT iShare, purple for AT
+ * BigTime. For a price badge or CTA that belongs to one specific bundle, so it reads as that
+ * network's own colour rather than the generic gold used for page-level actions (tabs, "Buy").
+ */
+export function networkClayClass(network: string): string {
+    switch (network) {
+        case 'MTN': return 'clay clay-yellow'
+        case 'Telecel': return 'clay clay-red'
+        case 'AT-iShare': return 'clay clay-blue'
+        case 'AT-BigTime': return 'clay clay-purple'
+        default: return 'clay-gold'
+    }
+}
