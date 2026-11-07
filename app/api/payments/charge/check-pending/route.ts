@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         }
 
         const { data: paymentRow } = await (supabaseAdmin.from('wallet_payments') as any)
-            .select('user_id, status')
+            .select('user_id, status, metadata')
             .eq('reference', reference)
             .maybeSingle()
 
@@ -55,6 +55,13 @@ export async function GET(request: NextRequest) {
 
         if (paymentRow.user_id !== authUser.id) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        // Agent/dealer upgrade payments live in the same table but are settled by their
+        // own processors (see /api/payments/verify and the webhook). Running one through
+        // the wallet top-up path would turn the upgrade fee into wallet balance.
+        if (paymentRow.status === 'pending' && paymentRow.metadata?.upgrade_type) {
+            return NextResponse.json({ error: 'Not a wallet top-up' }, { status: 400 })
         }
 
         // ── 1. DB is authoritative ────────────────────────────────────────
@@ -69,9 +76,24 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ paid: false, terminal: true, status: 'failed' })
         }
 
-        // ── 2. Still pending in our DB — ask Paystack ─────────────────────
+        // ── 2. Still pending in our DB — ask Paystack (throttled) ─────────
+        // Every call below spends our shared Paystack API quota. Allow one lookup per
+        // payment every few seconds (atomic, DB-backed, so it holds across serverless
+        // instances); anything faster is answered "still pending" from our own state.
+        const { data: lookupAllowed, error: throttleError } = await (supabaseAdmin as any).rpc('touch_wallet_payment_check', {
+            p_reference: reference,
+            p_user_id: authUser.id,
+        })
+        if (throttleError) {
+            console.error('[ChargePending] Throttle check failed:', throttleError.message)
+        }
+        if (throttleError || !lookupAllowed) {
+            return NextResponse.json({ paid: false, pending: true, status: 'pending' })
+        }
+
         const res = await fetch(`https://api.paystack.co/charge/${encodeURIComponent(reference)}`, {
             headers: { 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+            signal: AbortSignal.timeout(15_000),
         })
         const data = await res.json()
 

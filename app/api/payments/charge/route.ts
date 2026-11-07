@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { calculatePaystackFee, generateReferenceCode } from '@/lib/utils'
-import { resolvePaystackFeePercent, resolveTopupLimits } from '@/lib/paystack-fees'
+import { parseMoneyAmount, resolvePaystackFeePercent, resolveTopupLimits, roundMoney } from '@/lib/paystack-fees'
 
 const GHANA_NETWORK_MAP: Record<string, string> = {
     '024': 'MTN', '025': 'MTN', '053': 'MTN', '054': 'MTN', '055': 'MTN', '059': 'MTN',
@@ -27,13 +27,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { amount, phone, provider } = await request.json()
+        const { amount: rawAmount, phone, provider } = await request.json()
 
         // Strict type check: a string amount would make `amount + fee` below
-        // concatenate instead of add, corrupting the charged total. The
-        // configurable min/max band is enforced after admin settings load.
-        if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
-            return NextResponse.json({ error: 'Enter a valid amount' }, { status: 400 })
+        // concatenate instead of add, corrupting the charged total. More than 2
+        // decimals is rejected so the stored amount, the Paystack kobo total and the
+        // credited balance can never disagree by a rounding step. The configurable
+        // min/max band is enforced after admin settings load.
+        const amount = parseMoneyAmount(rawAmount)
+        if (amount === null) {
+            return NextResponse.json({ error: 'Enter a valid amount (up to 2 decimal places)' }, { status: 400 })
         }
 
         if (!phone || !/^0[0-9]{9}$/.test(phone)) {
@@ -56,25 +59,6 @@ export async function POST(request: NextRequest) {
         }
 
         const userId = authUser.id
-
-        // ── Anti-abuse: cap simultaneous pending charges per user ──────────
-        // Each charge fires a real MoMo prompt to an attacker-controlled phone
-        // and inserts a wallet_payments row. Without a ceiling, the endpoint can
-        // be used to spam prompts at arbitrary numbers and flood the table.
-        // Legitimate users almost never have more than one charge in flight.
-        const pendingSince = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-        const { count: pendingCount } = await (supabaseAdmin.from('wallet_payments') as any)
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('status', 'pending')
-            .gte('created_at', pendingSince)
-
-        if ((pendingCount || 0) >= 5) {
-            return NextResponse.json(
-                { error: 'You have too many pending payments. Finish or wait for them to expire before starting a new one.' },
-                { status: 429 }
-            )
-        }
 
         const { data: userData, error: userDataError } = await supabaseAdmin
             .from('users')
@@ -123,84 +107,108 @@ export async function POST(request: NextRequest) {
         }, settings)
 
         const fee = calculatePaystackFee(amount, feePercent)
-        const totalAmount = amount + fee
+        const totalAmount = roundMoney(amount + fee)
         const reference = `WAL-${generateReferenceCode()}`
 
-        let { data: wallet } = await (supabaseAdmin.from('wallets') as any)
-            .select('id')
-            .eq('user_id', userId)
-            .single()
+        // ── Anti-abuse: reserve the payment atomically ─────────────────────
+        // Each charge fires a real MoMo prompt at whatever number the caller
+        // typed. The DB function checks the pending cap, a daily cap, the number of
+        // distinct numbers per user, and a per-number cap across ALL accounts, and
+        // inserts the row under one lock — so a burst of parallel requests cannot all
+        // pass a count-then-insert check. It also creates the wallet if missing.
+        const { data: reservation, error: reserveError } = await (supabaseAdmin as any).rpc('reserve_wallet_payment', {
+            p_user_id: userId,
+            p_amount: amount,
+            p_fee: fee,
+            p_total: totalAmount,
+            p_reference: reference,
+            p_phone: phone,
+            p_network: resolvedProvider,
+        })
 
-        if (!wallet) {
-            const { data: newWallet, error: walletCreateError } = await (supabaseAdmin.from('wallets') as any)
-                .insert({ user_id: userId })
-                .select()
-                .single()
-            if (walletCreateError || !newWallet) {
-                console.error('[ChargeInit] Failed to create wallet:', walletCreateError)
-                return NextResponse.json({ error: 'Failed to setup wallet' }, { status: 500 })
-            }
-            wallet = newWallet
-        }
-
-        const { data: payment, error: paymentError } = await (supabaseAdmin.from('wallet_payments') as any)
-            .insert({
-                user_id: userId,
-                wallet_id: (wallet as any)!.id,
-                amount: amount,
-                fee: fee,
-                total_amount: totalAmount,
-                reference: reference,
-                provider: 'paystack',
-                status: 'pending',
-            })
-            .select()
-            .single()
-
-        if (paymentError) {
-            console.error('[ChargeInit] Payment record error:', paymentError)
+        if (reserveError || !reservation) {
+            console.error('[ChargeInit] reserve_wallet_payment failed:', reserveError)
             return NextResponse.json({ error: 'Failed to create payment record' }, { status: 500 })
         }
 
-        const paystackRes = await fetch('https://api.paystack.co/charge', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email,
-                amount: Math.round(totalAmount * 100),
-                currency: 'GHS',
-                reference,
-                mobile_money: { phone, provider: resolvedProvider },
-            }),
-        })
+        if (!reservation.ok) {
+            const LIMIT_MESSAGES: Record<string, string> = {
+                too_many_pending: 'You have too many pending payments. Finish or wait for them to expire before starting a new one.',
+                daily_limit: 'You have reached the daily limit for payment requests. Please try again tomorrow.',
+                too_many_numbers: 'You can use up to 3 different mobile money numbers per day. Use one of your recent numbers, or try again tomorrow.',
+                number_limited: 'Too many payment requests were sent to this number recently. Please wait an hour and try again.',
+            }
+            const message = LIMIT_MESSAGES[reservation.reason as string]
+            if (!message) {
+                console.error('[ChargeInit] reserve_wallet_payment refused:', reservation)
+                return NextResponse.json({ error: 'Failed to create payment record' }, { status: 500 })
+            }
+            return NextResponse.json({ error: message }, { status: 429 })
+        }
 
-        const paystackData = await paystackRes.json()
+        const paymentId: string = reservation.payment_id
+
+        // A definite failure from Paystack means no prompt was sent and no success
+        // webhook can follow, so the row is closed immediately. (Otherwise failed
+        // attempts sit as "pending" and lock the user out of the pending cap.)
+        const markFailed = () =>
+            (supabaseAdmin.from('wallet_payments') as any)
+                .update({ status: 'failed', updated_at: new Date().toISOString() })
+                .eq('id', paymentId)
+                .eq('status', 'pending')
+
+        let paystackData: any
+        try {
+            const paystackRes = await fetch('https://api.paystack.co/charge', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    amount: Math.round(totalAmount * 100),
+                    currency: 'GHS',
+                    reference,
+                    mobile_money: { phone, provider: resolvedProvider },
+                }),
+                signal: AbortSignal.timeout(25_000),
+            })
+            paystackData = await paystackRes.json()
+        } catch (fetchError) {
+            // Timeout / network error: the outcome is UNKNOWN — Paystack may already have
+            // sent the prompt. Do not mark the row failed, or a late success webhook
+            // would find a failed row and the customer would be charged but not credited.
+            // It stays pending and ages out of the cap window.
+            console.error('[ChargeInit] Paystack request failed:', fetchError)
+            return NextResponse.json(
+                { error: 'We could not confirm your payment request. If you receive a prompt on your phone, approve it and your wallet will be credited automatically.' },
+                { status: 502 }
+            )
+        }
 
         if (!paystackData.status) {
             console.error('[ChargeInit] Paystack charge failed:', paystackData)
-            await (supabaseAdmin.from('wallet_payments') as any)
-                .update({ status: 'failed' })
-                .eq('id', (payment as any).id)
+            await markFailed()
             return NextResponse.json({ error: 'Failed to initiate charge' }, { status: 500 })
         }
 
         if (!paystackData.data) {
             console.error('[ChargeInit] Paystack charge response missing data:', paystackData)
-            await (supabaseAdmin.from('wallet_payments') as any)
-                .update({ status: 'failed' })
-                .eq('id', payment.id)
+            await markFailed()
             return NextResponse.json({ error: 'Unexpected response from payment processor' }, { status: 500 })
         }
 
         const chargeStatus: string = paystackData.data.status
         const displayText: string = paystackData.data.display_text || paystackData.data.message || ''
 
-        await (supabaseAdmin.from('wallet_payments') as any)
-            .update({ provider_reference: paystackData.data.reference || reference })
-            .eq('id', (payment as any).id)
+        if (chargeStatus === 'failed') {
+            await markFailed()
+        } else {
+            await (supabaseAdmin.from('wallet_payments') as any)
+                .update({ provider_reference: paystackData.data.reference || reference })
+                .eq('id', paymentId)
+        }
 
         return NextResponse.json({
             status: chargeStatus,

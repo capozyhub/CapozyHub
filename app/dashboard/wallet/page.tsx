@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -40,13 +40,17 @@ export default function WalletPage() {
     const [userRef, setUserRef] = useState<{ code: string; is_active: boolean } | null>(null)
     const [refLoading, setRefLoading] = useState(true)
     const [claimSuccess, setClaimSuccess] = useState<ClaimSuccessData | null>(null)
+    const [walletError, setWalletError] = useState(false)
 
     const loadWalletData = useCallback(async () => {
         if (!userId) return
         try {
             const [walletRes, txnsRes, momoSettingsRes] = await Promise.all([
                 supabase.from('wallets').select('*').eq('user_id', userId).single(),
-                supabase.from('wallet_transactions').select('*').eq('user_id', userId).eq('type', 'credit').order('created_at', { ascending: false }).limit(20),
+                // Both top-up rails (Paystack and MoMo claim) log source: 'payment'; refunds and
+                // admin credits are also type: 'credit' but belong on the transactions/admin pages,
+                // not under "Recent top-ups".
+                supabase.from('wallet_transactions').select('*').eq('user_id', userId).eq('type', 'credit').eq('source', 'payment').order('created_at', { ascending: false }).limit(20),
                 fetch('/api/wallet/claim-momo?settings_only=true', { credentials: 'include' }).then(r => r.json()).catch(() => null),
             ])
 
@@ -55,6 +59,13 @@ export default function WalletPage() {
                 setBalance(wallet.balance)
                 setTotalCredited(wallet.total_credited)
                 setTotalDebited(wallet.total_spent)
+                setWalletError(false)
+            } else {
+                // PGRST116 ("no rows") means the wallet hasn't been created yet, which the
+                // charge/claim routes handle lazily — that's not a failure worth alarming over.
+                // Anything else means we genuinely couldn't read the balance; show it rather
+                // than silently rendering GHS 0.00 as if the account were empty.
+                setWalletError(walletRes.error?.code !== 'PGRST116')
             }
             setTransactions((txnsRes.data as WalletTransaction[]) || [])
 
@@ -70,6 +81,7 @@ export default function WalletPage() {
             }
         } catch (err) {
             console.error('Error fetching wallet data:', err)
+            setWalletError(true)
         } finally {
             setLoading(false)
         }
@@ -138,27 +150,43 @@ export default function WalletPage() {
             </div>
 
             {/* Balance + lifetime stats */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="surface rounded-3xl p-5 sm:col-span-1">
-                    <p className="text-xs text-muted-foreground">Balance</p>
-                    <p className="font-display text-3xl font-bold tabular-nums">{loading ? '—' : formatCurrency(balance)}</p>
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Available now
+            {!loading && walletError ? (
+                <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-3xl p-5">
+                    <div className="flex items-center gap-2.5 text-sm">
+                        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+                        <span>Couldn&apos;t load your balance. Your money is safe — this is just a display issue.</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => loadWalletData()}
+                        className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-semibold underline-offset-2 hover:underline"
+                    >
+                        Try again
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="surface rounded-3xl p-5 sm:col-span-1">
+                        <p className="text-xs text-muted-foreground">Balance</p>
+                        <p className="font-display text-3xl font-bold tabular-nums">{loading ? '—' : formatCurrency(balance)}</p>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Available now
+                        </div>
+                    </div>
+                    <div className="well rounded-3xl p-5">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+                            <TrendingUp className="h-3.5 w-3.5" /> <span className="text-xs">Total credited</span>
+                        </div>
+                        <p className="font-display text-xl font-bold tabular-nums">{loading ? '—' : formatCurrency(totalCredited)}</p>
+                    </div>
+                    <div className="well rounded-3xl p-5">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+                            <TrendingDown className="h-3.5 w-3.5" /> <span className="text-xs">Total spent</span>
+                        </div>
+                        <p className="font-display text-xl font-bold tabular-nums">{loading ? '—' : formatCurrency(totalDebited)}</p>
                     </div>
                 </div>
-                <div className="well rounded-3xl p-5">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
-                        <TrendingUp className="h-3.5 w-3.5" /> <span className="text-xs">Total credited</span>
-                    </div>
-                    <p className="font-display text-xl font-bold tabular-nums">{loading ? '—' : formatCurrency(totalCredited)}</p>
-                </div>
-                <div className="well rounded-3xl p-5">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
-                        <TrendingDown className="h-3.5 w-3.5" /> <span className="text-xs">Total spent</span>
-                    </div>
-                    <p className="font-display text-xl font-bold tabular-nums">{loading ? '—' : formatCurrency(totalDebited)}</p>
-                </div>
-            </div>
+            )}
 
             <div role="tablist" className="well flex w-fit gap-1 rounded-2xl p-1">
                 {([['topup', 'Top up'], ['claim', 'Send & claim']] as const).map(([key, label]) => (

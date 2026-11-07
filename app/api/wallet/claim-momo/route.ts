@@ -7,56 +7,39 @@ import { createNotification, balanceUpdatedNotification } from '@/lib/notificati
 import { waitUntil } from '@vercel/functions'
 import { resolvePaystackFeePercent, resolveTopupLimits, parseSettingNumber } from '@/lib/paystack-fees'
 
-// ── DB-backed rate limiter (per user, 3 requests per 30 seconds) ──
-// Queries the permanent momo_claim_attempts table so it survives
-// cold starts, redeployments, and multi-instance scaling.
-async function checkRateLimit(userId: string, supabaseAdmin: any): Promise<boolean> {
-    const since = new Date(Date.now() - 30_000).toISOString()
-
-    const { count, error } = await (supabaseAdmin
-        .from('momo_claim_attempts') as any)
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .gte('created_at', since)
-
-    if (error) {
-        console.error('[ClaimMoMo] Rate limit DB check failed:', error.message)
-        // VULN-03 fix: Fail-closed — block requests when we can't verify the limit
-        return false
-    }
-
-    return (count || 0) < 3
-}
-
-// ── Distinct-transaction-ID cap ────────────────────────────────────
+// ── Claim-attempt limits ───────────────────────────────────────────
 // MoMo transaction IDs are telco-assigned and roughly sequential, so someone
 // holding one real ID (e.g. from their own top-up) could try nearby IDs hoping
 // to land on another user's still-unclaimed transaction before its rightful
-// owner claims it. The per-request rate limit above slows that down but does
-// not stop it across many short windows. A legitimate claim is the same ID
-// tried once (or retried after a typo) — it is never 3+ genuinely different
-// IDs. Capping distinct IDs per user per hour makes guessing economically
-// pointless without touching anyone's one real claim.
-const DISTINCT_ID_WINDOW_MS = 60 * 60 * 1000
-const DISTINCT_ID_CAP = 2
+// owner claims it. The limits (3 attempts / 30s, 2 distinct failed IDs / hour,
+// and a generous per-IP cap because signup is free) live in the
+// reserve_momo_claim_attempt database function. It checks AND records the
+// attempt under one per-user lock BEFORE the claim runs, so:
+//   - parallel requests cannot all read "0 attempts" and slip through, and
+//   - every outcome is recorded (the result column is updated once it is known).
+// If the function errors we fail closed.
 
-async function exceedsDistinctIdCap(userId: string, txnId: string, supabaseAdmin: any): Promise<boolean> {
-    const since = new Date(Date.now() - DISTINCT_ID_WINDOW_MS).toISOString()
-    const { data, error } = await (supabaseAdmin
-        .from('momo_claim_attempts') as any)
-        .select('transaction_id_input')
-        .eq('user_id', userId)
-        .neq('result', 'rate_limited')
-        .gte('created_at', since)
+/** Maps the claim RPC's error strings onto the momo_claim_attempts.result values. */
+function claimResultFor(errCode: string | undefined): string {
+    if (!errCode) return 'claim_failed'
+    if (errCode === 'Transaction not found') return 'not_found'
+    if (errCode === 'already_claimed') return 'already_claimed'
+    if (errCode === 'below_minimum') return 'below_minimum'
+    if (errCode === 'Transaction has been voided by admin') return 'voided'
+    if (errCode === 'Wallet not found') return 'wallet_not_found'
+    if (errCode.startsWith('This transaction requires admin review')) return 'flagged'
+    return 'claim_failed'
+}
 
-    if (error) {
-        console.error('[ClaimMoMo] Distinct-ID cap DB check failed:', error.message)
-        return true // fail-closed, same posture as checkRateLimit
-    }
+const LIMIT_MESSAGES: Record<string, string> = {
+    rate_limited: 'Too many attempts. Please wait 30 seconds before trying again.',
+    distinct_id_cap: 'You have tried a couple of different transaction IDs in the last hour. Double-check the digits from your MoMo confirmation SMS and try again in about an hour, or contact support.',
+    ip_rate_limited: 'Too many failed claims from your network. Please try again later or contact support.',
+}
 
-    const distinctIds = new Set<string>((data as { transaction_id_input: string }[]).map(r => r.transaction_id_input))
-    if (distinctIds.has(txnId)) return false // retrying the same ID is always allowed
-    return distinctIds.size >= DISTINCT_ID_CAP
+function clientIp(request: NextRequest): string | null {
+    const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    return forwarded || request.headers.get('x-real-ip')?.trim() || null
 }
 
 // ── Input sanitization ───────────────────────────────────────────
@@ -195,34 +178,8 @@ export async function POST(request: NextRequest) {
 
         const supabaseAdmin = createServerClient()
 
-        // ── Rate limit check (DB-backed, survives cold starts) ──
-        if (!(await checkRateLimit(authUser.id, supabaseAdmin))) {
-            // Log the rate-limited attempt
-            await (supabaseAdmin.from('momo_claim_attempts') as any).insert({
-                user_id: authUser.id,
-                transaction_id_input: txnId,
-                result: 'rate_limited',
-            })
-            return NextResponse.json(
-                { error: 'Too many attempts. Please wait 30 seconds before trying again.' },
-                { status: 429 }
-            )
-        }
-
-        // ── Distinct-ID cap check ───────────────────────────────
-        if (await exceedsDistinctIdCap(authUser.id, txnId, supabaseAdmin)) {
-            await (supabaseAdmin.from('momo_claim_attempts') as any).insert({
-                user_id: authUser.id,
-                transaction_id_input: txnId,
-                result: 'distinct_id_cap_exceeded',
-            })
-            return NextResponse.json(
-                { error: 'You can only try a couple of different transaction IDs per hour. If this is your real transaction, double-check the digits and try again shortly, or contact support.' },
-                { status: 429 }
-            )
-        }
-
         // ── Check if feature is enabled ────────────────────────
+        // Before reserving an attempt, so a disabled feature doesn't burn anyone's quota.
         const { data: enabledSetting } = await (supabaseAdmin
             .from('admin_settings') as any)
             .select('value')
@@ -236,6 +193,40 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        // ── Reserve the attempt (atomic limit check + record) ───
+        const { data: reservation, error: reserveError } = await (supabaseAdmin
+            .rpc as any)('reserve_momo_claim_attempt', {
+            p_user_id: authUser.id,
+            p_transaction_id: txnId,
+            p_ip: clientIp(request),
+        })
+
+        if (reserveError || !reservation) {
+            // Fail closed: if we cannot enforce the limits, we do not run the claim.
+            console.error('[ClaimMoMo POST] reserve_momo_claim_attempt failed:', reserveError?.message)
+            return NextResponse.json(
+                { error: 'Claims are temporarily unavailable. Please try again shortly.' },
+                { status: 503 }
+            )
+        }
+
+        if (!reservation.allowed) {
+            return NextResponse.json(
+                { error: LIMIT_MESSAGES[reservation.reason as string] || 'Too many attempts. Please try again later.' },
+                { status: 429 }
+            )
+        }
+
+        const attemptId: string = reservation.attempt_id
+        const recordResult = async (result: string) => {
+            const { error } = await (supabaseAdmin.from('momo_claim_attempts') as any)
+                .update({ result })
+                .eq('id', attemptId)
+            // The row already exists as 'attempt' (which the limits still count), so a
+            // failure here only loses the final label, never the protection.
+            if (error) console.error('[ClaimMoMo POST] Failed to record attempt result:', error.message)
+        }
+
         // ── Call the atomic PostgreSQL RPC ─────────────────────
         // ONLY transaction_id and user_id are sent — NO amounts from client
         const { data: result, error: rpcError } = await (supabaseAdmin
@@ -246,20 +237,15 @@ export async function POST(request: NextRequest) {
 
         if (rpcError) {
             console.error('[ClaimMoMo POST] RPC error:', rpcError)
+            await recordResult('claim_failed')
             return NextResponse.json({ error: 'Failed to process claim. Please try again.' }, { status: 500 })
         }
 
         const res = result as any
 
         if (!res?.success) {
-            const errCode = res?.error
-
-            // Log failed claim attempt for rate limiting
-            await (supabaseAdmin.from('momo_claim_attempts') as any).insert({
-                user_id: authUser.id,
-                transaction_id_input: txnId,
-                result: errCode || 'claim_failed',
-            })
+            const errCode: string | undefined = res?.error
+            await recordResult(claimResultFor(errCode))
 
             if (errCode === 'already_claimed') {
                 return NextResponse.json({
@@ -275,15 +261,26 @@ export async function POST(request: NextRequest) {
                 }, { status: 400 })
             }
 
-            return NextResponse.json({ error: errCode || 'Claim failed.' }, { status: 400 })
+            if (errCode === 'Transaction not found') {
+                return NextResponse.json({
+                    error: "We couldn't find that transaction. Check the ID, and if you only just sent the money, wait a minute and try again.",
+                }, { status: 404 })
+            }
+
+            if (errCode === 'Transaction has been voided by admin') {
+                return NextResponse.json({ error: 'This transaction was voided. Please contact support.' }, { status: 400 })
+            }
+
+            // The flagged-for-review message is written for users; anything else is
+            // internal and must not be echoed back.
+            if (errCode?.startsWith('This transaction requires admin review')) {
+                return NextResponse.json({ error: errCode }, { status: 400 })
+            }
+
+            return NextResponse.json({ error: 'That claim did not go through. Please try again or contact support.' }, { status: 400 })
         }
 
-        // Log successful claim attempt
-        await (supabaseAdmin.from('momo_claim_attempts') as any).insert({
-            user_id: authUser.id,
-            transaction_id_input: txnId,
-            result: 'claimed_successfully',
-        })
+        await recordResult('claimed_successfully')
 
         // ── Fetch user details for notifications ───────────────
         const { data: userDetails } = await supabaseAdmin

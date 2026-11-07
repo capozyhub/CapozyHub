@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
-import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,14 +33,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // No local limiter existed here — the route was otherwise correctly scoped to
-        // the caller's own reference, but nothing stopped the caller from brute-forcing
-        // OTP guesses against their own in-flight charge beyond whatever Paystack itself enforces.
-        const rl = consumeRateLimit(`charge-otp:${authUser.id}`, 10, 60_000)
-        if (!rl.allowed) {
-            return NextResponse.json({ error: 'Too many OTP attempts. Please wait.' }, { status: 429 })
-        }
-
         const { data: paymentRow } = await (supabaseAdmin.from('wallet_payments') as any)
             .select('user_id, status')
             .eq('reference', reference)
@@ -59,13 +50,30 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Payment is not awaiting OTP' }, { status: 400 })
         }
 
+        // Cap OTP guesses per payment. The count lives on the payment row and is bumped
+        // atomically in the DB, so it holds across serverless instances (an in-memory
+        // counter is per-instance and trivially bypassed) and a fresh payment is needed
+        // to get more attempts — which the charge route's own limits already bound.
+        const { data: attemptAllowed, error: attemptError } = await (supabaseAdmin as any).rpc('consume_wallet_payment_otp_attempt', {
+            p_reference: reference,
+            p_user_id: authUser.id,
+        })
+        if (attemptError) {
+            console.error('[ChargeOTP] Attempt counter failed:', attemptError.message)
+            return NextResponse.json({ error: 'Could not verify the OTP right now. Please try again.' }, { status: 503 })
+        }
+        if (!attemptAllowed) {
+            return NextResponse.json({ error: 'Too many OTP attempts for this payment. Please start a new payment.' }, { status: 429 })
+        }
+
         const res = await fetch('https://api.paystack.co/charge/submit_otp', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ reference, otp }),
+            body: JSON.stringify({ reference, otp: otp.trim() }),
+            signal: AbortSignal.timeout(25_000),
         })
 
         const data = await res.json()

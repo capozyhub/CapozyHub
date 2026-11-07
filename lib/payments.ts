@@ -27,6 +27,13 @@ export async function processCompletedWalletPayment(reference: string, providerM
         return { success: false, error: 'Payment not found' }
     }
 
+    // 1a. Membership-upgrade payments share this table. They are settled by their own
+    // processors (routed by metadata.upgrade_type) and must never become wallet balance.
+    if (payment.status === 'pending' && payment.metadata?.upgrade_type) {
+        console.error('[PaymentProcess] Refusing to treat an upgrade payment as a wallet top-up:', reference)
+        return { success: false, error: 'Not a wallet top-up' }
+    }
+
     // 1b. Amount verification (defense-in-depth).
     // The Paystack webhook cross-checks the paid amount before calling us, but
     // the synchronous verify/check-pending paths do not — so we re-check here to
@@ -62,86 +69,37 @@ export async function processCompletedWalletPayment(reference: string, providerM
         }
     }
 
-    // 2. Atomic Update (Idempotency Check)
-    // We attempt to update the status to 'completed' ONLY if it is currently 'pending'.
-    // If the record exists but status is not 'pending', this will return 0 rows
-    // (or empty data), meaning it was already processed.
-    const { data: updatedPayment, error: updatePaymentError } = await (supabase
-        .from('wallet_payments') as any)
-        .update({
-            status: 'completed',
-            metadata: providerMetadata || payment.metadata,
-            updated_at: new Date().toISOString(),
-        })
-        .eq('id', payment.id)
-        .eq('status', 'pending')
-        .select()
-        .single()
+    // 2-4. Complete the payment, credit the wallet and log the transaction in ONE
+    // database transaction (complete_wallet_topup). It flips pending → completed
+    // under a row lock, so it is idempotent, and if any step fails everything rolls
+    // back and the payment stays pending for the next webhook/cron/poll to retry.
+    // The old flow did these as separate calls: a crash between "mark completed" and
+    // "credit" left a paid, completed, uncredited payment that nothing ever retried.
+    const { data: completion, error: completeError } = await (supabase as any).rpc('complete_wallet_topup', {
+        p_reference: reference,
+        p_provider_metadata: providerMetadata ?? null,
+    })
 
-    if (updatePaymentError) {
-        // If error is just "no rows returned", it means condition failed (already completed)
-        // But .single() might throw if 0 rows. Use MaybeSingle if available or handle error code.
-        // Actually, Supabase .single() returns error code PGRST116 for no rows.
-        if (updatePaymentError.code === 'PGRST116') {
-            return { success: true, alreadyProcessed: true }
-        }
-        console.error('[PaymentProcess] Update payment error:', updatePaymentError)
-        return { success: false, error: 'Failed to update payment status' }
-    }
-
-    if (!updatedPayment) {
-        // Fallback if no error was thrown but no data returned (dependent on client version)
-        return { success: true, alreadyProcessed: true }
-    }
-
-    // 3. Credit wallet (atomic — prevents read-modify-write race)
-    const { data: creditData, error: walletError } = await (supabase as any)
-        .rpc('credit_wallet_balance', {
-            p_user_id: payment.user_id,
-            p_amount: payment.amount,
-        })
-        .single()
-
-    if (walletError || !creditData) {
-        console.error('[PaymentProcess] Wallet credit error:', walletError)
-        // Compensate: reset status to pending so the next webhook/cron call can retry
-        await (supabase
-            .from('wallet_payments') as any)
-            .update({ status: 'pending', updated_at: new Date().toISOString() })
-            .eq('id', payment.id)
-            .eq('status', 'completed')  // Only reset if it's still in the completed state we just set
+    if (completeError || !completion) {
+        console.error('[PaymentProcess] complete_wallet_topup error:', completeError)
         return { success: false, error: 'Failed to credit wallet' }
     }
 
-    const newBalance: number = (creditData as any).new_balance
-
-    // Atomically increment total_credited (separate reporting field not covered by the RPC)
-    const { error: totalCreditedError } = await (supabase as any)
-        .rpc('increment_wallet_total_credited', {
-            p_user_id: payment.user_id,
-            p_amount: payment.amount,
-        })
-
-    if (totalCreditedError && totalCreditedError.code !== 'PGRST202') {
-        // PGRST202 = function not found — tolerate until migration is applied
-        console.warn('[PaymentProcess] total_credited increment error (non-fatal):', totalCreditedError)
+    switch (completion.status) {
+        case 'completed':
+            break
+        case 'already_processed':
+            return { success: true, alreadyProcessed: true }
+        case 'not_found':
+            return { success: false, error: 'Payment not found' }
+        case 'not_topup':
+            return { success: false, error: 'Not a wallet top-up' }
+        default:
+            console.error('[PaymentProcess] Payment not creditable:', reference, completion)
+            return { success: false, error: 'Payment is not pending' }
     }
 
-    // 4. Create transaction record
-    const { error: txnError } = await (supabase.from('wallet_transactions') as any).insert({
-        wallet_id: payment.wallet_id,
-        user_id: payment.user_id,
-        type: 'credit',
-        amount: payment.amount,
-        description: 'Wallet top-up via Paystack',
-        reference: reference,
-        source: 'payment',
-        status: 'completed',
-    })
-
-    if (txnError) {
-        console.error('[PaymentProcess] Transaction log error:', txnError)
-    }
+    const newBalance: number = Number(completion.new_balance)
 
     // 5. Create notification
     const { error: notifyError } = await (supabase.from('notifications') as any).insert({

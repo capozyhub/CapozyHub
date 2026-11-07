@@ -27,6 +27,24 @@ export function parseSettingNumber(raw: unknown, fallback: number): number {
     return fallback
 }
 
+/**
+ * Validate a client-supplied money amount: a positive finite number with at most
+ * 2 decimal places. Returns it rounded to pesewas, or null if it is not acceptable.
+ * Rejecting (rather than silently rounding) keeps what the user saw equal to what
+ * is charged and credited.
+ */
+export function parseMoneyAmount(raw: unknown): number | null {
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return null
+    const pesewas = Math.round(raw * 100)
+    if (Math.abs(raw * 100 - pesewas) > 1e-6) return null
+    return pesewas / 100
+}
+
+/** Round to 2 decimal places, so sums like 10.1 + 0.2 never reach the DB as 10.299999999999999. */
+export function roundMoney(value: number): number {
+    return Math.round(value * 100) / 100
+}
+
 function isActive(expiresAt?: string | null): boolean {
     // No expiry recorded → treat as active (matches existing route logic).
     if (!expiresAt) return true

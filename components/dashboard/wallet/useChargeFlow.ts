@@ -23,9 +23,18 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
     const checkingPaidRef = useRef(false)
     const pollTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    useEffect(() => () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current) }, [])
+    // Bumped by stopPolling (Cancel, a terminal outcome, or unmount) and by every
+    // startCharge. A poll in flight when that happens checks its own snapshot after
+    // each await and quietly stops instead of scheduling the next timer or firing a
+    // stale success/failure — otherwise a cancelled/abandoned charge kept polling
+    // Paystack every 10–20s forever, and a late "paid" could pop the success toast
+    // and credit-refresh after the member had already left the page.
+    const generationRef = useRef(0)
+
+    useEffect(() => () => { generationRef.current++; if (pollTimerRef.current) clearTimeout(pollTimerRef.current) }, [])
 
     const stopPolling = useCallback(() => {
+        generationRef.current++
         if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null }
     }, [])
 
@@ -57,9 +66,11 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
 
     // Never fails on pending/timeout — backs off from 10s to 20s polls after PATIENT_POLLS cycles.
     const startPolling = useCallback((ref: string) => {
+        const generation = generationRef.current
         setPollCount(0)
         const poll = async (count: number) => {
             const outcome = await checkChargeStatus(ref)
+            if (generationRef.current !== generation) return // cancelled/unmounted/superseded while awaiting
             if (outcome === 'paid') { handlePaidSuccess(); return }
             if (outcome === 'terminal') {
                 stopPolling()
@@ -75,8 +86,10 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
     }, [checkChargeStatus, handlePaidSuccess, stopPolling])
 
     const confirmOnce = useCallback(async (ref: string) => {
+        const generation = generationRef.current
         setStep('verifying')
         const outcome = await checkChargeStatus(ref)
+        if (generationRef.current !== generation) return
         if (outcome === 'paid') { handlePaidSuccess(); return }
         if (outcome === 'terminal') {
             stopPolling()
@@ -90,23 +103,28 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
 
     const handleIHavePaid = useCallback(async () => {
         if (!reference || checkingPaidRef.current) return
+        const generation = generationRef.current
         checkingPaidRef.current = true
         setCheckingPaid(true)
         const outcome = await checkChargeStatus(reference)
-        if (outcome === 'paid') {
-            handlePaidSuccess()
-        } else if (outcome === 'terminal') {
-            stopPolling()
-            toast.error('Payment was declined. Please try again.')
-            setStep('failed')
-        } else {
-            toast.info("Not received yet. Approve the prompt on your phone, then tap “I've paid” again.")
+        if (generationRef.current === generation) {
+            if (outcome === 'paid') {
+                handlePaidSuccess()
+            } else if (outcome === 'terminal') {
+                stopPolling()
+                toast.error('Payment was declined. Please try again.')
+                setStep('failed')
+            } else {
+                toast.info("Not received yet. Approve the prompt on your phone, then tap “I've paid” again.")
+            }
         }
         checkingPaidRef.current = false
         setCheckingPaid(false)
     }, [reference, checkChargeStatus, handlePaidSuccess, stopPolling])
 
     const startCharge = useCallback(async (amount: number, phone: string, network: WalletNetworkCode) => {
+        generationRef.current++ // supersede any charge still winding down
+        const generation = generationRef.current
         setPhoneForDisplay(phone)
         setStep('charging')
         try {
@@ -117,6 +135,7 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
                 body: JSON.stringify({ amount, phone, provider: network }),
             }, 30_000)
             const data = await res.json()
+            if (generationRef.current !== generation) return // cancelled while the request was in flight
             if (!res.ok) {
                 if (data.needsManualSelection) {
                     setStep('idle')
@@ -141,6 +160,7 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
                 startPolling(data.reference)
             }
         } catch (err: any) {
+            if (generationRef.current !== generation) return
             toast.error(err.message || 'Payment failed')
             setStep('failed')
         }
@@ -148,6 +168,7 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
 
     const submitOtp = useCallback(async () => {
         if (!otpValue.trim()) { toast.error('Enter the OTP'); return }
+        const generation = generationRef.current
         setStep('charging')
         try {
             const res = await fetchWithTimeout('/api/payments/charge/submit-otp', {
@@ -157,6 +178,7 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
                 body: JSON.stringify({ reference, otp: otpValue }),
             }, 30_000)
             const data = await res.json()
+            if (generationRef.current !== generation) return
             if (!res.ok) throw new Error(data.error || 'OTP submission failed')
             setDisplayText(data.display_text || '')
 
@@ -173,6 +195,7 @@ export function useChargeFlow({ onPaid }: UseChargeFlowOptions) {
                 startPolling(reference)
             }
         } catch (err: any) {
+            if (generationRef.current !== generation) return
             toast.error(err.message || 'OTP submission failed')
             setStep('failed')
         }

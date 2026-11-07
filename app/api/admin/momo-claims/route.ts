@@ -56,6 +56,7 @@ export async function GET() {
         const { data: attemptsData } = await (supabase
             .from('momo_claim_attempts') as any)
             .select('user_id')
+            .neq('result', 'claimed_successfully')
             .gte('created_at', since)
 
         // Fetch current MoMo settings for the Settings tab
