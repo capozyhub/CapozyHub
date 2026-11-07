@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, List, Loader2, Search, Wifi } from 'lucide-react'
+import { ArrowRight, LayoutGrid, List, Loader2, Search, Wifi, Zap } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -28,20 +28,6 @@ const LEGACY_PKG_CACHE_KEY = 'cz-packages-cache'
 const PKG_CACHE_TTL = 5 * 60 * 1000
 const NETWORK_KEY = 'cz-selected-network'
 const VIEW_KEY = 'cz-view-mode'
-
-function Stat({ label, value, href }: { label: string; value: string; href?: string }) {
-    const body = (
-        <>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="font-display text-lg font-bold leading-tight tabular-nums">{value}</p>
-        </>
-    )
-    return href ? (
-        <Link href={href} className="neu-raised-sm neu-press rounded-2xl px-4 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{body}</Link>
-    ) : (
-        <div className="neu-raised-sm rounded-2xl px-4 py-2.5">{body}</div>
-    )
-}
 
 export default function DataPackagesPage() {
     const { dbUser } = useAuth()
@@ -243,14 +229,23 @@ export default function DataPackagesPage() {
 
     return (
         <div className="space-y-5">
-            <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 className="font-display text-2xl font-semibold tracking-tight">Data bundles</h1>
+                <p className="text-sm text-muted-foreground">Pick a network, choose a bundle and pay from your wallet.</p>
+            </div>
+
+            {/* Hero: the wallet balance leads, same weight as the Wallet page's own balance card. */}
+            <div className="surface flex flex-wrap items-center justify-between gap-5 rounded-3xl p-5 sm:p-6">
                 <div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">Data bundles</h1>
-                    <p className="text-sm text-muted-foreground">Pick a network, choose a bundle and pay from your wallet.</p>
+                    <p className="text-xs text-muted-foreground">Wallet balance</p>
+                    <p className="font-display text-3xl font-bold tabular-nums">{balance === null ? '—' : formatCurrency(balance)}</p>
+                    <Link href="/dashboard/wallet" className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-500">
+                        Top up wallet <ArrowRight className="h-3 w-3" />
+                    </Link>
                 </div>
-                <div className="flex gap-3">
-                    <Stat label="Wallet" value={balance === null ? '—' : formatCurrency(balance)} href="/dashboard/wallet" />
-                    <Stat label="Orders today" value={String(ordersToday)} />
+                <div className="well shrink-0 rounded-2xl px-5 py-3.5 text-center">
+                    <p className="text-xs text-muted-foreground">Orders today</p>
+                    <p className="font-display text-2xl font-bold tabular-nums">{ordersToday}</p>
                 </div>
             </div>
 
@@ -311,9 +306,12 @@ export default function DataPackagesPage() {
 
             {tab === 'mtn_mashup' && (
                 <div className="space-y-4">
-                    <div className="neu-inset rounded-2xl px-4 py-3">
-                        <p className="text-sm font-semibold">Special MTN mashup</p>
-                        <p className="text-xs text-muted-foreground">Curated MTN bundles, processed by our team. Status updates appear under Order history.</p>
+                    <div className="neu-inset flex items-start gap-3 rounded-2xl px-4 py-3.5">
+                        <span className="clay-gold flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"><Zap className="h-4 w-4" /></span>
+                        <div>
+                            <p className="text-sm font-semibold">Special MTN mashup</p>
+                            <p className="text-xs text-muted-foreground">Curated MTN bundles, processed by our team. Status updates appear under Order history.</p>
+                        </div>
                     </div>
                     {outOfStock.MTN ? (
                         <div className="surface rounded-3xl p-8 text-center">

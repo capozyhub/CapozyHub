@@ -130,7 +130,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                 </DialogClose>
 
                 {placed ? (
-                    <div className="space-y-5 px-6 pb-8 pt-8">
+                    <div className="space-y-5 px-6 pb-7 pt-8">
                         <div className="flex flex-col items-center gap-2 text-center">
                             <span className="clay-gold flex h-16 w-16 items-center justify-center rounded-full">
                                 <CheckCircle2 className="h-8 w-8" />
@@ -139,7 +139,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                             <p className="text-sm text-muted-foreground">We&apos;re delivering your bundle now.</p>
                         </div>
 
-                        <dl className="well space-y-3 rounded-2xl p-4 text-sm">
+                        <dl className="well space-y-2.5 rounded-2xl p-4 text-sm">
                             {[
                                 ['Recipient', placed.phoneNumber],
                                 ['Bundle', `${networkLabel(placed.network)} ${placed.size}`],
@@ -151,7 +151,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                     <dd className="font-semibold">{value}</dd>
                                 </div>
                             ))}
-                            <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                            <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2.5">
                                 <dt className="text-muted-foreground">Reference</dt>
                                 <dd className="break-all text-right font-mono text-xs text-muted-foreground">{placed.referenceCode}</dd>
                             </div>
@@ -200,10 +200,18 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                     )}
                                 </div>
 
-                                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                    <span>Wallet <span className="font-semibold text-foreground">{balance === null ? '—' : formatCurrency(balance)}</span></span>
-                                    {balance !== null && canAfford && <span>After <span className="font-semibold text-foreground">{formatCurrency(balance - price)}</span></span>}
-                                </div>
+                                <dl className="well space-y-2 rounded-2xl p-4 text-sm">
+                                    <div className="flex items-center justify-between">
+                                        <dt className="text-muted-foreground">Wallet</dt>
+                                        <dd className="font-semibold tabular-nums">{balance === null ? '—' : formatCurrency(balance)}</dd>
+                                    </div>
+                                    {balance !== null && canAfford && (
+                                        <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2">
+                                            <dt className="font-medium">After this order</dt>
+                                            <dd className="font-display text-lg font-bold tabular-nums">{formatCurrency(balance - price)}</dd>
+                                        </div>
+                                    )}
+                                </dl>
 
                                 {canAfford ? (
                                     <Button onClick={buy} disabled={buying || !phone || !!phoneError} className="h-12 w-full text-base">

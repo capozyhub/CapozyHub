@@ -268,19 +268,19 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
             </div>
 
             {skipped.length > 0 && (
-                <div role="alert" className="surface overflow-hidden rounded-3xl border border-amber-500/40">
+                <div role="alert" className="overflow-hidden rounded-3xl border border-amber-300/70 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/30">
                     <div className="flex items-start gap-2.5 px-4 py-3">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
                         <div className="min-w-0">
-                            <p className="text-sm font-semibold">{skipped.length} {skipped.length === 1 ? 'line' : 'lines'} could not be read and will not be ordered</p>
-                            <p className="text-xs text-muted-foreground">Fix them and preview again, or leave them out on purpose.</p>
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{skipped.length} {skipped.length === 1 ? 'line' : 'lines'} could not be read and will not be ordered</p>
+                            <p className="text-xs text-amber-800/80 dark:text-amber-300/80">Fix them and preview again, or leave them out on purpose.</p>
                         </div>
                     </div>
-                    <ul className="max-h-40 divide-y divide-border/50 overflow-y-auto border-t border-border/60">
+                    <ul className="max-h-40 divide-y divide-amber-300/50 overflow-y-auto border-t border-amber-300/50 dark:divide-amber-800/40 dark:border-amber-800/40">
                         {skipped.map(s => (
                             <li key={s.lineNumber} className="flex items-center justify-between gap-3 px-4 py-2 text-xs">
-                                <span className="min-w-0 truncate font-mono">Line {s.lineNumber}: {s.text}</span>
-                                <span className="flex-shrink-0 text-amber-600 dark:text-amber-400">{s.reason}</span>
+                                <span className="min-w-0 truncate font-mono text-amber-900 dark:text-amber-200">Line {s.lineNumber}: {s.text}</span>
+                                <span className="flex-shrink-0 text-amber-700 dark:text-amber-400">{s.reason}</span>
                             </li>
                         ))}
                     </ul>
@@ -310,7 +310,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                         {results.map((r, i) => (
                             <li key={`${r.lineNumber}-${i}`} className="group flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-foreground/[0.03]">
                                 <span className="flex min-w-0 items-center gap-2.5">
-                                    <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', !r.isValid ? 'bg-red-500' : 'bg-emerald-500')} />
+                                    <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', !r.isValid ? 'bg-red-500' : r.duplicateOf !== undefined ? 'bg-amber-500' : 'bg-emerald-500')} />
                                     <span className="truncate text-sm font-medium">{r.phoneNumber}</span>
                                 </span>
                                 <span className="flex flex-shrink-0 items-center gap-3 text-xs">
