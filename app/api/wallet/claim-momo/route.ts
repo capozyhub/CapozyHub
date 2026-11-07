@@ -282,6 +282,42 @@ export async function POST(request: NextRequest) {
 
         await recordResult('claimed_successfully')
 
+        // Decorate the user's open Send & Claim session, if the manual fallback (pasting
+        // a transaction ID) is what resolved it rather than the SMS-forward auto-claim.
+        // Same non-fatal posture as the webhook's copy of this — see that file's comment.
+        try {
+            // momo_claim_sessions is new enough that the generated Database type doesn't
+            // know it yet; `as any` on the client itself is what bypasses the typed
+            // `.from()` overload — casting only the query result errors first.
+            const sessionsDb: any = supabaseAdmin
+            const { data: openSession } = await sessionsDb
+                .from('momo_claim_sessions')
+                .select('id')
+                .eq('user_id', authUser.id)
+                .eq('status', 'pending')
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            if (openSession) {
+                const { data: txnRow } = await (supabaseAdmin
+                    .from('momo_transactions') as any)
+                    .select('id')
+                    .eq('transaction_id', txnId)
+                    .single()
+
+                if (txnRow) {
+                    await sessionsDb.from('momo_claim_sessions')
+                        .update({ status: 'credited', momo_transaction_id: txnRow.id, updated_at: new Date().toISOString() })
+                        .eq('id', openSession.id)
+                        .eq('status', 'pending')
+                }
+            }
+        } catch (sessionError: any) {
+            console.error('[ClaimMoMo POST] Session linking error (non-fatal):', sessionError.message)
+        }
+
         // ── Fetch user details for notifications ───────────────
         const { data: userDetails } = await supabaseAdmin
             .from('users')

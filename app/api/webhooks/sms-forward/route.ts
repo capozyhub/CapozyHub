@@ -238,6 +238,43 @@ export async function POST(request: NextRequest) {
                 // ── Auto-claim succeeded — fire notifications ──
                 console.log(`[SMSWebhook] ✅ Auto-claimed TXN ${parsed.transactionId} for user ${matchedUserId} via ref ${matchedCode}`)
 
+                // Decorate the user's open Send & Claim session (if any) so their waiting
+                // modal picks this up on its next poll. Purely informational — see
+                // supabase/migrations/20261107_momo_claim_sessions.sql — so a failure
+                // here is logged and swallowed rather than affecting the claim itself.
+                try {
+                    // momo_claim_sessions is new enough that the generated Database type
+                    // doesn't know it yet; `as any` on the client itself is what bypasses
+                    // the typed `.from()` overload — casting only the result errors first.
+                    const sessionsDb: any = supabase
+                    const { data: openSession } = await sessionsDb
+                        .from('momo_claim_sessions')
+                        .select('id')
+                        .eq('user_id', matchedUserId)
+                        .eq('status', 'pending')
+                        .gt('expires_at', new Date().toISOString())
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle()
+
+                    if (openSession) {
+                        const { data: txnRow } = await (supabase
+                            .from('momo_transactions') as any)
+                            .select('id')
+                            .eq('transaction_id', parsed.transactionId)
+                            .single()
+
+                        if (txnRow) {
+                            await sessionsDb.from('momo_claim_sessions')
+                                .update({ status: 'credited', momo_transaction_id: txnRow.id, updated_at: new Date().toISOString() })
+                                .eq('id', openSession.id)
+                                .eq('status', 'pending')
+                        }
+                    }
+                } catch (sessionError: any) {
+                    console.error('[SMSWebhook] Session linking error (non-fatal):', sessionError.message)
+                }
+
                 // Create in-app notification
                 waitUntil(
                     createNotification({

@@ -76,6 +76,18 @@ export interface ClaimSuccessData {
     net_amount: number
     new_balance: number
     transaction_id: string
+    sender_name?: string
+    sender_network?: string
 }
 
 export type ChargeStep = 'idle' | 'charging' | 'otp_required' | 'pending' | 'verifying' | 'failed'
+
+/** Send & Claim session lifecycle (see useClaimSession.ts). */
+export type ClaimSessionStep = 'idle' | 'starting' | 'waiting' | 'credited' | 'expired'
+
+export interface ClaimSessionInfo {
+    id: string
+    reference_code: string
+    expected_amount: number
+    expires_at: string
+}

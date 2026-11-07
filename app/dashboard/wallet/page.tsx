@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -9,9 +9,10 @@ import type { WalletTransaction } from '@/types/supabase'
 import { TopUpForm } from '@/components/dashboard/wallet/TopUpForm'
 import { ChargeModal } from '@/components/dashboard/wallet/ChargeModal'
 import { ClaimPanel } from '@/components/dashboard/wallet/ClaimPanel'
-import { ClaimSuccessModal } from '@/components/dashboard/wallet/ClaimSuccessModal'
+import { ClaimWaitingModal } from '@/components/dashboard/wallet/ClaimWaitingModal'
 import { TransactionsList } from '@/components/dashboard/wallet/TransactionsList'
 import { useChargeFlow } from '@/components/dashboard/wallet/useChargeFlow'
+import { useClaimSession } from '@/components/dashboard/wallet/useClaimSession'
 import type { ClaimSuccessData, MomoPaymentAccount, WalletNetworkCode } from '@/components/dashboard/wallet/meta'
 
 type Tab = 'topup' | 'claim'
@@ -37,10 +38,9 @@ export default function WalletPage() {
     const [momoMinClaimable, setMomoMinClaimable] = useState(1)
     const [momoMaxClaimable, setMomoMaxClaimable] = useState(50000)
 
-    const [userRef, setUserRef] = useState<{ code: string; is_active: boolean } | null>(null)
-    const [refLoading, setRefLoading] = useState(true)
     const [claimSuccess, setClaimSuccess] = useState<ClaimSuccessData | null>(null)
     const [walletError, setWalletError] = useState(false)
+    const historyRef = useRef<HTMLDivElement | null>(null)
 
     const loadWalletData = useCallback(async () => {
         if (!userId) return
@@ -87,24 +87,10 @@ export default function WalletPage() {
         }
     }, [userId])
 
-    const loadReference = useCallback(async () => {
-        setRefLoading(true)
-        try {
-            const res = await fetch('/api/wallet/reference', { credentials: 'include' })
-            const data = await res.json()
-            setUserRef(res.ok && data.reference ? data.reference : null)
-        } catch {
-            setUserRef(null)
-        } finally {
-            setRefLoading(false)
-        }
-    }, [])
-
     useEffect(() => {
         if (!userId) return
         loadWalletData()
-        loadReference()
-    }, [userId, loadWalletData, loadReference])
+    }, [userId, loadWalletData])
 
     useEffect(() => {
         const handler = () => loadWalletData()
@@ -114,30 +100,27 @@ export default function WalletPage() {
 
     const charge = useChargeFlow({ onPaid: loadWalletData })
 
-    const generateReference = async () => {
-        try {
-            const res = await fetch('/api/wallet/reference', { method: 'POST', credentials: 'include' })
-            const data = await res.json()
-            if (res.ok && data.reference) {
-                setUserRef(data.reference)
-            } else {
-                const { toast } = await import('@/lib/toast')
-                toast.error(data.error || 'Failed to generate reference. Try again.')
-            }
-        } catch {
-            const { toast } = await import('@/lib/toast')
-            toast.error('Network error. Please try again.')
-        }
-    }
+    const onCredited = useCallback((data: ClaimSuccessData) => {
+        setClaimSuccess(data)
+        setBalance(data.new_balance)
+        loadWalletData()
+    }, [loadWalletData])
+
+    const claim = useClaimSession({ userId, onCredited })
 
     const onCharge = (amount: number, phone: string, network: WalletNetworkCode) => {
         charge.startCharge(amount, phone, network)
     }
 
-    const onClaimed = (data: ClaimSuccessData, newBalance: number) => {
-        setClaimSuccess(data)
-        setBalance(newBalance)
-        loadWalletData()
+    const goToHistory = () => {
+        claim.retry()
+        setClaimSuccess(null)
+        historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    const closeClaimModal = () => {
+        claim.retry()
+        setClaimSuccess(null)
     }
 
     return (
@@ -216,13 +199,10 @@ export default function WalletPage() {
                     <ClaimPanel
                         momoEnabled={momoEnabled}
                         momoAccounts={momoAccounts}
-                        momoAccountName={momoAccountName}
                         momoMinClaimable={momoMinClaimable}
                         momoMaxClaimable={momoMaxClaimable}
-                        userRef={userRef}
-                        refLoading={refLoading}
-                        onGenerateRef={generateReference}
-                        onClaimed={onClaimed}
+                        starting={claim.step === 'starting'}
+                        onStart={claim.start}
                     />
                 )
             )}
@@ -241,9 +221,22 @@ export default function WalletPage() {
                 onRetry={charge.retry}
             />
 
-            <ClaimSuccessModal data={claimSuccess} onClose={() => setClaimSuccess(null)} />
+            <ClaimWaitingModal
+                step={claim.step}
+                session={claim.session}
+                secondsLeft={claim.secondsLeft}
+                momoAccounts={momoAccounts}
+                momoAccountName={momoAccountName}
+                claimSuccess={claimSuccess}
+                manualChecking={claim.manualChecking}
+                onManualClaim={claim.manualClaim}
+                onCancel={claim.cancel}
+                onRetry={claim.retry}
+                onDone={closeClaimModal}
+                onViewHistory={goToHistory}
+            />
 
-            <div className="space-y-3">
+            <div ref={historyRef} className="space-y-3">
                 <h2 className="font-display text-lg font-semibold">Recent top-ups</h2>
                 <TransactionsList transactions={transactions} />
             </div>
