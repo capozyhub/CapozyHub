@@ -13,7 +13,7 @@ import { toast } from '@/lib/toast'
 import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
 import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
-import { carrierFamily, networkLabel } from './network-meta'
+import { carrierFamily, NETWORK_COLOR, networkLabel } from './network-meta'
 import { errorMessage, isPriceChanged, readJson } from './api'
 
 interface PlacedDetails {
@@ -58,6 +58,8 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
     }, [pkg?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const canAfford = balance === null || balance >= price
+    // Ties the sheet back to the card it was opened from — the same accent PackageGrid uses.
+    const accent = NETWORK_COLOR[(placed ?? pkg)?.network ?? ''] ?? '#8E8E8E'
 
     const onPhoneChange = (value: string) => {
         setPhone(value)
@@ -120,6 +122,8 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                 onOpenAutoFocus={e => { e.preventDefault(); if (!placed) setTimeout(() => phoneRef.current?.focus(), 50) }}
                 onInteractOutside={e => { if (buying) e.preventDefault() }}
             >
+                {/* The network's own colour, same as its PackageGrid card — this sheet is that card, opened. */}
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-2" style={{ backgroundColor: accent }} />
                 <DialogDescription className="sr-only">Buy a data bundle</DialogDescription>
                 <DialogClose
                     disabled={buying}
@@ -130,9 +134,12 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                 </DialogClose>
 
                 {placed ? (
-                    <div className="space-y-5 px-6 pb-7 pt-8">
+                    <div className="space-y-5 px-6 pb-7 pt-9">
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <span className="clay-gold flex h-16 w-16 items-center justify-center rounded-full">
+                            <span
+                                className="clay-gold flex h-16 w-16 items-center justify-center rounded-full"
+                                style={{ boxShadow: `8px 10px 20px rgba(246,169,0,0.38), inset -6px -8px 12px rgba(155,98,0,0.45), inset 6px 7px 12px rgba(255,255,255,0.65), 0 0 0 3px ${accent}` }}
+                            >
                                 <CheckCircle2 className="h-8 w-8" />
                             </span>
                             <DialogTitle className="font-display text-xl font-semibold">Order placed</DialogTitle>
@@ -140,9 +147,23 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                         </div>
 
                         <dl className="well space-y-2.5 rounded-2xl p-4 text-sm">
+                            <div className="flex items-center justify-between gap-3">
+                                <dt className="text-muted-foreground">Recipient</dt>
+                                <dd className="font-semibold">{placed.phoneNumber}</dd>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <dt className="text-muted-foreground">Bundle</dt>
+                                <dd className="flex items-center gap-1.5 font-semibold">
+                                    {placed.size}
+                                    <span
+                                        className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                        style={{ backgroundColor: `${accent}1A`, color: accent }}
+                                    >
+                                        {networkLabel(placed.network)}
+                                    </span>
+                                </dd>
+                            </div>
                             {[
-                                ['Recipient', placed.phoneNumber],
-                                ['Bundle', `${networkLabel(placed.network)} ${placed.size}`],
                                 ['Paid', formatCurrency(placed.price)],
                                 ...(placed.newBalance !== null ? [['Wallet now', formatCurrency(placed.newBalance)]] : []),
                             ].map(([label, value]) => (
@@ -167,15 +188,30 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                 ) : (
                     pkg && (
                         <div className="pb-6">
-                            <div className="flex items-center gap-4 px-6 pb-5 pt-8">
-                                <span className="well flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl">
-                                    <NetworkIcon network={pkg.network} size={36} />
+                            <div className="flex items-start gap-4 px-6 pb-5 pt-9">
+                                <span
+                                    className="well flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
+                                    style={{ boxShadow: `var(--neu-in), 0 0 0 2.5px ${accent}` }}
+                                >
+                                    <NetworkIcon network={pkg.network} size={34} />
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <DialogTitle className="font-display text-3xl font-bold leading-none tracking-tight">{pkg.size}</DialogTitle>
-                                    <p className="mt-1 truncate text-sm text-muted-foreground">{networkLabel(pkg.network)}{pkg.description && pkg.description !== 'Instant Delivery' ? ` · ${pkg.description}` : ''}</p>
+                                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                        <span
+                                            className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                            style={{ backgroundColor: `${accent}1A`, color: accent }}
+                                        >
+                                            {networkLabel(pkg.network)}
+                                        </span>
+                                        {pkg.description && pkg.description !== 'Instant Delivery' && (
+                                            <span className="truncate text-xs text-muted-foreground">{pkg.description}</span>
+                                        )}
+                                    </div>
                                 </div>
-                                <p className="font-display text-2xl font-bold tabular-nums">{formatCurrency(price)}</p>
+                                <span className="clay-gold flex-shrink-0 rounded-2xl px-3.5 py-2 font-display text-lg font-bold tabular-nums">
+                                    {formatCurrency(price)}
+                                </span>
                             </div>
 
                             <div className="space-y-4 px-6">
