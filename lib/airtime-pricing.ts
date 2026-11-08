@@ -51,7 +51,18 @@ export interface AirtimeQuote {
 
 export type AirtimeQuoteResult =
     | { ok: true; quote: AirtimeQuote }
-    | { ok: false; reason: 'below_min' | 'above_max' | 'too_low_after_fees'; message: string }
+    | { ok: false; reason: 'below_min' | 'above_max' | 'too_low_after_fees' | 'too_many_decimals'; message: string }
+
+/**
+ * True when `amount` has at most 2 decimal places. The database stores money as numeric(12,2),
+ * so a 3-decimal amount would be rounded there (up to a cent off what was quoted). Refusing it
+ * up front keeps the quote, the wallet debit and the order row identical.
+ */
+export function hasValidPrecision(amount: number): boolean {
+    return Number.isFinite(amount) && Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-6
+}
+
+const PRECISION_ERROR = 'Amount can have at most 2 decimal places'
 
 /**
  * Resolve limits + fees for one airtime purchase.
@@ -82,6 +93,10 @@ export function quoteAirtime(params: {
     const num = (raw: string | undefined, fallback: number) => {
         const parsed = parseFloat(raw ?? '')
         return Number.isFinite(parsed) ? parsed : fallback
+    }
+
+    if (!hasValidPrecision(amount)) {
+        return { ok: false, reason: 'too_many_decimals', message: PRECISION_ERROR }
     }
 
     const minAmount = num(settings[`${orderType}_min_amount_${role}`], orderType === 'mashup' ? 5 : MIN_DEFAULT)
@@ -148,6 +163,10 @@ export function quoteAirtimeCommission(params: {
     const num = (raw: string | undefined, fallback: number) => {
         const parsed = parseFloat(raw ?? '')
         return Number.isFinite(parsed) ? parsed : fallback
+    }
+
+    if (!hasValidPrecision(amount)) {
+        return { ok: false, reason: 'too_many_decimals', message: PRECISION_ERROR }
     }
 
     const minAmount = num(settings[`airtime_min_amount_${role}`], MIN_DEFAULT)

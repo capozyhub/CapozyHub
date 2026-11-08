@@ -69,9 +69,18 @@ export async function placeDataOrders(supabase: any, userId: string, items: Plac
     }
 }
 
+/**
+ * Prefixes the platform assigns itself. Fulfillment, refund and mirror-sync code routes on them
+ * (SHOP- updates storefront rows, API- is a developer's namespace), so a member must never be
+ * able to choose a reference that starts with one.
+ */
+const RESERVED_REFERENCE_PREFIXES = /^(API|SHOP|USSD|UTIL|REFUND|MASHUP-REFUND)[-_]/i
+
 /** A client-supplied idempotency key: short, URL-safe, nothing that could be abused as a payload. */
 export function isValidClientReference(value: unknown): value is string {
-    return typeof value === 'string' && /^[A-Za-z0-9_\-]{6,97}$/.test(value)
+    return typeof value === 'string'
+        && /^[A-Za-z0-9_\-]{6,97}$/.test(value)
+        && !RESERVED_REFERENCE_PREFIXES.test(value)
 }
 
 /**

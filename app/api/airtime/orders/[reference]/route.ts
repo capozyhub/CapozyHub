@@ -42,11 +42,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             done(400, 'Invalid reference')
             return apiError(400, 'Invalid reference code')
         }
-        const possibleRefs = [reference, `API-${reference}`]
+        const apiRef = `API-${reference}`
 
-        const { data: order, error } = await (supabase.from('airtime_orders') as any)
+        // A member can own both `X` (dashboard) and `API-X`, so never use .single() here: it would
+        // error on two rows and report a real order as missing. Prefer the API-created one.
+        const { data: rows, error } = await (supabase.from('airtime_orders') as any)
             .select('id, reference_code, status, network, beneficiary_phone, airtime_amount, fee_amount, total_paid, refund_reason, created_at, updated_at')
-            .eq('user_id', userId).in('reference_code', possibleRefs).single()
+            .eq('user_id', userId).in('reference_code', [reference, apiRef]).limit(2)
+        const order = (rows as any[] | null)?.find(r => r.reference_code === apiRef) ?? (rows as any[] | null)?.[0]
 
         if (error || !order) {
             done(404, 'Order not found')

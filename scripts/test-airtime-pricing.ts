@@ -130,4 +130,16 @@ const settings: Record<string, string> = {
     assert(r.ok === false && r.reason === 'below_min', 'quoteAirtimeCommission: must still enforce min limit')
 }
 
+// ── Money has at most 2 decimals: a 3-decimal amount must not reach the database ──
+{
+    const r = quoteAirtime({ settings, network: 'MTN', role: 'customer', amount: 10.005, useExactAmount: false })
+    assert(!r.ok && r.reason === 'too_many_decimals', 'rejects a 3-decimal amount')
+    const ok = quoteAirtime({ settings, network: 'MTN', role: 'customer', amount: 10.25, useExactAmount: true })
+    assert(ok.ok, 'accepts a 2-decimal amount')
+    const whole = quoteAirtime({ settings, network: 'MTN', role: 'customer', amount: 0.1 + 0.2 + 9.7, useExactAmount: false })
+    assert(whole.ok, 'float noise on a 2-decimal amount (0.1 + 0.2 + 9.7) is not mistaken for extra decimals')
+    const api = quoteAirtimeCommission({ settings: {}, network: 'MTN', role: 'customer', amount: 5.001 })
+    assert(!api.ok && api.reason === 'too_many_decimals', 'commission quote rejects a 3-decimal amount too')
+}
+
 console.log('All airtime-pricing tests passed.')

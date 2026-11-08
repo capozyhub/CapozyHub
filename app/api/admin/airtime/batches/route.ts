@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
+import { manualCompleteAirtime, manualFailAirtime } from '@/lib/airtime-fulfillment'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MAX_BATCH = 200
 
 async function verifyAdmin(supabaseUserClient: any) {
     const { data: { user: authUser }, error } = await supabaseUserClient.auth.getUser()
@@ -19,8 +23,8 @@ export async function GET(request: NextRequest) {
         if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
         const { searchParams } = new URL(request.url)
-        const limit  = parseInt(searchParams.get('limit')  || '30')
-        const offset = parseInt(searchParams.get('offset') || '0')
+        const limit  = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '30') || 30))
+        const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
         const status = searchParams.get('status')
 
         const supabase = createServerClient()
@@ -52,13 +56,20 @@ export async function POST(request: NextRequest) {
         let body: any
         try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
 
-        const { orderIds, batchName, fulfillmentService } = body
-        if (!Array.isArray(orderIds) || orderIds.length === 0) {
+        const { orderIds: rawOrderIds, batchName, fulfillmentService } = body ?? {}
+        if (!Array.isArray(rawOrderIds) || rawOrderIds.length === 0) {
             return NextResponse.json({ error: 'orderIds array is required' }, { status: 400 })
+        }
+        if (!rawOrderIds.every((id: unknown) => typeof id === 'string' && UUID_RE.test(id))) {
+            return NextResponse.json({ error: 'orderIds must be valid order ids' }, { status: 400 })
+        }
+        const orderIds: string[] = Array.from(new Set(rawOrderIds as string[]))
+        if (orderIds.length > MAX_BATCH) {
+            return NextResponse.json({ error: `A batch can hold at most ${MAX_BATCH} orders` }, { status: 400 })
         }
 
         const supabase = createServerClient()
-        const name = batchName || `Batch ${new Date().toLocaleString('en-GH', { timeZone: 'Africa/Accra' })}`
+        const name = (typeof batchName === 'string' && batchName.trim() ? batchName.trim().slice(0, 100) : null) || `Batch ${new Date().toLocaleString('en-GH', { timeZone: 'Africa/Accra' })}`
 
         const { data: batch, error: createError } = await (supabase
             .from('airtime_fulfillment_batches') as any)
@@ -68,7 +79,7 @@ export async function POST(request: NextRequest) {
                 status: 'pending',
                 order_ids: orderIds,
                 order_count: orderIds.length,
-                fulfillment_service: fulfillmentService || null,
+                fulfillment_service: typeof fulfillmentService === 'string' ? fulfillmentService.slice(0, 100) : null,
             })
             .select()
             .single()
@@ -101,8 +112,9 @@ export async function PATCH(request: NextRequest) {
         let body: any
         try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
 
-        const { batchId, status, failedOrderIds, fulfillmentService, fulfillmentNote } = body
-        if (!batchId || !status) return NextResponse.json({ error: 'batchId and status required' }, { status: 400 })
+        const { batchId, status, failedOrderIds, fulfillmentService, fulfillmentNote } = body ?? {}
+        if (typeof batchId !== 'string' || !UUID_RE.test(batchId)) return NextResponse.json({ error: 'Invalid batchId' }, { status: 400 })
+        if (!status) return NextResponse.json({ error: 'batchId and status required' }, { status: 400 })
         if (!['processing', 'completed', 'failed', 'partial'].includes(status)) {
             return NextResponse.json({ error: 'Invalid batch status' }, { status: 400 })
         }
@@ -116,34 +128,45 @@ export async function PATCH(request: NextRequest) {
         if (fetchErr || !batch) return NextResponse.json({ error: 'Batch not found' }, { status: 404 })
 
         const allOrderIds: string[] = batch.order_ids || []
-        const failedIds: string[]   = Array.isArray(failedOrderIds) ? failedOrderIds : []
+        // Only orders that belong to this batch can be failed through it.
+        const failedIds: string[]   = Array.isArray(failedOrderIds)
+            ? failedOrderIds.filter((id: unknown): id is string => typeof id === 'string' && allOrderIds.includes(id))
+            : []
         const succeededIds          = allOrderIds.filter((id: string) => !failedIds.includes(id))
 
+        if (status === 'processing') {
+            return NextResponse.json({ success: true, status: batch.status })
+        }
+
         const now = new Date().toISOString()
-        const updateBase: any = { fulfilled_by: admin.userId, fulfilled_at: now, updated_at: now }
-        if (fulfillmentService) updateBase.fulfillment_service = fulfillmentService
-        if (fulfillmentNote)    updateBase.fulfillment_note    = fulfillmentNote
-
-        if (succeededIds.length > 0) {
-            await (supabase.from('airtime_orders') as any)
-                .update({ ...updateBase, status: 'completed' })
-                .in('id', succeededIds)
-        }
-        if (failedIds.length > 0) {
-            await (supabase.from('airtime_orders') as any)
-                .update({ ...updateBase, status: 'failed' })
-                .in('id', failedIds)
+        const extra = {
+            note: typeof fulfillmentNote === 'string' ? fulfillmentNote.slice(0, 500) : null,
+            service: typeof fulfillmentService === 'string' ? fulfillmentService.slice(0, 100) : null,
         }
 
-        const resolvedStatus = failedIds.length === 0 ? 'completed'
-            : succeededIds.length === 0 ? 'failed'
+        // Each order goes through the same guarded path as a single-order update, so an order
+        // refunded or completed since the batch was made is skipped, never overwritten, and every
+        // order gets its shop sync, notification and developer webhook.
+        let completedCount = 0, failedCount = 0, skippedCount = 0
+        for (const id of succeededIds) {
+            const r = await manualCompleteAirtime(id, admin.userId, extra)
+            if (r.ok) completedCount++; else skippedCount++
+        }
+        for (const id of failedIds) {
+            const r = await manualFailAirtime(id, admin.userId, { ...extra, note: extra.note ?? 'Marked failed from a fulfillment batch' })
+            if (r.ok) failedCount++; else skippedCount++
+        }
+
+        const resolvedStatus = failedCount === 0 && completedCount > 0 ? 'completed'
+            : completedCount === 0 && failedCount > 0 ? 'failed'
+            : completedCount === 0 && failedCount === 0 ? batch.status
             : 'partial'
 
         await (supabase.from('airtime_fulfillment_batches') as any)
             .update({
                 status: resolvedStatus,
-                completed_count: succeededIds.length,
-                failed_count: failedIds.length,
+                completed_count: completedCount,
+                failed_count: failedCount,
                 updated_at: now,
             })
             .eq('id', batchId)
@@ -151,8 +174,9 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({
             success: true,
             status: resolvedStatus,
-            completedCount: succeededIds.length,
-            failedCount: failedIds.length,
+            completedCount,
+            failedCount,
+            skippedCount,
         })
     } catch (err) {
         console.error('[Airtime Batches] PATCH error:', err)

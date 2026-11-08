@@ -148,7 +148,7 @@ export function OrderDialog({ draft, onClose, onPlaced, onViewHistory }: OrderDi
                             {([
                                 ['Network', draft.network],
                                 ['Recipient', draft.phone],
-                                ...(isMashup ? [] : [['Airtime', formatCurrency(draft.quote.airtimeAmount)]]),
+                                [isMashup ? 'Bundle value' : 'Airtime', formatCurrency(draft.quote.airtimeAmount)],
                                 ['Service fee', formatCurrency(draft.quote.feeAmount)],
                                 ...(placed?.newBalance != null ? [['Wallet now', formatCurrency(placed.newBalance)]] : []),
                             ] as string[][]).map(([label, value]) => (

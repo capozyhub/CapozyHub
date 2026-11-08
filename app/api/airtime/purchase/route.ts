@@ -118,7 +118,8 @@ export async function POST(request: NextRequest) {
             return apiError(503, 'Please try again in a moment.')
         }
         const settingsMap: Record<string, string> = {}
-        for (const s of (settingRows || [])) settingsMap[(s as any).key] = (s as any).value
+        // admin_settings.value is jsonb: always compare as text, whatever type the row was saved as.
+        for (const s of (settingRows || [])) settingsMap[(s as any).key] = String((s as any).value)
 
         if (settingsMap[`airtime_enabled_${NETWORK_KEY_MAP[network]}`] === 'false') {
             done(400, 'Network disabled')
@@ -166,6 +167,7 @@ export async function POST(request: NextRequest) {
                     done(409, 'Recent duplicate')
                     return apiError(409, 'The same order was placed moments ago. Wait 30 seconds, or reuse its reference to read it back.')
                 case 'REFERENCE_IN_USE':
+                case 'REFERENCE_MISMATCH':
                     done(409, 'Reference already in use')
                     return apiError(409, 'This reference is already in use. Your wallet was not charged. Choose a different reference.')
                 case 'NO_WALLET':

@@ -11,7 +11,7 @@ import { quoteAirtime } from '@/lib/airtime-pricing'
 import { calcMashupBundle, type BundlePreference } from '@/lib/mashup-bundle'
 import { getNetworkFromPrefix, validateGhanaianPhone } from '@/lib/phone-validation'
 import { QUICK_AMOUNTS, carrierToNetwork, type AirtimeNetwork, type PurchaseMode } from './meta'
-import { isMashupEnabled, isNetworkEnabled } from './use-airtime-settings'
+import { isAirtimeEnabled, isMashupEnabled, isNetworkEnabled } from './use-airtime-settings'
 import { NetworkPicker } from './NetworkPicker'
 import { MashupEstimate, MashupPreference } from './MashupOptions'
 import { PriceBreakdown } from './PriceBreakdown'
@@ -28,6 +28,7 @@ interface BuyFormProps {
 
 export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: BuyFormProps) {
     const mashupAvailable = isMashupEnabled(settings)
+    const airtimeOn = isAirtimeEnabled(settings)
 
     const [mode, setMode] = useState<PurchaseMode>('airtime')
     const [network, setNetwork] = useState<AirtimeNetwork | null>(null)
@@ -60,10 +61,15 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
 
     const quote = quoted?.ok ? quoted.quote : null
     const amountError = quoted && !quoted.ok ? quoted.message : ''
-    const bundle = useMemo(() => (mode === 'mashup' ? calcMashupBundle(typed, bundlePreference) : null), [mode, typed, bundlePreference])
+    // Estimate from what is actually delivered (after the fee when it comes out of the amount).
+    const bundle = useMemo(
+        () => (mode === 'mashup' && quote ? calcMashupBundle(quote.airtimeAmount, bundlePreference) : null),
+        [mode, quote, bundlePreference],
+    )
 
     const canAfford = quote !== null && balance !== null && balance >= quote.totalPaid
-    const ready = !!quote && !!phoneCheck?.isValid && !!effectiveNetwork && canAfford
+    const productOn = mode === 'mashup' ? mashupAvailable : airtimeOn && !!effectiveNetwork && isNetworkEnabled(settings, effectiveNetwork)
+    const ready = !!quote && !!phoneCheck?.isValid && !!effectiveNetwork && canAfford && productOn
 
     const onPhoneChange = (value: string) => {
         const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -123,7 +129,7 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                     <p className="text-sm font-medium">Network</p>
                     <NetworkPicker
                         selected={network}
-                        isEnabled={n => isNetworkEnabled(settings, n)}
+                        isEnabled={n => airtimeOn && isNetworkEnabled(settings, n)}
                         onSelect={n => { setNetwork(n); setNetworkChosen(true) }}
                     />
                 </div>
@@ -218,7 +224,7 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                 </p>
             ) : (
                 <>
-                    {bundle && typed > 0 && <MashupEstimate bundle={bundle} />}
+                    {bundle && <MashupEstimate bundle={bundle} />}
                     <PriceBreakdown quote={quote} typed={typed} mode={mode} feeOnTop={feeOnTop} />
                     {balance !== null && (
                         <div className="flex items-center justify-between text-xs text-muted-foreground">

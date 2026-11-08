@@ -10,6 +10,7 @@ import { toCanonicalPhone } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { isValidClientReference } from '@/lib/data-orders/place'
 import { placeAirtimeOrder } from '@/lib/data-orders/place-airtime'
+import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 const NETWORKS = ['MTN', 'Telecel', 'AT'] as const
 const BUNDLE_PREFERENCES = ['balanced', 'data', 'voice'] as const
@@ -29,6 +30,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
         const userId = authUser.id
+
+        // Each order emails the admins, so cap how fast one account can place them. Real buyers
+        // never get near this; the wallet balance and the duplicate window are the other limits.
+        const rl = consumeRateLimit(`airtime-create:${userId}`, 10, 60_000)
+        if (!rl.allowed) {
+            return NextResponse.json(
+                { error: `Too many orders. Please wait ${Math.ceil(rl.retryAfterMs / 1000)}s and try again.` },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+            )
+        }
+
         const supabase = createServerClient()
 
         let body: any
@@ -101,6 +113,7 @@ export async function POST(request: NextRequest) {
                 `${orderType}_fee_${networkKey}_dealer`,
                 `${orderType}_min_amount_customer`, `${orderType}_min_amount_agent`, `${orderType}_min_amount_dealer`,
                 `${orderType}_max_amount_customer`, `${orderType}_max_amount_agent`, `${orderType}_max_amount_dealer`,
+                'dashboard_airtime_enabled',
                 'dashboard_mashup_enabled',
             ])
         if (settingsError) {
@@ -108,8 +121,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Please try again in a moment.' }, { status: 503 })
         }
         const settings: Record<string, string> = {}
-        for (const s of (settingRows ?? []) as Array<{ key: string; value: string }>) settings[s.key] = s.value
+        // admin_settings.value is jsonb: always compare as text, whatever type the row was saved as.
+        for (const s of (settingRows ?? []) as Array<{ key: string; value: unknown }>) settings[s.key] = String(s.value)
 
+        if (orderType === 'airtime' && settings['dashboard_airtime_enabled'] === 'false') {
+            return NextResponse.json({ error: 'Airtime purchases are currently disabled' }, { status: 503 })
+        }
         if (settings[`airtime_enabled_${networkKey}`] === 'false') {
             return NextResponse.json({ error: `${network} airtime is currently unavailable. Please try another network.` }, { status: 400 })
         }
@@ -159,6 +176,7 @@ export async function POST(request: NextRequest) {
                 case 'RECENT_DUPLICATE':
                     return NextResponse.json({ error: placed.message, isDuplicate: true }, { status: 409 })
                 case 'REFERENCE_IN_USE':
+                case 'REFERENCE_MISMATCH':
                     return NextResponse.json({ error: 'This reference is already in use. Please try again.' }, { status: 409 })
                 case 'NO_WALLET':
                     return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })

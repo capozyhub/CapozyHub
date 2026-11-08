@@ -27,6 +27,11 @@ export function isNetworkEnabled(settings: Record<string, string> | null, networ
     return settings?.[`airtime_enabled_${network.toLowerCase()}`] !== 'false'
 }
 
+/** The dashboard master switch for plain airtime (Mashup has its own, below). */
+export function isAirtimeEnabled(settings: Record<string, string> | null): boolean {
+    return settings?.dashboard_airtime_enabled !== 'false'
+}
+
 /** Mashup is MTN-only and needs the dashboard switch, the MTN Mashup switch and MTN airtime all on. */
 export function isMashupEnabled(settings: Record<string, string> | null): boolean {
     if (!settings) return false

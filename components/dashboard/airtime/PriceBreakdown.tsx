@@ -16,7 +16,7 @@ export function PriceBreakdown({ quote, typed, mode, feeOnTop }: PriceBreakdownP
         ['You enter', formatCurrency(typed)],
         [`Service fee (${quote.feeRate}%)`, `${feeOnTop ? '+' : '−'} ${formatCurrency(quote.feeAmount)}`],
     ]
-    if (mode === 'airtime') rows.push(['Beneficiary receives', formatCurrency(quote.airtimeAmount)])
+    rows.push([mode === 'mashup' ? 'Bundle value' : 'Beneficiary receives', formatCurrency(quote.airtimeAmount)])
 
     return (
         <dl className="well space-y-2 rounded-2xl p-4 text-sm" aria-label="Price breakdown">
@@ -26,7 +26,7 @@ export function PriceBreakdown({ quote, typed, mode, feeOnTop }: PriceBreakdownP
                     <dd className="font-semibold tabular-nums">{value}</dd>
                 </div>
             ))}
-            {!feeOnTop && mode === 'airtime' && (
+            {!feeOnTop && (
                 <p className="text-xs text-amber-600 dark:text-amber-500">The fee comes out of your amount. Switch on &ldquo;Add the fee on top&rdquo; if they should get all of it.</p>
             )}
             <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2">

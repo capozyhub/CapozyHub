@@ -30,7 +30,7 @@ export interface PlacedAirtimeOrder {
 export type PlaceAirtimeResult =
     | { ok: true; duplicate: true; order: PlacedAirtimeOrder }
     | { ok: true; duplicate: false; walletId: string; newBalance: number; order: PlacedAirtimeOrder }
-    | { ok: false; code: 'INSUFFICIENT_BALANCE' | 'RECENT_DUPLICATE' | 'REFERENCE_IN_USE' | 'NO_WALLET' | 'INVALID' | 'FAILED'; message: string }
+    | { ok: false; code: 'INSUFFICIENT_BALANCE' | 'RECENT_DUPLICATE' | 'REFERENCE_IN_USE' | 'REFERENCE_MISMATCH' | 'NO_WALLET' | 'INVALID' | 'FAILED'; message: string }
 
 function toOrder(raw: any): PlacedAirtimeOrder {
     return {
@@ -65,7 +65,8 @@ export async function placeAirtimeOrder(
         const text = `${error.message ?? ''} ${error.details ?? ''}`
         if (text.includes('INSUFFICIENT_BALANCE')) return { ok: false, code: 'INSUFFICIENT_BALANCE', message: 'Insufficient balance' }
         if (text.includes('RECENT_DUPLICATE')) return { ok: false, code: 'RECENT_DUPLICATE', message: 'Duplicate order detected. Please wait 30 seconds before placing the same order again.' }
-        if (text.includes('WALLET_NOT_FOUND')) return { ok: false, code: 'NO_WALLET', message: 'Wallet not found' }
+        if (text.includes('REFERENCE_MISMATCH')) return { ok: false, code: 'REFERENCE_MISMATCH', message: 'This reference was already used for a different order' }
+        if (text.includes('WALLET_NOT_FOUND'))return { ok: false, code: 'NO_WALLET', message: 'Wallet not found' }
         if (text.includes('INVALID_INPUT')) return { ok: false, code: 'INVALID', message: 'Invalid order' }
         // airtime_orders.reference_code is globally unique: this reference belongs to someone else.
         if (error.code === '23505' || text.includes('duplicate key')) {

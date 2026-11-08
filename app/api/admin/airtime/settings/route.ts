@@ -72,11 +72,39 @@ export async function POST(request: NextRequest) {
         let body: any
         try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
 
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+        }
+
         const updates = Object.entries(body)
             .filter(([key]) => AIRTIME_SETTING_KEYS.includes(key))
             .map(([key, value]) => ({ key, value: (typeof value === 'object' && value !== null) ? JSON.stringify(value) : String(value) }))
 
         if (updates.length === 0) return NextResponse.json({ error: 'No valid settings provided' }, { status: 400 })
+
+        // Fees, limits and switches are read as numbers / 'true' / 'false' at purchase time, so a
+        // junk value must be refused here rather than silently falling back to a default.
+        for (const { key, value } of updates) {
+            const isSwitch = /_enabled(_|$)|_paused$|^airtime_auto_fulfillment_enabled$/.test(key) && key !== 'hubtel_airtime_networks'
+            if (isSwitch) {
+                if (value !== 'true' && value !== 'false') return NextResponse.json({ error: `${key} must be true or false` }, { status: 400 })
+            } else if (key.includes('_fee_')) {
+                const n = Number(value)
+                if (value.trim() === '' || !Number.isFinite(n) || n < 0 || n > 10) return NextResponse.json({ error: `${key} must be a percentage between 0 and 10` }, { status: 400 })
+            } else if (key.includes('_amount_')) {
+                const n = Number(value)
+                if (value.trim() === '' || !Number.isFinite(n) || n < 0 || n > 100000) return NextResponse.json({ error: `${key} must be a valid amount` }, { status: 400 })
+            }
+        }
+        for (const role of ['customer', 'agent', 'dealer']) {
+            for (const product of ['airtime', 'mashup']) {
+                const lo = updates.find(u => u.key === `${product}_min_amount_${role}`)
+                const hi = updates.find(u => u.key === `${product}_max_amount_${role}`)
+                if (lo && hi && Number(lo.value) > Number(hi.value)) {
+                    return NextResponse.json({ error: `${product} minimum cannot exceed the maximum (${role})` }, { status: 400 })
+                }
+            }
+        }
 
         const { error } = await (supabase.from('admin_settings') as any)
             .upsert(updates, { onConflict: 'key' })
