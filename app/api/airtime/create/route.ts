@@ -10,7 +10,7 @@ import { toCanonicalPhone } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { isValidClientReference } from '@/lib/data-orders/place'
 import { placeAirtimeOrder } from '@/lib/data-orders/place-airtime'
-import { consumeRateLimit } from '@/lib/simple-rate-limit'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
 
 const NETWORKS = ['MTN', 'Telecel', 'AT'] as const
 const BUNDLE_PREFERENCES = ['balanced', 'data', 'voice'] as const
@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
 
         // Each order emails the admins, so cap how fast one account can place them. Real buyers
         // never get near this; the wallet balance and the duplicate window are the other limits.
-        const rl = consumeRateLimit(`airtime-create:${userId}`, 10, 60_000)
+        // Shared across serverless instances (Redis), so it cannot be dodged by hitting a cold one.
+        const rl = await limitDistributed('airtime-create', userId, 10, 60)
         if (!rl.allowed) {
             return NextResponse.json(
-                { error: `Too many orders. Please wait ${Math.ceil(rl.retryAfterMs / 1000)}s and try again.` },
-                { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } },
+                { error: `Too many orders. Please wait ${rl.retryAfterSec}s and try again.` },
+                { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
             )
         }
 
