@@ -9,26 +9,10 @@ import { BrandSwoosh } from '@/components/brand-swoosh'
 import { Check, Crown, Gem, Loader2, Wallet } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import CongratsModal from '@/components/upgrade/CongratsModal'
+import { AGENT_BENEFITS, DEALER_BENEFITS } from '@/components/upgrade/benefits'
 import WalletUpgradeModal from '@/components/upgrade/WalletUpgradeModal'
 import { cn } from '@/lib/utils'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
-
-const AGENT_BENEFITS = [
-    'Wholesale bundle prices',
-    'Faster order processing',
-    'Bulk order import',
-    'Your own shop storefront',
-    'Developer API key',
-    'Priority support',
-]
-
-const DEALER_BENEFITS = [
-    'Everything in Agent',
-    'Prices below Agent rates',
-    'Full API access with high rate limits',
-    'Prioritised orders and complaint handling',
-    'Direct support line',
-]
 
 const DEALER_PLAN_META = [
     { plan: '1m' as const, title: '1 month', note: 'Try it out' },
@@ -43,6 +27,7 @@ function UpgradePageInner() {
     const router = useRouter()
 
     const [showCongrats, setShowCongrats] = useState(false)
+    const [congratsTier, setCongratsTier] = useState<'agent' | 'dealer'>('agent')
 
     const [walletModal, setWalletModal] = useState<{
         plan: string
@@ -164,6 +149,7 @@ function UpgradePageInner() {
     }
 
     const handleUpgradeSuccess = async () => {
+        setCongratsTier(walletModal?.upgradeType ?? 'agent')
         setWalletModal(null)
         setShowCongrats(true)
         await refreshUser()
@@ -219,7 +205,7 @@ function UpgradePageInner() {
             ? 'Your Agent rank never expires. Dealer is the next step up.'
             : isAgentRole
                 ? (agentExpiry ? `Your Agent pass runs until ${fmtDate(agentExpiry)}. Renewing adds time on top.` : 'Renew or extend your pass below.')
-                : 'Unlock wholesale prices, a shop storefront and API access. Every plan has the same benefits; only the length differs.'
+                : 'Unlock lower prices, bulk orders, sub-agents and API access. Every plan has the same benefits; only the length differs.'
 
     const dealerSection = (mode: 'upgrade' | 'extend') => (
         <section aria-label={mode === 'extend' ? 'Extend Dealer' : 'Upgrade to Dealer'} className="space-y-4">
@@ -284,6 +270,7 @@ function UpgradePageInner() {
         <>
             {showCongrats && (
                 <CongratsModal
+                    tier={congratsTier}
                     onClose={() => setShowCongrats(false)}
                     onBrowsePackages={() => router.push('/dashboard/data-packages')}
                 />
@@ -389,8 +376,9 @@ function UpgradePageInner() {
                                     </li>
                                 ))}
                             </ul>
-                            <div className="neu-inset mt-5 rounded-2xl px-4 py-3 text-sm text-muted-foreground">
-                                Pay from your wallet and your role switches on straight away. Turn on auto-renew when you buy to never lapse.
+                            <div className="neu-inset mt-5 space-y-1.5 rounded-2xl px-4 py-3 text-sm text-muted-foreground">
+                                <p><span className="font-semibold text-foreground">Lifetime only:</span> unlocks the Dealer upgrade, with lower prices again.</p>
+                                <p>Pay from your wallet and your role switches on straight away. Turn on auto-renew when you buy to never lapse.</p>
                             </div>
                         </section>
                     </>

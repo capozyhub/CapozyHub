@@ -662,7 +662,7 @@ export default function HomeClient({
                         <div className={WRAP}>
                             <SectionHeading className="max-w-3xl">Pick an agent plan and unlock wholesale prices.</SectionHeading>
                             <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-                                Every plan includes wholesale pricing, your own shop, bulk orders and developer API access.
+                                Every plan includes lower prices, bulk orders, sub-agents and developer API access.
                             </p>
                             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                                 {landingAgentPlans.map((plan) => (
@@ -683,7 +683,7 @@ export default function HomeClient({
                                 ))}
                             </div>
                             <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                                Lifetime Agents can go on to become Dealers, the top reseller rank on {BRAND.name}, with deeper discounts, higher API limits and priority support.
+                                Lifetime Agents can go on to become Dealers, the top reseller rank on {BRAND.name}, with deeper discounts on data, airtime and results checker.
                             </p>
                         </div>
                     </section>

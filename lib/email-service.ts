@@ -1135,8 +1135,8 @@ export async function sendDealerActivationSuccessEmail(
 
         <div class="highlight-box" style="background: rgba(124,58,237,0.08); border-left-color: #7C3AED;">
             <p class="highlight-text">
-                Your Dealer membership is <strong>active for 6 months</strong> and expires on
-                <strong>${formatted}</strong>. After expiry you automatically return to Lifetime Agent.
+                Your Dealer membership is <strong>active until ${formatted}</strong>.
+                After that you automatically return to Lifetime Agent.
             </p>
         </div>
 
@@ -1150,16 +1150,16 @@ export async function sendDealerActivationSuccessEmail(
                 <span class="info-value" style="color: #7C3AED;">Lowest Dealer Rates</span>
             </div>
             <div class="info-row">
+                <span class="info-label">Airtime &amp; Mashup</span>
+                <span class="info-value">Lowest Fees, Highest Limits</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Results Checker</span>
+                <span class="info-value">Dealer Prices</span>
+            </div>
+            <div class="info-row">
                 <span class="info-label">API Access</span>
-                <span class="info-value">Full + High Rate Limits</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Order Processing</span>
-                <span class="info-value">Priority Queue</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Support</span>
-                <span class="info-value">Direct Priority Line</span>
+                <span class="info-value">Included</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Membership Expiry</span>

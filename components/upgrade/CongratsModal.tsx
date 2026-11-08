@@ -2,22 +2,16 @@
 
 import { Check, Crown, ShoppingBag } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { AGENT_BENEFITS, DEALER_BENEFITS } from './benefits'
 
 interface CongratsModalProps {
+    tier?: 'agent' | 'dealer'
     onClose: () => void
     onBrowsePackages: () => void
 }
 
-const BENEFITS = [
-    'Wholesale bundle prices',
-    'Faster order processing',
-    'Bulk order import',
-    'Your own shop storefront',
-    'Developer API key',
-    'Priority support',
-]
-
-export default function CongratsModal({ onClose, onBrowsePackages }: CongratsModalProps) {
+export default function CongratsModal({ tier = 'agent', onClose, onBrowsePackages }: CongratsModalProps) {
+    const BENEFITS = tier === 'dealer' ? DEALER_BENEFITS : AGENT_BENEFITS
     return (
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
             <DialogContent
