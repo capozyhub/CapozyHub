@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
-import type { PlanType, UpgradeType } from '@/lib/wallet-upgrade'
+import { AGENT_PLANS, DEALER_PLANS } from '@/lib/wallet-upgrade'
+import type { PlanType } from '@/lib/wallet-upgrade'
 
-const VALID_PLANS: PlanType[] = ['3d', '14d', '30d', 'permanent', '1m', '3m', '6m']
-const DEALER_PLANS: PlanType[] = ['1m', '3m', '6m']
+const VALID_PLANS: readonly string[] = [...AGENT_PLANS, ...DEALER_PLANS]
+const isDealerPlan = (plan: string) => (DEALER_PLANS as readonly string[]).includes(plan)
 
 export async function POST(request: Request) {
     try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'enabled must be a boolean' }, { status: 400 })
         }
 
-        if (enabled && (!plan || !VALID_PLANS.includes(plan))) {
+        if (enabled && (typeof plan !== 'string' || !VALID_PLANS.includes(plan))) {
             return NextResponse.json(
                 { error: `plan must be one of: ${VALID_PLANS.join(', ')}` },
                 { status: 400 }
@@ -49,11 +50,16 @@ export async function POST(request: Request) {
         const user = dbUser as any
 
         if (enabled) {
+            // Only reseller-track accounts can auto-renew anything.
+            if (user.role !== 'customer' && user.role !== 'agent' && user.role !== 'dealer') {
+                return NextResponse.json({ error: 'Auto-upgrade is not available for this account type' }, { status: 403 })
+            }
+
             const isDealer = user.role === 'dealer'
             const isLifetimeAgent = user.role === 'agent' && user.agent_expires_at === null
 
             // Dealer plans only valid for dealers and lifetime agents eligible for dealer
-            if (DEALER_PLANS.includes(plan) && !isDealer && !isLifetimeAgent) {
+            if (isDealerPlan(plan) && !isDealer && !isLifetimeAgent) {
                 return NextResponse.json(
                     { error: 'Dealer auto-upgrade requires Dealer or Lifetime Agent status' },
                     { status: 400 }
@@ -61,15 +67,16 @@ export async function POST(request: Request) {
             }
 
             // Agent-only plans are invalid for dealers
-            if (!DEALER_PLANS.includes(plan) && isDealer) {
+            if (!isDealerPlan(plan) && isDealer) {
                 return NextResponse.json(
                     { error: 'Dealers must use a dealer plan (1m, 3m, or 6m) for auto-upgrade' },
                     { status: 400 }
                 )
             }
 
-            // Permanent plan cannot be auto-renewed (it's a one-time purchase)
-            if (plan === 'permanent' && isLifetimeAgent) {
+            // Lifetime agents have nothing to renew on the agent tier (this also covers
+            // 'permanent', a one-time purchase) — only a dealer plan makes sense for them.
+            if (isLifetimeAgent && !isDealerPlan(plan)) {
                 return NextResponse.json(
                     { error: 'You already have permanent access — no auto-upgrade needed' },
                     { status: 400 }

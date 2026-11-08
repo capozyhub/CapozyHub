@@ -6,22 +6,32 @@
  * (within 24 hours) or already expired, then:
  *  - Attempts wallet deduction + role upgrade via processWalletUpgrade
  *  - On success: upgrade is applied, user notified via SMS/email/push
- *  - On failure (insufficient balance): sends SMS/email alert, disables auto-upgrade flag
- *    to prevent spamming, and requires the user to manually re-enable it after topping up
+ *  - On insufficient balance: alerts the user and disables the auto-upgrade flag so they
+ *    are not alerted every run; they re-enable it after topping up
+ *  - On a permanent mismatch (plan no longer valid for their account): disables the flag and
+ *    tells the user, instead of failing silently every run
  *
- * Security:
+ * Safety:
  *  - Requires CRON_SECRET Bearer token (validateCronAuth)
- *  - Uses service_role client for DB operations — no RLS bypass exploits possible
- *    because the RPC is SECURITY DEFINER and validates user ownership internally
- *  - Rate-limited to one attempt per user per cron run via deduplication check
+ *  - The JS filter below is only a cheap pre-filter. The authoritative checks — flag still
+ *    on, plan unchanged, membership actually due, account active — run again inside the
+ *    database transaction under a row lock (process_wallet_upgrade), so overlapping runs or
+ *    a user turning the flag off mid-run can never cause a charge.
+ *  - Bounded by a time budget so a large backlog cannot hit the platform function timeout
+ *    mid-user; leftovers are picked up on the next run.
  */
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateCronAuth } from '@/lib/cron-utils'
-import { processWalletUpgrade, fetchUpgradePrice } from '@/lib/wallet-upgrade'
+import { processWalletUpgrade, fetchUpgradePrice, isValidPlan, DEALER_PLANS } from '@/lib/wallet-upgrade'
 import { sendAutoUpgradeFailedSMS } from '@/lib/sms-service'
 import type { UpgradeType, PlanType } from '@/lib/wallet-upgrade'
+
+export const dynamic = 'force-dynamic'
+
+// Platform cap for app/api/** is 60s (vercel.json); stop starting new users well before it.
+const TIME_BUDGET_MS = 45_000
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,9 +39,16 @@ const supabaseAdmin = createClient(
     { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
+/** Failure codes meaning "this plan can never work for this account" — stop retrying. */
+const PERMANENT_FAILURE_CODES = new Set(['NOT_ELIGIBLE', 'ALREADY_LIFETIME', 'INVALID_PLAN'])
+/** Failure codes meaning "nothing to do right now" — not an error. */
+const SKIP_CODES = new Set(['NOT_DUE', 'AUTO_DISABLED', 'ACCOUNT_INACTIVE'])
+
 export async function GET(request: Request) {
     const authError = validateCronAuth(request)
     if (authError) return authError
+
+    const startedAt = Date.now()
 
     try {
         const now = new Date()
@@ -44,6 +61,7 @@ export async function GET(request: Request) {
             .from('users')
             .select('id, first_name, phone_number, email, role, agent_expires_at, dealer_expires_at, auto_upgrade_plan')
             .eq('auto_upgrade_enabled', true)
+            .eq('status', 'active')
             .in('role', ['agent', 'dealer', 'customer'])
 
         if (fetchError) {
@@ -55,25 +73,22 @@ export async function GET(request: Request) {
             return NextResponse.json({ message: 'No users with auto-upgrade enabled', processed: 0 })
         }
 
-        // Filter to users who are actually due for renewal:
+        // Cheap pre-filter (the DB function re-checks all of this under lock):
         // - Dealer: dealer_expires_at within 24h or past
         // - Agent (timed): agent_expires_at within 24h or past
-        // - Customer: always eligible (first-time upgrade)
+        // - Lifetime agent: only if they chose a dealer plan (lifetime agent -> dealer)
+        // - Customer: eligible for any plan (first-time upgrade or renewal after the expiry downgrade)
         const due = candidates.filter((u: any) => {
             if (u.role === 'dealer') {
                 if (!u.dealer_expires_at) return false
                 return new Date(u.dealer_expires_at) <= in24h
             }
             if (u.role === 'agent') {
-                // Permanent agents (agent_expires_at = null) don't need renewal
-                // unless they want to upgrade to dealer
                 if (!u.agent_expires_at) {
-                    const dealerPlans: string[] = ['1m', '3m', '6m']
-                    return dealerPlans.includes(u.auto_upgrade_plan) // lifetime agent → dealer renewal
+                    return (DEALER_PLANS as readonly string[]).includes(u.auto_upgrade_plan)
                 }
                 return new Date(u.agent_expires_at) <= in24h
             }
-            // customer: eligible for any plan
             return true
         })
 
@@ -84,37 +99,38 @@ export async function GET(request: Request) {
         console.log(`[AutoUpgrade] ${due.length} users due for auto-upgrade`)
 
         const results: Array<{ id: string; status: string; error?: string }> = []
+        let deferred = 0
 
         for (const user of due) {
-            const plan = user.auto_upgrade_plan as PlanType
+            if (Date.now() - startedAt > TIME_BUDGET_MS) {
+                deferred = due.length - results.length
+                console.warn(`[AutoUpgrade] Time budget reached, deferring ${deferred} user(s) to the next run`)
+                break
+            }
+
+            const plan = user.auto_upgrade_plan as PlanType | null
             if (!plan) {
                 results.push({ id: user.id, status: 'skipped', error: 'No plan configured' })
                 continue
             }
 
-            const DEALER_PLANS: PlanType[] = ['1m', '3m', '6m']
-            const upgradeType: UpgradeType = DEALER_PLANS.includes(plan) ? 'dealer' : 'agent'
-
-            // Deduplication: skip if we already successfully auto-upgraded this user
-            // in the last 12 hours (prevents double-fire if cron runs twice)
-            const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000)
-            const { data: recentNotif } = await supabaseAdmin
-                .from('notifications')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('title', 'Auto-Upgrade Successful')
-                .gte('created_at', twelveHoursAgo.toISOString())
-                .limit(1)
-
-            if (recentNotif && recentNotif.length > 0) {
-                results.push({ id: user.id, status: 'already_upgraded' })
+            const upgradeType: UpgradeType = (DEALER_PLANS as readonly string[]).includes(plan) ? 'dealer' : 'agent'
+            if (!isValidPlan(upgradeType, plan)) {
+                results.push({ id: user.id, status: 'skipped', error: 'Invalid plan' })
                 continue
             }
 
             // Fetch authoritative price from admin_settings
-            const { price, planLabel } = await fetchUpgradePrice(upgradeType, plan, supabaseAdmin)
+            let price: number
+            let planLabel: string
+            try {
+                ;({ price, planLabel } = await fetchUpgradePrice(upgradeType, plan, supabaseAdmin))
+            } catch (err: any) {
+                // Pricing misconfigured — never guess a price. Leave the user untouched; retry next run.
+                results.push({ id: user.id, status: 'failed', error: err?.message ?? 'Pricing unavailable' })
+                continue
+            }
 
-            // Attempt upgrade
             const result = await processWalletUpgrade({
                 userId: user.id,
                 upgradeType,
@@ -122,10 +138,11 @@ export async function GET(request: Request) {
                 price,
                 planLabel,
                 isAutoUpgrade: true,
+                dueBefore: in24h,
             })
 
             if (result.success) {
-                results.push({ id: user.id, status: 'upgraded' })
+                results.push({ id: user.id, status: result.alreadyProcessed ? 'already_upgraded' : 'upgraded' })
                 console.log(`[AutoUpgrade] User ${user.id} auto-upgraded (${planLabel})`)
             } else if (result.insufficientBalance) {
                 console.log(`[AutoUpgrade] User ${user.id} insufficient balance — need GHS ${result.requiredAmount}, have GHS ${result.currentBalance}`)
@@ -171,6 +188,25 @@ export async function GET(request: Request) {
                 }
 
                 results.push({ id: user.id, status: 'insufficient_balance', error: result.error })
+            } else if (result.code && SKIP_CODES.has(result.code)) {
+                results.push({ id: user.id, status: 'skipped', error: result.code })
+            } else if (result.code && PERMANENT_FAILURE_CODES.has(result.code)) {
+                // The saved plan can never be bought by this account (e.g. a timed agent holding a
+                // dealer plan). Without this the user believed they were covered while it failed
+                // silently every run until their membership lapsed.
+                console.warn(`[AutoUpgrade] User ${user.id} plan ${plan} not purchasable (${result.code}) — disabling auto-upgrade`)
+                await (supabaseAdmin.from('users') as any)
+                    .update({ auto_upgrade_enabled: false, auto_upgrade_plan: null, updated_at: now.toISOString() })
+                    .eq('id', user.id)
+                    .eq('auto_upgrade_plan', plan)
+                await (supabaseAdmin.from('notifications') as any).insert({
+                    user_id: user.id,
+                    title: 'Auto-Upgrade Turned Off',
+                    message: `Your auto-upgrade for ${planLabel} can't be used on your current membership, so it has been turned off. Open the Upgrade page to choose a plan that fits.`,
+                    type: 'system',
+                    action_url: '/dashboard/upgrade',
+                })
+                results.push({ id: user.id, status: 'disabled', error: result.code })
             } else {
                 results.push({ id: user.id, status: 'failed', error: result.error })
                 console.error(`[AutoUpgrade] Failed for user ${user.id}:`, result.error)
@@ -185,10 +221,11 @@ export async function GET(request: Request) {
             total: due.length,
             upgraded,
             failed,
+            deferred,
             results,
         })
     } catch (err: any) {
         console.error('[AutoUpgrade] Exception:', err)
-        return NextResponse.json({ error: 'Internal server error', details: err.message }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

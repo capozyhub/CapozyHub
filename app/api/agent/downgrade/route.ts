@@ -38,13 +38,34 @@ export async function POST(request: NextRequest) {
             .from('users') as any)
             .update({
                 role: 'customer',
-                agent_expires_at: null
+                agent_expires_at: null,
+                // A deliberate step-down must stick. Left on, the auto-upgrade cron treats every
+                // customer with the flag as due and would re-buy the membership from their wallet.
+                auto_upgrade_enabled: false,
+                auto_upgrade_plan: null,
             })
             .eq('id', authUser.id)
 
         if (updateError) {
             console.error('[AgentDowngrade] Update error:', updateError)
             throw updateError
+        }
+
+        // Re-sync shop pricing to the customer cost basis. Upgrades now reprice on the way up
+        // (process_wallet_upgrade), so the way down must too or margins drift. Non-blocking but
+        // logged, same as the dealer downgrade and the expiry cron.
+        try {
+            const { error: repriceError } = await (supabase as any)
+                .rpc('adjust_shop_pricing_for_role_change', {
+                    p_user_id: authUser.id,
+                    p_old_role: 'agent',
+                    p_new_role: 'customer',
+                })
+            if (repriceError) {
+                console.error('[AgentDowngrade] reprice FAILED (manual reconcile needed):', repriceError)
+            }
+        } catch (repriceErr) {
+            console.error('[AgentDowngrade] reprice threw (non-fatal):', repriceErr)
         }
 
         // Reset shop fee overrides so the shop inherits the customer global settings.

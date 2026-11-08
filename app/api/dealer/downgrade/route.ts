@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
                 role: 'agent',
                 agent_expires_at: null,
                 dealer_expires_at: null,
+                // A lifetime agent holding a dealer auto-renew plan is "always due" for the cron,
+                // so a voluntary step-down would be bought straight back. Clear it.
+                auto_upgrade_enabled: false,
+                auto_upgrade_plan: null,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', authUser.id)

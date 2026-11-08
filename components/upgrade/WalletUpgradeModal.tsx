@@ -1,24 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from '@/lib/toast'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import {
-    Crown,
-    Gem,
-    Wallet,
-    CheckCircle,
-    X,
-    RefreshCw,
-    AlertTriangle,
-    Zap,
-    ToggleLeft,
-    ToggleRight,
-    Info,
-} from 'lucide-react'
+import { Crown, Gem, Loader2, Wallet, X } from 'lucide-react'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 interface WalletUpgradeModalProps {
     plan: string
@@ -33,6 +20,8 @@ interface WalletUpgradeModalProps {
     onSuccess: () => void
 }
 
+const money = (n: number) => `GH₵ ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
 export default function WalletUpgradeModal({
     plan,
     planLabel,
@@ -44,40 +33,44 @@ export default function WalletUpgradeModal({
     onClose,
     onSuccess,
 }: WalletUpgradeModalProps) {
-    const router = useRouter()
     const [isProcessing, setIsProcessing] = useState(false)
+    // One key per modal instance: a retry/double-click of the same purchase can never charge twice.
+    const [idempotencyKey] = useState(() => crypto.randomUUID().replace(/-/g, ''))
 
     const isDealer = upgradeType === 'dealer'
     const isPermanent = plan === 'permanent'
+    const UpgradeIcon = isDealer ? Gem : Crown
 
-    // Default ON for all timed plans; permanent is a one-time purchase so no auto-renewal
-    const [autoUpgrade, setAutoUpgrade] = useState(!isPermanent)
+    // Opt-in only: recurring charges must be a deliberate choice. Starts from the saved setting.
+    const alreadyAutoForPlan = currentAutoUpgrade && currentAutoUpgradePlan === plan
+    const [autoUpgrade, setAutoUpgrade] = useState(alreadyAutoForPlan && !isPermanent)
 
     const hasFunds = walletBalance >= price
     const shortfall = price - walletBalance
     const newBalance = walletBalance - price
 
-    const accentClass = isDealer
-        ? 'from-violet-600 to-brand-700'
-        : 'from-brand-500 to-amber-500'
-    const accentText = isDealer ? 'text-violet-300' : 'text-amber-600'
-    const accentBg = isDealer ? 'bg-violet-500/20' : 'bg-yellow-400/20'
-    const accentBorder = isDealer ? 'border-violet-500/30' : 'border-yellow-400/30'
-    const UpgradeIcon = isDealer ? Gem : Crown
-
     const handleConfirm = async () => {
         setIsProcessing(true)
         try {
-            // 1. Process wallet upgrade
             const res = await fetch('/api/user/upgrade/wallet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan, upgrade_type: upgradeType }),
+                body: JSON.stringify({
+                    plan,
+                    upgrade_type: upgradeType,
+                    expected_price: price,
+                    idempotency_key: idempotencyKey,
+                }),
             })
 
-            const data = await res.json()
+            const data = await res.json().catch(() => ({}))
 
             if (!res.ok) {
+                if (data.code === 'PRICE_CHANGED') {
+                    toast.error('The price has changed. Please reopen this plan to see the new price.')
+                    onClose()
+                    return
+                }
                 if (data.insufficientBalance) {
                     toast.error(`Insufficient balance. You need GHS ${data.shortfall?.toFixed(2)} more.`)
                 } else {
@@ -87,13 +80,22 @@ export default function WalletUpgradeModal({
                 return
             }
 
-            // 2. Save auto-upgrade preference if toggled on
-            if (autoUpgrade && !isPermanent) {
-                await fetch('/api/user/upgrade/toggle-auto-upgrade', {
+            // Sync the auto-upgrade preference. The purchase already succeeded, so a failure here
+            // is reported honestly rather than failing the upgrade or pretending it saved.
+            const wantsAuto = autoUpgrade && !isPermanent
+            if (wantsAuto || (currentAutoUpgrade && !wantsAuto)) {
+                const ok = await fetch('/api/user/upgrade/toggle-auto-upgrade', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: true, plan }),
-                }).catch(() => null) // non-critical — don't fail upgrade if this fails
+                    body: JSON.stringify(wantsAuto ? { enabled: true, plan } : { enabled: false }),
+                }).then(r => r.ok).catch(() => false)
+                if (!ok) {
+                    toast.warning(
+                        wantsAuto
+                            ? 'Upgrade done, but auto-renew could not be saved. You can turn it on from your dashboard.'
+                            : 'Upgrade done, but auto-renew could not be turned off. Please check it on your dashboard.'
+                    )
+                }
             }
 
             toast.success(`${planLabel} activated!`)
@@ -105,196 +107,120 @@ export default function WalletUpgradeModal({
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div
-                className={cn(
-                    'relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden',
-                    isDealer
-                        ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
-                        : 'bg-card border border-yellow-200 dark:border-yellow-900/40'
-                )}
+        <Dialog open onOpenChange={open => { if (!open && !isProcessing) onClose() }}>
+            <DialogContent
+                hideCloseButton
+                aria-describedby={undefined}
+                className="gap-0 overflow-hidden p-0 sm:max-w-md max-sm:!fixed max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:max-w-full max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:rounded-b-none"
+                onInteractOutside={e => { if (isProcessing) e.preventDefault() }}
+                onEscapeKeyDown={e => { if (isProcessing) e.preventDefault() }}
             >
-                {/* Header */}
-                <div className={cn('px-6 pt-6 pb-4 bg-gradient-to-r', accentClass)}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-card/20 flex items-center justify-center">
-                                <UpgradeIcon className="w-5 h-5 text-white fill-white/30" />
-                            </div>
-                            <div>
-                                <p className="text-white/70 text-xs font-bold uppercase tracking-widest">
-                                    Confirm Upgrade
-                                </p>
-                                <h2 className="text-white font-bold text-lg leading-tight">{planLabel}</h2>
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            aria-label="Close"
-                            className="w-8 h-8 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-colors"
-                        >
-                            <X className="w-4 h-4 text-white" />
-                        </button>
-                    </div>
-                </div>
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-2 bg-brand-500" />
+                <DialogDescription className="sr-only">Confirm your membership upgrade</DialogDescription>
+                <DialogClose
+                    disabled={isProcessing}
+                    className="well absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+                >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                </DialogClose>
 
-                <div className="px-6 py-5 space-y-4">
-                    {/* Price row */}
-                    <div className={cn('rounded-xl p-4 border flex items-center justify-between', accentBg, accentBorder)}>
-                        <div className="flex items-center gap-2">
-                            <Wallet className={cn('w-5 h-5', isDealer ? 'text-violet-300' : 'text-amber-600')} />
-                            <span className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-foreground')}>
-                                Upgrade Cost
-                            </span>
-                        </div>
-                        <span className={cn('font-bold text-xl', isDealer ? 'text-white' : 'text-foreground')}>
-                            GHS {price.toFixed(2)}
+                <div className="space-y-5 px-6 pb-6 pt-9">
+                    <div className="flex items-center gap-4">
+                        <span className="clay-gold flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl">
+                            <UpgradeIcon className="h-6 w-6" />
                         </span>
+                        <div className="min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">Confirm upgrade</p>
+                            <DialogTitle className="font-display text-xl font-bold leading-tight tracking-tight">{planLabel}</DialogTitle>
+                        </div>
                     </div>
 
-                    {/* Balance status */}
-                    {hasFunds ? (
-                        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-green-400 font-semibold text-sm flex items-center gap-1.5">
-                                    <CheckCircle className="w-4 h-4" /> Wallet Balance
-                                </span>
-                                <span className="text-green-300 font-bold">GHS {walletBalance.toFixed(2)}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs opacity-70">
-                                <span className={isDealer ? 'text-violet-300' : 'text-muted-foreground'}>
-                                    Balance after upgrade
-                                </span>
-                                <span className={isDealer ? 'text-violet-200' : 'text-foreground/80 '}>
-                                    GHS {newBalance.toFixed(2)}
-                                </span>
-                            </div>
+                    <dl className="well space-y-2.5 rounded-2xl p-4 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">Price</dt>
+                            <dd className="font-display text-lg font-bold">{money(price)}</dd>
                         </div>
-                    ) : (
-                        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-3">
-                            <div className="flex items-start gap-2">
-                                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-red-300 font-bold text-sm">Insufficient Balance</p>
-                                    <p className="text-red-400/80 text-xs mt-0.5">
-                                        You have <span className="font-bold text-red-300">GHS {walletBalance.toFixed(2)}</span> but need{' '}
-                                        <span className="font-bold text-red-300">GHS {price.toFixed(2)}</span>.
-                                    </p>
-                                </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">Wallet balance</dt>
+                            <dd className="font-semibold">{money(walletBalance)}</dd>
+                        </div>
+                        {hasFunds && (
+                            <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2.5">
+                                <dt className="text-muted-foreground">Balance after</dt>
+                                <dd className="font-semibold">{money(newBalance)}</dd>
                             </div>
-                            <div className="bg-red-900/30 rounded-lg px-3 py-2 flex items-center justify-between">
-                                <span className="text-red-300 text-xs font-bold">Amount to add to wallet</span>
-                                <span className="text-white font-bold text-sm">GHS {shortfall.toFixed(2)}</span>
-                            </div>
-                            <Link href="/dashboard/wallet">
-                                <Button className="w-full bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl h-10 text-sm">
-                                    <Wallet className="w-4 h-4 mr-2" />
-                                    Recharge Wallet
-                                </Button>
+                        )}
+                    </dl>
+
+                    {!hasFunds && (
+                        <div role="alert" className="neu-inset rounded-2xl p-4">
+                            <p className="text-sm font-semibold">Not enough in your wallet</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Add at least <span className="font-semibold text-foreground">{money(shortfall)}</span> to continue.
+                            </p>
+                            <Link
+                                href="/dashboard/wallet"
+                                className="clay-gold mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold"
+                            >
+                                <Wallet className="h-4 w-4" /> Top up wallet
                             </Link>
                         </div>
                     )}
 
-                    {/* Auto-upgrade toggle — only for timed plans (not permanent) */}
                     {hasFunds && !isPermanent && (
-                        <div className={cn(
-                            'rounded-xl border p-4',
-                            isDealer ? 'border-violet-500/30 bg-violet-500/10' : 'border-yellow-200 dark:border-yellow-800/40 bg-yellow-50 dark:bg-yellow-900/10'
-                        )}>
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <Zap className={cn('w-4 h-4 flex-shrink-0', isDealer ? 'text-violet-300' : 'text-amber-600')} />
-                                        <p className={cn('font-bold text-sm', isDealer ? 'text-violet-100' : 'text-foreground')}>
-                                            Enable Auto-Upgrade
-                                        </p>
-                                        <span className={cn(
-                                            'text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider',
-                                            isDealer ? 'bg-violet-500/40 text-violet-200' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                                        )}>
-                                            Optional
-                                        </span>
-                                    </div>
-                                    <p className={cn('text-xs leading-relaxed', isDealer ? 'text-violet-300' : 'text-muted-foreground')}>
-                                        Automatically renews this plan from your wallet when it's about to expire. Keep enough balance to avoid interruption.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setAutoUpgrade(v => !v)}
-                                    className="flex-shrink-0 mt-0.5"
-                                    aria-label={autoUpgrade ? 'Disable auto-upgrade' : 'Enable auto-upgrade'}
-                                >
-                                    {autoUpgrade ? (
-                                        <ToggleRight className={cn('w-9 h-9', isDealer ? 'text-violet-400' : 'text-amber-500')} />
-                                    ) : (
-                                        <ToggleLeft className="w-9 h-9 text-muted-foreground" />
-                                    )}
-                                </button>
+                        <div className="neu-inset flex items-start gap-3 rounded-2xl p-4">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold">Auto-renew</p>
+                                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                                    Renew this plan from your wallet when it ends. If the balance is too low we switch it off and message you.
+                                </p>
                             </div>
-
-                            {autoUpgrade && (
-                                <div className={cn(
-                                    'mt-3 rounded-lg px-3 py-2 flex items-start gap-2 text-xs',
-                                    isDealer ? 'bg-violet-600/20 text-violet-200' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                )}>
-                                    <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                                    <span>
-                                        Auto-upgrade is <strong>ON</strong>. Keep at least{' '}
-                                        <strong>GHS {price.toFixed(2)}</strong> in your wallet before expiry.
-                                        If balance is too low when the cron runs, auto-upgrade is disabled and you'll be notified by SMS.
-                                    </span>
-                                </div>
-                            )}
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={autoUpgrade}
+                                aria-label="Auto-renew"
+                                disabled={isProcessing}
+                                onClick={() => setAutoUpgrade(v => !v)}
+                                className={cn(
+                                    'relative mt-0.5 h-7 w-12 flex-shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                                    autoUpgrade ? 'bg-brand-500' : 'well',
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        'absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all',
+                                        autoUpgrade ? 'left-6' : 'left-1',
+                                    )}
+                                />
+                            </button>
                         </div>
                     )}
 
-                    {/* Action buttons */}
-                    <div className="flex gap-3 pt-1">
-                        <Button
-                            variant="outline"
-                            onClick={onClose}
-                            disabled={isProcessing}
-                            className={cn(
-                                'flex-1 h-11 rounded-xl font-bold text-sm',
-                                isDealer
-                                    ? 'border-violet-500/40 text-violet-300 hover:bg-violet-500/10 bg-transparent'
-                                    : 'border-border'
-                            )}
-                        >
-                            Cancel
-                        </Button>
-
-                        {hasFunds && (
-                            <Button
+                    {hasFunds && (
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={isProcessing}
+                                className="well h-12 flex-1 rounded-2xl text-sm font-bold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
                                 onClick={handleConfirm}
                                 disabled={isProcessing}
-                                className={cn(
-                                    'flex-1 h-11 rounded-xl font-bold text-sm transition-all active:scale-95',
-                                    isDealer
-                                        ? 'bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white shadow-lg shadow-violet-900/50'
-                                        : 'bg-brand-500 hover:bg-brand-600 text-black shadow-lg shadow-yellow-500/20'
-                                )}
+                                className="clay-gold inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-bold disabled:opacity-60"
                             >
-                                {isProcessing ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <>
-                                        <Wallet className="w-4 h-4 mr-2" />
-                                        Pay from Wallet
-                                    </>
-                                )}
-                            </Button>
-                        )}
-                    </div>
-
-                    <p className={cn(
-                        'text-center text-[10px] font-medium',
-                        isDealer ? 'text-violet-400/60' : 'text-muted-foreground'
-                    )}>
-                        Payment is instant and deducted directly from your Capozy Wallet.
-                    </p>
+                                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                                {isProcessing ? 'Paying' : 'Pay from wallet'}
+                            </button>
+                        </div>
+                    )}
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     )
 }

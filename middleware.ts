@@ -229,7 +229,7 @@ const rateLimiters = REDIS_CONFIGURED ? {
     webhook: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:webhook' }),
     // ── User actions ──────────────────────────────────────────
     user: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:user' }),
-    userUpgrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:userUpgrade' }),
+    userUpgrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:userUpgrade' }),
     afaRegistration: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'kfg:afaRegistration' }),
     agentDowngrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'kfg:agentDowngrade' }),
     updateProfile: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'kfg:updateProfile' }),
@@ -852,7 +852,7 @@ export async function middleware(request: NextRequest) {
         } else if (pathname === '/api/shop/verify') {
             limiter = rateLimiters.shopVerifyOrder
             identifier = ip
-        } else if (pathname === '/api/user/upgrade/initialize') {
+        } else if (pathname === '/api/user/upgrade/wallet' || pathname === '/api/user/upgrade/toggle-auto-upgrade') {
             limiter = rateLimiters.userUpgrade
             identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
         } else if (pathname === '/api/shop/pricing') {

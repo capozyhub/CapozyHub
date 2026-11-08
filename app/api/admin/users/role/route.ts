@@ -77,6 +77,10 @@ export async function POST(request: NextRequest) {
         } else {
             updateData.agent_expires_at = null
             updateData.dealer_expires_at = null
+            // Demoted to a non-reseller role (e.g. for abuse): any saved auto-renew must go, or the
+            // auto-upgrade cron re-grants the membership from the user's wallet on its next run.
+            updateData.auto_upgrade_enabled = false
+            updateData.auto_upgrade_plan = null
         }
 
         const { error: updateError } = await (supabase

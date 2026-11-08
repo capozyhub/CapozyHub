@@ -2,24 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from '@/lib/toast'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import {
-    X,
-    Zap,
-    ZapOff,
-    Wallet,
-    Calendar,
-    Info,
-    RefreshCw,
-    CheckCircle,
-    Crown,
-    Gem,
-} from 'lucide-react'
+import { Loader2, Zap, ZapOff, X } from 'lucide-react'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { getCachedPricing } from '@/lib/pricing-cache'
 
 type AgentPlan = '3d' | '14d' | '30d'
-type Plan = AgentPlan | '6m'
+type DealerPlan = '1m' | '3m' | '6m'
+type Plan = AgentPlan | DealerPlan
 
 interface AutoUpgradeQuickModalProps {
     mode: 'enable' | 'manage'
@@ -33,17 +23,31 @@ interface AutoUpgradeQuickModalProps {
 }
 
 const AGENT_PLANS: { id: AgentPlan; label: string }[] = [
-    { id: '3d',  label: '3 Days'  },
-    { id: '14d', label: '14 Days' },
-    { id: '30d', label: '30 Days' },
+    { id: '3d', label: '3 days' },
+    { id: '14d', label: '14 days' },
+    { id: '30d', label: '30 days' },
+]
+const DEALER_PLANS: { id: DealerPlan; label: string }[] = [
+    { id: '1m', label: '1 month' },
+    { id: '3m', label: '3 months' },
+    { id: '6m', label: '6 months' },
 ]
 
 const PLAN_PRICE_DEFAULTS: Record<Plan, number> = {
-    '3d':  9.99,
+    '3d': 9.99,
     '14d': 49.99,
     '30d': 99.99,
-    '6m':  299.99,
+    '1m': 99.99,
+    '3m': 199.99,
+    '6m': 299.99,
 }
+
+const PLAN_LABEL: Record<string, string> = {
+    '3d': '3 days', '14d': '14 days', '30d': '30 days',
+    '1m': '1 month', '3m': '3 months', '6m': '6 months',
+}
+
+const money = (n: number) => `GH₵ ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 export default function AutoUpgradeQuickModal({
     mode,
@@ -55,10 +59,10 @@ export default function AutoUpgradeQuickModal({
     onUpdated,
 }: AutoUpgradeQuickModalProps) {
     const isDealer = userRole === 'dealer'
+    const plans: { id: Plan; label: string }[] = isDealer ? DEALER_PLANS : AGENT_PLANS
 
-    const defaultPlan: Plan = isDealer
-        ? '6m'
-        : (currentPlan && currentPlan !== '6m' ? currentPlan as AgentPlan : '30d')
+    const isValidForRole = (p: string | null): p is Plan => !!p && plans.some(x => x.id === p)
+    const defaultPlan: Plan = isValidForRole(currentPlan) ? currentPlan : isDealer ? '3m' : '30d'
 
     const [selectedPlan, setSelectedPlan] = useState<Plan>(defaultPlan)
     const [prices, setPrices] = useState<Record<Plan, number>>(PLAN_PRICE_DEFAULTS)
@@ -66,65 +70,38 @@ export default function AutoUpgradeQuickModal({
 
     useEffect(() => {
         getCachedPricing().then(data => {
-            if (!data.prices) return
-            setPrices({
-                '3d':  data.prices['3d']  ?? PLAN_PRICE_DEFAULTS['3d'],
-                '14d': data.prices['14d'] ?? PLAN_PRICE_DEFAULTS['14d'],
-                '30d': data.prices['30d'] ?? PLAN_PRICE_DEFAULTS['30d'],
-                '6m':  data.dealerPrice   ?? PLAN_PRICE_DEFAULTS['6m'],
-            })
+            setPrices(prev => ({
+                '3d': data.prices?.['3d'] ?? prev['3d'],
+                '14d': data.prices?.['14d'] ?? prev['14d'],
+                '30d': data.prices?.['30d'] ?? prev['30d'],
+                '1m': data.dealerPrice1m ?? prev['1m'],
+                '3m': data.dealerPrice3m ?? prev['3m'],
+                '6m': data.dealerPrice ?? prev['6m'],
+            }))
         }).catch(() => null)
     }, [])
 
-    const price = prices[selectedPlan]
+    const shownPlan: Plan = mode === 'manage' && isValidForRole(currentPlan) ? currentPlan : selectedPlan
+    const price = prices[shownPlan]
 
     const expiryFormatted = expiresAt
-        ? new Date(expiresAt).toLocaleDateString('en-GB', {
-              day: 'numeric', month: 'long', year: 'numeric',
-          })
+        ? new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : null
 
-    const accentGradient = isDealer ? 'from-violet-600 to-brand-700' : 'from-brand-500 to-amber-500'
-    const accentText     = isDealer ? 'text-violet-300' : 'text-amber-600'
-    const accentBg       = isDealer ? 'bg-violet-500/15 border-violet-500/30' : 'bg-yellow-400/15 border-yellow-400/30'
-    const Icon           = isDealer ? Gem : Crown
-
-    const handleEnable = async () => {
+    const save = async (enabled: boolean) => {
         setIsSaving(true)
         try {
             const res = await fetch('/api/user/upgrade/toggle-auto-upgrade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: true, plan: selectedPlan }),
+                body: JSON.stringify(enabled ? { enabled: true, plan: selectedPlan } : { enabled: false }),
             })
-            const data = await res.json()
+            const data = await res.json().catch(() => ({}))
             if (!res.ok) {
-                toast.error(data.error || 'Failed to enable auto-upgrade')
+                toast.error(data.error || `Failed to turn auto-renew ${enabled ? 'on' : 'off'}`)
                 return
             }
-            toast.success('Auto-upgrade enabled!')
-            onUpdated()
-        } catch {
-            toast.error('Something went wrong. Please try again.')
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    const handleDisable = async () => {
-        setIsSaving(true)
-        try {
-            const res = await fetch('/api/user/upgrade/toggle-auto-upgrade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: false, plan: selectedPlan }),
-            })
-            const data = await res.json()
-            if (!res.ok) {
-                toast.error(data.error || 'Failed to disable auto-upgrade')
-                return
-            }
-            toast.success('Auto-upgrade disabled.')
+            toast.success(enabled ? 'Auto-renew is on' : 'Auto-renew is off')
             onUpdated()
         } catch {
             toast.error('Something went wrong. Please try again.')
@@ -134,230 +111,115 @@ export default function AutoUpgradeQuickModal({
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className={cn(
-                'relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden',
-                isDealer
-                    ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-brand-950 border border-violet-500/40'
-                    : 'bg-card border border-yellow-200 dark:border-yellow-900/40'
-            )}>
-                {/* Header */}
-                <div className={cn('px-5 pt-5 pb-4 bg-gradient-to-r', accentGradient)}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-card/20 flex items-center justify-center">
-                                {mode === 'manage'
-                                    ? <ZapOff className="w-4 h-4 text-white" />
-                                    : <Zap className="w-4 h-4 text-white fill-white/40" />
-                                }
-                            </div>
-                            <div>
-                                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">
-                                    {mode === 'manage' ? 'Auto-Upgrade Settings' : 'Enable Auto-Upgrade'}
-                                </p>
-                                <h2 className="text-white font-bold text-base leading-tight">
-                                    {mode === 'manage'
-                                        ? `Auto-Upgrade is ON`
-                                        : `Never Miss a Renewal`}
-                                </h2>
-                            </div>
+        <Dialog open onOpenChange={open => { if (!open && !isSaving) onClose() }}>
+            <DialogContent
+                hideCloseButton
+                aria-describedby={undefined}
+                className="gap-0 overflow-hidden p-0 sm:max-w-sm max-sm:!fixed max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:max-w-full max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:rounded-b-none"
+                onInteractOutside={e => { if (isSaving) e.preventDefault() }}
+            >
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-2 bg-brand-500" />
+                <DialogDescription className="sr-only">Manage automatic membership renewal</DialogDescription>
+                <DialogClose
+                    disabled={isSaving}
+                    className="well absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+                >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                </DialogClose>
+
+                <div className="space-y-5 px-6 pb-6 pt-9">
+                    <div className="flex items-center gap-4">
+                        <span className="clay-gold flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl">
+                            {mode === 'manage' ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">Auto-renew</p>
+                            <DialogTitle className="font-display text-lg font-bold leading-tight tracking-tight">
+                                {mode === 'manage' ? 'Auto-renew is on' : 'Never miss a renewal'}
+                            </DialogTitle>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="w-7 h-7 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-colors"
-                        >
-                            <X className="w-3.5 h-3.5 text-white" />
-                        </button>
                     </div>
-                </div>
 
-                <div className="px-5 py-4 space-y-4">
-
-                    {/* MANAGE MODE — current settings + disable option */}
-                    {mode === 'manage' && (
-                        <>
-                            <div className={cn('rounded-xl border p-3.5 space-y-2.5', accentBg)}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Icon className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-violet-100' : 'text-foreground')}>
-                                            Active Plan
-                                        </span>
-                                    </div>
-                                    <span className={cn(
-                                        'text-xs font-bold px-2.5 py-1 rounded-full',
-                                        isDealer ? 'bg-violet-400/30 text-violet-200' : 'bg-yellow-300/40 text-yellow-800 dark:text-yellow-200'
-                                    )}>
-                                        {currentPlan === '6m' ? '6 Months Dealer'
-                                            : currentPlan === 'permanent' ? 'Permanent'
-                                            : currentPlan ? `${currentPlan} Agent`
-                                            : '—'}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Wallet className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
-                                            Renewal Cost
-                                        </span>
-                                    </div>
-                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
-                                        GHS {prices[currentPlan as Plan] ? prices[currentPlan as Plan].toFixed(2) : price.toFixed(2)}
-                                    </span>
-                                </div>
-
-                                {expiryFormatted && (
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className={cn('w-4 h-4', accentText)} />
-                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
-                                                Next Renewal
-                                            </span>
-                                        </div>
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
-                                            {expiryFormatted}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className={cn(
-                                'rounded-lg px-3 py-2.5 flex items-start gap-2 text-xs',
-                                isDealer ? 'bg-green-500/10 border border-green-500/20 text-green-300'
-                                         : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-400'
-                            )}>
-                                <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                                <span>
-                                    Your membership will be auto-renewed from your Capozy Wallet on expiry. Keep at least{' '}
-                                    <strong>GHS {prices[currentPlan as Plan] ? prices[currentPlan as Plan].toFixed(2) : price.toFixed(2)}</strong>{' '}
-                                    in your wallet to avoid interruption.
-                                </span>
-                            </div>
-
-                            <div className="flex gap-3 pt-1">
-                                <Button
-                                    variant="outline"
-                                    onClick={onClose}
-                                    disabled={isSaving}
-                                    className={cn(
-                                        'flex-1 h-10 rounded-xl font-bold text-sm',
-                                        isDealer ? 'border-violet-500/40 text-violet-300 hover:bg-violet-500/10 bg-transparent' : ''
-                                    )}
-                                >
-                                    Keep ON
-                                </Button>
-                                <Button
-                                    onClick={handleDisable}
-                                    disabled={isSaving}
-                                    className="flex-1 h-10 rounded-xl font-bold text-sm bg-red-500 hover:bg-red-600 text-white"
-                                >
-                                    {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : (
-                                        <><ZapOff className="w-4 h-4 mr-1.5" />Turn OFF</>
-                                    )}
-                                </Button>
-                            </div>
-                        </>
-                    )}
-
-                    {/* ENABLE MODE — plan picker + confirm */}
                     {mode === 'enable' && (
                         <>
-                            <p className={cn('text-sm font-medium', isDealer ? 'text-violet-200' : 'text-muted-foreground')}>
-                                Hi <strong>{firstName}</strong>! Choose which plan to auto-renew when your membership expires.
+                            <p className="text-sm text-muted-foreground">
+                                {firstName ? `${firstName}, pick` : 'Pick'} the plan to renew from your wallet when your membership ends.
                             </p>
-
-                            {/* Plan selector — agents only; dealers have one option */}
-                            {!isDealer && (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {AGENT_PLANS.map(p => (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => setSelectedPlan(p.id)}
-                                            className={cn(
-                                                'rounded-xl py-2.5 text-xs font-bold border-2 transition-all',
-                                                selectedPlan === p.id
-                                                    ? 'border-brand-500 bg-yellow-400/20 text-foreground'
-                                                    : 'border-border text-muted-foreground hover:border-yellow-300'
-                                            )}
-                                        >
-                                            {p.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Price + expiry summary */}
-                            <div className={cn('rounded-xl border p-3.5 space-y-2.5', accentBg)}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Wallet className={cn('w-4 h-4', accentText)} />
-                                        <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
-                                            Renewal Amount
-                                        </span>
-                                    </div>
-                                    <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
-                                        GHS {price.toFixed(2)}
-                                    </span>
-                                </div>
-                                {expiryFormatted && (
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className={cn('w-4 h-4', accentText)} />
-                                            <span className={cn('text-sm font-semibold', isDealer ? 'text-violet-200' : 'text-foreground/80 ')}>
-                                                Auto-renews on
-                                            </span>
-                                        </div>
-                                        <span className={cn('text-sm font-bold', isDealer ? 'text-white' : 'text-foreground')}>
-                                            {expiryFormatted}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Keep balance hint */}
-                            <div className={cn(
-                                'rounded-lg px-3 py-2.5 flex items-start gap-2 text-xs',
-                                isDealer ? 'bg-violet-500/10 border border-violet-500/20 text-violet-300'
-                                         : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/40 text-amber-700 dark:text-amber-300'
-                            )}>
-                                <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                                <span>
-                                    Keep at least <strong>GHS {price.toFixed(2)}</strong> in your Capozy Wallet before your expiry date. If balance is too low, auto-upgrade is disabled and you'll be notified by SMS.
-                                </span>
-                            </div>
-
-                            <div className="flex gap-3 pt-1">
-                                <Button
-                                    variant="outline"
-                                    onClick={onClose}
-                                    disabled={isSaving}
-                                    className={cn(
-                                        'flex-1 h-10 rounded-xl font-bold text-sm',
-                                        isDealer ? 'border-violet-500/40 text-violet-300 hover:bg-violet-500/10 bg-transparent' : ''
-                                    )}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleEnable}
-                                    disabled={isSaving}
-                                    className={cn(
-                                        'flex-1 h-10 rounded-xl font-bold text-sm transition-all active:scale-95',
-                                        isDealer
-                                            ? 'bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white'
-                                            : 'bg-brand-500 hover:bg-brand-600 text-black shadow-md shadow-yellow-400/20'
-                                    )}
-                                >
-                                    {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : (
-                                        <><Zap className="w-4 h-4 mr-1.5 fill-current" />Enable Auto-Upgrade</>
-                                    )}
-                                </Button>
+                            <div role="radiogroup" aria-label="Plan" className="well grid grid-cols-3 gap-1 rounded-2xl p-1">
+                                {plans.map(p => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={selectedPlan === p.id}
+                                        onClick={() => setSelectedPlan(p.id)}
+                                        className={cn(
+                                            'rounded-xl py-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                                            selectedPlan === p.id ? 'clay-gold' : 'text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
                             </div>
                         </>
                     )}
+
+                    <dl className="well space-y-2.5 rounded-2xl p-4 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">Plan</dt>
+                            <dd className="font-semibold">{PLAN_LABEL[shownPlan] ?? '—'}</dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">Renewal cost</dt>
+                            <dd className="font-display text-base font-bold">{money(price)}</dd>
+                        </div>
+                        {expiryFormatted && (
+                            <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-2.5">
+                                <dt className="text-muted-foreground">Renews on</dt>
+                                <dd className="font-semibold">{expiryFormatted}</dd>
+                            </div>
+                        )}
+                    </dl>
+
+                    <p className="neu-inset rounded-2xl px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                        Keep at least <span className="font-semibold text-foreground">{money(price)}</span> in your wallet before that date. If the balance is too low we switch auto-renew off and message you.
+                    </p>
+
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSaving}
+                            className="well h-12 flex-1 rounded-2xl text-sm font-bold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                        >
+                            {mode === 'manage' ? 'Keep on' : 'Cancel'}
+                        </button>
+                        {mode === 'manage' ? (
+                            <button
+                                type="button"
+                                onClick={() => save(false)}
+                                disabled={isSaving}
+                                className="clay-black inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-bold disabled:opacity-60"
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ZapOff className="h-4 w-4" />}
+                                Turn off
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => save(true)}
+                                disabled={isSaving}
+                                className="clay-gold inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-bold disabled:opacity-60"
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                                Turn on
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     )
 }
