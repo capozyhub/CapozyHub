@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { computeShopAfaCheckout } from '@/lib/shop-afa-checkout'
 import { sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
+import { guardGuestCharge } from '@/lib/guest-charge-guard'
 
 // Best-effort per-lambda IP rate limit (10/min). Real dup-guard is the DB UNIQUE
 // constraint on shop_afa_pending_orders.paystack_reference. Mirrors shop/charge/route.ts.
@@ -27,6 +28,10 @@ const GHANA_NETWORK_MAP: Record<string, 'MTN' | 'VOD' | 'ATL'> = {
 }
 
 export async function POST(request: NextRequest) {
+    return guardGuestCharge(request, 'shop-afa-charge', () => handlePost(request))
+}
+
+async function handlePost(request: NextRequest) {
     try {
         cleanup()
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'

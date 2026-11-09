@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { confirmVerificationOtp, cacheChargeResult } from '@/lib/hubtel-receive/number-verification'
 import { runHubtelUtilityCharge, type HubtelUtilityChargeParams } from '@/lib/hubtel-checkout'
+import { getClientIp } from '@/lib/api-auth'
 
 // Minimal runtime shape guard for a jsonb round-trip — pending_charge is always
 // server-written (see app/api/shop/utility/charge/route.ts), but this turns a future
@@ -25,7 +26,7 @@ function otpCleanup() { const now = Date.now(); for (const [k, v] of otpRateLimi
 export async function POST(request: NextRequest) {
     try {
         otpCleanup()
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+        const ip = getClientIp(request) || 'unknown'
         const rl = otpRateLimit.get(ip) || { count: 0, resetTime: Date.now() + 60000 }
         if (rl.count >= 10 && rl.resetTime > Date.now()) {
             return NextResponse.json({ error: 'Too many attempts. Please wait a minute.' }, { status: 429 })

@@ -6,7 +6,8 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import {
     shortTextSchema,
-    longTextSchema,
+    displayShortTextSchema,
+    displayLongTextSchema,
     phoneSchema,
     emailSchema,
     slugSchema,
@@ -19,9 +20,9 @@ import {
 // Every field a shop owner is allowed to write. Protected fields (owner_id,
 // is_active, approval_status) are intentionally absent — they cannot be set here.
 const shopProfileSchema = z.object({
-    shop_name:       shortTextSchema,
+    shop_name:       displayShortTextSchema,
     shop_slug:       slugSchema,
-    description:     longTextSchema.or(z.literal('')).optional().nullable(),
+    description:     displayLongTextSchema.or(z.literal('')).optional().nullable(),
     // Optional at write time — the wizard creates the shop on Step 1 with
     // only shop_name/shop_slug (see spec §4). Enforced instead right before
     // go-live, in app/api/shop/pricing/route.ts.

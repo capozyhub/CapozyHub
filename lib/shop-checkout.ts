@@ -46,6 +46,23 @@ export interface ShopCheckoutError {
     contact?: { phone?: string; whatsapp?: string; email?: string }
 }
 
+/** The networks a storefront airtime order can target (mashup is always MTN). */
+export const AIRTIME_NETWORKS = ['MTN', 'Telecel', 'AT'] as const
+
+const DEFAULT_MASHUP_SHOP_FEE_PERCENT = 1
+
+/**
+ * Shop-level mashup markup %. NULL/unset means "use the default"; an explicit 0 means
+ * "deliberately no markup" and must stay 0 — the old `parseFloat(x || 1)` silently turned a
+ * saved 0% into 1%. Shared with lib/shop-order-processor.ts so checkout and settlement
+ * can never disagree on the fee.
+ */
+export function resolveMashupShopFee(raw: unknown): number {
+    if (raw === null || raw === undefined || raw === '') return DEFAULT_MASHUP_SHOP_FEE_PERCENT
+    const n = parseFloat(String(raw))
+    return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MASHUP_SHOP_FEE_PERCENT
+}
+
 export function sanitizeForPaystack(text: string): string {
     // Paystack metadata DB is 3-byte UTF-8; 4-byte emoji silently truncate the JSON.
     return text.replace(/[\u{10000}-\u{10FFFF}]/gu, '').trim()
@@ -120,7 +137,7 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
         .from('shop_profiles')
         .select(`
             id, shop_name, shop_slug, owner_id, approval_status, is_active,
-            fulfillment_mode, paystack_fee_percent, owner_phone, whatsapp_number,
+            fulfillment_mode, paystack_fee_percent, owner_phone, owner_email, whatsapp_number,
             airtime_fee_mtn, airtime_fee_telecel, airtime_fee_at, mashup_fee_percent,
             utilities_enabled,
             owner:users!shop_profiles_owner_id_fkey(role, email, dealer_expires_at, agent_expires_at)
@@ -131,10 +148,14 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     if (shopError || !shop) return { ok: false, status: 404, error: 'Shop not found' }
 
     const ownerRole = shop.owner?.role || 'customer'
+    // SECURITY: the contact block is returned to an unauthenticated caller, so it must only
+    // ever carry the shop's PUBLIC contact fields. `shop.owner?.email` is the owner's account
+    // login email (users.email) — never expose that; `owner_email` is the contact address
+    // the owner chose to publish on the storefront.
     if (shop.approval_status !== 'approved' || !shop.is_active || !['customer', 'agent', 'dealer', 'subagent', 'admin', 'sub-admin'].includes(shop.owner?.role)) {
         return {
             ok: false, status: 403, error: 'This shop is not currently active',
-            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner?.email },
+            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner_email },
         }
     }
 
@@ -150,7 +171,7 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     if (subCtx.isSub && !subCtx.effectiveActive) {
         return {
             ok: false, status: 403, error: 'This shop is not currently active',
-            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner?.email },
+            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner_email },
         }
     }
 
@@ -188,6 +209,12 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     if (orderType === 'airtime' || orderType === 'mashup') {
         if (orderType === 'airtime' && settings.storefront_airtime_enabled === 'false') return { ok: false, status: 503, error: 'Airtime purchase is disabled' }
         if (orderType === 'mashup' && settings.storefront_mashup_enabled !== 'true') return { ok: false, status: 503, error: 'Mashup purchase is disabled' }
+        // `network` is caller-supplied; it is interpolated into admin_settings keys and stored on
+        // the order, so it must be one of the real storefront networks (a non-string would also
+        // throw on .toLowerCase() below and surface as a 500).
+        if (orderType === 'airtime' && !(typeof network === 'string' && (AIRTIME_NETWORKS as readonly string[]).includes(network))) {
+            return { ok: false, status: 400, error: 'Invalid network' }
+        }
         const effectiveNetwork = orderType === 'mashup' ? 'MTN' : (network as string)
         if (settings[`airtime_enabled_${effectiveNetwork.toLowerCase()}`] === 'false') return { ok: false, status: 503, error: `${effectiveNetwork} ${orderType === 'mashup' ? 'Mashup' : 'airtime'} is disabled` }
         // Mashup carries its own per-network kill-switch (mashup_enabled_<net>) independent of
@@ -206,7 +233,7 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
         if (isNaN(numAmount) || numAmount < minAmount || numAmount > maxAmount) return { ok: false, status: 400, error: 'Invalid airtime amount' }
 
         const shopFeeKey = `airtime_fee_${effectiveNetwork.toLowerCase()}`
-        const shopFee = orderType === 'mashup' ? parseFloat((shop as any).mashup_fee_percent || 1) : parseFloat((shop as any)[shopFeeKey] || 0)
+        const shopFee = orderType === 'mashup' ? resolveMashupShopFee((shop as any).mashup_fee_percent) : parseFloat((shop as any)[shopFeeKey] || 0)
         const feePrefix = orderType === 'mashup' ? 'mashup' : 'airtime'
         const adminFee = parseFloat(settings[`${feePrefix}_fee_${effectiveNetwork.toLowerCase()}_${ownerRole}`] || '0')
         if (shopFee + adminFee > 10) return { ok: false, status: 503, error: `${orderType === 'mashup' ? 'Mashup' : 'Airtime'} is temporarily unavailable (Fee cap exceeded). Please contact the shop owner.` }

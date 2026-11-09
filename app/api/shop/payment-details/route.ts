@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         }
 
         const normalized = normalizeGhanaPhone(momoNumber)
-        const resolved = normalized ? await resolveNameSingle(normalized) : null
+        const resolved = normalized ? await resolveNameSingle(normalized, network) : null
         const accountName = resolved?.fullName?.trim()
         if (!accountName) {
             return NextResponse.json(

@@ -12,6 +12,34 @@ import { repairSubAgentEarning } from '@/lib/sub-agent-earning-repair'
 import { sanitizeForStorage } from '@/lib/sanitize-for-storage'
 import { resolveEnabledSuppliers, type FulfillmentNetworkSettings } from '@/lib/order-supplier'
 import { claimForDispatchByShopOrderId, acceptDispatch, releaseClaim } from '@/lib/dispatch-claim'
+import { resolveMashupShopFee } from '@/lib/shop-checkout'
+
+/**
+ * A customer has PAID but the order cannot be created. Persist a durable security_events
+ * row (so it shows up for admin refund follow-up) — several of these early returns used to
+ * tell the customer "your payment will be refunded" while leaving no record at all.
+ */
+async function recordPaidButUnfulfilled(
+    db: any, eventType: string, reference: string,
+    metadata: { shop_id?: string; guest_phone?: string; network?: string; order_type?: string },
+    paidAmountPesewas: number, reason: string,
+) {
+    try {
+        await db.from('security_events').insert({
+            event_type: eventType,
+            reference,
+            shop_id: metadata.shop_id ?? null,
+            paid_amount: paidAmountPesewas,
+            guest_phone: metadata.guest_phone ?? null,
+            network: metadata.network ?? null,
+            order_type: metadata.order_type || 'data',
+            detail: { reason, needs_refund: true },
+            created_at: new Date().toISOString(),
+        })
+    } catch (e) {
+        console.error('[Shop Order Processor] failed to record paid-but-unfulfilled event:', e)
+    }
+}
 
 // In-memory lock to prevent race conditions between frontend verification and Paystack webhooks
 const processingLocks = new Set<string>();
@@ -129,7 +157,7 @@ export async function processShopOrder(
             // Use mashup_fee_percent for mashup shop markup, airtime_fee_X for airtime shop markup
             const shopFeeKey = `airtime_fee_${metadata.network.toLowerCase()}`
             const shopFee = metadata.order_type === 'mashup'
-                ? parseFloat((shopProfile as any).mashup_fee_percent || 1)
+                ? resolveMashupShopFee((shopProfile as any).mashup_fee_percent)
                 : parseFloat((shopProfile as any)[shopFeeKey] || 0)
             const adminFee = parseFloat(settingsMap[`${feePrefix}_fee_${metadata.network.toLowerCase()}_${ownerRole}`] || '0')
 
@@ -181,10 +209,18 @@ export async function processShopOrder(
                 paystackSettingsMap, ownerRole, 'shop_paystack_fee_percent', 1.95, shopProfile?.paystack_fee_percent
             )
 
-            const { data: pkg } = await db.from('data_packages').select('price, agent_price, dealer_price, cost_price').eq('id', metadata.package_id).single()
+            const { data: pkg } = await db.from('data_packages').select('price, agent_price, dealer_price, cost_price, network, size').eq('id', metadata.package_id).single()
             const { data: shopPrice } = await db.from('shop_pricing').select('selling_price').eq('shop_id', metadata.shop_id).eq('package_id', metadata.package_id).maybeSingle()
 
-            if (!pkg) return { success: false, error: 'Price configuration missing' }
+            if (!pkg) {
+                await recordPaidButUnfulfilled(db, 'shop_paid_unfulfilled', reference, metadata, paidAmountPesewas, 'package_missing')
+                return { success: false, error: 'Price configuration missing' }
+            }
+
+            // What gets fulfilled must come from the package row, not from echoed metadata.
+            if (pkg.network && pkg.size) {
+                metadata = { ...metadata, network: pkg.network, package_size: pkg.size }
+            }
 
             // Sub-agent shop? Re-derive from the DB — metadata hints are never trusted (spec §11).
             const subCtx = await resolveSubAgentContext(db, shopProfile.owner_id)
@@ -219,6 +255,7 @@ export async function processShopOrder(
                 const resolved = await resolveSubAgentDataCost(db, shopProfile.owner_id, metadata.package_id, pkg, 'data')
                 if (!resolved.ok) {
                     console.error(`[Shop Order Processor] 🚨 sub cost unresolvable: ${resolved.reason} (Ref ${reference})`)
+                    await recordPaidButUnfulfilled(db, 'shop_paid_unfulfilled', reference, metadata, paidAmountPesewas, 'sub_cost_unresolvable')
                     return { success: false, error: 'Pricing changed and this order cannot be completed. Your payment will be refunded.' }
                 }
                 dbSubCost = resolved.subCost
@@ -228,12 +265,14 @@ export async function processShopOrder(
             }
 
             if (!shopPrice && dbSubCost == null) {
+                await recordPaidButUnfulfilled(db, 'shop_paid_unfulfilled', reference, metadata, paidAmountPesewas, 'shop_price_missing')
                 return { success: false, error: 'Price configuration missing' }
             }
 
             const adminOOS = await getAdminOOSNetworks(db)
             const { data: shopStock } = await db.from('shop_profiles').select('oos_networks').eq('id', metadata.shop_id).maybeSingle()
             if (isNetworkOOS(mergeOOS(adminOOS, shopStock?.oos_networks), metadata.network)) {
+                await recordPaidButUnfulfilled(db, 'shop_paid_unfulfilled', reference, metadata, paidAmountPesewas, 'network_out_of_stock')
                 return { success: false, error: `${metadata.network} is out of stock at the moment` }
             }
 

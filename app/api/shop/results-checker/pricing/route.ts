@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
 
         const { data: shop } = await db
             .from('shop_profiles')
-            .select('id, owner_id, results_checker_markup_customer, owner:users!shop_profiles_owner_id_fkey(role, dealer_expires_at, agent_expires_at)')
+            .select('id, owner_id, is_active, approval_status, results_checker_markup_customer, owner:users!shop_profiles_owner_id_fkey(role, dealer_expires_at, agent_expires_at)')
             .eq('shop_slug', shopSlug)
             .maybeSingle()
-        if (!shop) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+        if (!shop || !shop.is_active || shop.approval_status !== 'approved') return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
 
         // The displayed base MUST match what the charge computes = the OWNER-ROLE price
         // (getPriceForRole), not the literal customer_price — a reseller shop sells at

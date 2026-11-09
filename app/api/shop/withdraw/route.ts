@@ -1,32 +1,46 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
-import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { phoneSchema } from '@/lib/validation'
-import { validateAccountName, MOOLRE_CHANNEL_MAP, getBanks } from '@/lib/moolre-transfer-service'
+import { MOOLRE_CHANNEL_MAP, getBanks } from '@/lib/moolre-transfer-service'
+import { resolvePayoutAccountName } from '@/lib/payout-name-resolver'
+import { consumeNameLookupQuota } from '@/lib/payout-name-lookup-quota'
+import { checkWithdrawLimit } from '@/lib/withdraw-rate-limit'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { sendAdminShopWithdrawalRequestAlert } from '@/lib/email-service'
 
 // Manual fallback name — strict allowlist to prevent injection/abuse.
 // Allowed: letters (incl. accented), spaces, hyphen, apostrophe, period.
-// Length 2-100. No leading/trailing whitespace, no consecutive whitespace,
-// no HTML/script tokens (defence-in-depth on top of the allowlist).
+// Length 2-100. No leading/trailing or consecutive whitespace. The allowlist
+// already excludes every HTML/script metacharacter (< > : ( ) & ; etc.), so no
+// extra keyword blocklist is needed — one would only reject real names.
 const MANUAL_NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ '.\-]{1,99}$/
-const MANUAL_NAME_BLOCK = /(script|javascript:|onerror|onload|onclick|onmouseover|eval\(|data:|<|>|&lt|&gt)/i
 const manualAccountNameSchema = z.string()
     .trim()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be 100 characters or less')
     .regex(MANUAL_NAME_REGEX, 'Only letters, spaces, hyphens, apostrophes and periods allowed')
     .refine((v: string) => !/\s{2,}/.test(v), 'No consecutive spaces allowed')
-    .refine((v: string) => !MANUAL_NAME_BLOCK.test(v), 'Invalid characters detected')
+
+// wallet / transaction columns are numeric(12,2): reject sub-pesewa amounts instead
+// of letting the database round them (a 10.005 request debited 10.00 but paid out as 10.01).
+const hasAtMostTwoDecimals = (n: number) => Number.isFinite(n) && Math.abs(n * 100 - Math.round(n * 100)) < 1e-7
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+// process_shop_withdrawal raises these on purpose; anything else is an internal error
+// and must not be echoed to the client.
+const SAFE_RPC_ERRORS = [
+    'Withdrawal amount must be greater than zero',
+    'Insufficient shop wallet balance',
+    'Withdrawal amount too low to cover the processing fee',
+]
 
 const withdrawSchema = z.object({
     amount: z.union([
         z.number().positive(),
         z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)
-    ]),
+    ]).refine(hasAtMostTwoDecimals, 'Amount can have at most 2 decimal places'),
     momoNumber: z.string().min(8, 'Number is too short').max(30, 'Number is too long'),
     network: z.enum(['MTN MoMo', 'Telecel Cash', 'AirtelTigo Money', 'Bank']),
     payment_type: z.enum(['momo', 'bank']).default('momo'),
@@ -38,6 +52,23 @@ const withdrawSchema = z.object({
     // verified name from DB — Moolre is not called.
     savedDetailId: z.string().uuid('Invalid saved detail ID').optional(),
 }).superRefine((data: any, ctx: z.RefinementCtx) => {
+    // network and payment_type must agree — otherwise a MoMo number can be filed as a
+    // bank payout (or the reverse) and the admin payout rail misroutes it.
+    if ((data.network === 'Bank') !== (data.payment_type === 'bank')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['payment_type'],
+            message: 'Payment type does not match the selected network'
+        })
+    }
+    // A saved detail carries its own bank_id server-side; a new bank entry must name one.
+    if (data.payment_type === 'bank' && !data.savedDetailId && !data.bankId) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['bankId'],
+            message: 'Select a bank'
+        })
+    }
     if (data.network === 'Bank') {
         // Bank account numbers: allow digits, letters, hyphens (some banks use alphanumeric)
         if (!/^[A-Za-z0-9-]+$/.test(data.momoNumber)) {
@@ -67,7 +98,6 @@ const withdrawSchema = z.object({
 
 export async function POST(req: NextRequest) {
     try {
-        const cookieStore = await cookies()
         const supabase = await createRouteClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -75,7 +105,7 @@ export async function POST(req: NextRequest) {
         // 1. Validate caller is authenticated — shop ownership is verified via wallet lookup below
         const { data: dbUser } = await supabase
             .from('users')
-            .select('role, id')
+            .select('role, id, status')
             .eq('id', user.id)
             .single()
 
@@ -83,7 +113,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Forbidden. User not found.' }, { status: 403 })
         }
 
-        const body = await req.json()
+        // A suspension only flips users.status — it does not revoke the auth session —
+        // so money routes must check it themselves (as data-orders/guards.ts does).
+        if (dbUser.status === 'suspended' || dbUser.status === 'inactive') {
+            return NextResponse.json(
+                { error: 'Your account is currently suspended. Please contact support.' },
+                { status: 403 }
+            )
+        }
+
+        if (!(await checkWithdrawLimit(user.id))) {
+            return NextResponse.json(
+                { error: 'Too many withdrawal attempts. Please wait a few minutes and try again.' },
+                { status: 429 }
+            )
+        }
+
+        const body = await req.json().catch(() => null)
+        if (!body || typeof body !== 'object') {
+            return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+        }
 
         // 2. Validate input shape with Zod
         const validation = withdrawSchema.safeParse(body)
@@ -174,8 +223,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 6. Server-side account name validation via Moolre — NEVER trust client-submitted name
-        const channel = MOOLRE_CHANNEL_MAP[network]
-        if (channel === undefined) {
+        if (MOOLRE_CHANNEL_MAP[network] === undefined) {
             return NextResponse.json({ error: `Unsupported network: ${network}` }, { status: 400 })
         }
 
@@ -211,8 +259,24 @@ export async function POST(req: NextRequest) {
             network = savedDetail.network || network
             payment_type = savedDetail.payment_type || payment_type
             bankId = savedDetail.bank_id || undefined
+
+            // The stored row replaced the client's values, so the cross-field rules the
+            // schema applied to the request body must hold for the stored values too.
+            if ((network === 'Bank') !== (payment_type === 'bank') || MOOLRE_CHANNEL_MAP[network] === undefined) {
+                return NextResponse.json({ error: 'This saved payment method is invalid. Please remove it and add it again.' }, { status: 400 })
+            }
         } else {
-            const nameValidation = await validateAccountName(momoNumber, channel, bankId)
+            const nameValidation = await resolvePayoutAccountName({ network, number: momoNumber, bankId })
+
+            // A failed lookup is charged to the same daily quota as /validate-account.
+            // Successful lookups end in a real payout to that number, so they cost
+            // nothing here — but failures must not become a free probe of numbers.
+            if (!nameValidation.success && !(await consumeNameLookupQuota(user.id))) {
+                return NextResponse.json(
+                    { error: 'Daily account-verification limit reached. Please try again tomorrow or contact support.' },
+                    { status: 429 }
+                )
+            }
 
             if (nameValidation.success && nameValidation.name) {
                 verifiedAccountName = nameValidation.name
@@ -245,9 +309,10 @@ export async function POST(req: NextRequest) {
         }
 
         // 8. Calculate fees and new balance
-        const feePercent = (amountNum * settings.withdrawal_fee_percent) / 100
-        const totalFee = feePercent + settings.withdrawal_fee_flat
-        const netAmount = amountNum - totalFee
+        // Round to pesewas here so fee + net always equals the amount; the RPC rounds
+        // the same way and takes the larger of its own fee and this one.
+        const totalFee = round2((amountNum * settings.withdrawal_fee_percent) / 100 + settings.withdrawal_fee_flat)
+        const netAmount = round2(amountNum - totalFee)
 
         // Guard against negative net amount (fees exceed withdrawal amount)
         if (netAmount <= 0) {
@@ -295,7 +360,11 @@ export async function POST(req: NextRequest) {
 
         if (rpcError) {
             console.error('[Withdrawal RPC Error]', rpcError)
-            return NextResponse.json({ error: rpcError.message || 'Failed to process withdrawal' }, { status: 400 })
+            const safeMessage = SAFE_RPC_ERRORS.find(m => rpcError.message?.includes(m))
+            return NextResponse.json(
+                { error: safeMessage || 'Failed to process withdrawal. Please try again.' },
+                { status: safeMessage ? 400 : 500 }
+            )
         }
 
         const newBalance = rpcResult.newBalance
@@ -323,16 +392,22 @@ export async function POST(req: NextRequest) {
                         p_limit:         5,
                     }).then(() => {}).catch((err: any) => console.warn('[Withdraw] save payment detail failed:', err))
                 } else if (isNameVerified) {
-                    // Auto-update saved detail if the Moolre-verified name differs
-                    const { data: existingSaved } = await (supabase as any)
+                    // Auto-update saved detail if the provider-verified name differs.
+                    // momoNumber is regex-validated (digits / alphanumerics / hyphens) so it
+                    // is safe inside the filter string. limit(1)+maybeSingle: .single() errors
+                    // when the same number is saved on more than one network.
+                    const admin = createAdminClient() as any
+                    const { data: existingSaved } = await admin
                         .from('shop_payment_details')
                         .select('id, account_name')
                         .eq('shop_owner_id', user.id)
                         .or(`momo_number.eq.${momoNumber},account_number.eq.${momoNumber}`)
-                        .single()
+                        .eq('network', network)
+                        .limit(1)
+                        .maybeSingle()
 
                     if (existingSaved && existingSaved.account_name !== verifiedAccountName) {
-                        await (createAdminClient() as any)
+                        await admin
                             .from('shop_payment_details')
                             .update({ account_name: verifiedAccountName })
                             .eq('id', existingSaved.id)
@@ -365,6 +440,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[Shop Withdraw API]', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

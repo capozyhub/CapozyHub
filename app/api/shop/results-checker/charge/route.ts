@@ -16,6 +16,7 @@ import {
     SUB_AGENT_PRICING_UNAVAILABLE_STATUS,
 } from '@/lib/results-checker-pricing'
 import { buildGuestEmail } from '@/lib/shop-checkout'
+import { guardGuestCharge } from '@/lib/guest-charge-guard'
 import {
     isValidResultsCheckerPhone,
     normalizeResultsCheckerPhone,
@@ -43,6 +44,10 @@ function cleanup() { const now = Date.now(); for (const [k, v] of rateLimitCache
  * No auth — guest purchase flow. Server is authoritative for price.
  */
 export async function POST(request: NextRequest) {
+    return guardGuestCharge(request, 'shop-rc-charge', () => handlePost(request))
+}
+
+async function handlePost(request: NextRequest) {
     try {
         cleanup()
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'

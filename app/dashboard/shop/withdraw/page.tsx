@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -104,13 +104,19 @@ const statusConfig = {
     reversed: { label: 'Reversed', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+// The server only accepts digit-only MoMo numbers. Accept the formats people actually
+// type (spaces, dashes, +233…) and normalise them to the local 0XXXXXXXXX form.
+const cleanNumber = (raw: string, type: 'momo' | 'bank') =>
+    type === 'momo' ? raw.replace(/[\s-]/g, '').replace(/^\+?233/, '0') : raw.trim()
+
 // ─────────────────────────────────────────────
 // Page Component
 // ─────────────────────────────────────────────
 
 export default function ShopWithdrawPage() {
     const { dbUser, isAdmin, isSubAdmin } = useAuth()
-    const router = useRouter()
 
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
     const [history, setHistory] = useState<WithdrawalRequest[]>([])
@@ -135,9 +141,12 @@ export default function ShopWithdrawPage() {
     const [verifiedName, setVerifiedName] = useState<string | null>(null)
     const [validating, setValidating] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // True only when the provider answered "can't resolve this account" (or was down).
+    // A malformed number or an exhausted daily quota must NOT unlock free-text names.
+    const [manualAllowed, setManualAllowed] = useState(false)
+    const [confirmOpen, setConfirmOpen] = useState(false)
 
-    // Manual fallback — used only when Moolre verification fails.
+    // Manual fallback — used only when provider verification fails.
     // Same allowlist + length constraints are enforced server-side; the
     // client copy is for instant feedback and a friendlier UX.
     const [manualName, setManualName] = useState('')
@@ -145,7 +154,7 @@ export default function ShopWithdrawPage() {
     const normalizedManualName = manualName.trim().replace(/\s+/g, ' ')
     // Unlock button after first character — server enforces min-2 and regex.
     const manualNameValid = normalizedManualName.length >= 1
-    const canUseManual = !!validationError && !validating && !verifiedName
+    const canUseManual = !!validationError && manualAllowed && !validating && !verifiedName
 
     // Saved Details manager modal
     const [savedModalOpen, setSavedModalOpen] = useState(false)
@@ -155,20 +164,36 @@ export default function ShopWithdrawPage() {
     const [addingDetail, setAddingDetail] = useState(false)
 
     useEffect(() => {
-        if (dbUser) fetchData()
+        if (dbUser) fetchData(true)
     }, [dbUser, isAdmin, isSubAdmin])
 
-    const fetchData = useCallback(async () => {
+    // applyDefault is true only on the first load. Later refreshes (after a submit,
+    // delete or set-default) must not overwrite what the user is in the middle of picking.
+    const fetchData = useCallback(async (applyDefault = false) => {
         try {
             const db = supabase as any
-            const [walletRes, historyRes, settingsRes, shopRes, savedRes] = await Promise.all([
-                db.from('shop_wallets').select('*').eq('owner_id', dbUser!.id).maybeSingle(),
-                db.from('shop_wallet_transactions')
-                    .select('*')
-                    .eq('type', 'withdrawal')
-                    .order('created_at', { ascending: false })
-                    .limit(20),
-                db.from('shop_global_settings').select('*'),
+            const ownerRole = dbUser!.role || 'customer'
+            const feeKeys = [
+                ...roleFeeSettingKeys(ownerRole, 'withdrawal_fee_percent'),
+                ...roleFeeSettingKeys(ownerRole, 'withdrawal_fee_flat'),
+                ...roleFeeSettingKeys(ownerRole, 'min_withdrawal_amount'),
+            ]
+
+            // Wallet first: the history query must be scoped to THIS wallet. RLS also lets
+            // admins read every wallet and Leads read their sub-agents', so an unscoped
+            // select would mix other people's withdrawals into this page.
+            const walletRes = await db.from('shop_wallets').select('*').eq('owner_id', dbUser!.id).maybeSingle()
+
+            const [historyRes, settingsRes, shopRes, savedRes] = await Promise.all([
+                walletRes.data
+                    ? db.from('shop_wallet_transactions')
+                        .select('*')
+                        .eq('type', 'withdrawal')
+                        .eq('shop_wallet_id', walletRes.data.id)
+                        .order('created_at', { ascending: false })
+                        .limit(20)
+                    : Promise.resolve({ data: [] }),
+                db.from('shop_global_settings').select('key, value').in('key', feeKeys),
                 db.from('shop_profiles')
                     .select('shop_name, withdrawal_fee_percent, withdrawal_fee_flat, min_withdrawal_amount')
                     .eq('owner_id', dbUser!.id)
@@ -184,42 +209,30 @@ export default function ShopWithdrawPage() {
             if (shopRes.data?.shop_name) setShopName(shopRes.data.shop_name)
             setSavedDetails(savedRes.data || [])
 
-            if (settingsRes.data) {
-                const s: Record<string, any> = {}
-                for (const row of settingsRes.data) {
-                    s[row.key] = typeof row.value === 'string' ? parseFloat(row.value) : row.value
-                }
-                const ownerRole = dbUser!.role || 'customer'
-                const resolveGlobal = (baseKey: string, fallback: number): number => {
-                    const roleVal = s[`${baseKey}_${ownerRole}`]
-                    if (roleVal != null && !isNaN(roleVal)) return roleVal
-                    const legacyVal = s[baseKey]
-                    if (legacyVal != null && !isNaN(legacyVal)) return legacyVal
-                    return fallback
-                }
-                setSettings({
-                    withdrawal_fee_percent: resolveGlobal('withdrawal_fee_percent', 0),
-                    withdrawal_fee_flat: resolveGlobal('withdrawal_fee_flat', 0),
-                    min_withdrawal_amount: resolveGlobal('min_withdrawal_amount', 0),
-                })
-                if (shopRes.data) {
-                    const sp = shopRes.data
-                    setSettings(prev => ({
-                        withdrawal_fee_percent: sp.withdrawal_fee_percent != null ? parseFloat(String(sp.withdrawal_fee_percent)) : prev.withdrawal_fee_percent,
-                        withdrawal_fee_flat: sp.withdrawal_fee_flat != null ? parseFloat(String(sp.withdrawal_fee_flat)) : prev.withdrawal_fee_flat,
-                        min_withdrawal_amount: sp.min_withdrawal_amount != null ? parseFloat(String(sp.min_withdrawal_amount)) : prev.min_withdrawal_amount,
-                    }))
-                }
-            }
+            // Same resolver and the same hardcoded defaults (50 / 2% / 0) as /api/shop/withdraw
+            // and process_shop_withdrawal, so the breakdown shown here is what is charged
+            // (including the sub-agent -> customer-rate fallback).
+            const globalMap: Record<string, string | number | null> = {}
+            for (const row of (settingsRes.data || [])) globalMap[row.key] = row.value
+            const sp = shopRes.data
+            setSettings({
+                min_withdrawal_amount: resolveRoleFeeSetting(globalMap, ownerRole, 'min_withdrawal_amount', 50, sp?.min_withdrawal_amount),
+                withdrawal_fee_percent: resolveRoleFeeSetting(globalMap, ownerRole, 'withdrawal_fee_percent', 2, sp?.withdrawal_fee_percent),
+                withdrawal_fee_flat: resolveRoleFeeSetting(globalMap, ownerRole, 'withdrawal_fee_flat', 0, sp?.withdrawal_fee_flat),
+            })
 
-            // Pre-fill with default payment detail
-            const defaultDetail = savedRes.data?.find((d: SavedDetail) => d.is_default)
+            // Pre-fill with the default payment detail (first load only). Saved details are
+            // MoMo-only (shop_payment_details.network is constrained to the MoMo networks);
+            // a non-MoMo default would put the bank form in "saved" mode, where edits to the
+            // visible fields are ignored by the server in favour of the stored account.
+            const defaultDetail = applyDefault
+                ? savedRes.data?.find((d: SavedDetail) => d.is_default && (d.payment_type || 'momo') === 'momo')
+                : null
             if (defaultDetail) {
                 setSelectedSavedId(defaultDetail.id)
                 setNetwork(defaultDetail.network)
                 setMomoNumber(defaultDetail.momo_number)
-                setPaymentType(defaultDetail.payment_type || 'momo')
-                if (defaultDetail.bank_id) setSelectedBankId(defaultDetail.bank_id)
+                setPaymentType('momo')
                 // Saved details were verified at save-time; use the stored name directly.
                 setVerifiedName(defaultDetail.account_name)
             }
@@ -251,6 +264,7 @@ export default function ShopWithdrawPage() {
         setValidating(true)
         setVerifiedName(null)
         setValidationError(null)
+        setManualAllowed(false)
         // A new validation invalidates any manual fallback the user typed for
         // the previous attempt — otherwise the submit could fire with a stale
         // manual name for a different number/network.
@@ -259,21 +273,25 @@ export default function ShopWithdrawPage() {
         fetch('/api/shop/validate-account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: phone.trim(), network: net, bankId }),
+            body: JSON.stringify({ phone: cleanNumber(phone, net === 'Bank' ? 'bank' : 'momo'), network: net, bankId }),
         })
-            .then(r => r.json())
-            .then(data => {
+            .then(async r => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
+            .then(({ ok, data }) => {
                 if (data.success && data.name) {
                     setVerifiedName(data.name)
                     setValidationError(null)
                 } else {
                     setVerifiedName(null)
-                    setValidationError(data.error || 'Could not verify account name')
+                    // Manual name entry is only for "the provider couldn't resolve this" (HTTP 200,
+                    // success:false). A 400 (bad number format), 429 (daily quota) or 5xx is not.
+                    setManualAllowed(ok)
+                    setValidationError(data.details?.[0] || data.error || 'Could not verify account name')
                 }
             })
             .catch(() => {
                 setVerifiedName(null)
-                setValidationError('Network error during validation')
+                setManualAllowed(false)
+                setValidationError('Network error during validation. Please try again.')
             })
             .finally(() => setValidating(false))
     }, [])
@@ -290,6 +308,8 @@ export default function ShopWithdrawPage() {
             setBranch('')
             setVerifiedName(null)
             setValidationError(null)
+            setManualAllowed(false)
+            setManualName('')
         } else {
             const d = savedDetails.find(s => s.id === id)
             if (d) {
@@ -298,28 +318,36 @@ export default function ShopWithdrawPage() {
                 setPaymentType(d.payment_type || 'momo')
                 if (d.bank_id) setSelectedBankId(d.bank_id)
                 setBranch('')
-                // Use the previously verified name directly — no Moolre round-trip needed.
+                // Use the previously verified name directly — no provider round-trip needed.
                 setVerifiedName(d.account_name)
                 setValidationError(null)
+                setManualAllowed(false)
                 setManualName('')
             }
         }
     }
 
     const amountNum = parseFloat(amount) || 0
-    const feePercent = (amountNum * settings.withdrawal_fee_percent) / 100
-    const totalFee = feePercent + settings.withdrawal_fee_flat
-    const netAmount = amountNum - totalFee
+    // Pesewas only: the server rejects more than 2 decimals.
+    const tooManyDecimals = amountNum > 0 && Math.abs(amountNum * 100 - Math.round(amountNum * 100)) > 1e-7
+    // Rounded exactly as /api/shop/withdraw rounds it, so fee + payout always add up.
+    const totalFee = round2((amountNum * settings.withdrawal_fee_percent) / 100 + settings.withdrawal_fee_flat)
+    const feePercent = round2(totalFee - settings.withdrawal_fee_flat)
+    const netAmount = round2(amountNum - totalFee)
+    const accountNumber = cleanNumber(momoNumber, paymentType)
 
-    // Either a Moolre-verified name OR a valid manual fallback name lets the
+    // Either a provider-verified name OR a valid manual fallback name lets the
     // user submit. The server re-checks both — this is just UI gating.
     const hasUsableName = !!verifiedName || (canUseManual && manualNameValid)
     const canSubmit =
         amountNum > 0 &&
+        !tooManyDecimals &&
         amountNum >= settings.min_withdrawal_amount &&
         amountNum <= (wallet?.balance || 0) &&
+        netAmount > 0 &&
         !!network &&
-        !!momoNumber &&
+        !!accountNumber &&
+        (paymentType !== 'bank' || !!selectedBankId) &&
         hasUsableName &&
         !validating &&
         !submitting
@@ -336,7 +364,7 @@ export default function ShopWithdrawPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     amount: amountNum,
-                    momoNumber: momoNumber.trim(),
+                    momoNumber: accountNumber,
                     network,
                     payment_type: paymentType,
                     bankId: selectedBankId || undefined,
@@ -344,22 +372,35 @@ export default function ShopWithdrawPage() {
                     saveForLater: saveForLater && !isSaved,
                     // For saved details the server fetches the verified name from DB.
                     ...(isSaved ? { savedDetailId: selectedSavedId } : {}),
-                    // For new manual entries, pass the name if Moolre was unavailable.
+                    // For new manual entries, pass the name if the provider couldn't verify it.
                     ...(!isSaved && usingManualFallback ? { manualAccountName: normalizedManualName } : {}),
                 }),
             })
 
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to submit request')
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                // Zod failures come back as { error: 'Invalid input', details: ['field: message'] };
+                // show the actual reason instead of the generic label.
+                const detail = Array.isArray(data.details) && data.details.length > 0
+                    ? String(data.details[0]).replace(/^[^:]*:\s*/, '')
+                    : null
+                throw new Error(detail || data.error || 'Failed to submit request')
+            }
 
             toast.success(`Withdrawal submitted! Admin will process shortly.`)
+            setConfirmOpen(false)
             setAmount('')
             setSaveForLater(false)
-            setVerifiedName(null)
-            setManualName('')
+            // A saved account stays selected (and verified) for the next withdrawal; a
+            // one-off entry must be verified again.
+            if (!isSaved) {
+                setVerifiedName(null)
+                setManualName('')
+            }
             fetchData()
 
         } catch (err: any) {
+            setConfirmOpen(false)
             toast.error(err.message || 'Failed to submit request')
         } finally {
             setSubmitting(false)
@@ -409,6 +450,8 @@ export default function ShopWithdrawPage() {
         const { error } = await (supabase as any).from('shop_payment_details').delete().eq('id', id)
         if (error) { toast.error('Failed to remove payment method'); return }
         toast.success('Payment method removed')
+        // Don't leave the form pointing at a row that no longer exists.
+        if (selectedSavedId === id) handleSavedSelect('manual')
         fetchData()
     }
 
@@ -507,6 +550,16 @@ export default function ShopWithdrawPage() {
                                 <AlertCircle className="w-3 h-3" /> Amount exceeds your available balance
                             </p>
                         )}
+                        {tooManyDecimals && (
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" /> Use at most 2 decimal places
+                            </p>
+                        )}
+                        {amountNum > 0 && !tooManyDecimals && netAmount <= 0 && (
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" /> Amount is too low to cover the processing fee
+                            </p>
+                        )}
                         {amountNum > 0 && amountNum < settings.min_withdrawal_amount && (
                             <p className="text-xs text-amber-600 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" /> Minimum withdrawal is {formatCurrency(settings.min_withdrawal_amount)}
@@ -574,6 +627,9 @@ export default function ShopWithdrawPage() {
                                 type="button"
                                 onClick={() => { 
                                     setPaymentType('momo')
+                                    setNetwork('')
+                                    setManualAllowed(false)
+                                    setManualName('')
                                     setSelectedBankId('')
                                     setBranch('')
                                     setVerifiedName(null)
@@ -595,6 +651,8 @@ export default function ShopWithdrawPage() {
                                 type="button"
                                 onClick={() => { 
                                     setPaymentType('bank')
+                                    setManualAllowed(false)
+                                    setManualName('')
                                     setNetwork('Bank' as any)
                                     setSelectedSavedId('manual')
                                     setVerifiedName(null)
@@ -714,6 +772,7 @@ export default function ShopWithdrawPage() {
                                         </Label>
                                         <Select value={network} onValueChange={(v) => {
                                             setNetwork(v as Network)
+                                            setManualAllowed(false)
                                             setVerifiedName(null)
                                             setValidationError(null)
                                         }}>
@@ -778,6 +837,7 @@ export default function ShopWithdrawPage() {
                                         value={momoNumber}
                                         onChange={(e) => {
                                             setMomoNumber(e.target.value)
+                                            setManualAllowed(false)
                                             setVerifiedName(null)
                                             setValidationError(null)
                                         }}
@@ -843,7 +903,7 @@ export default function ShopWithdrawPage() {
                                         </div>
                                     </div>
 
-                                    {/* When Moolre can't verify, invite manual entry inline — replaces
+                                    {/* When the provider can't verify, invite manual entry inline — replaces
                                         the raw error text so the user gets a clear action prompt. */}
                                     {canUseManual ? (
                                         <div className="mt-1.5 space-y-1">
@@ -914,7 +974,7 @@ export default function ShopWithdrawPage() {
                         <div className="flex items-start gap-2 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
                             <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                             <span>
-                                Account name must be verified via Moolre. If verification keeps
+                                Account name must be verified. Tap "Verify Manually" after entering the number. If verification keeps
                                 failing, you can enter the name manually — admin will review before
                                 paying out.
                             </span>
@@ -931,7 +991,7 @@ export default function ShopWithdrawPage() {
 
                     {/* ── Submit Button */}
                     <Button
-                        onClick={handleSubmit}
+                        onClick={() => setConfirmOpen(true)}
                         disabled={!canSubmit}
                         className="w-full h-12 font-bold gap-2 text-base shadow-emerald-600/20 clay clay-green"
                     >
@@ -1083,6 +1143,33 @@ export default function ShopWithdrawPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* ── Confirm payout ── */}
+            <Dialog open={confirmOpen} onOpenChange={(o) => { if (!submitting) setConfirmOpen(o) }}>
+                <DialogContent className="max-w-sm" aria-describedby={undefined}>
+                    <DialogHeader>
+                        <DialogTitle>Confirm withdrawal</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="font-semibold">{formatCurrency(amountNum)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Fee</span><span>−{formatCurrency(totalFee)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">You receive</span><span className="font-bold text-emerald-600">{formatCurrency(Math.max(0, netAmount))}</span></div>
+                        <div className="border-t pt-2 space-y-1">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium text-right">{verifiedName || normalizedManualName}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">{paymentType === 'bank' ? 'Account' : 'Number'}</span><span className="font-mono">{accountNumber}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Network</span><span>{paymentType === 'bank' ? (banks.find(b => b.id === selectedBankId)?.name || 'Bank') : network}</span></div>
+                        </div>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">Your wallet is debited immediately. Check the number carefully — payouts to a wrong account may not be recoverable.</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={submitting}>Cancel</Button>
+                        <Button onClick={handleSubmit} disabled={submitting || !canSubmit} className="gap-2 clay clay-green">
+                            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                            Confirm &amp; Withdraw
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* ── Saved Payment Details Modal ── */}
             <Dialog open={savedModalOpen} onOpenChange={setSavedModalOpen}>

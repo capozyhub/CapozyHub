@@ -19,6 +19,7 @@
 import crypto from 'crypto'
 import { sendPhoneOTPSms } from '@/lib/sms-service'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
 
 // Store hashed OTP — raw code is never written to DB. Identical algorithm to
 // verify-phone's hashOTP so a reader auditing either table sees the same format.
@@ -90,13 +91,15 @@ export async function sendVerificationOtp(
     }
 
     // Per-IP: max 5 send attempts per 10 minutes
-    const ipLimit = consumeRateLimit(`verify-number-send-ip:${ip}`, 5, 10 * 60 * 1000)
+    // Both limits live in shared Redis (limitDistributed): each OTP is a billed SMS to a
+    // third party's phone, and the per-instance in-memory counters reset on every cold start.
+    const ipLimit = await limitDistributed('verify-number-send-ip', ip, 5, 10 * 60)
     if (!ipLimit.allowed) {
         return { ok: false, status: 429, error: 'Too many requests. Please try again later.' }
     }
 
     // Per-phone: max 3 OTPs per hour
-    const phoneLimit = consumeRateLimit(`verify-number-send-phone:${phone233}`, 3, 60 * 60 * 1000)
+    const phoneLimit = await limitDistributed('verify-number-send-phone', phone233, 3, 60 * 60)
     if (!phoneLimit.allowed) {
         return { ok: false, status: 429, error: 'Too many codes sent to this number. Please wait before requesting another.' }
     }
@@ -107,10 +110,17 @@ export async function sendVerificationOtp(
     // Server-side 60s resend cooldown — prevents bypassing a client-side timer
     const { data: existing } = await db
         .from('phone_otp_verifications')
-        .select('created_at')
+        .select('created_at, expires_at, verify_reference')
         .eq('phone', phone233)
         .eq('used', false)
         .maybeSingle()
+
+    // A bare (no-charge) send must never replace a live row that carries a stashed charge:
+    // the row is keyed by phone, so anyone requesting an OTP for a victim's number would
+    // otherwise wipe the victim's in-flight checkout verification.
+    if (existing?.verify_reference && !opts?.verifyReference && new Date(existing.expires_at) > new Date()) {
+        return { ok: false, status: 409, error: 'A payment verification is already in progress for this number. Please complete it or wait a few minutes.' }
+    }
 
     if (existing) {
         const sinceCreated = Date.now() - new Date(existing.created_at).getTime()

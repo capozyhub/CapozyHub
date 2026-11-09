@@ -72,8 +72,8 @@ export async function computeShopAfaCheckout(db: any, body: ShopAfaCheckoutInput
         .from('shop_profiles')
         .select(`
             id, shop_name, shop_slug, owner_id, approval_status, is_active,
-            owner_phone, whatsapp_number, afa_selling_price, paystack_fee_percent,
-            owner:users!shop_profiles_owner_id_fkey(role, email)
+            owner_phone, owner_email, whatsapp_number, afa_selling_price, paystack_fee_percent,
+            owner:users!shop_profiles_owner_id_fkey(role)
         `)
         .eq('shop_slug', shopSlug)
         .single()
@@ -83,7 +83,8 @@ export async function computeShopAfaCheckout(db: any, body: ShopAfaCheckoutInput
     if (shop.approval_status !== 'approved' || !shop.is_active) {
         return {
             ok: false, status: 403, error: 'This shop is not currently active',
-            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner?.email },
+            // Public contact field only — never the owner's account (login) email.
+            contact: { phone: shop.owner_phone, whatsapp: shop.whatsapp_number, email: shop.owner_email },
         }
     }
 

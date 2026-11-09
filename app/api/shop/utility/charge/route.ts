@@ -8,6 +8,7 @@ import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { channelForMsisdn } from '@/lib/hubtel-receive-money'
 import { isNumberVerified, sendVerificationOtp } from '@/lib/hubtel-receive/number-verification'
 import { sanitizeForStorage } from '@/lib/sanitize-for-storage'
+import { guardGuestCharge } from '@/lib/guest-charge-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,10 @@ const PAYSTACK_PROVIDER_MAP: Record<string, 'MTN' | 'VOD' | 'ATL'> = { MTN: 'MTN
  * failed (no orphan pending row survives a failed prompt/init call).
  */
 export async function POST(request: NextRequest) {
+    return guardGuestCharge(request, 'shop-utility-charge', () => handlePost(request))
+}
+
+async function handlePost(request: NextRequest) {
     try {
         const ip = getClientIp(request) || 'unknown'
         const rl = consumeRateLimit(`util-sf-charge:${ip}`, 4, 60_000)

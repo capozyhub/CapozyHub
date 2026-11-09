@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { getClientIp } from '@/lib/api-auth'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
 
 // IP-based rate limiter — 10 lookups per minute per IP
 const rateLimitCache = new Map<string, { count: number; resetAt: number }>()
@@ -24,8 +26,12 @@ setInterval(() => {
 const supabaseAdmin = createServerClient()
 
 export async function GET(req: NextRequest) {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+    const ip = getClientIp(req) || 'unknown'
     if (!checkRateLimit(ip)) {
+        return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+    }
+    const ipShared = await limitDistributed('shop-lookup-ip', ip, 20, 60)
+    if (!ipShared.allowed) {
         return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
     }
 
@@ -48,6 +54,13 @@ export async function GET(req: NextRequest) {
     const cleanPhone = phone.replace(/\s+/g, '')
     if (!/^(0\d{9}|233\d{9}|\+233\d{9})$/.test(cleanPhone)) {
         return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
+    }
+
+    // Per-phone cap: a phone number is the only "credential" here, so cap how often any one
+    // number's history can be pulled, regardless of how many IPs the requests come from.
+    const phoneShared = await limitDistributed('shop-lookup-phone', `${shopSlug}:${cleanPhone.slice(-9)}`, 10, 600)
+    if (!phoneShared.allowed) {
+        return NextResponse.json({ error: 'Too many lookups for this number. Please try again later.' }, { status: 429 })
     }
 
     try {

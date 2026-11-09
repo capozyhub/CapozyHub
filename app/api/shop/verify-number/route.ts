@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { validateGhanaianPhone } from '@/lib/phone-validation'
 import { hasTrustedRequestOrigin } from '@/lib/site-url'
-import { consumeRateLimit } from '@/lib/simple-rate-limit'
+import { getClientIp as getTrustedClientIp } from '@/lib/api-auth'
 import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { sendVerificationOtp, confirmVerificationOtp } from '@/lib/hubtel-receive/number-verification'
 
@@ -22,12 +22,10 @@ import { sendVerificationOtp, confirmVerificationOtp } from '@/lib/hubtel-receiv
  * route is a thin wrapper that preserves its own pre-existing external behavior exactly.
  */
 
+// The LEFTMOST x-forwarded-for hop is caller-controlled; use the platform-trusted resolver
+// so rotating that header can't mint a fresh rate-limit bucket per request.
 function getClientIp(request: NextRequest): string {
-    return (
-        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        request.headers.get('x-real-ip') ||
-        'unknown'
-    )
+    return getTrustedClientIp(request) || 'unknown'
 }
 
 export async function POST(request: NextRequest) {

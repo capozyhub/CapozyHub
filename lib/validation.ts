@@ -79,6 +79,23 @@ export const longTextSchema = z.string()
   .refine(val => !htmlBlockRegex.test(val), 'Invalid characters detected')
   .refine(val => !scriptBlockRegex.test(val), 'Invalid characters detected')
 
+// Public display text (shop name / description). These are only ever rendered through React
+// (escaped) and never as HTML, so `&` is legitimate ("Kofi & Sons") and a bare word like
+// "Descriptions" must not trip the substring `script` check. Angle brackets and real
+// script-ish patterns stay blocked as defence in depth.
+const displayScriptRegex = /javascript:|vbscript:|data:text|<\s*\/?\s*script|on(?:click|error|load|mouseover)\s*=|eval\(/i
+const angleBracketRegex = /[<>]/
+
+export const displayShortTextSchema = z.string()
+  .max(200, 'Must be 200 characters or less')
+  .refine(val => !angleBracketRegex.test(val), 'Invalid characters detected')
+  .refine(val => !displayScriptRegex.test(val), 'Invalid characters detected')
+
+export const displayLongTextSchema = z.string()
+  .max(5000, 'Must be 5000 characters or less')
+  .refine(val => !angleBracketRegex.test(val), 'Invalid characters detected')
+  .refine(val => !displayScriptRegex.test(val), 'Invalid characters detected')
+
 // Shop-specific schemas
 export const slugSchema = z.string()
   .min(3, 'Must be at least 3 characters')

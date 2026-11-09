@@ -2,8 +2,9 @@
  * Multi-provider MoMo account name resolution for Ghana numbers.
  *
  * Providers supported:
- *   • Moolre  — native Ghana gateway, fastest for local numbers
- *   • Paystack — reliable fallback with broad Ghana MoMo coverage
+ *   • Paystack — primary; broad Ghana MoMo coverage
+ *   • Moolre  — optional fallback; skipped automatically when its
+ *               MOOLRE_TRANSFER_* env vars are not configured
  *   • Hubtel  — slot reserved; wire in when docs are available
  *
  * Single lookup  : tries providers in sequence until one succeeds
@@ -56,7 +57,19 @@ function toLocal(normalizedPhone: string): string {
     return '0' + normalizedPhone.slice(3)
 }
 
-function getMeta(normalizedPhone: string) {
+type NetworkMeta = { label: string; paystackCode: string; moolreChannel: number }
+
+// The network the user explicitly picked wins over the number's prefix: Ghana has
+// number portability, so a prefix does not guarantee the number is still on that
+// network, and the payout is sent on the picked network.
+const NETWORK_HINT_META: Record<string, NetworkMeta> = {
+    'MTN MoMo':         { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
+    'Telecel Cash':     { label: 'TELECEL', paystackCode: 'VOD', moolreChannel: 6 },
+    'AirtelTigo Money': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
+}
+
+function getMeta(normalizedPhone: string, networkHint?: string): NetworkMeta | null {
+    if (networkHint && NETWORK_HINT_META[networkHint]) return NETWORK_HINT_META[networkHint]
     const prefix = toLocal(normalizedPhone).substring(0, 3)
     return NETWORK_META[prefix] ?? null
 }
@@ -68,9 +81,9 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
 
 // ─── Paystack ─────────────────────────────────────────────────────────────────
 
-async function resolveViaPaystack(normalizedPhone: string): Promise<NameResolveResult | null> {
+async function resolveViaPaystack(normalizedPhone: string, networkHint?: string): Promise<NameResolveResult | null> {
     const key  = process.env.PAYSTACK_SECRET_KEY
-    const meta = getMeta(normalizedPhone)
+    const meta = getMeta(normalizedPhone, networkHint)
     if (!key || !meta) return null
 
     try {
@@ -91,11 +104,11 @@ async function resolveViaPaystack(normalizedPhone: string): Promise<NameResolveR
 
 // ─── Moolre ───────────────────────────────────────────────────────────────────
 
-async function resolveViaMoolre(normalizedPhone: string): Promise<NameResolveResult | null> {
+async function resolveViaMoolre(normalizedPhone: string, networkHint?: string): Promise<NameResolveResult | null> {
     const apiUser  = process.env.MOOLRE_TRANSFER_API_USER
     const apiKey   = process.env.MOOLRE_TRANSFER_API_KEY
     const acctNum  = process.env.MOOLRE_ACCOUNT_NUMBER
-    const meta     = getMeta(normalizedPhone)
+    const meta     = getMeta(normalizedPhone, networkHint)
     if (!apiUser || !apiKey || !acctNum || !meta) return null
 
     try {
@@ -142,13 +155,13 @@ async function resolveViaMoolre(normalizedPhone: string): Promise<NameResolveRes
 
 // ─── Provider registry ────────────────────────────────────────────────────────
 // Order matters for single lookups — first entry is tried first.
-// Moolre is listed first because it connects directly to Ghanaian networks.
-// Paystack is the fallback with broad coverage.
-type Resolver = (phone: string) => Promise<NameResolveResult | null>
+// Paystack is primary. Moolre is only a fallback and returns null immediately when
+// its credentials are not configured, so it costs nothing on a Paystack-only setup.
+type Resolver = (phone: string, networkHint?: string) => Promise<NameResolveResult | null>
 
 const PROVIDERS: { name: string; fn: Resolver }[] = [
-    { name: 'moolre',   fn: resolveViaMoolre   },
     { name: 'paystack', fn: resolveViaPaystack  },
+    { name: 'moolre',   fn: resolveViaMoolre   },
     // { name: 'hubtel', fn: resolveViaHubtel }, // uncomment when ready
 ]
 
@@ -159,17 +172,18 @@ const PROVIDERS: { name: string; fn: Resolver }[] = [
  * Best for single contact adds or the verify endpoint.
  */
 export async function resolveNameSingle(
-    normalizedPhone: string
+    normalizedPhone: string,
+    networkHint?: string
 ): Promise<NameResolveResult | null> {
     for (const { fn } of PROVIDERS) {
-        const result = await fn(normalizedPhone)
+        const result = await fn(normalizedPhone, networkHint)
         if (result) return result
     }
-    // Moolre's failures are intermittent — measured 2026-09-28, the same numbers flipped
+    // Provider failures are intermittent — measured 2026-09-28, the same numbers flipped
     // between resolving and not across runs minutes apart. Once every provider has had a
     // go, one retry of the primary recovers most of them. Only runs on a full miss, and
     // no caller is on the USSD hot path (all are owner/admin-triggered API routes).
-    return await PROVIDERS[0].fn(normalizedPhone)
+    return await PROVIDERS[0].fn(normalizedPhone, networkHint)
 }
 
 /**

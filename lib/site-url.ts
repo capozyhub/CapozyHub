@@ -44,6 +44,12 @@ export function getStoreUrl() {
     return normalizeSiteUrl(process.env.NEXT_PUBLIC_STORE_URL || DEFAULT_STORE_URL)
 }
 
+// The canonical public storefront host (shop.<domain>/<slug>) used for SEO canonical /
+// Open Graph URLs. Env-driven so a domain change never needs a code edit again.
+export function getShopUrl() {
+    return normalizeSiteUrl(process.env.NEXT_PUBLIC_SHOP_URL || 'https://shop.capozygh.com')
+}
+
 // The sub-agent login domain. Env-driven with a safe built-in default so links
 // and the allowlist keep working even if the env var is briefly unset.
 export function getAgentUrl() {

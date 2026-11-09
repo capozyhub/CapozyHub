@@ -3,6 +3,7 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
 import { creditShopProfit } from '@/lib/shop-service'
 import { sendOrderSuccessSMS } from '@/lib/sms-service'
+import { getShopUrl } from '@/lib/site-url'
 
 // 5 verify attempts per IP per minute — prevents Paystack API quota exhaustion
 // from spam attacks on random/forged references
@@ -23,11 +24,17 @@ export async function GET(request: NextRequest) {
         // Redirect to error rather than exposing the rate limit in JSON
         const { searchParams } = new URL(request.url)
         const slug = searchParams.get('slug') || ''
-        return NextResponse.redirect(new URL(`https://shop.capozygh.com/${slug}?error=too_many_requests`))
+        return NextResponse.redirect(new URL(`${getShopUrl()}/${encodeURIComponent(slug)}?error=too_many_requests`))
     }
     const { searchParams } = new URL(request.url)
     const ref = searchParams.get('ref')
     const slug = searchParams.get('slug')
+
+    // Both values are echoed into redirect URLs / sent to Paystack: reject anything that
+    // isn't the exact shape we generate, so nothing attacker-shaped reaches a redirect path.
+    if (!ref || !/^SHOP-[A-Za-z0-9-]{1,90}$/.test(ref) || !slug || !/^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/.test(slug)) {
+        return NextResponse.redirect(new URL(`${getShopUrl()}/?error=invalid_ref`))
+    }
 
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     const host = request.headers.get('host') || ''
@@ -37,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (host.includes('localhost') || host.includes('127.0.0.1')) {
         targetBaseUrl = host.startsWith('shop.') ? `${protocol}://${host}` : `${protocol}://shop.${host}`
     } else {
-        targetBaseUrl = 'https://shop.capozygh.com'
+        targetBaseUrl = getShopUrl()
     }
 
     if (!ref || !slug) {

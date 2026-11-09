@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { computeShopCheckout, sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
+import { guardGuestCharge } from '@/lib/guest-charge-guard'
 
 // Best-effort per-lambda IP rate limit (10/min). Real dup-guard is the DB +
 // processShopOrder idempotency. Mirrors the initialize route.
@@ -17,6 +18,10 @@ const GHANA_NETWORK_MAP: Record<string, 'MTN' | 'VOD' | 'ATL'> = {
 }
 
 export async function POST(request: NextRequest) {
+    return guardGuestCharge(request, 'shop-charge', () => handlePost(request))
+}
+
+async function handlePost(request: NextRequest) {
     try {
         cleanup()
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'

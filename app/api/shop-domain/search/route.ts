@@ -54,12 +54,21 @@ export async function GET(request: Request) {
         { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Fetch only approved, active shops
+    // Push the exact-match predicate into the query instead of downloading every active shop
+    // per request. Values are escaped for the PostgREST filter grammar; the in-memory filter
+    // below still enforces the exact/ussd_active rules.
+    const esc = (v: string) => `"${v.replace(/["\\]/g, '')}"`
+    const ors = [`shop_slug.ilike.${esc(q)}`, `shop_name.ilike.${esc(q)}`]
+    if (isPhoneQuery) ors.push(`owner_phone.eq.${esc(q)}`)
+    if (isCodeQuery) ors.push(`ussd_code.eq.${esc(q.toUpperCase())}`)
+
     const { data, error } = await supabaseAdmin
         .from('shop_profiles')
         .select('shop_slug, shop_name, description, logo_url, owner_phone, ussd_code, ussd_active')
         .eq('approval_status', 'approved')
         .eq('is_active', true)
+        .or(ors.join(','))
+        .limit(20)
 
     if (error) {
         return NextResponse.json([], { status: 200 })

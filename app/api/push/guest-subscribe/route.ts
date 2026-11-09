@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getClientIp } from '@/lib/api-auth'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/push/guest-subscribe
@@ -35,7 +37,20 @@ export async function POST(req: NextRequest) {
         if (!body || typeof body !== 'object') {
             return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
         }
-        const { shopId, endpoint, p256dh, auth, guestPhone } = body as Record<string, unknown>
+        // Rate limit first (shared Redis window) so fabricated subscriptions can't be mass-created.
+        const ip = getClientIp(req)
+        if (ip) {
+            const rl = await limitDistributed('guest-push-subscribe', ip, 10, 600)
+            if (!rl.allowed) {
+                return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
+            }
+        }
+
+        // NOTE: a client-supplied `guestPhone` is deliberately ignored. It was never verified,
+        // so anyone could subscribe their own device against a victim's number and receive
+        // that victim's order notifications (network, size, phone). The storefront never
+        // sends it; order pushes only go to subscriptions whose phone was set server-side.
+        const { shopId, endpoint, p256dh, auth } = body as Record<string, unknown>
 
         // ── Strict field validation ────────────────────────────────────
         if (typeof shopId !== 'string' || !UUID_RE.test(shopId)) {
@@ -50,9 +65,6 @@ export async function POST(req: NextRequest) {
         if (typeof auth !== 'string' || auth.length < 1 || auth.length > 256) {
             return NextResponse.json({ error: 'Invalid auth key' }, { status: 400 })
         }
-        if (guestPhone != null && (typeof guestPhone !== 'string' || guestPhone.length > 20)) {
-            return NextResponse.json({ error: 'Invalid guestPhone' }, { status: 400 })
-        }
 
         const adminDb = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,6 +76,8 @@ export async function POST(req: NextRequest) {
             .from('shop_profiles')
             .select('id')
             .eq('id', shopId)
+            .eq('approval_status', 'approved')
+            .eq('is_active', true)
             .maybeSingle()
         if (!shop) {
             return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
@@ -96,7 +110,6 @@ export async function POST(req: NextRequest) {
                     endpoint,
                     p256dh,
                     auth,
-                    guest_phone: guestPhone || null,
                     updated_at: new Date().toISOString(),
                 },
                 { onConflict: 'shop_id,endpoint' }

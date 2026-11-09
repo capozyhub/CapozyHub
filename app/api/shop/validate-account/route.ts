@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { validateAccountName, MOOLRE_CHANNEL_MAP } from '@/lib/moolre-transfer-service'
-import { resolveNameSingle } from '@/lib/momo-verify'
-import { normalizeGhanaPhone } from '@/lib/sms-service'
+import { MOOLRE_CHANNEL_MAP } from '@/lib/moolre-transfer-service'
+import { resolvePayoutAccountName } from '@/lib/payout-name-resolver'
 import { phoneSchema } from '@/lib/validation'
 import { consumeNameLookupQuota } from '@/lib/payout-name-lookup-quota'
 
@@ -27,7 +25,6 @@ const validateSchema = z.object({
 export async function POST(req: NextRequest) {
     try {
         // 1. Auth check — any authenticated shop owner (any role) can validate their payout account
-        const cookieStore = await cookies()
         const supabase = await createRouteClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -72,36 +69,21 @@ export async function POST(req: NextRequest) {
             at: new Date().toISOString(),
         }))
 
-        // 3. Map network string to Moolre channel ID
-        const channel = MOOLRE_CHANNEL_MAP[network]
-        if (channel === undefined) {
+        // 3. Only the networks the withdraw flow supports
+        if (MOOLRE_CHANNEL_MAP[network] === undefined) {
             return NextResponse.json({ error: `Unsupported network: ${network}` }, { status: 400 })
         }
-
-        // 4a. MoMo numbers: multi-provider resolution (Moolre first, Paystack
-        //     fallback) so a Moolre outage no longer forces manual name entry.
-        if (network !== 'Bank') {
-            const normalized = normalizeGhanaPhone(phone)
-            if (normalized) {
-                const resolved = await resolveNameSingle(normalized)
-                if (resolved?.fullName) {
-                    return NextResponse.json({ success: true, name: resolved.fullName })
-                }
-            }
-            return NextResponse.json(
-                { success: false, error: 'Could not verify account name. Please check the number and try again.' },
-                { status: 200 } // Return 200 so client handles it as a validation failure, not a crash
-            )
+        if (network === 'Bank' && !bankId) {
+            return NextResponse.json({ error: 'Select a bank first' }, { status: 400 })
         }
 
-        // 4b. Bank accounts: Moolre only (Paystack fallback covers MoMo prefixes,
-        //     not Ghanaian bank account numbers).
-        const result = await validateAccountName(phone, channel, bankId)
+        // 4. Same resolver the withdraw route re-runs on submit (MoMo: Paystack
+        //    first; bank: Moolre only), so a name verified here cannot fail there.
+        const result = await resolvePayoutAccountName({ network, number: phone, bankId })
 
         if (!result.success || !result.name) {
-            // The service has already mapped upstream errors to safe,
-            // user-facing strings (timeouts, rejections, etc.), so we can
-            // forward result.error directly here.
+            // Return 200 so the client treats this as "provider couldn't resolve it"
+            // (which unlocks the manual-name fallback) rather than a bad request.
             return NextResponse.json(
                 { success: false, error: result.error || 'Could not verify account name. Please check the number and try again.' },
                 { status: 200 }
