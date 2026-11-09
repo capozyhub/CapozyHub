@@ -1,60 +1,40 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import {
+    AlertCircle, ArrowLeft, ArrowRight, BookUser, Check, CheckCircle2, Clock, Landmark,
+    Loader2, Plus, ShieldCheck, Smartphone, Star, Trash2, XCircle,
+} from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
-import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
-import {
-    Banknote, Loader2, Clock, CheckCircle2, XCircle, AlertCircle,
-    Wallet, ArrowLeft, Star, Trash2, Plus, BookUser,
-    CreditCard, Shield, Info, CheckCircle, Landmark,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { toast } from '@/lib/toast'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ClayButton, Notice } from '@/components/auth/fields'
 
 // ─────────────────────────────────────────────
-// Types
+// Constants and types
 // ─────────────────────────────────────────────
 
 const NETWORKS = ['MTN MoMo', 'Telecel Cash', 'AirtelTigo Money'] as const
 type Network = typeof NETWORKS[number]
 
-const NETWORK_COLORS: Record<Network, string> = {
-    'MTN MoMo': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    'Telecel Cash': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    'AirtelTigo Money': 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300',
+// Telco brand colours are kept on purpose: people recognise their network at a glance.
+const NETWORK_CHIP: Record<Network, string> = {
+    'MTN MoMo': 'bg-yellow-400 text-black',
+    'Telecel Cash': 'bg-red-600 text-white',
+    'AirtelTigo Money': 'bg-blue-600 text-white',
 }
+const NETWORK_SHORT: Record<Network, string> = { 'MTN MoMo': 'MTN', 'Telecel Cash': 'TC', 'AirtelTigo Money': 'AT' }
 
-const NETWORK_BG: Record<Network, string> = {
-    'MTN MoMo': 'bg-yellow-500',
-    'Telecel Cash': 'bg-red-500',
-    'AirtelTigo Money': 'bg-brand-500',
-}
+const MAX_SAVED = 5
 
-const NETWORK_SHORT: Record<Network, string> = {
-    'MTN MoMo': 'MTN',
-    'Telecel Cash': 'TC',
-    'AirtelTigo Money': 'AT',
-}
-
-interface ShopWallet {
-    id: string
-    balance: number
-    total_earned: number
-    total_withdrawn: number
-}
+interface ShopWallet { id: string; balance: number; total_earned: number; total_withdrawn: number }
 
 interface WithdrawalRequest {
     id: string
@@ -62,22 +42,15 @@ interface WithdrawalRequest {
     fee: number
     net_amount: number
     account_name: string
-    momo_number: string
+    momo_number: string | null
+    account_number: string | null
     network: string | null
-    status: 'pending' | 'completed' | 'moolre_pending' | 'paystack_pending' | 'failed' | 'reversed'
-    admin_note: string | null
+    status: string
     failure_reason: string | null
     created_at: string
-    balance_snapshot: number | null
-    payment_type: 'momo' | 'bank' | null
-    moolre_transaction_id: string | null
 }
 
-interface GlobalSettings {
-    withdrawal_fee_percent: number
-    withdrawal_fee_flat: number
-    min_withdrawal_amount: number
-}
+interface Limits { withdrawal_fee_percent: number; withdrawal_fee_flat: number; min_withdrawal_amount: number }
 
 interface SavedDetail {
     id: string
@@ -86,87 +59,101 @@ interface SavedDetail {
     network: Network
     is_default: boolean
     payment_type?: 'momo' | 'bank'
-    bank_id?: string
-    bank_name?: string
 }
 
-interface BankEntry {
-    id: string
-    name: string
+interface BankEntry { id: string; name: string }
+
+const STATUS: Record<string, { label: string; tone: string; icon: typeof Clock; spin?: boolean }> = {
+    pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
+    shop_owner_pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
+    moolre_pending: { label: 'Sending', tone: 'text-sky-700 dark:text-sky-400', icon: Loader2, spin: true },
+    paystack_pending: { label: 'Sending', tone: 'text-sky-700 dark:text-sky-400', icon: Loader2, spin: true },
+    completed: { label: 'Paid', tone: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
+    failed: { label: 'Failed', tone: 'text-red-700 dark:text-red-400', icon: AlertCircle },
+    reversed: { label: 'Returned to wallet', tone: 'text-red-700 dark:text-red-400', icon: XCircle },
 }
 
-const statusConfig = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
-    completed: { label: 'Paid', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
-    moolre_pending: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Loader2 },
-    paystack_pending: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Loader2 },
-    failed: { label: 'Failed', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: AlertCircle },
-    reversed: { label: 'Reversed', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
-}
-
+const MANUAL_NAME_CHARS = /[^A-Za-zÀ-ÖØ-öø-ÿ '.\-]/g
 const round2 = (n: number) => Math.round(n * 100) / 100
 
-// The server only accepts digit-only MoMo numbers. Accept the formats people actually
-// type (spaces, dashes, +233…) and normalise them to the local 0XXXXXXXXX form.
+// The server only accepts digit-only MoMo numbers. Accept what people actually type
+// (spaces, dashes, +233...) and normalise to the local 0XXXXXXXXX form.
 const cleanNumber = (raw: string, type: 'momo' | 'bank') =>
     type === 'momo' ? raw.replace(/[\s-]/g, '').replace(/^\+?233/, '0') : raw.trim()
 
+const FIELD = 'h-12 rounded-xl border-0 bg-transparent px-4 text-base shadow-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-0 dark:focus-visible:ring-brand-500'
+const SELECT_TRIGGER = 'h-12 rounded-xl border-0 bg-transparent px-4 text-base shadow-none focus:ring-2 focus:ring-black focus:ring-offset-0 dark:focus:ring-brand-500'
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500'
+
+function StepHeading({ n, title, hint }: { n: number; title: string; hint?: string }) {
+    return (
+        <div className="flex items-start gap-3">
+            <span className="clay-black mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">{n}</span>
+            <div>
+                <h2 className="font-display text-lg font-semibold leading-tight">{title}</h2>
+                {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
+            </div>
+        </div>
+    )
+}
+
+function NetworkChip({ network, size = 'md' }: { network: Network; size?: 'sm' | 'md' }) {
+    return (
+        <span className={cn('flex shrink-0 items-center justify-center rounded-xl font-bold', size === 'md' ? 'h-10 w-10 text-xs' : 'h-8 w-8 text-[10px]', NETWORK_CHIP[network])}>
+            {NETWORK_SHORT[network]}
+        </span>
+    )
+}
+
 // ─────────────────────────────────────────────
-// Page Component
+// Page
 // ─────────────────────────────────────────────
 
 export default function ShopWithdrawPage() {
-    const { dbUser, isAdmin, isSubAdmin } = useAuth()
+    const { dbUser } = useAuth()
 
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
     const [history, setHistory] = useState<WithdrawalRequest[]>([])
     const [savedDetails, setSavedDetails] = useState<SavedDetail[]>([])
-    const [settings, setSettings] = useState<GlobalSettings>({ withdrawal_fee_percent: 0, withdrawal_fee_flat: 0, min_withdrawal_amount: 0 })
+    const [limits, setLimits] = useState<Limits>({ withdrawal_fee_percent: 0, withdrawal_fee_flat: 0, min_withdrawal_amount: 0 })
     const [loading, setLoading] = useState(true)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [shopName, setShopName] = useState('')
     const [banks, setBanks] = useState<BankEntry[]>([])
 
-    // Form state
+    // Form
     const [amount, setAmount] = useState('')
     const [selectedSavedId, setSelectedSavedId] = useState<string>('manual')
-    const [network, setNetwork] = useState<Network | ''>('')
+    const [network, setNetwork] = useState<Network | 'Bank' | ''>('')
     const [momoNumber, setMomoNumber] = useState('')
     const [paymentType, setPaymentType] = useState<'momo' | 'bank'>('momo')
-    const [selectedBankId, setSelectedBankId] = useState<string>('')
-    const [branch, setBranch] = useState<string>('')
+    const [selectedBankId, setSelectedBankId] = useState('')
+    const [branch, setBranch] = useState('')
     const [saveForLater, setSaveForLater] = useState(false)
+    const [confirmOpen, setConfirmOpen] = useState(false)
 
-    // Validation state
+    // Name check
     const [verifiedName, setVerifiedName] = useState<string | null>(null)
     const [validating, setValidating] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
     // True only when the provider answered "can't resolve this account" (or was down).
     // A malformed number or an exhausted daily quota must NOT unlock free-text names.
     const [manualAllowed, setManualAllowed] = useState(false)
-    const [confirmOpen, setConfirmOpen] = useState(false)
-
-    // Manual fallback — used only when provider verification fails.
-    // Same allowlist + length constraints are enforced server-side; the
-    // client copy is for instant feedback and a friendlier UX.
     const [manualName, setManualName] = useState('')
-    const MANUAL_NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ '.\-]{1,99}$/
-    const normalizedManualName = manualName.trim().replace(/\s+/g, ' ')
-    // Unlock button after first character — server enforces min-2 and regex.
-    const manualNameValid = normalizedManualName.length >= 1
-    const canUseManual = !!validationError && manualAllowed && !validating && !verifiedName
+    const lastChecked = useRef('')
 
-    // Saved Details manager modal
+    // Saved methods dialog
     const [savedModalOpen, setSavedModalOpen] = useState(false)
     const [newNetwork, setNewNetwork] = useState<Network | ''>('')
-    const [newAccountName, setNewAccountName] = useState('')
     const [newMomoNumber, setNewMomoNumber] = useState('')
     const [addingDetail, setAddingDetail] = useState(false)
 
-    useEffect(() => {
-        if (dbUser) fetchData(true)
-    }, [dbUser, isAdmin, isSubAdmin])
+    const isManual = selectedSavedId === 'manual'
+    const normalizedManualName = manualName.trim().replace(/\s+/g, ' ')
+    const canUseManual = !!validationError && manualAllowed && !validating && !verifiedName
+    const manualNameValid = normalizedManualName.length >= 2
 
+    // ─── Data ────────────────────────────────────────────────────────────────
     // applyDefault is true only on the first load. Later refreshes (after a submit,
     // delete or set-default) must not overwrite what the user is in the middle of picking.
     const fetchData = useCallback(async (applyDefault = false) => {
@@ -186,175 +173,181 @@ export default function ShopWithdrawPage() {
 
             const [historyRes, settingsRes, shopRes, savedRes] = await Promise.all([
                 walletRes.data
-                    ? db.from('shop_wallet_transactions')
-                        .select('*')
-                        .eq('type', 'withdrawal')
-                        .eq('shop_wallet_id', walletRes.data.id)
-                        .order('created_at', { ascending: false })
-                        .limit(20)
+                    ? db.from('shop_wallet_transactions').select('*').eq('type', 'withdrawal')
+                        .eq('shop_wallet_id', walletRes.data.id).order('created_at', { ascending: false }).limit(20)
                     : Promise.resolve({ data: [] }),
                 db.from('shop_global_settings').select('key, value').in('key', feeKeys),
-                db.from('shop_profiles')
-                    .select('shop_name, withdrawal_fee_percent, withdrawal_fee_flat, min_withdrawal_amount')
-                    .eq('owner_id', dbUser!.id)
-                    .maybeSingle(),
-                db.from('shop_payment_details')
-                    .select('*')
-                    .eq('shop_owner_id', dbUser!.id)
-                    .order('is_default', { ascending: false }),
+                db.from('shop_profiles').select('withdrawal_fee_percent, withdrawal_fee_flat, min_withdrawal_amount').eq('owner_id', dbUser!.id).maybeSingle(),
+                db.from('shop_payment_details').select('*').eq('shop_owner_id', dbUser!.id).order('is_default', { ascending: false }),
             ])
 
+            if (walletRes.error && walletRes.error.code !== 'PGRST116') throw walletRes.error
             if (walletRes.data) setWallet(walletRes.data)
             setHistory(historyRes.data || [])
-            if (shopRes.data?.shop_name) setShopName(shopRes.data.shop_name)
             setSavedDetails(savedRes.data || [])
+            setLoadFailed(false)
 
-            // Same resolver and the same hardcoded defaults (50 / 2% / 0) as /api/shop/withdraw
-            // and process_shop_withdrawal, so the breakdown shown here is what is charged
-            // (including the sub-agent -> customer-rate fallback).
+            // Same resolver and same hardcoded defaults (50 / 2% / 0) as /api/shop/withdraw and
+            // process_shop_withdrawal, so the summary shown here is what is charged.
             const globalMap: Record<string, string | number | null> = {}
             for (const row of (settingsRes.data || [])) globalMap[row.key] = row.value
             const sp = shopRes.data
-            setSettings({
+            setLimits({
                 min_withdrawal_amount: resolveRoleFeeSetting(globalMap, ownerRole, 'min_withdrawal_amount', 50, sp?.min_withdrawal_amount),
                 withdrawal_fee_percent: resolveRoleFeeSetting(globalMap, ownerRole, 'withdrawal_fee_percent', 2, sp?.withdrawal_fee_percent),
                 withdrawal_fee_flat: resolveRoleFeeSetting(globalMap, ownerRole, 'withdrawal_fee_flat', 0, sp?.withdrawal_fee_flat),
             })
 
-            // Pre-fill with the default payment detail (first load only). Saved details are
-            // MoMo-only (shop_payment_details.network is constrained to the MoMo networks);
-            // a non-MoMo default would put the bank form in "saved" mode, where edits to the
-            // visible fields are ignored by the server in favour of the stored account.
+            // Saved details are MoMo-only (shop_payment_details.network is constrained to the
+            // MoMo networks), so only a MoMo default can be pre-selected.
             const defaultDetail = applyDefault
-                ? savedRes.data?.find((d: SavedDetail) => d.is_default && (d.payment_type || 'momo') === 'momo')
+                ? (savedRes.data as SavedDetail[] | null)?.find(d => d.is_default && (d.payment_type || 'momo') === 'momo')
                 : null
             if (defaultDetail) {
                 setSelectedSavedId(defaultDetail.id)
                 setNetwork(defaultDetail.network)
                 setMomoNumber(defaultDetail.momo_number)
                 setPaymentType('momo')
-                // Saved details were verified at save-time; use the stored name directly.
-                setVerifiedName(defaultDetail.account_name)
+                setVerifiedName(defaultDetail.account_name) // verified when it was saved
             }
         } catch (err) {
-            console.error(err)
+            console.error('[withdraw] load failed', err)
+            setLoadFailed(true)
         } finally {
             setLoading(false)
         }
     }, [dbUser])
 
-    // Fetch bank list lazily when switching to bank mode
     useEffect(() => {
-        if (paymentType === 'bank' && banks.length === 0) {
-            fetch('/api/shop/banks')
-                .then(r => r.json())
-                .then(d => { if (d.banks) setBanks(d.banks) })
-                .catch(err => console.warn('[banks]', err))
-        }
-    }, [paymentType])
+        if (dbUser) fetchData(true)
+    }, [dbUser, fetchData])
 
-    // ─── Account name validation ──────────────────────────────────────────────
-    const triggerValidation = useCallback((phone: string, net: string, bankId?: string) => {
-        if (!phone || !net) {
-            setVerifiedName(null)
-            setValidationError(null)
-            return
-        }
+    // Bank transfers need the provider's bank list. When it can't be loaded the option is
+    // simply not offered, instead of leading people into a dead end.
+    useEffect(() => {
+        fetch('/api/shop/banks')
+            .then(r => r.json())
+            .then(d => { if (Array.isArray(d.banks)) setBanks(d.banks) })
+            .catch(() => { /* bank option stays hidden */ })
+    }, [])
 
+    // ─── Name check ──────────────────────────────────────────────────────────
+    const resetCheck = () => {
+        lastChecked.current = ''
+        setVerifiedName(null)
+        setValidationError(null)
+        setManualAllowed(false)
+        setManualName('')
+    }
+
+    const runCheck = useCallback((phone: string, net: string, bankId?: string) => {
         setValidating(true)
         setVerifiedName(null)
         setValidationError(null)
         setManualAllowed(false)
-        // A new validation invalidates any manual fallback the user typed for
-        // the previous attempt — otherwise the submit could fire with a stale
-        // manual name for a different number/network.
-        setManualName('')
+        setManualName('') // a stale manual name must never ride along with a new number
 
         fetch('/api/shop/validate-account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanNumber(phone, net === 'Bank' ? 'bank' : 'momo'), network: net, bankId }),
+            body: JSON.stringify({ phone, network: net, bankId }),
         })
             .then(async r => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
             .then(({ ok, data }) => {
                 if (data.success && data.name) {
                     setVerifiedName(data.name)
-                    setValidationError(null)
                 } else {
-                    setVerifiedName(null)
-                    // Manual name entry is only for "the provider couldn't resolve this" (HTTP 200,
-                    // success:false). A 400 (bad number format), 429 (daily quota) or 5xx is not.
+                    // Free-text names are only for "the provider couldn't resolve it" (HTTP 200,
+                    // success:false). A 400 (bad format), 429 (daily limit) or 5xx is not that.
                     setManualAllowed(ok)
-                    setValidationError(data.details?.[0] || data.error || 'Could not verify account name')
+                    setValidationError(data.details?.[0] || data.error || 'We could not confirm this account.')
                 }
             })
             .catch(() => {
-                setVerifiedName(null)
                 setManualAllowed(false)
-                setValidationError('Network error during validation. Please try again.')
+                setValidationError('Network problem while checking the account. Please try again.')
             })
             .finally(() => setValidating(false))
     }, [])
 
+    // MoMo: check the name by itself as soon as a full number and a network are in.
+    useEffect(() => {
+        if (!isManual || paymentType !== 'momo' || !network || network === 'Bank') return
+        const num = cleanNumber(momoNumber, 'momo')
+        if (!/^0\d{9}$/.test(num)) return
+        const key = `${network}:${num}`
+        const t = setTimeout(() => {
+            if (lastChecked.current === key) return
+            lastChecked.current = key
+            runCheck(num, network)
+        }, 400)
+        return () => clearTimeout(t)
+    }, [isManual, paymentType, network, momoNumber, runCheck])
 
-
-    // When a saved detail is selected
-    const handleSavedSelect = (id: string) => {
+    // ─── Selection handlers ──────────────────────────────────────────────────
+    const selectSaved = (id: string) => {
         setSelectedSavedId(id)
+        resetCheck()
         if (id === 'manual') {
             setNetwork('')
             setMomoNumber('')
             setSelectedBankId('')
             setBranch('')
-            setVerifiedName(null)
-            setValidationError(null)
-            setManualAllowed(false)
-            setManualName('')
-        } else {
-            const d = savedDetails.find(s => s.id === id)
-            if (d) {
-                setNetwork(d.network)
-                setMomoNumber(d.momo_number)
-                setPaymentType(d.payment_type || 'momo')
-                if (d.bank_id) setSelectedBankId(d.bank_id)
-                setBranch('')
-                // Use the previously verified name directly — no provider round-trip needed.
-                setVerifiedName(d.account_name)
-                setValidationError(null)
-                setManualAllowed(false)
-                setManualName('')
-            }
+            return
         }
+        const d = savedDetails.find(s => s.id === id)
+        if (!d) return
+        setNetwork(d.network)
+        setMomoNumber(d.momo_number)
+        setPaymentType('momo')
+        setSelectedBankId('')
+        setBranch('')
+        setVerifiedName(d.account_name)
     }
 
+    const switchMethod = (type: 'momo' | 'bank') => {
+        if (type === paymentType) return
+        setPaymentType(type)
+        setSelectedSavedId('manual')
+        setNetwork(type === 'bank' ? 'Bank' : '')
+        setSelectedBankId('')
+        setBranch('')
+        setMomoNumber('')
+        setSaveForLater(false)
+        resetCheck()
+    }
+
+    // ─── Money maths (rounded exactly as the server rounds it) ───────────────
+    const balance = wallet?.balance || 0
     const amountNum = parseFloat(amount) || 0
-    // Pesewas only: the server rejects more than 2 decimals.
-    const tooManyDecimals = amountNum > 0 && Math.abs(amountNum * 100 - Math.round(amountNum * 100)) > 1e-7
-    // Rounded exactly as /api/shop/withdraw rounds it, so fee + payout always add up.
-    const totalFee = round2((amountNum * settings.withdrawal_fee_percent) / 100 + settings.withdrawal_fee_flat)
-    const feePercent = round2(totalFee - settings.withdrawal_fee_flat)
+    const totalFee = round2((amountNum * limits.withdrawal_fee_percent) / 100 + limits.withdrawal_fee_flat)
     const netAmount = round2(amountNum - totalFee)
     const accountNumber = cleanNumber(momoNumber, paymentType)
-
-    // Either a provider-verified name OR a valid manual fallback name lets the
-    // user submit. The server re-checks both — this is just UI gating.
+    const bankName = banks.find(b => b.id === selectedBankId)?.name
     const hasUsableName = !!verifiedName || (canUseManual && manualNameValid)
-    const canSubmit =
-        amountNum > 0 &&
-        !tooManyDecimals &&
-        amountNum >= settings.min_withdrawal_amount &&
-        amountNum <= (wallet?.balance || 0) &&
-        netAmount > 0 &&
-        !!network &&
-        !!accountNumber &&
-        (paymentType !== 'bank' || !!selectedBankId) &&
-        hasUsableName &&
-        !validating &&
-        !submitting
+    const receiverName = verifiedName || (canUseManual && manualNameValid ? normalizedManualName : '')
+    const savedActive = !isManual ? savedDetails.find(s => s.id === selectedSavedId) : null
+
+    // The single reason the button is disabled, shown under it in plain words.
+    const blocker =
+        amountNum <= 0 ? 'Enter how much you want to withdraw.'
+            : amountNum > balance ? 'That is more than your available balance.'
+                : amountNum < limits.min_withdrawal_amount ? `The minimum withdrawal is ${formatCurrency(limits.min_withdrawal_amount)}.`
+                    : netAmount <= 0 ? 'That amount does not cover the processing fee.'
+                        : !network || (paymentType === 'bank' && !selectedBankId) ? (paymentType === 'bank' ? 'Choose your bank.' : 'Choose a network.')
+                            : !accountNumber ? (paymentType === 'bank' ? 'Enter the account number.' : 'Enter the mobile money number.')
+                                : validating ? 'Checking the account name…'
+                                    : !hasUsableName ? (canUseManual ? 'Type the account holder name to continue.' : 'We need to confirm the account name first.')
+                                        : null
+    const canSubmit = !blocker && !submitting
+
+    const setAmountClean = (raw: string) => {
+        if (/^\d*\.?\d{0,2}$/.test(raw)) setAmount(raw)
+    }
+    const withdrawAll = () => setAmount(String(Math.floor(balance * 100) / 100))
 
     const handleSubmit = async () => {
         if (!canSubmit) return
-
         setSubmitting(true)
         try {
             const isSaved = selectedSavedId !== 'manual'
@@ -369,89 +362,73 @@ export default function ShopWithdrawPage() {
                     payment_type: paymentType,
                     bankId: selectedBankId || undefined,
                     branch: branch.trim() || undefined,
-                    saveForLater: saveForLater && !isSaved,
-                    // For saved details the server fetches the verified name from DB.
+                    saveForLater: saveForLater && !isSaved && paymentType === 'momo',
+                    // A saved account is looked up server-side by id; nothing about it is trusted from here.
                     ...(isSaved ? { savedDetailId: selectedSavedId } : {}),
-                    // For new manual entries, pass the name if the provider couldn't verify it.
                     ...(!isSaved && usingManualFallback ? { manualAccountName: normalizedManualName } : {}),
                 }),
             })
-
             const data = await res.json().catch(() => ({}))
             if (!res.ok) {
-                // Zod failures come back as { error: 'Invalid input', details: ['field: message'] };
-                // show the actual reason instead of the generic label.
                 const detail = Array.isArray(data.details) && data.details.length > 0
                     ? String(data.details[0]).replace(/^[^:]*:\s*/, '')
                     : null
-                throw new Error(detail || data.error || 'Failed to submit request')
+                throw new Error(detail || data.error || 'Could not submit the withdrawal.')
             }
 
-            toast.success(`Withdrawal submitted! Admin will process shortly.`)
+            toast.success('Withdrawal requested. We will review it on the next business day.')
             setConfirmOpen(false)
             setAmount('')
             setSaveForLater(false)
-            // A saved account stays selected (and verified) for the next withdrawal; a
-            // one-off entry must be verified again.
-            if (!isSaved) {
-                setVerifiedName(null)
-                setManualName('')
-            }
+            // A saved account stays selected for next time; a one-off account is checked again.
+            if (!isSaved) resetCheck()
             fetchData()
-
         } catch (err: any) {
             setConfirmOpen(false)
-            toast.error(err.message || 'Failed to submit request')
+            toast.error(err.message || 'Could not submit the withdrawal.')
         } finally {
             setSubmitting(false)
         }
     }
 
-    const handleAddSavedDetail = async () => {
-        if (!newNetwork) { toast.error('Select a network'); return }
-        if (!newMomoNumber.trim()) { toast.error('Enter MoMo number'); return }
-        if (savedDetails.length >= 5) { toast.error('Maximum of 5 saved details reached'); return }
+    // ─── Saved methods ───────────────────────────────────────────────────────
+    const handleAddSaved = async () => {
+        if (!newNetwork) { toast.error('Choose a network.'); return }
+        if (!newMomoNumber.trim()) { toast.error('Enter the mobile money number.'); return }
+        if (savedDetails.length >= MAX_SAVED) { toast.error(`You can keep up to ${MAX_SAVED} saved accounts.`); return }
 
         setAddingDetail(true)
         try {
-            // The server verifies the account name with the provider and saves it —
-            // saved accounts are trusted as verified at withdrawal time, so the
-            // browser never writes them directly.
+            // The server confirms the name with the provider and stores it; saved accounts are
+            // trusted as verified at withdrawal time, so the browser never writes them.
             const res = await fetch('/api/shop/payment-details', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    momoNumber: newMomoNumber.trim(),
-                    network: newNetwork,
-                }),
+                body: JSON.stringify({ momoNumber: cleanNumber(newMomoNumber, 'momo'), network: newNetwork }),
             })
             const data = await res.json().catch(() => ({}))
             if (!res.ok || !data.success) {
-                toast.error(data.error || 'Could not verify account name')
+                toast.error(data.error || 'We could not confirm that account.')
                 return
             }
-            toast.success('Payment method verified & saved!')
+            toast.success(`Saved ${data.data?.account_name || 'account'}.`)
             setNewNetwork('')
-            setNewAccountName('') // Keep this just for backwards compat if needed, even though it's hidden now
             setNewMomoNumber('')
             fetchData()
-            setSavedModalOpen(false)
         } catch (err: any) {
-            toast.error(err.message || 'Failed to save')
+            toast.error(err.message || 'Could not save the account.')
         } finally {
             setAddingDetail(false)
         }
     }
 
-    const handleDeleteSavedDetail = async (id: string) => {
-        const detail = savedDetails.find(d => d.id === id)
-        const label = detail ? `${detail.account_name} (${detail.momo_number})` : 'this payment method'
-        if (!window.confirm(`Remove ${label}?\n\nYou will need to re-verify it to add it back.`)) return
+    const handleDeleteSaved = async (id: string) => {
+        const d = savedDetails.find(s => s.id === id)
+        if (!window.confirm(`Remove ${d ? `${d.account_name} (${d.momo_number})` : 'this account'}? You will need to confirm it again to add it back.`)) return
         const { error } = await (supabase as any).from('shop_payment_details').delete().eq('id', id)
-        if (error) { toast.error('Failed to remove payment method'); return }
-        toast.success('Payment method removed')
-        // Don't leave the form pointing at a row that no longer exists.
-        if (selectedSavedId === id) handleSavedSelect('manual')
+        if (error) { toast.error('Could not remove the account.'); return }
+        toast.success('Account removed.')
+        if (selectedSavedId === id) selectSaved('manual') // never leave the form pointing at a deleted row
         fetchData()
     }
 
@@ -461,810 +438,376 @@ export default function ShopWithdrawPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id }),
         })
-        if (!res.ok) toast.error('Failed to update default payment method')
+        if (!res.ok) toast.error('Could not change the default account.')
         fetchData()
     }
 
+    // ─── Render ──────────────────────────────────────────────────────────────
     if (loading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        )
+        return <div className="flex items-center justify-center py-24"><Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /></div>
     }
 
-    const isManual = selectedSavedId === 'manual'
+    const showMethodSwitch = banks.length > 0
+    const showManualForm = isManual || paymentType === 'bank'
 
     return (
-        <div className="space-y-6">
-
-            {/* ── Header ── */}
+        <div className="mx-auto w-full max-w-6xl space-y-6">
             <div>
-                <Link href="/dashboard/shop">
-                    <Button variant="ghost" size="sm" className="w-fit gap-2 -ml-2 text-muted-foreground hover:text-emerald-600 transition-colors">
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Shop Dashboard
-                    </Button>
+                <Link href="/dashboard/shop" className={cn('-ml-1 inline-flex items-center gap-1.5 rounded-lg px-1 py-0.5 text-sm text-muted-foreground hover:text-foreground', FOCUS)}>
+                    <ArrowLeft className="h-3.5 w-3.5" /> Your shop
                 </Link>
-                <div className="mt-2">
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Banknote className="w-5 h-5 text-emerald-600" />
-                        Withdraw Earnings
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-0.5">
-                        Payout from your shop wallet to mobile money or bank.
-                    </p>
-                </div>
+                <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight sm:text-3xl">Withdraw your earnings</h1>
+                <p className="text-sm text-muted-foreground">Move profit from your shop wallet to mobile money{showMethodSwitch ? ' or a bank account' : ''}.</p>
             </div>
 
-            {/* ── Wallet Balance Card ── */}
-            <Card className="overflow-hidden border-0 shadow-md rounded-2xl">
-                <div className="bg-gradient-to-br from-emerald-700 to-emerald-900 p-5 text-white">
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <Wallet className="w-4 h-4 text-emerald-200" />
-                        <p className="text-emerald-100 text-xs font-medium">Available Balance</p>
-                    </div>
-                    <p className="text-3xl font-bold tabular-nums">{formatCurrency(wallet?.balance || 0)}</p>
-                    <div className="flex flex-wrap gap-4 mt-2 text-[11px] text-emerald-200/90">
-                        <span>Earned: {formatCurrency(wallet?.total_earned || 0)}</span>
-                        <span>Withdrawn: {formatCurrency(wallet?.total_withdrawn || 0)}</span>
-                    </div>
-                </div>
-            </Card>
+            {loadFailed && (
+                <Notice>
+                    We could not load your wallet just now. Your money is safe.{' '}
+                    <button type="button" onClick={() => fetchData(true)} className={cn('font-semibold underline underline-offset-4', FOCUS)}>Try again</button>
+                </Notice>
+            )}
 
-            {/* ── Payout Processing Notice ── */}
-            <div className="flex gap-2.5 items-start p-3.5 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-100 dark:border-brand-900/40 rounded-xl text-xs text-brand-800 dark:text-brand-300">
-                <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500 dark:text-blue-400" />
-                <p>
-                    <strong className="font-semibold">Processing times:</strong> Payouts are processed on business days.
-                    Weekend and holiday requests are handled the next business day.
-                </p>
-            </div>
+            {/* Balance */}
+            <section className="relative isolate overflow-hidden rounded-[2rem] bg-black p-6 text-white sm:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-24 -z-10 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl" aria-hidden="true" />
+                <div className="pointer-events-none absolute -bottom-24 right-24 -z-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+                <p className="text-sm text-silver-200">Ready to withdraw</p>
+                <p className="mt-1 font-display text-4xl font-bold tabular-nums tracking-tight text-brand-500 sm:text-5xl">{formatCurrency(balance)}</p>
+                <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                    <div><dt className="text-silver-200">Earned so far</dt><dd className="font-semibold tabular-nums">{formatCurrency(wallet?.total_earned || 0)}</dd></div>
+                    <div><dt className="text-silver-200">Paid out so far</dt><dd className="font-semibold tabular-nums">{formatCurrency(wallet?.total_withdrawn || 0)}</dd></div>
+                    <div><dt className="text-silver-200">Minimum</dt><dd className="font-semibold tabular-nums">{formatCurrency(limits.min_withdrawal_amount)}</dd></div>
+                    <div><dt className="text-silver-200">Fee</dt><dd className="font-semibold tabular-nums">{limits.withdrawal_fee_percent}%{limits.withdrawal_fee_flat > 0 ? ` + ${formatCurrency(limits.withdrawal_fee_flat)}` : ''}</dd></div>
+                </dl>
+            </section>
 
-            {/* ── Withdrawal Form ── */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">New Withdrawal Request</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-
-                    {/* STEP 1 — Amount */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
-                            <Label htmlFor="amount" className="text-sm font-semibold">Enter Withdrawal Amount (GHS)</Label>
+            <div className="grid items-start gap-6 lg:grid-cols-12">
+                {/* Steps */}
+                <div className="neu-raised space-y-8 rounded-[2rem] p-6 sm:p-8 lg:col-span-7">
+                    {/* 1 — amount */}
+                    <section className="space-y-4">
+                        <StepHeading n={1} title="How much?" />
+                        <div className="neu-inset flex items-center gap-2 rounded-2xl px-4">
+                            <span className="font-display text-xl font-semibold text-muted-foreground">GHS</span>
+                            <Input
+                                id="amount" inputMode="decimal" autoComplete="off" placeholder="0.00" value={amount}
+                                onChange={(e) => setAmountClean(e.target.value)} aria-label="Amount to withdraw in cedis"
+                                className="h-16 border-0 bg-transparent px-1 font-display text-3xl font-bold tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
                         </div>
-                        <Input
-                            id="amount"
-                            type="number"
-                            min={settings.min_withdrawal_amount}
-                            max={wallet?.balance || 0}
-                            step="0.01"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder={`Min: ${formatCurrency(settings.min_withdrawal_amount)}`}
-                            className="h-12 text-lg font-semibold"
-                        />
-                        {amountNum > (wallet?.balance || 0) && amountNum > 0 && (
-                            <p className="text-xs text-red-500 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" /> Amount exceeds your available balance
-                            </p>
-                        )}
-                        {tooManyDecimals && (
-                            <p className="text-xs text-red-500 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" /> Use at most 2 decimal places
-                            </p>
-                        )}
-                        {amountNum > 0 && !tooManyDecimals && netAmount <= 0 && (
-                            <p className="text-xs text-red-500 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" /> Amount is too low to cover the processing fee
-                            </p>
-                        )}
-                        {amountNum > 0 && amountNum < settings.min_withdrawal_amount && (
-                            <p className="text-xs text-amber-600 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" /> Minimum withdrawal is {formatCurrency(settings.min_withdrawal_amount)}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Payout Summary */}
-                    <div className={cn(
-                        'rounded-xl border-2 overflow-hidden transition-all duration-300',
-                        amountNum > 0 ? 'border-emerald-200 dark:border-emerald-800' : 'border-dashed border-muted'
-                    )}>
-                        <div className="bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5 flex items-center gap-2 border-b border-emerald-100 dark:border-emerald-900">
-                            <Shield className="w-4 h-4 text-emerald-600" />
-                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Payout Breakdown</p>
-                        </div>
-                        <div className="p-4 bg-card space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Withdrawal Amount</span>
-                                <span className="font-semibold tabular-nums">{amountNum > 0 ? formatCurrency(amountNum) : '—'}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="flex items-center gap-2 text-red-500 dark:text-red-400">
-                                    Processing Fee
-                                    <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-full font-bold">
-                                        {settings.withdrawal_fee_percent}%
-                                    </span>
-                                </span>
-                                <span className="text-red-500 dark:text-red-400 tabular-nums">
-                                    {amountNum > 0 ? `− ${formatCurrency(feePercent)}` : '—'}
-                                </span>
-                            </div>
-                            {settings.withdrawal_fee_flat > 0 && (
-                                <div className="flex justify-between items-center">
-                                    <span className="text-red-500 dark:text-red-400">Flat Processing Fee</span>
-                                    <span className="text-red-500 dark:text-red-400 tabular-nums">
-                                        {amountNum > 0 ? `− ${formatCurrency(settings.withdrawal_fee_flat)}` : '—'}
-                                    </span>
-                                </div>
+                        <div className="flex flex-wrap gap-2">
+                            {[limits.min_withdrawal_amount, round2(Math.floor(balance) / 2)].filter((v, i, a) => v > 0 && v >= limits.min_withdrawal_amount && v <= balance && a.indexOf(v) === i).map((v, i) => (
+                                <button key={i} type="button" onClick={() => setAmount(String(v))} className={cn('neu-press neu-raised-sm rounded-full px-4 py-1.5 text-sm font-semibold', FOCUS)}>
+                                    {i === 0 ? `Minimum ${formatCurrency(v)}` : `Half ${formatCurrency(v)}`}
+                                </button>
+                            ))}
+                            {balance > 0 && (
+                                <button type="button" onClick={withdrawAll} className={cn('neu-press neu-raised-sm rounded-full px-4 py-1.5 text-sm font-semibold', FOCUS)}>
+                                    Everything
+                                </button>
                             )}
-                            <div className="border-t border-dashed" />
-                            <div className="flex justify-between items-center pt-0.5">
-                                <div>
-                                    <p className="font-bold">You Receive</p>
-                                    <p className="text-[11px] text-muted-foreground">Sent directly to your account</p>
-                                </div>
-                                <span className={cn(
-                                    'text-3xl font-black tabular-nums leading-none',
-                                    amountNum > 0 && netAmount > 0 ? 'text-emerald-600' : 'text-muted-foreground'
-                                )}>
-                                    {amountNum > 0 ? formatCurrency(Math.max(0, netAmount)) : 'GHS 0.00'}
-                                </span>
-                            </div>
                         </div>
-                    </div>
+                    </section>
 
-                    {/* STEP 2 — Payment Type Toggle */}
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
-                            <Label className="text-sm font-semibold">Payment Method Type</Label>
-                        </div>
-                        <div className="flex p-1 bg-muted rounded-xl gap-1">
-                            <button
-                                type="button"
-                                onClick={() => { 
-                                    setPaymentType('momo')
-                                    setNetwork('')
-                                    setManualAllowed(false)
-                                    setManualName('')
-                                    setSelectedBankId('')
-                                    setBranch('')
-                                    setVerifiedName(null)
-                                    setValidationError(null)
-                                    setSelectedSavedId('manual')
-                                    setMomoNumber('') 
-                                }}
-                                className={cn(
-                                    'flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all',
-                                    paymentType === 'momo'
-                                        ? 'bg-card shadow-sm text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                )}
-                            >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                Mobile Money
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { 
-                                    setPaymentType('bank')
-                                    setManualAllowed(false)
-                                    setManualName('')
-                                    setNetwork('Bank' as any)
-                                    setSelectedSavedId('manual')
-                                    setVerifiedName(null)
-                                    setValidationError(null)
-                                    setMomoNumber('') 
-                                }}
-                                className={cn(
-                                    'flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all',
-                                    paymentType === 'bank'
-                                        ? 'bg-card shadow-sm text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                )}
-                            >
-                                <Landmark className="w-3.5 h-3.5" />
-                                Bank Transfer
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* STEP 3 — Payment Method */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
-                                <Label className="text-sm font-semibold">
-                                    {paymentType === 'momo' ? 'Mobile Money Account' : 'Bank Account'}
-                                </Label>
-                            </div>
+                    {/* 2 — destination */}
+                    <section className="space-y-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <StepHeading n={2} title="Where should it go?" hint="We confirm the name on the account before you send." />
                             {paymentType === 'momo' && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 px-2"
-                                    onClick={() => setSavedModalOpen(true)}
-                                >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    {savedDetails.length === 0 ? 'Add Payment Method' : 'Manage Saved Methods'}
-                                </Button>
+                                <button type="button" onClick={() => setSavedModalOpen(true)} className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-brand-800 hover:underline dark:text-brand-400', FOCUS)}>
+                                    <BookUser className="h-4 w-4" /> {savedDetails.length === 0 ? 'Save an account' : 'Manage saved'}
+                                </button>
                             )}
                         </div>
 
-                        {/* Saved detail cards for MoMo */}
-                        {paymentType === 'momo' && savedDetails.length > 0 && (
-                            <div className="space-y-2.5">
-                                {savedDetails.map(d => (
-                                    <button
-                                        key={d.id}
-                                        type="button"
-                                        onClick={() => handleSavedSelect(d.id)}
-                                        className={cn(
-                                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all duration-200',
-                                            selectedSavedId === d.id
-                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
-                                                : 'border-border hover:border-emerald-300 hover:bg-muted/30'
-                                        )}
-                                    >
-                                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-extrabold text-xs', NETWORK_BG[d.network])}>
-                                            {NETWORK_SHORT[d.network]}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                <p className="font-semibold text-sm">{d.account_name}</p>
-                                                {d.is_default && (
-                                                    <span className="text-[10px] bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">
-                                                        Default
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{d.momo_number} · {d.network}</p>
-                                        </div>
-                                        <div className={cn(
-                                            'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                                            selectedSavedId === d.id ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
-                                        )}>
-                                            {selectedSavedId === d.id && <div className="w-2 h-2 rounded-full bg-card" />}
-                                        </div>
+                        {showMethodSwitch && (
+                            <div role="radiogroup" aria-label="Payout type" className="well flex w-fit gap-1 rounded-2xl p-1">
+                                {([['momo', 'Mobile money', Smartphone], ['bank', 'Bank account', Landmark]] as const).map(([key, label, Icon]) => (
+                                    <button key={key} type="button" role="radio" aria-checked={paymentType === key} onClick={() => switchMethod(key)}
+                                        className={cn('flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors', FOCUS, paymentType === key ? 'clay-gold' : 'text-muted-foreground hover:text-foreground')}>
+                                        <Icon className="h-4 w-4" /> {label}
                                     </button>
                                 ))}
+                            </div>
+                        )}
 
-                                {/* Manual entry option */}
-                                <button
-                                    type="button"
-                                    onClick={() => handleSavedSelect('manual')}
-                                    className={cn(
-                                        'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all duration-200',
-                                        selectedSavedId === 'manual'
-                                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
-                                            : 'border-border hover:border-emerald-300 hover:bg-muted/30'
-                                    )}
-                                >
-                                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                                        <CreditCard className="w-5 h-5 text-muted-foreground" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-sm">Use a Different Account</p>
-                                        <p className="text-xs text-muted-foreground">Enter account details manually</p>
-                                    </div>
-                                    <div className={cn(
-                                        'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                                        selectedSavedId === 'manual' ? 'border-emerald-500 bg-emerald-500' : 'border-muted-foreground/30'
-                                    )}>
-                                        {selectedSavedId === 'manual' && <div className="w-2 h-2 rounded-full bg-card" />}
-                                    </div>
+                        {paymentType === 'momo' && savedDetails.length > 0 && (
+                            <div role="radiogroup" aria-label="Saved accounts" className="grid gap-2.5 sm:grid-cols-2">
+                                {savedDetails.map(d => {
+                                    const on = selectedSavedId === d.id
+                                    return (
+                                        <button key={d.id} type="button" role="radio" aria-checked={on} onClick={() => selectSaved(d.id)}
+                                            className={cn('flex items-center gap-3 rounded-2xl p-3.5 text-left transition-shadow', FOCUS, on ? 'neu-inset ring-2 ring-black dark:ring-brand-500' : 'neu-raised-sm')}>
+                                            <NetworkChip network={d.network} />
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-sm font-semibold">{d.account_name}</span>
+                                                <span className="block font-mono text-xs text-muted-foreground">{d.momo_number}</span>
+                                            </span>
+                                            {on && <Check className="h-4 w-4 shrink-0" />}
+                                        </button>
+                                    )
+                                })}
+                                <button type="button" role="radio" aria-checked={isManual} onClick={() => selectSaved('manual')}
+                                    className={cn('flex items-center gap-3 rounded-2xl p-3.5 text-left transition-shadow', FOCUS, isManual ? 'neu-inset ring-2 ring-black dark:ring-brand-500' : 'neu-raised-sm')}>
+                                    <span className="well flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"><Plus className="h-4 w-4" /></span>
+                                    <span className="flex-1 text-sm font-semibold">Another account</span>
+                                    {isManual && <Check className="h-4 w-4 shrink-0" />}
                                 </button>
                             </div>
                         )}
 
-                        {/* Manual entry fields */}
-                        {(isManual || paymentType === 'bank') && (
-                            <div className="space-y-3 p-4 rounded-xl bg-muted/30 border border-dashed">
+                        {savedActive && (
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                Sending to <strong className="text-foreground">{savedActive.account_name}</strong>, confirmed when you saved it.
+                            </p>
+                        )}
 
-                                {/* Network selector — MoMo only */}
-                                {paymentType === 'momo' && (
-                                    <div>
-                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                            Mobile Money Network
-                                        </Label>
-                                        <Select value={network} onValueChange={(v) => {
-                                            setNetwork(v as Network)
-                                            setManualAllowed(false)
-                                            setVerifiedName(null)
-                                            setValidationError(null)
-                                        }}>
-                                            <SelectTrigger className="mt-1.5 h-11">
-                                                <SelectValue placeholder="Select network (MTN MoMo, Telecel...)" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {NETWORKS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                        {showManualForm && (
+                            <div className="space-y-4">
+                                {paymentType === 'momo' ? (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Network</Label>
+                                        <div className="neu-inset rounded-xl">
+                                            <Select value={network} onValueChange={(v) => { setNetwork(v as Network); resetCheck() }}>
+                                                <SelectTrigger className={SELECT_TRIGGER}><SelectValue placeholder="Choose a network" /></SelectTrigger>
+                                                <SelectContent>{NETWORKS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-semibold">Bank</Label>
+                                            <div className="neu-inset rounded-xl">
+                                                <Select value={selectedBankId} onValueChange={(v) => { setSelectedBankId(v); resetCheck() }}>
+                                                    <SelectTrigger className={SELECT_TRIGGER}><SelectValue placeholder="Choose your bank" /></SelectTrigger>
+                                                    <SelectContent>{banks.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="branch" className="text-sm font-semibold">Branch <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                                            <div className="neu-inset rounded-xl">
+                                                <Input id="branch" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g. Accra Main" className={FIELD} />
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
 
-                                {/* Bank selector */}
-                                {paymentType === 'bank' && (
-                                    <div>
-                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                            Select Bank
-                                        </Label>
-                                        <Select value={selectedBankId} onValueChange={(v) => {
-                                            setSelectedBankId(v)
-                                            setNetwork('Bank' as any)
-                                            setVerifiedName(null)
-                                            setValidationError(null)
-                                        }}>
-                                            <SelectTrigger className="mt-1.5 h-11">
-                                                <SelectValue placeholder="Select your bank" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {banks.length === 0 ? (
-                                                    <SelectItem value="loading" disabled>Loading banks...</SelectItem>
-                                                ) : (
-                                                    banks.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-
-                                {/* Branch — Bank only, optional */}
-                                {paymentType === 'bank' && (
-                                    <div>
-                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                            Branch <span className="normal-case font-normal">(Optional)</span>
-                                        </Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="momo" className="text-sm font-semibold">{paymentType === 'momo' ? 'Mobile money number' : 'Account number'}</Label>
+                                    <div className="neu-inset rounded-xl">
                                         <Input
-                                            value={branch}
-                                            onChange={(e) => setBranch(e.target.value)}
-                                            placeholder="e.g. Accra Main"
-                                            className="mt-1.5 h-11"
+                                            id="momo" value={momoNumber} inputMode={paymentType === 'momo' ? 'tel' : 'text'} autoComplete="off"
+                                            onChange={(e) => { setMomoNumber(e.target.value); resetCheck() }}
+                                            placeholder={paymentType === 'momo' ? '024 123 4567' : 'Account number'} className={cn(FIELD, 'font-mono')}
                                         />
                                     </div>
-                                )}
-
-                                {/* MoMo / Bank Account Number */}
-                                <div>
-                                    <Label htmlFor="momo" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                        {paymentType === 'momo' ? 'MoMo Number' : 'Bank Account Number'}
-                                    </Label>
-                                    <Input
-                                        id="momo"
-                                        value={momoNumber}
-                                        onChange={(e) => {
-                                            setMomoNumber(e.target.value)
-                                            setManualAllowed(false)
-                                            setVerifiedName(null)
-                                            setValidationError(null)
-                                        }}
-                                        placeholder={paymentType === 'momo' ? '0244123456' : 'Account number'}
-                                        className="mt-1.5 h-11 font-mono"
-                                    />
                                 </div>
 
-                                {/* Verified account name — read-only, auto-filled */}
-                                <div>
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                            Account Holder Name
-                                        </Label>
-                                        {(!verifiedName || validationError) && (
-                                            <Button 
-                                                size="sm" 
-                                                className="h-7 text-[11px] font-bold px-3 uppercase tracking-wide transition-all clay clay-green"
-                                                onClick={() => triggerValidation(momoNumber, network || '', selectedBankId || undefined)}
-                                                disabled={validating || !momoNumber || !network}
-                                                type="button"
-                                            >
-                                                Verify Manually
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <div className="mt-1.5 relative">
-                                        <Input
-                                            value={canUseManual ? manualName : (verifiedName || '')}
-                                            readOnly={!canUseManual}
-                                            onChange={canUseManual ? e => {
-                                                // Strip disallowed chars on every keystroke so pasting
-                                                // a script payload or angle brackets is a no-op.
-                                                const cleaned = e.target.value
-                                                    .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ '.\-]/g, '')
-                                                    .slice(0, 100)
-                                                setManualName(cleaned)
-                                            } : undefined}
-                                            inputMode={canUseManual ? 'text' : undefined}
-                                            autoComplete={canUseManual ? 'off' : undefined}
-                                            autoCorrect={canUseManual ? 'off' : undefined}
-                                            spellCheck={canUseManual ? false : undefined}
-                                            maxLength={canUseManual ? 100 : undefined}
-                                            placeholder={
-                                                validating
-                                                    ? 'Verifying...'
-                                                    : canUseManual
-                                                        ? 'Type the exact account holder name...'
-                                                        : 'Enter number above to verify name'
-                                            }
-                                            className={cn(
-                                                'h-11 font-semibold pr-10 transition-colors',
-                                                !canUseManual && 'bg-muted/50',
-                                                verifiedName && 'text-emerald-600 border-emerald-300 dark:border-emerald-700',
-                                                canUseManual && manualName.length === 0 && 'border-amber-400 dark:border-amber-600 bg-amber-50/40 dark:bg-amber-950/20',
-                                                canUseManual && manualName.length > 0 && 'border-amber-400 dark:border-amber-600'
-                                            )}
-                                        />
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            {validating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-                                            {verifiedName && !validating && <CheckCircle className="w-4 h-4 text-emerald-500" />}
-                                            {canUseManual && !validating && <AlertCircle className="w-4 h-4 text-amber-500" />}
+                                {/* Name result */}
+                                <div aria-live="polite" className="space-y-2">
+                                    {validating && (
+                                        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Checking the account name…</p>
+                                    )}
+                                    {verifiedName && !validating && (
+                                        <div className="neu-inset flex items-center gap-3 rounded-xl px-4 py-3">
+                                            <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-muted-foreground">Account holder</p>
+                                                <p className="truncate font-semibold">{verifiedName}</p>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    {/* When the provider can't verify, invite manual entry inline — replaces
-                                        the raw error text so the user gets a clear action prompt. */}
-                                    {canUseManual ? (
-                                        <div className="mt-1.5 space-y-1">
-                                            <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                                                Verification unavailable — type the account name yourself
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground leading-snug">
-                                                Enter the <strong>exact name</strong> registered on this {network || 'MoMo'} account
-                                                (letters, spaces, hyphens &amp; apostrophes only).
-                                                Admin will confirm the name before releasing the payout — a wrong name will delay or void it.
-                                            </p>
+                                    )}
+                                    {validationError && !validating && !canUseManual && <Notice>{validationError}</Notice>}
+                                    {canUseManual && (
+                                        <div className="space-y-2">
+                                            <Notice tone="info">
+                                                We could not look this account up automatically. Type the exact name registered on it. An admin checks it before paying, and a wrong name will delay or cancel the payout.
+                                            </Notice>
+                                            <div className="neu-inset rounded-xl">
+                                                <Input
+                                                    value={manualName} maxLength={100} autoComplete="off" spellCheck={false} aria-label="Account holder name"
+                                                    onChange={(e) => setManualName(e.target.value.replace(MANUAL_NAME_CHARS, '').slice(0, 100))}
+                                                    placeholder="Name on the account" className={FIELD}
+                                                />
+                                            </div>
                                         </div>
-                                    ) : validationError && (
-                                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" /> {validationError}
-                                        </p>
+                                    )}
+                                    {!verifiedName && !validating && (paymentType === 'bank' || validationError) && (
+                                        <button
+                                            type="button" disabled={!network || !accountNumber || (paymentType === 'bank' && !selectedBankId)}
+                                            onClick={() => { lastChecked.current = `${network}:${accountNumber}`; runCheck(accountNumber, String(network), selectedBankId || undefined) }}
+                                            className={cn('rounded-full text-sm font-semibold text-brand-800 underline underline-offset-4 disabled:opacity-50 dark:text-brand-400', FOCUS)}
+                                        >
+                                            {validationError ? 'Check again' : 'Check the account name'}
+                                        </button>
                                     )}
                                 </div>
 
-                                {/* Save for later */}
-                                {!!verifiedName && !validating && savedDetails.length < 5 && (
-                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground select-none mt-4 p-3 rounded-xl border border-emerald-100 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20">
-                                        <input
-                                            type="checkbox"
-                                            checked={saveForLater}
-                                            onChange={e => setSaveForLater(e.target.checked)}
-                                            className="accent-emerald-600 w-4 h-4"
-                                        />
-                                        Save these verified details for future withdrawals
+                                {paymentType === 'momo' && !!verifiedName && !validating && savedDetails.length < MAX_SAVED && (
+                                    <label className="flex cursor-pointer items-center gap-3 text-sm text-muted-foreground">
+                                        <input type="checkbox" checked={saveForLater} onChange={(e) => setSaveForLater(e.target.checked)} className="h-5 w-5 cursor-pointer accent-black dark:accent-brand-500" />
+                                        Remember this account for next time
                                     </label>
                                 )}
                             </div>
                         )}
+                    </section>
+                </div>
 
-                        {/* Read-only saved detail display strip */}
-                        {!isManual && (() => {
-                            const d = savedDetails.find(s => s.id === selectedSavedId)
-                            if (!d) return null
+                {/* Summary */}
+                <aside className="space-y-4 lg:sticky lg:top-24 lg:col-span-5">
+                    <div className="neu-raised space-y-5 rounded-[2rem] p-6 sm:p-7">
+                        <h2 className="font-display text-lg font-semibold">Your payout</h2>
+                        <dl className="space-y-3 text-sm">
+                            <div className="flex justify-between"><dt className="text-muted-foreground">Withdrawing</dt><dd className="font-semibold tabular-nums">{amountNum > 0 ? formatCurrency(amountNum) : '—'}</dd></div>
+                            <div className="flex justify-between"><dt className="text-muted-foreground">Fee ({limits.withdrawal_fee_percent}%{limits.withdrawal_fee_flat > 0 ? ` + ${formatCurrency(limits.withdrawal_fee_flat)}` : ''})</dt><dd className="tabular-nums">{amountNum > 0 ? `− ${formatCurrency(totalFee)}` : '—'}</dd></div>
+                        </dl>
+                        <div className="neu-inset rounded-2xl px-4 py-4">
+                            <p className="text-xs text-muted-foreground">You receive</p>
+                            <p className="font-display text-3xl font-bold tabular-nums">{amountNum > 0 ? formatCurrency(Math.max(0, netAmount)) : formatCurrency(0)}</p>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                            <p className="text-xs text-muted-foreground">Sent to</p>
+                            {receiverName ? (
+                                <>
+                                    <p className="font-semibold">{receiverName}</p>
+                                    <p className="font-mono text-xs text-muted-foreground">{accountNumber} · {paymentType === 'bank' ? (bankName || 'Bank') : network}</p>
+                                </>
+                            ) : (
+                                <p className="text-muted-foreground">Choose an account in step 2.</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <ClayButton type="button" onClick={() => setConfirmOpen(true)} disabled={!canSubmit}>
+                                Review withdrawal <ArrowRight className="h-4 w-4" />
+                            </ClayButton>
+                            {blocker && <p className="text-center text-xs text-muted-foreground" aria-live="polite">{blocker}</p>}
+                        </div>
+                    </div>
+                    <p className="px-2 text-center text-xs text-muted-foreground">
+                        Payouts are reviewed on business days. Requests made at weekends or on public holidays are handled the next working day.
+                    </p>
+                </aside>
+            </div>
+
+            {/* History */}
+            <section className="space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                    <h2 className="font-display text-lg font-semibold">Recent withdrawals</h2>
+                    <Link href="/dashboard/shop/earnings" className={cn('rounded text-sm font-semibold text-brand-800 underline underline-offset-4 dark:text-brand-400', FOCUS)}>All earnings</Link>
+                </div>
+                {history.length === 0 ? (
+                    <div className="well rounded-3xl p-8 text-center text-sm text-muted-foreground">Nothing here yet. Your withdrawals will appear once you make one.</div>
+                ) : (
+                    <ul className="space-y-2.5">
+                        {history.map(row => {
+                            const cfg = STATUS[row.status] ?? STATUS.pending
+                            const Icon = cfg.icon
+                            const number = row.momo_number || row.account_number
                             return (
-                                <div className="p-3 rounded-xl bg-muted/30 border space-y-3">
-                                    <div className="grid grid-cols-3 gap-2 text-xs">
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Network</p>
-                                            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[d.network] || 'bg-muted text-foreground/80 ')}>
-                                                {d.network}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Account</p>
-                                            <p className="font-medium truncate">
-                                                {validating ? '...' : verifiedName || d.account_name}
+                                <li key={row.id} className="surface rounded-2xl p-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                        <div className="min-w-0">
+                                            <p className="font-display text-xl font-bold tabular-nums">{formatCurrency(row.net_amount)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(row.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                {' · '}requested {formatCurrency(row.amount)}, fee {formatCurrency(row.fee)}
                                             </p>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Number</p>
-                                            <p className="font-mono">{d.momo_number}</p>
-                                        </div>
+                                        <span className={cn('inline-flex items-center gap-1.5 text-sm font-semibold', cfg.tone)}>
+                                            <Icon className={cn('h-4 w-4', cfg.spin && 'animate-spin')} /> {cfg.label}
+                                        </span>
                                     </div>
-                                    
-                                </div>
+                                    <p className="mt-2 truncate text-sm text-muted-foreground">
+                                        {row.account_name}{number ? ` · ${number}` : ''}{row.network ? ` · ${row.network}` : ''}
+                                    </p>
+                                    {(row.status === 'reversed' || row.status === 'failed') && row.failure_reason && (
+                                        <p className="well mt-2 rounded-xl px-3 py-2 text-xs">{row.failure_reason}</p>
+                                    )}
+                                </li>
                             )
-                        })()}
-                    </div>
+                        })}
+                    </ul>
+                )}
+            </section>
 
-                    {/* ── Notice */}
-                    {!hasUsableName && (
-                        <div className="flex items-start gap-2 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
-                            <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                            <span>
-                                Account name must be verified. Tap "Verify Manually" after entering the number. If verification keeps
-                                failing, you can enter the name manually — admin will review before
-                                paying out.
-                            </span>
-                        </div>
-                    )}
-
-                    {/* ── Processing Delay Notice */}
-                    <div className="flex items-start gap-2 p-3.5 rounded-xl bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 text-xs text-brand-800 dark:text-brand-300">
-                        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                        <span>
-                            <strong>Note:</strong> Withdrawals requested during weekends, public holidays, or outside standard working hours may experience slight processing delays. For the fastest payout, please submit requests during regular business hours.
-                        </span>
-                    </div>
-
-                    {/* ── Submit Button */}
-                    <Button
-                        onClick={() => setConfirmOpen(true)}
-                        disabled={!canSubmit}
-                        className="w-full h-12 font-bold gap-2 text-base shadow-emerald-600/20 clay clay-green"
-                    >
-                        {submitting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Banknote className="w-5 h-5" />
-                        )}
-                        {submitting
-                            ? 'Submitting...'
-                            : !hasUsableName
-                                ? 'Verify Account to Continue'
-                                : amountNum > 0 && netAmount > 0
-                                    ? `Request ${formatCurrency(Math.max(0, netAmount))} Payout`
-                                    : 'Request Withdrawal'}
-                    </Button>
-
-                </CardContent>
-            </Card>
-
-            {/* ── Withdrawal History ── */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-base">Withdrawal History</CardTitle>
-                    <Link href="/dashboard/shop/earnings" className="text-xs font-medium text-primary hover:underline">
-                        Full earnings ledger →
-                    </Link>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {history.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground">
-                            <Banknote className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">No withdrawal requests yet.</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Desktop Table */}
-                            <div className="hidden md:block overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-xs text-muted-foreground">
-                                            <th className="text-left px-4 py-2.5 font-medium">Date</th>
-                                            <th className="text-right px-4 py-2.5 font-medium">Requested</th>
-                                            <th className="text-right px-4 py-2.5 font-medium">Fee</th>
-                                            <th className="text-right px-4 py-2.5 font-medium">Payout</th>
-                                            <th className="text-left px-4 py-2.5 font-medium">Account</th>
-                                            <th className="text-left px-4 py-2.5 font-medium">Network</th>
-                                            <th className="text-left px-4 py-2.5 font-medium">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {history.map((row) => {
-                                            const cfg = statusConfig[row.status] ?? statusConfig['pending']
-                                            const Icon = cfg.icon
-                                            return (
-                                                <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                                                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                                                        {new Date(row.created_at).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-medium">{formatCurrency(row.amount)}</td>
-                                                    <td className="px-4 py-3 text-right text-red-500 text-xs">−{formatCurrency(row.fee)}</td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">{formatCurrency(row.net_amount)}</td>
-                                                    <td className="px-4 py-3 text-xs">{row.account_name}</td>
-                                                    <td className="px-4 py-3">
-                                                        {row.network && (
-                                                            <span className={cn('inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full', NETWORK_COLORS[row.network as Network] || 'bg-muted text-foreground/80')}>
-                                                                {row.network}
-                                                            </span>
-                                                        )}
-                                                        <p className="font-mono text-xs text-muted-foreground mt-0.5">{row.momo_number}</p>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={cn('inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full', cfg.color)}>
-                                                            <Icon className={cn("w-3 h-3", row.status === 'moolre_pending' && 'animate-spin')} />
-                                                            {cfg.label}
-                                                        </span>
-                                                        {row.moolre_transaction_id && (
-                                                            <p className="text-[10px] font-mono text-muted-foreground mt-0.5 truncate max-w-[120px]" title={row.moolre_transaction_id}>
-                                                                {row.moolre_transaction_id.slice(0, 12)}…
-                                                            </p>
-                                                        )}
-                                                        {(row.status === 'reversed' || row.status === 'failed') && row.failure_reason && (
-                                                            <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[160px]" title={row.failure_reason}>
-                                                                {row.failure_reason}
-                                                            </p>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            )
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Mobile Cards */}
-                            <div className="md:hidden divide-y">
-                                {history.map((row) => {
-                                    const cfg = statusConfig[row.status] ?? statusConfig['pending']
-                                    const Icon = cfg.icon
-                                    return (
-                                        <div key={row.id} className="p-4 space-y-3">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="text-xs text-muted-foreground mb-0.5">
-                                                        {new Date(row.created_at).toLocaleDateString()}
-                                                    </p>
-                                                    <p className="text-2xl font-black text-emerald-600 leading-none">
-                                                        {formatCurrency(row.net_amount)}
-                                                    </p>
-                                                    <p className="text-[11px] text-muted-foreground mt-1">
-                                                        Requested: {formatCurrency(row.amount)} · Fee: {formatCurrency(row.fee)}
-                                                    </p>
-                                                </div>
-                                                <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full shrink-0', cfg.color)}>
-                                                    <Icon className={cn("w-2.5 h-2.5", row.status === 'moolre_pending' && 'animate-spin')} />
-                                                    {cfg.label.toUpperCase()}
-                                                </span>
-                                            </div>
-                                            {(row.status === 'reversed' || row.status === 'failed') && row.failure_reason && (
-                                                <p className="text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-                                                    {row.failure_reason}
-                                                </p>
-                                            )}
-                                            <div className="grid grid-cols-2 gap-2 bg-muted/30 p-3 rounded-xl text-xs">
-                                                <div>
-                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Account Name</p>
-                                                    <p className="font-medium mt-0.5 truncate">{row.account_name}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Network</p>
-                                                    {row.network ? (
-                                                        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block', NETWORK_COLORS[row.network as Network] || 'bg-muted text-foreground/80')}>
-                                                            {row.network}
-                                                        </span>
-                                                    ) : (
-                                                        <p className="text-[10px] text-muted-foreground mt-0.5">—</p>
-                                                    )}
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">MoMo Number</p>
-                                                    <p className="font-mono mt-0.5">{row.momo_number}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* ── Confirm payout ── */}
+            {/* Confirm */}
             <Dialog open={confirmOpen} onOpenChange={(o) => { if (!submitting) setConfirmOpen(o) }}>
-                <DialogContent className="max-w-sm" aria-describedby={undefined}>
-                    <DialogHeader>
-                        <DialogTitle>Confirm withdrawal</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="font-semibold">{formatCurrency(amountNum)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Fee</span><span>−{formatCurrency(totalFee)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">You receive</span><span className="font-bold text-emerald-600">{formatCurrency(Math.max(0, netAmount))}</span></div>
-                        <div className="border-t pt-2 space-y-1">
-                            <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium text-right">{verifiedName || normalizedManualName}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">{paymentType === 'bank' ? 'Account' : 'Number'}</span><span className="font-mono">{accountNumber}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Network</span><span>{paymentType === 'bank' ? (banks.find(b => b.id === selectedBankId)?.name || 'Bank') : network}</span></div>
+                <DialogContent className="max-w-sm rounded-3xl" aria-describedby={undefined}>
+                    <DialogHeader><DialogTitle className="font-display">Send this payout?</DialogTitle></DialogHeader>
+                    <div className="space-y-4 text-sm">
+                        <div className="neu-inset rounded-2xl px-4 py-4 text-center">
+                            <p className="text-xs text-muted-foreground">You receive</p>
+                            <p className="font-display text-3xl font-bold tabular-nums">{formatCurrency(Math.max(0, netAmount))}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{formatCurrency(amountNum)} withdrawn, {formatCurrency(totalFee)} fee</p>
                         </div>
-                        <p className="text-xs text-amber-700 dark:text-amber-400">Your wallet is debited immediately. Check the number carefully — payouts to a wrong account may not be recoverable.</p>
+                        <dl className="space-y-1.5">
+                            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Name</dt><dd className="text-right font-semibold">{receiverName}</dd></div>
+                            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">{paymentType === 'bank' ? 'Account' : 'Number'}</dt><dd className="font-mono">{accountNumber}</dd></div>
+                            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">{paymentType === 'bank' ? 'Bank' : 'Network'}</dt><dd>{paymentType === 'bank' ? (bankName || 'Bank') : network}</dd></div>
+                        </dl>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">Your wallet is debited straight away. Check the number: a payout to the wrong account may not be recoverable.</p>
                     </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={submitting}>Cancel</Button>
-                        <Button onClick={handleSubmit} disabled={submitting || !canSubmit} className="gap-2 clay clay-green">
-                            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Confirm &amp; Withdraw
-                        </Button>
+                    <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">
+                        <ClayButton type="button" onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
+                            {submitting ? 'Submitting' : 'Confirm and withdraw'}
+                        </ClayButton>
+                        <ClayButton type="button" variant="black" onClick={() => setConfirmOpen(false)} disabled={submitting}>Go back</ClayButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* ── Saved Payment Details Modal ── */}
+            {/* Saved accounts */}
             <Dialog open={savedModalOpen} onOpenChange={setSavedModalOpen}>
-                <DialogContent className="max-w-md" aria-describedby={undefined}>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <BookUser className="w-4 h-4 text-emerald-600" />
-                            Saved Payment Methods
-                        </DialogTitle>
-                    </DialogHeader>
+                <DialogContent className="max-w-md rounded-3xl" aria-describedby={undefined}>
+                    <DialogHeader><DialogTitle className="font-display">Saved accounts</DialogTitle></DialogHeader>
 
-                    <div className="space-y-2.5 max-h-64 overflow-y-auto pr-0.5">
-                        {savedDetails.length === 0 && (
-                            <p className="text-sm text-muted-foreground text-center py-6">
-                                No saved payment methods yet. Add one below.
-                            </p>
-                        )}
+                    <div className="max-h-64 space-y-2.5 overflow-y-auto">
+                        {savedDetails.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No saved accounts yet. Add one below.</p>}
                         {savedDetails.map(d => (
-                            <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border bg-muted/30">
-                                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-white font-bold text-xs', NETWORK_BG[d.network])}>
-                                    {NETWORK_SHORT[d.network]}
-                                </div>
-                                <div className="flex-1 min-w-0 space-y-0">
-                                    <p className="font-semibold text-sm truncate">{d.account_name}</p>
-                                    <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block', NETWORK_COLORS[d.network])}>
-                                        {d.network}
-                                    </span>
+                            <div key={d.id} className="well flex items-center gap-3 rounded-2xl p-3">
+                                <NetworkChip network={d.network} size="sm" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold">{d.account_name}</p>
                                     <p className="font-mono text-xs text-muted-foreground">{d.momo_number}</p>
                                 </div>
-                                <div className="flex gap-1 items-center flex-shrink-0">
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className={cn('h-8 w-8', d.is_default ? 'text-yellow-500' : 'text-muted-foreground')}
-                                        onClick={() => handleSetDefault(d.id)}
-                                        title={d.is_default ? 'Default method' : 'Set as default'}
-                                    >
-                                        <Star className="w-4 h-4" fill={d.is_default ? 'currentColor' : 'none'} />
-                                    </Button>
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 text-red-500 hover:text-red-700"
-                                        onClick={() => handleDeleteSavedDetail(d.id)}
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </Button>
-                                </div>
+                                <button type="button" onClick={() => handleSetDefault(d.id)} aria-label={d.is_default ? 'Default account' : `Make ${d.account_name} the default`} className={cn('flex h-9 w-9 items-center justify-center rounded-lg', FOCUS, d.is_default ? 'text-brand-600' : 'text-muted-foreground hover:text-foreground')}>
+                                    <Star className="h-4 w-4" fill={d.is_default ? 'currentColor' : 'none'} />
+                                </button>
+                                <button type="button" onClick={() => handleDeleteSaved(d.id)} aria-label={`Remove ${d.account_name}`} className={cn('flex h-9 w-9 items-center justify-center rounded-lg text-red-600 hover:text-red-700', FOCUS)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
                             </div>
                         ))}
                     </div>
 
-                    {savedDetails.length < 5 ? (
-                        <div className="border-t pt-4 space-y-3">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Add New Payment Method ({savedDetails.length}/5)
-                            </p>
-                            <Select value={newNetwork} onValueChange={v => setNewNetwork(v as Network)}>
-                                <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Select network" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {NETWORKS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <Input
-                                placeholder="MoMo number (e.g. 0244123456)"
-                                value={newMomoNumber}
-                                onChange={e => setNewMomoNumber(e.target.value)}
-                                className="h-10 font-mono"
-                            />
-                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium px-1">
-                                Notice: The account name will be auto-verified before saving.
-                            </p>
-                            <Button
-                                className="w-full gap-2 clay clay-green"
-                                onClick={handleAddSavedDetail}
-                                disabled={addingDetail}
-                            >
-                                {addingDetail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                                {addingDetail ? 'Verifying & Saving...' : 'Verify & Save Payment Method'}
-                            </Button>
+                    {savedDetails.length < MAX_SAVED ? (
+                        <div className="space-y-3 border-t pt-4">
+                            <p className="text-sm font-semibold">Add an account ({savedDetails.length}/{MAX_SAVED})</p>
+                            <div className="neu-inset rounded-xl">
+                                <Select value={newNetwork} onValueChange={(v) => setNewNetwork(v as Network)}>
+                                    <SelectTrigger className={SELECT_TRIGGER}><SelectValue placeholder="Choose a network" /></SelectTrigger>
+                                    <SelectContent>{NETWORKS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            <div className="neu-inset rounded-xl">
+                                <Input inputMode="tel" autoComplete="off" placeholder="024 123 4567" value={newMomoNumber} onChange={(e) => setNewMomoNumber(e.target.value)} aria-label="Mobile money number" className={cn(FIELD, 'font-mono')} />
+                            </div>
+                            <p className="text-xs text-muted-foreground">We confirm the name on the account before saving it.</p>
+                            <ClayButton type="button" onClick={handleAddSaved} loading={addingDetail}>
+                                {addingDetail ? 'Checking' : 'Confirm and save'}
+                            </ClayButton>
                         </div>
                     ) : (
-                        <p className="text-xs text-muted-foreground text-center pt-2 border-t">
-                            Maximum of 5 saved methods reached. Delete one to add more.
-                        </p>
+                        <p className="border-t pt-3 text-center text-sm text-muted-foreground">You have {MAX_SAVED} saved accounts. Remove one to add another.</p>
                     )}
 
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setSavedModalOpen(false)}>Done</Button>
-                    </DialogFooter>
+                    <DialogFooter><ClayButton type="button" variant="black" onClick={() => setSavedModalOpen(false)}>Done</ClayButton></DialogFooter>
                 </DialogContent>
             </Dialog>
-
         </div>
     )
 }
