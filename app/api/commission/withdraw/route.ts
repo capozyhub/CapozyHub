@@ -3,26 +3,24 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { z } from 'zod'
 import { phoneSchema } from '@/lib/validation'
-import { validateAccountName, MOOLRE_CHANNEL_MAP } from '@/lib/moolre-transfer-service'
+import { resolvePayoutAccountName } from '@/lib/payout-name-resolver'
+import { consumeNameLookupQuota } from '@/lib/payout-name-lookup-quota'
+import { checkWithdrawLimit } from '@/lib/withdraw-rate-limit'
 import { computeCommissionWithdrawalFee, getCommissionMinWithdrawal } from '@/lib/commission-wallet'
 import { sendAdminShopWithdrawalRequestAlert } from '@/lib/email-service'
-import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 // Manual name fallback — same allowlist as app/api/shop/withdraw/route.ts, used
-// ONLY when Moolre's live name lookup fails, so this feature has the same
-// verify-then-manual-fallback shape as the sibling shop withdrawal flow. There is
-// no Paystack name-verification endpoint anywhere in this codebase — Paystack
-// Transfers only registers a recipient with a name YOU supply, it never confirms
-// one; Moolre is the sole live name-verification source, same as it is for shops.
+// ONLY when the live name lookup (Paystack first, Moolre as fallback) cannot
+// resolve the number. The allowlist already excludes every HTML/script
+// metacharacter, so no keyword blocklist is layered on top (it only rejected
+// real names such as "Manuscript").
 const MANUAL_NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ '.\-]{1,99}$/
-const MANUAL_NAME_BLOCK = /(script|javascript:|onerror|onload|onclick|onmouseover|eval\(|data:|<|>|&lt|&gt)/i
 const manualAccountNameSchema = z.string()
     .trim()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be 100 characters or less')
     .regex(MANUAL_NAME_REGEX, 'Only letters, spaces, hyphens, apostrophes and periods allowed')
     .refine((v: string) => !/\s{2,}/.test(v), 'No consecutive spaces allowed')
-    .refine((v: string) => !MANUAL_NAME_BLOCK.test(v), 'Invalid characters detected')
 
 // MoMo-only — no bank branch. Paystack Transfers (lib/paystack-transfer-service.ts)
 // only supports mobile_money recipients, so there is nothing to route a bank
@@ -53,12 +51,23 @@ export async function POST(req: NextRequest) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
-        const rl = consumeRateLimit(`commission-withdraw:${user.id}`, 5, 60_000)
-        if (!rl.allowed) {
-            return NextResponse.json({ success: false, error: `Rate limit exceeded. Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s` }, { status: 429 })
+        // A suspension only flips users.status — it does not revoke the auth session — so
+        // money routes must check it themselves (as data-orders/guards.ts does).
+        const { data: dbUser } = await supabase.from('users').select('status').eq('id', user.id).single()
+        if (!dbUser) return NextResponse.json({ success: false, error: 'Forbidden. User not found.' }, { status: 403 })
+        if (dbUser.status === 'suspended' || dbUser.status === 'inactive') {
+            return NextResponse.json({ success: false, error: 'Your account is currently suspended. Please contact support.' }, { status: 403 })
         }
 
-        const body = await req.json()
+        // Global (Upstash) limiter — the old in-memory one reset on every serverless instance.
+        if (!(await checkWithdrawLimit(user.id, 'commission-withdraw'))) {
+            return NextResponse.json({ success: false, error: 'Too many withdrawal attempts. Please wait a few minutes and try again.' }, { status: 429 })
+        }
+
+        const body = await req.json().catch(() => null)
+        if (!body || typeof body !== 'object') {
+            return NextResponse.json({ success: false, error: 'Invalid input' }, { status: 400 })
+        }
         const validation = withdrawSchema.safeParse(body)
         if (!validation.success) {
             return NextResponse.json({ success: false, error: validation.error.errors.map(e => e.message).join('; ') }, { status: 400 })
@@ -99,11 +108,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: `Amount too low to cover the GH₵${fee.toFixed(2)} processing fee` }, { status: 400 })
         }
 
-        // Resolve the account name: Moolre live lookup first; a manual fallback
-        // (flagged unverified for admin review) only when Moolre fails and the
-        // caller supplied one — mirrors app/api/shop/withdraw/route.ts exactly.
-        const channel = MOOLRE_CHANNEL_MAP[network]
-        const nameValidation = await validateAccountName(momoNumber, channel)
+        // Resolve the account name with the same resolver the page's name check uses
+        // (Paystack first, Moolre fallback), so a name that verified on the page cannot
+        // fail here. A manual fallback (flagged unverified for admin review) is only used
+        // when the lookup fails and the caller supplied one.
+        const nameValidation = await resolvePayoutAccountName({ network, number: momoNumber })
+        // A failed lookup is charged to the same daily quota as /api/shop/validate-account;
+        // successful ones end in a real payout to that number, so they cost nothing here.
+        if (!nameValidation.success && !(await consumeNameLookupQuota(user.id))) {
+            return NextResponse.json({ success: false, error: 'Daily account-verification limit reached. Please try again tomorrow or contact support.' }, { status: 429 })
+        }
         let verifiedAccountName: string
         let isNameVerified: boolean
         if (nameValidation.success && nameValidation.name) {
@@ -112,7 +126,7 @@ export async function POST(req: NextRequest) {
         } else if (manualAccountName) {
             verifiedAccountName = manualAccountName
             isNameVerified = false
-            console.warn(`[commission/withdraw] User ${user.id} used manual name fallback after Moolre rejection:`, nameValidation.error)
+            console.warn(`[commission/withdraw] User ${user.id} used manual name fallback after lookup failed:`, nameValidation.error)
         } else {
             return NextResponse.json({ success: false, error: nameValidation.error || 'Could not verify account name' }, { status: 400 })
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
+import { getCommissionMinWithdrawal, getCommissionWithdrawalFeeRates } from '@/lib/commission-wallet'
 
 export async function GET() {
     const supabase = await createRouteClient()
@@ -16,12 +17,18 @@ export async function GET() {
     // data:null) the moment a recruiter has more than one qualifying row.
     const admin = createServerClient() as any
 
-    const [walletRes, shopWalletRes, keyRes, subAgentRes] = await Promise.all([
+    const [walletRes, shopWalletRes, keyRes, subAgentRes, settingsRes] = await Promise.all([
         (supabase.from('commission_wallets') as any).select('balance, total_earned, total_withdrawn').eq('owner_id', user.id).maybeSingle(),
         (supabase.from('shop_wallets') as any).select('id').eq('owner_id', user.id).maybeSingle(),
         (supabase.from('api_keys') as any).select('id').eq('user_id', user.id).eq('key_type', 'commission').eq('status', 'active').maybeSingle(),
         admin.from('sub_agents').select('id').eq('upline_user_id', user.id).eq('status', 'active').limit(1),
+        admin.from('admin_settings').select('key, value').in('key', ['commission_withdrawal_fee_percent', 'commission_withdrawal_fee_flat', 'commission_min_withdrawal_amount']),
     ])
+
+    // Same resolution the withdraw route charges with, so the page can show the real fee up front.
+    const settingsMap: Record<string, any> = {}
+    for (const s of (settingsRes.data || [])) settingsMap[s.key] = s.value
+    const feeRates = getCommissionWithdrawalFeeRates(settingsMap)
 
     const wallet = walletRes.data
     if (keyRes.error) {
@@ -40,6 +47,9 @@ export async function GET() {
             total_withdrawn: wallet?.total_withdrawn ?? 0,
             has_shop_wallet: !!shopWalletRes.data,
             has_active_sub_agents: Array.isArray(subAgentRes.data) && subAgentRes.data.length > 0,
+            min_withdrawal: getCommissionMinWithdrawal(settingsMap),
+            withdrawal_fee_percent: feeRates.percent,
+            withdrawal_fee_flat: feeRates.flat,
         },
     })
 }

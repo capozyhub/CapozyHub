@@ -16,6 +16,16 @@ export function computeCommissionWithdrawalFee(
     return { fee, netAmount }
 }
 
+/** The raw fee settings (percent, flat) the withdraw route charges with, defaults included. */
+export function getCommissionWithdrawalFeeRates(
+    settings: { commission_withdrawal_fee_percent?: any; commission_withdrawal_fee_flat?: any },
+): { percent: number; flat: number } {
+    return {
+        percent: parseSettingNumber(settings.commission_withdrawal_fee_percent, 2),
+        flat: parseSettingNumber(settings.commission_withdrawal_fee_flat, 0),
+    }
+}
+
 export function getCommissionMinWithdrawal(settings: Record<string, any>): number {
     return parseSettingNumber(settings.commission_min_withdrawal_amount, 20)
 }
