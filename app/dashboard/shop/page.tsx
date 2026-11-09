@@ -1,21 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { formatCurrency, cn } from '@/lib/utils'
 import {
-    Store, Wallet, TrendingUp, ShoppingCart, ArrowRight,
+    Store, TrendingUp, ShoppingCart, ArrowRight,
     Settings, Tag, Banknote, Clock, CheckCircle2, XCircle,
     AlertCircle, ExternalLink, Copy, Check, RefreshCcw, Crown,
-    MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Receipt
+    MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Receipt, Inbox
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmationStatusBanner } from '@/components/shop/confirmation-status-banner'
@@ -68,16 +64,22 @@ interface RecentOrder {
     source?: string  // 'ussd' | 'ussd_shop' = sold via USSD
 }
 
-const statusConfig = {
-    pending: { label: 'Pending Approval', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
-    approved: { label: 'Active', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
-    rejected: { label: 'Rejected', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: XCircle },
-    suspended: { label: 'Suspended', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400', icon: AlertCircle },
+const statusConfig: Record<ShopProfile['approval_status'], { label: string; className: string; icon: typeof Clock }> = {
+    pending: { label: 'Pending review', className: 'bg-brand-500/15 text-brand-700 dark:text-brand-500', icon: Clock },
+    approved: { label: 'Live', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', icon: CheckCircle2 },
+    rejected: { label: 'Rejected', className: 'bg-red-500/15 text-red-600 dark:text-red-400', icon: XCircle },
+    suspended: { label: 'Suspended', className: 'bg-red-500/15 text-red-600 dark:text-red-400', icon: AlertCircle },
+}
+
+const orderStatusChip: Record<string, { label: string; className: string }> = {
+    completed: { label: 'Paid out', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
+    pending: { label: 'Pending', className: 'bg-brand-500/15 text-brand-700 dark:text-brand-500' },
+    processing: { label: 'Processing', className: 'bg-brand-500/15 text-brand-700 dark:text-brand-500' },
+    failed: { label: 'Failed', className: 'bg-red-500/15 text-red-600 dark:text-red-400' },
 }
 
 export default function ShopDashboardPage() {
-    const { dbUser, isAdmin, isSubAdmin } = useAuth()
-    const router = useRouter()
+    const { dbUser } = useAuth()
     const [shop, setShop] = useState<ShopProfile | null>(null)
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
     const [stats, setStats] = useState<ShopStats | null>(null)
@@ -107,7 +109,14 @@ export default function ShopDashboardPage() {
     const [isSavingAnn, setIsSavingAnn] = useState(false)
     const [adminAnnActive, setAdminAnnActive] = useState(false)
 
+    // Guards against the "today" tab's response landing after the "30d" tab's,
+    // which used to happen whenever someone switched filters faster than the
+    // network could answer — the stats/list would then show the wrong window.
+    const fetchSeq = useRef(0)
+
     const fetchShopData = async () => {
+        const seq = ++fetchSeq.current
+
         if (!shop) {
             setLoading(true)
         } else {
@@ -131,17 +140,16 @@ export default function ShopDashboardPage() {
                 shopData = data
             } catch (profileErr) {
                 console.error('[ShopPage] Failed to fetch shop profile:', profileErr)
-                setLoading(false)
-                setIsFiltering(false)
+                if (seq === fetchSeq.current) { setLoading(false); setIsFiltering(false) }
                 return
             }
 
             if (!shopData) {
-                setLoading(false)
-                setIsFiltering(false)
+                if (seq === fetchSeq.current) { setLoading(false); setIsFiltering(false) }
                 return
             }
 
+            if (seq !== fetchSeq.current) return
             setShop(shopData)
             setSmsConfirmEnabled(shopData?.sms_order_confirmation_enabled !== false)
             setUtilitiesEnabled(shopData?.utilities_enabled === true)
@@ -184,6 +192,9 @@ export default function ShopDashboardPage() {
             query.order('created_at', { ascending: false }),
             rcQuery.order('created_at', { ascending: false }),
         ])
+
+        // A slower, older request resolving after a newer one must never overwrite it.
+        if (seq !== fetchSeq.current) return
 
         if (walletSettled.status === 'fulfilled' && walletSettled.value?.data) {
             setWallet(walletSettled.value.data)
@@ -272,7 +283,8 @@ export default function ShopDashboardPage() {
             fetchShopData()
             fetchShopAnnouncement()
         }
-    }, [dbUser, isAdmin, isSubAdmin, filter])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dbUser, filter])
 
     const shopUrl = shop ? `https://${BRAND.shopHost}/${shop.shop_slug}` : ''
 
@@ -412,21 +424,21 @@ export default function ShopDashboardPage() {
     // No shop yet
     if (!shop) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 px-4">
-                <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <Store className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
-                </div>
+            <div className="neu-raised-sm mx-auto mt-6 flex max-w-lg flex-col items-center gap-5 rounded-3xl p-8 text-center sm:p-10">
+                <span className="neu-inset flex h-16 w-16 items-center justify-center rounded-2xl text-brand-700 dark:text-brand-500">
+                    <Store className="h-8 w-8" />
+                </span>
                 <div>
-                    <h2 className="text-2xl font-bold mb-2">Set Up Your Shop</h2>
-                    <p className="text-muted-foreground max-w-sm">
-                        Create your reseller storefront and start earning profit on every data bundle sale.
+                    <h2 className="font-display text-xl font-bold">Open your own shop</h2>
+                    <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                        Get a storefront link under your own name and earn profit on every bundle your customers buy.
                     </p>
                 </div>
-                <Link href="/dashboard/shop/setup">
-                    <Button size="lg" className="gap-2 clay clay-green">
-                        <Store className="w-5 h-5" />
-                        Create My Shop
-                    </Button>
+                <Link
+                    href="/dashboard/shop/setup"
+                    className="clay-gold inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold"
+                >
+                    <Store className="w-5 h-5" /> Create my shop
                 </Link>
             </div>
         )
@@ -444,78 +456,108 @@ export default function ShopDashboardPage() {
     const shopIsLive = shop.approval_status === 'approved' && shop.pricing_status === 'approved'
 
     // Quick links — every shop page reachable from the dashboard hub.
-    const quickLinks: { href: string; label: string; icon: any; external?: boolean }[] = [
-        { href: '/dashboard/shop/orders', label: 'Orders', icon: ShoppingCart },
-        { href: '/dashboard/shop/pricing', label: 'Pricing', icon: Tag },
-        { href: '/dashboard/shop/withdraw', label: 'Withdraw', icon: Banknote },
-        { href: '/dashboard/shop/customers', label: 'Customers', icon: Users },
-        { href: '/dashboard/shop/profit-logs', label: 'Profit Logs', icon: FileText },
-        { href: '/dashboard/shop/sms', label: 'SMS', icon: MessageSquare },
-        { href: '/dashboard/shop/setup', label: 'Settings', icon: Settings },
-        ...(shopIsLive ? [{ href: shopUrl, label: 'Storefront', icon: ExternalLink, external: true }] : []),
+    const quickLinks: { href: string; label: string; hint: string; icon: any; external?: boolean }[] = [
+        { href: '/dashboard/shop/orders', label: 'Orders', hint: 'Track & retry', icon: ShoppingCart },
+        { href: '/dashboard/shop/pricing', label: 'Pricing', hint: 'Set your margin', icon: Tag },
+        { href: '/dashboard/shop/withdraw', label: 'Withdraw', hint: 'Cash out profit', icon: Banknote },
+        { href: '/dashboard/shop/customers', label: 'Customers', hint: 'Who buys from you', icon: Users },
+        { href: '/dashboard/shop/profit-logs', label: 'Profit logs', hint: 'Full ledger', icon: FileText },
+        { href: '/dashboard/shop/sms', label: 'SMS', hint: 'Sender & credits', icon: MessageSquare },
+        { href: '/dashboard/shop/setup', label: 'Settings', hint: 'Shop & branding', icon: Settings },
+        ...(shopIsLive ? [{ href: shopUrl, label: 'Storefront', hint: 'View it live', icon: ExternalLink, external: true }] : []),
     ]
 
     const statCards = [
-        { label: 'Sales', value: formatCurrency(stats?.total_revenue || 0), accent: 'text-emerald-600 dark:text-emerald-400', icon: Banknote },
-        { label: 'Profit', value: formatCurrency(stats?.total_profit || 0), accent: 'text-purple-600 dark:text-purple-400', icon: TrendingUp },
-        { label: 'Completed', value: `${stats?.completed_orders || 0}`, accent: 'text-green-600 dark:text-green-400', icon: CheckCircle2 },
-        { label: 'In Progress', value: `${(stats?.pending_orders || 0) + (stats?.processing_orders || 0)}`, accent: 'text-yellow-600 dark:text-yellow-400', icon: Clock },
+        { label: 'Sales', value: formatCurrency(stats?.total_revenue || 0), accent: 'text-brand-700 dark:text-brand-500', icon: Banknote },
+        { label: 'Profit', value: formatCurrency(stats?.total_profit || 0), accent: 'text-emerald-600 dark:text-emerald-400', icon: TrendingUp },
+        { label: 'Completed', value: `${stats?.completed_orders || 0}`, accent: 'text-emerald-600 dark:text-emerald-400', icon: CheckCircle2 },
+        { label: 'In progress', value: `${(stats?.pending_orders || 0) + (stats?.processing_orders || 0)}`, accent: 'text-brand-700 dark:text-brand-500', icon: Clock },
     ]
 
     return (
         <div className="space-y-5 pb-20 md:pb-6">
-            {/* ── Header ── */}
-            <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-800/50">
-                            <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="min-w-0">
-                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">{shop.shop_name}</h1>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                <span className={cn('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full', statusConfig[shop.approval_status]?.color)}>
-                                    <StatusIcon className="w-3 h-3" />
-                                    {statusConfig[shop.approval_status]?.label}
-                                </span>
-                                {(dbUser?.role === 'agent' || dbUser?.role === 'dealer') && (
-                                    dbUser?.role === 'dealer' ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 rounded-full text-[11px] font-semibold">
-                                            <Gem className="w-3 h-3" /> Dealer
-                                        </span>
-                                    ) : isPermanentAgent ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full text-[11px] font-semibold">
-                                            <Crown className="w-3 h-3" /> Lifetime
-                                        </span>
-                                    ) : (
-                                        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold', daysLeft <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300')}>
-                                            <Clock className="w-3 h-3" /> {daysLeft <= 0 ? 'Expired' : `${daysLeft}d left`}
-                                        </span>
-                                    )
-                                )}
+            {/* ── Hero: identity + balance in one surface ── */}
+            <section aria-label="Your shop" className="neu-night relative overflow-hidden rounded-3xl p-5 text-white sm:p-7">
+                <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                            <span className="neu-night-in flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-brand-500">
+                                <Store className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <h1 className="font-display truncate text-lg font-bold tracking-tight sm:text-xl">{shop.shop_name}</h1>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold', cfg?.className)}>
+                                        <StatusIcon className="w-3 h-3" />
+                                        {cfg?.label}
+                                    </span>
+                                    {(dbUser?.role === 'agent' || dbUser?.role === 'dealer') && (
+                                        dbUser?.role === 'dealer' ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/80">
+                                                <Gem className="w-3 h-3" /> Dealer
+                                            </span>
+                                        ) : isPermanentAgent ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/80">
+                                                <Crown className="w-3 h-3" /> Lifetime
+                                            </span>
+                                        ) : (
+                                            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold', daysLeft <= 3 ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white/80')}>
+                                                <Clock className="w-3 h-3" /> {daysLeft <= 0 ? 'Expired' : `${daysLeft}d left`}
+                                            </span>
+                                        )
+                                    )}
+                                </div>
                             </div>
                         </div>
+
+                        <p className="mt-5 text-xs font-medium text-white/50">Available profit</p>
+                        <p className="mt-1 font-display text-4xl font-bold leading-none tracking-tight sm:text-5xl">
+                            <span className="mr-1.5 text-2xl font-semibold text-brand-500 sm:text-3xl">GH₵</span>
+                            {Number(wallet?.balance || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <div className="neu-night-in mt-4 inline-flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm">
+                            <span className="text-white/70">
+                                Earned <span className="font-semibold text-white">{formatCurrency(wallet?.total_earned || 0)}</span>
+                                <span className="mx-2 text-white/30">/</span>
+                                Withdrawn <span className="font-semibold text-white">{formatCurrency(wallet?.total_withdrawn || 0)}</span>
+                            </span>
+                        </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="gap-1.5 rounded-lg flex-shrink-0">
-                        <RefreshCcw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
-                        <span className="hidden sm:inline">Refresh</span>
-                    </Button>
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            aria-label="Refresh dashboard"
+                            className="neu-night-in inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white/80 disabled:opacity-60"
+                        >
+                            <RefreshCcw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+                            <span className="hidden sm:inline">Refresh</span>
+                        </button>
+                        <Link
+                            href="/dashboard/shop/withdraw"
+                            className="clay-gold inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold"
+                        >
+                            Withdraw <ArrowRight className="w-4 h-4" />
+                        </Link>
+                    </div>
                 </div>
 
                 {shopIsLive && (
-                    <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-emerald-50/60 dark:bg-emerald-950/20 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                        <span className="text-xs font-mono text-emerald-800 dark:text-emerald-300 truncate flex-1 px-2 py-1.5">{shopUrl}</span>
+                    <div className="neu-night-in relative mt-5 flex flex-col items-stretch gap-2 rounded-2xl p-2 sm:flex-row sm:items-center">
+                        <span className="truncate flex-1 px-2 py-1.5 font-mono text-xs text-white/70">{shopUrl}</span>
                         <div className="flex items-center gap-2">
-                            <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 sm:flex-none h-9 bg-card text-emerald-600 gap-1.5 rounded-lg font-semibold">
-                                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy'}
-                            </Button>
-                            <a href={shopUrl} target="_blank" rel="noopener noreferrer" title="Open Shop" aria-label="Open Shop">
-                                <Button size="sm" className="h-9 rounded-lg clay clay-green"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                            <button type="button" onClick={copyLink} className="clay-silver inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3.5 text-xs font-bold sm:flex-none">
+                                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy link'}
+                            </button>
+                            <a href={shopUrl} target="_blank" rel="noopener noreferrer" title="Open shop" aria-label="Open shop">
+                                <span className="clay-black inline-flex h-9 w-9 items-center justify-center rounded-xl"><ExternalLink className="w-3.5 h-3.5" /></span>
                             </a>
                         </div>
                     </div>
                 )}
-            </div>
+            </section>
 
             {/* ── Confirmation-status warning (only renders when something needs the owner's attention) ── */}
             <ConfirmationStatusBanner />
@@ -527,95 +569,100 @@ export default function ShopDashboardPage() {
                     smsConfirmEnabled,
                     utilitiesEnabled,
                     ownerRole: dbUser?.role,
-                    brandColor: /^#([A-Fa-f0-9]{3}){1,4}$/.test(shop.brand_color) ? shop.brand_color : '#2563eb',
+                    brandColor: /^#([A-Fa-f0-9]{3}){1,4}$/.test(shop.brand_color) ? shop.brand_color : '#F6C30F',
                 })}
             />
 
-            {/* ── Quick Links (real buttons) ── */}
-            <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                {quickLinks.map(({ href, label, icon: Icon, external }) => {
+            {/* ── Quick Links ── */}
+            <ul className="grid grid-cols-4 gap-2.5 sm:grid-cols-4 md:grid-cols-8">
+                {quickLinks.map(({ href, label, hint, icon: Icon, external }) => {
                     const inner = (
-                        <span className="flex flex-col items-center justify-center gap-1.5 w-full h-full py-3 px-1 rounded-xl border border-border bg-card shadow-sm transition-all duration-150 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 active:scale-95 active:shadow-inner">
-                            <Icon className="w-4.5 h-4.5 w-[18px] h-[18px] text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-[11px] font-semibold text-foreground/80 leading-none">{label}</span>
+                        <span className="neu-raised-sm neu-press group flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 text-center">
+                            <span className="neu-inset flex h-9 w-9 items-center justify-center rounded-xl text-brand-700 transition-colors group-hover:text-brand-600 dark:text-brand-500">
+                                <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="text-[11px] font-semibold leading-none text-foreground/80">{label}</span>
                         </span>
                     )
-                    if (external) {
-                        return <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="block">{inner}</a>
-                    }
-                    return <Link key={label} href={href} className="block">{inner}</Link>
+                    return (
+                        <li key={label}>
+                            {external
+                                ? <a href={href} target="_blank" rel="noopener noreferrer" title={hint} className="block">{inner}</a>
+                                : <Link href={href} title={hint} className="block">{inner}</Link>}
+                        </li>
+                    )
                 })}
-            </div>
+            </ul>
 
             {/* ── Stats ── */}
             <div className={cn('space-y-2.5 transition-opacity duration-300', (isPending || isFiltering) && 'opacity-50 pointer-events-none')}>
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 text-emerald-500" /> Performance
+                    <h3 className="flex items-center gap-1.5 font-display text-sm font-semibold">
+                        <TrendingUp className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Performance
                     </h3>
-                    <div className="flex bg-muted rounded-lg p-0.5">
+                    <div className="neu-inset flex rounded-xl p-1">
                         {(['all', 'today', '7d', '30d'] as const).map((f) => (
-                            <button key={f} onClick={() => setFilter(f)} className={cn('px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all', filter === f ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70')}>
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={cn('rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all', filter === f ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground')}
+                            >
                                 {f === 'all' ? 'All' : f === 'today' ? 'Today' : f.toUpperCase()}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                     {statCards.map(({ label, value, accent, icon: Icon }) => (
-                        <Card key={label} className="bg-card border border-border rounded-xl shadow-sm">
-                            <CardContent className="p-3.5">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <Icon className={cn('w-3.5 h-3.5', accent)} />
-                                    <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-                                </div>
-                                <p className="text-lg font-bold text-foreground tabular-nums">{value}</p>
-                            </CardContent>
-                        </Card>
+                        <div key={label} className="neu-raised-sm rounded-2xl p-3.5">
+                            <div className="mb-1 flex items-center gap-1.5">
+                                <Icon className={cn('w-3.5 h-3.5', accent)} />
+                                <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+                            </div>
+                            <p className="text-lg font-bold tabular-nums text-foreground">{value}</p>
+                        </div>
                     ))}
                 </div>
             </div>
 
-            {/* ── Wallet + Notice + Activity ── */}
-            <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4', isPending && 'opacity-50 pointer-events-none')}>
+            {/* ── Notices, toggles + Activity ── */}
+            <div className={cn('grid grid-cols-1 gap-4 lg:grid-cols-12', isPending && 'opacity-50 pointer-events-none')}>
                 <div className="lg:col-span-4 space-y-4">
-                    <div className="rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 p-5 text-white shadow-md">
-                        <p className="text-emerald-200 text-xs font-medium mb-1">Available Profit</p>
-                        <p className="text-3xl font-bold tabular-nums">{formatCurrency(wallet?.balance || 0)}</p>
-                        <div className="flex gap-4 mt-2 text-[11px] text-emerald-200/90">
-                            <span>Earned: {formatCurrency(wallet?.total_earned || 0)}</span>
-                            <span>Withdrawn: {formatCurrency(wallet?.total_withdrawn || 0)}</span>
-                        </div>
-                        <Link href="/dashboard/shop/withdraw" className="block mt-4">
-                            <Button size="sm" className="w-full bg-card text-emerald-700 hover:bg-emerald-50 font-semibold rounded-lg h-10">
-                                Withdraw Earnings <ArrowRight className="w-4 h-4 ml-1.5" />
-                            </Button>
-                        </Link>
-                    </div>
-
-                    <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
-                        <div className="flex items-center gap-2 font-semibold text-sm"><MessageCircle className="w-4 h-4 text-emerald-600" /> Storefront Notice</div>
+                    <div className="neu-raised-sm space-y-3 rounded-3xl p-4">
+                        <div className="flex items-center gap-2 font-display text-sm font-semibold"><MessageCircle className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Storefront notice</div>
                         {adminAnnActive && (
-                            <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs rounded-lg flex items-center gap-2">
+                            <div className="neu-inset flex items-center gap-2 rounded-xl p-2.5 text-xs text-amber-600 dark:text-amber-400">
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 A system-wide admin announcement is active. Your notice is temporarily disabled.
                             </div>
                         )}
-                        <textarea title="Storefront Notice" placeholder="Enter your storefront notice here..." className="w-full min-h-[90px] p-3 text-sm rounded-lg border border-border bg-muted/50 focus:ring-1 focus:ring-emerald-500 focus:outline-none" value={annMsg} onChange={(e) => setAnnMsg(e.target.value)} disabled={adminAnnActive} />
-                        <Button size="sm" className="w-full rounded-lg h-9 font-semibold clay clay-green" onClick={handleSaveAnnouncement} disabled={adminAnnActive || isSavingAnn || !annMsg.trim()}>
-                            {isSavingAnn ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Notice'}
-                        </Button>
+                        <textarea
+                            title="Storefront Notice"
+                            placeholder="Enter your storefront notice here..."
+                            className="well w-full min-h-[90px] rounded-xl border-0 p-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                            value={annMsg}
+                            onChange={(e) => setAnnMsg(e.target.value)}
+                            disabled={adminAnnActive}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleSaveAnnouncement}
+                            disabled={adminAnnActive || isSavingAnn || !annMsg.trim()}
+                            className="clay-gold flex h-10 w-full items-center justify-center rounded-xl text-sm font-bold disabled:opacity-60"
+                        >
+                            {isSavingAnn ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save notice'}
+                        </button>
                     </div>
 
                     {/* Customer SMS confirmation toggle */}
-                    <div id="sms-confirm-toggle" className="scroll-mt-24 bg-card rounded-2xl border border-border p-4">
+                    <div id="sms-confirm-toggle" className="neu-raised-sm scroll-mt-24 rounded-3xl p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-semibold text-sm">
-                                    <MessageSquare className="w-4 h-4 text-emerald-600" /> Customer order SMS
+                                <div className="flex items-center gap-2 font-display text-sm font-semibold">
+                                    <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Customer order SMS
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Text customers a confirmation each time they order from your shop.
                                 </p>
                             </div>
@@ -629,13 +676,13 @@ export default function ShopDashboardPage() {
                     </div>
 
                     {/* Utility bills storefront toggle */}
-                    <div id="bill-pay-toggle" className="scroll-mt-24 bg-card rounded-2xl border border-border p-4">
+                    <div id="bill-pay-toggle" className="neu-raised-sm scroll-mt-24 rounded-3xl p-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-semibold text-sm">
-                                    <Receipt className="w-4 h-4 text-emerald-600" /> Utility bills on my storefront
+                                <div className="flex items-center gap-2 font-display text-sm font-semibold">
+                                    <Receipt className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Utility bills on my storefront
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Let customers pay ECG, Ghana Water, DSTV, GOtv and StarTimes bills from your shop.
                                 </p>
                             </div>
@@ -647,12 +694,12 @@ export default function ShopDashboardPage() {
                             />
                         </div>
                         {utilitiesEnabled && (
-                            <div className="flex items-start justify-between gap-3 mt-3 pt-3 border-t border-border">
+                            <div className="mt-3 flex items-start justify-between gap-3 border-t border-white/5 pt-3">
                                 <div className="min-w-0">
-                                    <div className="flex items-center gap-2 font-semibold text-sm">
-                                        <MessageSquare className="w-4 h-4 text-emerald-600" /> Utility bill completion SMS
+                                    <div className="flex items-center gap-2 font-display text-sm font-semibold">
+                                        <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Utility bill completion SMS
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         Text the customer when their bill payment completes, from your own sender — uses your SMS credits.
                                     </p>
                                 </div>
@@ -668,44 +715,47 @@ export default function ShopDashboardPage() {
                 </div>
 
                 <div className="lg:col-span-8">
-                    <div className="bg-card rounded-2xl border border-border overflow-hidden flex flex-col">
-                        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                            <h3 className="font-semibold text-sm">Recent Activity</h3>
-                            <Link href="/dashboard/shop/orders" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <section aria-label="Recent activity" className="neu-raised-sm flex flex-col rounded-3xl p-4 sm:p-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <h3 className="font-display text-sm font-semibold">Recent activity</h3>
+                            <Link href="/dashboard/shop/orders" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-500">
                                 View all <ArrowRight className="w-3 h-3" />
                             </Link>
                         </div>
-                        <div className="flex-1 overflow-y-auto max-h-[440px] p-3">
+                        <div className="mt-3 flex-1 overflow-y-auto max-h-[440px]">
                             {recentOrders.length === 0 ? (
-                                <div className="h-[240px] flex flex-col items-center justify-center text-center">
-                                    <Tag className="w-10 h-10 text-foreground mb-3" />
-                                    <p className="text-muted-foreground text-sm">No sales yet. Share your link to start earning!</p>
+                                <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center">
+                                    <span className="neu-inset flex h-12 w-12 items-center justify-center rounded-2xl text-muted-foreground"><Inbox className="h-5 w-5" /></span>
+                                    <p className="text-sm text-muted-foreground">No sales yet. Share your link to start earning!</p>
                                 </div>
                             ) : (
-                                <div className="space-y-1">
-                                    {recentOrders.slice(0, 30).map((order) => (
-                                        <div key={order.id} className="px-3 py-2.5 rounded-xl hover:bg-muted/50 dark:hover:bg-muted/50 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className={cn('w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs flex-shrink-0', order.is_rc ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400')}>
-                                                    {order.is_rc ? 'RC' : order.network?.charAt(0) || 'D'}
+                                <ul className="divide-y divide-border">
+                                    {recentOrders.slice(0, 30).map((order) => {
+                                        const chip = orderStatusChip[order.status] ?? { label: order.status, className: 'bg-foreground/10 text-muted-foreground' }
+                                        return (
+                                            <li key={order.id} className="flex items-center justify-between gap-3 py-3">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <span className={cn('flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold', order.is_rc ? 'bg-brand-500/15 text-brand-700 dark:text-brand-500' : 'neu-inset text-brand-700 dark:text-brand-500')}>
+                                                        {order.is_rc ? 'RC' : order.network?.charAt(0) || 'D'}
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-foreground">
+                                                            {order.is_rc ? `${order.quantity}x ${order.type_name}` : `${order.network} ${order.package_size}`}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">{order.guest_phone}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-semibold text-sm text-foreground truncate flex items-center gap-1.5">
-                                                        <span className="truncate">{order.is_rc ? `${order.quantity}x ${order.type_name}` : `${order.network} ${order.package_size}`}</span>
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">{order.guest_phone}</p>
+                                                <div className="flex-shrink-0 text-right">
+                                                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(order.selling_price)}</p>
+                                                    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', chip.className)}>+{formatCurrency(order.profit)}</span>
                                                 </div>
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                                <p className="font-semibold text-sm text-foreground tabular-nums">{formatCurrency(order.selling_price)}</p>
-                                                <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatCurrency(order.profit)}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
                             )}
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
         </div>
