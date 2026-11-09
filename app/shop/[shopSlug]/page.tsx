@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase'
 import { createServerComponentClient } from '@/lib/supabase-server'
 import ShopStorefront from './ShopStorefront'
 import { getAdminOOSNetworks, mergeOOS } from '@/lib/network-stock'
+import { getShopUrl } from '@/lib/site-url'
 import type { UtilityBiller } from '@/lib/hubtel-utility/billers'
 
 interface Props {
@@ -39,13 +40,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             'airtime Ghana',
         ],
         alternates: {
-            canonical: `https://shop.kingflexygh.com/${shopSlug}`,
+            canonical: `${getShopUrl()}/${shopSlug}`,
         },
         openGraph: {
             title: shop.shop_name,
             description: shop.description || `Buy affordable data bundles from ${shop.shop_name}`,
             images: shop.logo_url ? [{ url: shop.logo_url }] : [],
-            url: `https://shop.kingflexygh.com/${shopSlug}`,
+            url: `${getShopUrl()}/${shopSlug}`,
             type: 'website',
             siteName: shop.shop_name,
         },

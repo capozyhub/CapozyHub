@@ -21,6 +21,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from '@/lib/toast'
+import { isStorefrontHost } from '@/lib/storefront-host'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { CopyrightFooter } from '@/components/CopyrightFooter'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
@@ -32,8 +33,11 @@ import type { UtilityBiller } from '@/lib/hubtel-utility/billers'
 import { StorefrontTermsBoundary } from './components/StorefrontTermsBoundary'
 import { NetworkIcon } from '@/components/network-icon'
 import { AnnouncementCTAButtons } from '@/components/announcements/AnnouncementCTAButtons'
-import { PromoCarousel } from '@/components/promo-carousel/PromoCarousel'
-import { buildStorefrontSlides } from '@/lib/promo-carousel/storefront-slides'
+import { StorefrontShell, type StorefrontLink } from '@/components/storefront/shell'
+import { ServiceTabs, type ServiceTab } from '@/components/storefront/service-tabs'
+import { resolveAccent } from '@/components/storefront/accent'
+import { FIELD, FOCUS, FieldLabel, Note, Pill, PrimaryButton, ServiceHeading, TotalPlate } from '@/components/storefront/ui'
+import { BrandSwoosh } from '@/components/brand-swoosh'
 
 // ─── Divider SVG paths (matching setup page) ──────────────────────────────────
 const DIVIDER_PATHS: Record<string, string> = {
@@ -392,10 +396,9 @@ export default function ShopStorefront({
     useEffect(() => {
         // Detect if we are on the subdomain storefront or the main domain
         const hostname = window.location.hostname
-        // NOTE: a *.vercel.app preview is NOT a subdomain storefront — it serves the
-        // storefront under /shop/<slug>, so links must keep the /shop prefix there.
-        const isSub = hostname.startsWith('shop.') || (hostname !== 'kingflexygh.com' && hostname !== 'www.kingflexygh.com' && !hostname.includes('localhost') && !hostname.endsWith('.vercel.app'))
-        setIsStorefront(isSub)
+        // Only shop.* / store.* serve the storefront at the root; every other host
+        // (apex, preview.*, *.vercel.app, localhost) serves it under /shop/<slug>.
+        setIsStorefront(isStorefrontHost(hostname))
     }, [])
 
     // White-label toast notifications: show the shop's own name (not the platform brand)
@@ -494,9 +497,7 @@ export default function ShopStorefront({
     // success path AND the legacy ?rc_ref= redirect callback). Looks the order up with the
     // delivery phone saved at purchase time; falls back to the retrieve page if we can't.
     const revealVouchersByRef = useCallback(async (rcRef: string) => {
-        const hostname = window.location.hostname
-        const isSubdomain = hostname.startsWith('shop.')
-            || (hostname !== 'kingflexygh.com' && hostname !== 'www.kingflexygh.com' && !hostname.includes('localhost'))
+        const isSubdomain = isStorefrontHost(window.location.hostname)
         const retrieveHref = `${isSubdomain ? '' : '/shop'}/${shop.shop_slug}/results-checker/retrieve`
         setActiveTab('vouchers')
         try {
@@ -794,624 +795,255 @@ export default function ShopStorefront({
         }, 80)
     }
 
+    const accent = resolveAccent(shop.brand_color)
+
     if (pageLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[var(--brand-color)] theme-shop">
-                <style dangerouslySetInnerHTML={{ __html: `.theme-shop { --brand-color: ${safeBrandColor}; }` }} />
-                <div className="flex flex-col items-center gap-4">
-                    {shop.logo_url ? (
-                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/20">
-                            <Image src={shop.logo_url} alt={shop.shop_name} fill className="object-contain" />
-                        </div>
-                    ) : (
-                        <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
-                            <ShoppingCart className="w-8 h-8 text-white" />
-                        </div>
-                    )}
-                    <div className="flex gap-1.5">
-                        {[0, 1, 2].map(i => (
-                            <div key={i} className={cn("w-2 h-2 rounded-full bg-white animate-bounce", ['[animation-delay:0s]', '[animation-delay:0.15s]', '[animation-delay:0.3s]'][i])} />
-                        ))}
-                    </div>
-                </div>
+            <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-5 bg-black">
+                <BrandSwoosh className="pointer-events-none absolute bottom-0 right-[-20%] w-[90%] opacity-60" />
+                <span className="relative h-16 w-16 overflow-hidden rounded-full bg-white/10 ring-2 ring-offset-2 ring-offset-black" style={{ ['--tw-ring-color' as string]: accent }}>
+                    {shop.logo_url
+                        ? <Image src={shop.logo_url} alt="" fill sizes="64px" className="object-cover" />
+                        : <ShoppingCart className="absolute inset-0 m-auto h-7 w-7 text-brand-400" aria-hidden="true" />}
+                </span>
+                <p className="relative font-display text-lg font-bold text-white">One moment…</p>
             </div>
         )
     }
 
+    const serviceTabs: ServiceTab<typeof activeTab>[] = [
+        { key: 'data', label: 'Data', icon: Zap },
+        ...(isShopAirtimeEnabled ? [{ key: 'airtime' as const, label: 'Airtime', icon: Smartphone }] : []),
+        ...(isShopMashupEnabled ? [{ key: 'mashup' as const, label: 'Mashup', icon: Zap }] : []),
+        ...(isRCEnabled ? [{ key: 'vouchers' as const, label: 'Results checker', icon: GraduationCap }] : []),
+        ...(utilitiesEnabled ? [{ key: 'utilities' as const, label: 'Bills', icon: Receipt }] : []),
+        ...(isShopAfaEnabled ? [{ key: 'afa' as const, label: 'AFA', icon: IdCard }] : []),
+    ]
+
+    const shopLinks: StorefrontLink[] = [
+        { href: `${baseLinkPath}/status?shop=${shop.shop_slug}&name=${encodeURIComponent(shop.shop_name)}`, label: 'Track an order', icon: History },
+        ...(isRCEnabled ? [{ href: rcRetrieveHref, label: 'Get my voucher', icon: GraduationCap }] : []),
+        { href: `${baseLinkPath}/${shop.shop_slug}/about`, label: 'About this shop', icon: Info },
+    ]
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 theme-shop">
+        <div className="theme-shop">
             <PWAInstallPrompt />
             {/* Page-load terms gate — blocks the storefront for a guest until they accept (like the main site).
                 Announcements are held until it reports resolved, so terms always render first. */}
             <StorefrontTermsBoundary brandName={shop.shop_name} onGateResolved={() => setTermsGateResolved(true)} />
             {/* Shared in-app MoMo charge sheet for airtime / mashup / results checker */}
             <ServiceChargeSheet open={chargeOpen} onClose={() => setChargeOpen(false)} descriptor={chargeDescriptor} brandName={shop.shop_name} />
-            <style dangerouslySetInnerHTML={{ __html: `
-                .theme-shop { 
-                    --brand-color: ${safeBrandColor}; 
-                    --brand-contrast-text: ${brandContrastText};
-                }
-                @keyframes shake { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } }
-                .animate-shake { animation: shake 0.5s infinite; transform-origin: top center; }
-            ` }} />
-            {/* ── Permanent Top Bar ── */}
-            <div className="fixed top-0 left-0 w-full z-[45] shadow-lg border-b border-black/5 dark:border-white/5 bg-[var(--brand-color)]/95 backdrop-blur-md transition-all duration-300 ease-in-out">
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <button onClick={() => setIsSidebarOpen(true)} className="p-1 bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors flex-shrink-0 text-black border border-black/10 shadow-sm" aria-label="Open menu">
-                            <Menu className="w-6 h-6 text-black" />
-                        </button>
-                        {shop.logo_url && (
-                            <div className="relative w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-black/5 shadow-sm bg-white/20">
-                                <Image src={shop.logo_url} alt="Logo" fill sizes="32px" className="object-contain" />
-                            </div>
-                        )}
-                        <h1 className="text-h2 font-black truncate text-[var(--brand-contrast-text)] transition-colors">
-                            {shop.shop_name}
-                        </h1>
-                    </div>
-                    <ThemeToggle brandName={shop.shop_name} />
-                </div>
-            </div>
-            {/* Spacer to account for fixed top bar height */}
-            <div className="h-[60px] flex-shrink-0" />
 
-            {/* ── Floating Notification Bell ── */}
-            {announcement && (
-                <button
-                    onClick={() => setShowAnnouncementModal(true)}
-                    className="fixed top-[76px] right-4 z-[40] p-3 rounded-full bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 hover:scale-110 transition-transform group"
-                    aria-label="Announcements"
-                >
-                    <Bell className={cn("w-6 h-6 text-amber-500", !announcementDismissed && "animate-shake")} />
-                    {!announcementDismissed && <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 animate-pulse" />}
-                </button>
-            )}
-
-            {/* Header / Hero */}
-            <div ref={heroRef} className="relative transition-colors duration-300 pt-6 pb-16 bg-[var(--brand-color)]">
-                <div className="max-w-5xl mx-auto px-4 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                        {/* Glassmorphic Container for Logo and Text */}
-                        <div className="flex flex-col items-center gap-3 backdrop-blur-md bg-white/10 dark:bg-black/25 border border-white/20 dark:border-white/5 shadow-xl p-6 rounded-[2rem] w-full max-w-lg mx-auto">
-                            {/* 1. Logo */}
-                            {shop.logo_url ? (
-                                <div className="relative w-24 h-24 rounded-3xl overflow-hidden bg-white/20 flex-shrink-0 shadow-lg border border-white/20">
-                                    <Image src={shop.logo_url} alt={shop.shop_name} fill sizes="96px" priority className="object-contain" />
-                                </div>
-                            ) : (
-                                <div className="w-24 h-24 rounded-3xl bg-white/20 flex items-center justify-center flex-shrink-0 border border-white/20">
-                                    <ShoppingCart className="w-10 h-10 text-white" />
-                                </div>
-                            )}
-                            {/* 2. Shop Name */}
-                            <h1 className="text-h1 text-[var(--brand-contrast-text)] leading-tight title-center transition-colors font-black">
-                                {shop.shop_name}
-                            </h1>
-                            {/* 3. Description */}
-                            {shop.description && (
-                                <p className="text-[var(--brand-contrast-text)]/90 text-sm leading-relaxed transition-colors font-medium">
-                                    {shop.description}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                {/* 5. Divider SVG — always at absolute bottom */}
-                <DividerSVG style={shop.divider_style} fillClass="fill-gray-50 dark:fill-gray-950" />
-            </div>
-
-            <div className="max-w-5xl mx-auto px-4 -mt-10 mb-4">
-                <PromoCarousel
-                    slides={buildStorefrontSlides({
-                        packages,
-                        oosNetworks,
-                        airtimeEnabled: isShopAirtimeEnabled,
-                        afaEnabled: isShopAfaEnabled,
-                        rcEnabled: isRCEnabled,
-                        utilitiesEnabled,
-                        ownerRole: shop.ownerRole,
-                        shopName: shop.shop_name,
-                        whatsappNumber: shop.whatsapp_number,
-                        ownerPhone: shop.owner_phone,
-                        accentColor: safeBrandColor,
-                        selectProduct,
-                        announcement,
-                        onOpenAnnouncement: () => setShowAnnouncementModal(true),
-                    })}
-                />
-            </div>
-
-            <div className="max-w-5xl mx-auto px-4 pb-40 -mt-2">
-
-                {/* ── Trust Bar (Replacement for Hero Card) ── */}
-                {isRCEnabled && activeTab === 'vouchers' && (
-                    <div className="mb-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-6 py-3 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm transition-colors">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-                            <Lock className="w-3.5 h-3.5 text-[#22C55E]" /> Secure
-                        </div>
-                        <div className="w-1 h-1 bg-gray-200 dark:bg-slate-800 rounded-full hidden sm:block" />
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-                            <Zap className="w-3.5 h-3.5 text-[#F5B800]" /> Instant Delivery
-                        </div>
-                        <div className="w-1 h-1 bg-gray-200 dark:bg-slate-800 rounded-full hidden sm:block" />
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-                            <ShieldCheck className="w-3.5 h-3.5 text-brand-700" /> Verified Access
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Need Help? Contact Card (ABOVE service content) ── */}
-                <div className="mb-6 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm px-4 py-4 space-y-3 transition-colors">
-                    <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5 text-center">Need Help?</p>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                        {shop.owner_phone && (
-                            <a href={`tel:${shop.owner_phone}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-emerald-600 transition-colors">
-                                <Phone className="w-4 h-4" /> {shop.owner_phone}
-                            </a>
-                        )}
-                        {shop.owner_email && (
-                            <a href={`mailto:${shop.owner_email}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-emerald-600 transition-colors">
-                                <Mail className="w-4 h-4" /> Email Us
-                            </a>
-                        )}
-                    </div>
-                    {shop.community_link && (
-                        <a href={shop.community_link} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-95 shadow-md bg-[var(--brand-color)]">
-                            <Users className="w-4 h-4" /> Join Our Community
-                        </a>
-                    )}
-                </div>
-
-            {/* ── Product Selector (Card Grid) ── */}
-                <div ref={productSectionRef}>
-                    <h2 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] mb-3 text-center">Choose a Service</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-                        {/* Data Packages */}
-                        <button
-                            onClick={() => selectProduct('data')}
-                            className={cn(
-                                'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                activeTab === 'data'
-                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 shadow-md shadow-emerald-100 dark:shadow-emerald-900/30'
-                                    : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                            )}
-                        >
-                            <div className={cn('p-2.5 rounded-xl', activeTab === 'data' ? 'bg-emerald-500' : 'bg-gray-100 dark:bg-gray-700')}>
-                                <Zap className={cn('w-5 h-5', activeTab === 'data' ? 'text-white fill-white' : 'text-gray-500 dark:text-gray-400')} />
-                            </div>
-                            <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'data' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400')}>Data</span>
-                        </button>
-
-                        {/* Airtime */}
-                        {isShopAirtimeEnabled && (
-                            <button
-                                onClick={() => selectProduct('airtime')}
-                                className={cn(
-                                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                    activeTab === 'airtime'
-                                        ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-500 shadow-md shadow-brand-100 dark:shadow-brand-900/30'
-                                        : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                                )}
-                            >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'airtime' ? 'bg-brand-500' : 'bg-gray-100 dark:bg-gray-700')}>
-                                    <Smartphone className={cn('w-5 h-5', activeTab === 'airtime' ? 'text-white' : 'text-gray-500 dark:text-gray-400')} />
-                                </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'airtime' ? 'text-brand-700 dark:text-brand-400' : 'text-gray-500 dark:text-gray-400')}>Airtime</span>
-                            </button>
-                        )}
-
-                        {/* MTN Mashup */}
-                        {isShopMashupEnabled && (
-                            <button
-                                onClick={() => selectProduct('mashup')}
-                                className={cn(
-                                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                    activeTab === 'mashup'
-                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-md shadow-amber-100 dark:shadow-amber-900/30'
-                                        : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                                )}
-                            >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'mashup' ? 'bg-brand-500' : 'bg-gray-100 dark:bg-gray-700')}>
-                                    <Zap className={cn('w-5 h-5', activeTab === 'mashup' ? 'text-gray-900 fill-gray-900' : 'text-gray-500 dark:text-gray-400')} />
-                                </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'mashup' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400')}>Mashup</span>
-                            </button>
-                        )}
-
-                        {/* Credentials / RC */}
-                        {isRCEnabled && (
-                            <button
-                                onClick={() => selectProduct('vouchers')}
-                                className={cn(
-                                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                    activeTab === 'vouchers'
-                                        ? 'bg-[#0B1F3A]/5 dark:bg-[#F5B800]/10 border-[#0B1F3A] dark:border-[#F5B800] shadow-md'
-                                        : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                                )}
-                            >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'vouchers' ? 'bg-[#0B1F3A] dark:bg-[#F5B800]' : 'bg-gray-100 dark:bg-gray-700')}>
-                                    <GraduationCap className={cn('w-5 h-5', activeTab === 'vouchers' ? 'text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400')} />
-                                </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'vouchers' ? 'text-[#0B1F3A] dark:text-[#F5B800]' : 'text-gray-500 dark:text-gray-400')}>Results Checker</span>
-                            </button>
-                        )}
-
-                        {/* Utility Bills */}
-                        {utilitiesEnabled && (
-                            <button
-                                onClick={() => selectProduct('utilities')}
-                                className={cn(
-                                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                    activeTab === 'utilities'
-                                        ? 'bg-slate-100 dark:bg-slate-800/60 border-slate-500 shadow-md shadow-slate-200 dark:shadow-slate-900/30'
-                                        : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                                )}
-                            >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'utilities' ? 'bg-slate-700' : 'bg-gray-100 dark:bg-gray-700')}>
-                                    <Receipt className={cn('w-5 h-5', activeTab === 'utilities' ? 'text-white' : 'text-gray-500 dark:text-gray-400')} />
-                                </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider', activeTab === 'utilities' ? 'text-slate-700 dark:text-slate-300' : 'text-gray-500 dark:text-gray-400')}>Utility Bills</span>
-                            </button>
-                        )}
-
-                        {/* AFA Registration */}
-                        {isShopAfaEnabled && (
-                            <button
-                                onClick={() => selectProduct('afa')}
-                                className={cn(
-                                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 hover:shadow-md',
-                                    activeTab === 'afa'
-                                        ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-500 shadow-md shadow-amber-200 dark:shadow-amber-900/30'
-                                        : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
-                                )}
-                            >
-                                <div className={cn('p-2.5 rounded-xl', activeTab === 'afa' ? 'bg-amber-600' : 'bg-gray-100 dark:bg-gray-700')}>
-                                    <IdCard className={cn('w-5 h-5', activeTab === 'afa' ? 'text-white' : 'text-gray-500 dark:text-gray-400')} />
-                                </div>
-                                <span className={cn('text-xs font-black uppercase tracking-wider text-center leading-tight', activeTab === 'afa' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400')}>AFA Registration</span>
-                            </button>
-                        )}
-                    </div>
+            <StorefrontShell
+                name={shop.shop_name}
+                description={shop.description}
+                logoUrl={shop.logo_url}
+                accent={accent}
+                links={shopLinks}
+                phone={shop.owner_phone}
+                email={shop.owner_email}
+                whatsapp={shop.whatsapp_number}
+                community={shop.community_link}
+                notify={pushPermission === 'unsupported' ? 'hidden' : isGuestSubscribed ? 'on' : 'idle'}
+                onNotify={() => setShowPushOptIn(true)}
+                announcement={announcement ? { unread: !announcementDismissed, onOpen: () => setShowAnnouncementModal(true) } : null}
+                headerAction={<ThemeToggle brandName={shop.shop_name} />}
+            >
+                <div ref={productSectionRef} className="mb-6 scroll-mt-4">
+                    <ServiceTabs tabs={serviceTabs} active={activeTab} onChange={selectProduct} />
                 </div>
 
                 {/* Error banner */}
                 {errorMsg && (
-                    <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 space-y-3">
-                        <div className="flex items-start gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div role="alert" className="neu-inset mb-6 space-y-3 rounded-2xl p-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
                             <div className="flex-1">
-                                <p className="text-sm font-bold text-red-800 dark:text-red-300">{errorMsg}</p>
-                                {contactInfo ? (
-                                    <p className="text-xs text-red-700 dark:text-red-400 mt-1">This shop is temporarily offline. Please contact the owner directly to complete your purchase:</p>
-                                ) : (
-                                    <p className="text-xs text-red-700 dark:text-red-400 mt-1">Please try again or contact support if the issue persists.</p>
-                                )}
+                                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{errorMsg}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {contactInfo
+                                        ? 'This shop cannot take orders right now. Reach the owner directly to finish your purchase:'
+                                        : 'Please try again. If it keeps happening, contact the shop.'}
+                                </p>
                             </div>
-                            <button 
-                                onClick={() => { setErrorMsg(null); setContactInfo(null); }} 
-                                title="Dismiss error"
+                            <button
+                                onClick={() => { setErrorMsg(null); setContactInfo(null) }}
+                                title="Dismiss"
                                 aria-label="Dismiss error"
-                                className="p-1 hover:bg-red-100 dark:hover:bg-red-800/40 rounded-full transition-colors"
+                                className="neu-raised-sm flex h-8 w-8 items-center justify-center rounded-full"
                             >
-                                <X className="w-4 h-4 text-red-400" />
+                                <X className="h-4 w-4" />
                             </button>
                         </div>
 
                         {contactInfo && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                                {contactInfo.phone && <a href={`tel:${contactInfo.phone}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-red-100 text-xs font-bold shadow-sm"><Phone className="w-3.5 h-3.5" /> Call {contactInfo.phone}</a>}
-                                {contactInfo.whatsapp && <a href={`https://wa.me/${contactInfo.whatsapp}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#25D366] text-xs font-bold text-white shadow-sm"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>}
+                            <div className="flex flex-wrap gap-2">
+                                {contactInfo.phone && <a href={`tel:${contactInfo.phone}`} className="clay-black inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"><Phone className="h-4 w-4" /> Call {contactInfo.phone}</a>}
+                                {contactInfo.whatsapp && <a href={`https://wa.me/${contactInfo.whatsapp}`} target="_blank" rel="noopener noreferrer" className="clay-gold inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* ── Airtime Tab Content ── */}
+
+                {/* ── Airtime ── */}
                 {isShopAirtimeEnabled && activeTab === 'airtime' && (
-                    <div ref={airtimeRef} className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 transition-colors">
-                        <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-black bg-brand-600 shadow-sm">
-                                <Smartphone className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <h2 className="text-h2 uppercase">Buy Direct Airtime</h2>
-                                <p className="text-label text-gray-500 uppercase mt-1">Instant Credit to Any Network</p>
-                            </div>
-                        </div>
+                    <section ref={airtimeRef} className="animate-in fade-in duration-300 motion-reduce:animate-none">
+                        <ServiceHeading icon={Smartphone} title="Top up airtime" blurb="Credit lands on any Ghana network in seconds." />
 
-                        <div className="space-y-5">
-                                    {/* Network Selection Grid */}
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Select Network</p>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {['MTN', 'Telecel', 'AT'].map(netId => {
-                                                const netConfig = airtimeNetworks.find(n => n.id === netId)
-                                                const isEnabled = !!netConfig
-                                                const isSelected = detectedNetwork === netId
-                                                const colors = networkColors[netId]
-                                                
-                                                return (
-                                                    <button
-                                                        key={netId}
-                                                        disabled={!isEnabled}
-                                                        onClick={() => { setDetectedNetwork(netId as any); setIsManualSelection(true) }}
-                                                        className={cn(
-                                                            "relative flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300",
-                                                            isSelected 
-                                                                ? `bg-gradient-to-br ${colors.gradient} border-transparent shadow-lg scale-[1.03]` 
-                                                                : "bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-gray-200",
-                                                            !isEnabled && "opacity-40 grayscale cursor-not-allowed"
-                                                        )}
-                                                    >
-                                                        <NetworkIcon network={netId} size={32} />
-                                                        <span className={cn("text-[10px] font-black uppercase tracking-tight", isSelected ? "text-white" : "text-gray-500")}>
-                                                            {netId}
-                                                        </span>
-                                                        {!isEnabled && <span className="absolute top-1 right-1 px-1 py-0.5 bg-gray-200 dark:bg-gray-700 text-[10px] font-black rounded-md">OFF</span>}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="relative">
-                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                            <input
-                                                type="tel" value={airtimePhone} onChange={(e) => setAirtimePhone(e.target.value)}
-                                                placeholder="Receiver Phone (e.g. 024XXXXXXX)"
-                                                className="w-full pl-12 pr-12 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                            />
-                                            {detectedNetwork && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <div 
-                                                        className={cn("px-2 py-1 tracking-widest text-[10px] uppercase font-black rounded-lg shadow-sm", networkColors[detectedNetwork].bgClass, networkColors[detectedNetwork].textClass)}
-                                                    >
-                                                        {detectedNetwork}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {airtimeNetworkWarning && (
-                                            <div className="flex gap-2 items-start bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
-                                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                                <p className="text-xs font-medium leading-relaxed">{airtimeNetworkWarning}</p>
-                                            </div>
-                                        )}
-
-                                    <div className="space-y-3">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Recharge Amount</p>
-                                        
-                                        {/* Quick Amount Chips */}
-                                        <div className="flex gap-2 flex-wrap mb-1">
-                                            {QUICK_AMOUNTS.map(q => (
-                                                <button
-                                                    key={q}
-                                                    onClick={() => setAirtimeAmount(String(q))}
-                                                    className={cn(
-                                                        "px-4 py-2 rounded-xl text-xs font-black border-2 transition-all",
-                                                        airtimeAmount === String(q)
-                                                            ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md scale-105"
-                                                            : "bg-gray-50 dark:bg-gray-800 text-gray-500 border-gray-100 dark:border-gray-700 hover:border-gray-300"
-                                                    )}
-                                                >
-                                                    {q}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div className="relative">
-                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm">GHS</span>
-                                            <input
-                                                type="number" min="1" step="0.5" value={airtimeAmount} onChange={(e) => setAirtimeAmount(e.target.value)}
-                                                placeholder={`Custom Amount`}
-                                                className="w-full pl-14 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-lg font-black transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input
-                                            type="email" value={airtimeEmail} onChange={(e) => setAirtimeEmail(e.target.value)}
-                                            placeholder="Email for receipt (Optional)"
-                                            className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                        />
-                                    </div>
-
-                                    {/* Pay Separately Toggle */}
-                                    <div 
-                                        onClick={() => setUseExact(!useExact)}
-                                        className={cn(
-                                            "flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer group",
-                                            useExact 
-                                                ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-400 shadow-sm" 
-                                                : "bg-gray-50 dark:bg-gray-800/40 border-gray-100 dark:border-gray-700 hover:border-gray-200"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                                            useExact ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 dark:border-gray-600 group-hover:border-gray-400"
-                                        )}>
-                                            {useExact && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={cn("text-xs font-black uppercase tracking-tight mb-0.5", useExact ? "text-emerald-700 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300")}>
-                                                Pay processing fee separately
-                                            </p>
-                                            <p className="text-[10px] font-bold text-gray-500 leading-tight">
-                                                {useExact ? "You'll pay a bit more, but recipient gets exactly the amount typed." : "Standard: Fee is deducted from the amount you recharge."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {detectedNetwork && airtimeAmount !== '' && parseFloat(airtimeAmount) > 0 && (
-                                        <div className="bg-brand-50 dark:bg-brand-900/20 rounded-2xl p-5 border border-brand-100 dark:border-brand-800 shadow-inner">
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                                    <span>Recharge Value</span>
-                                                    <span className="text-gray-900 dark:text-gray-200 font-black">{formatCurrency(parseFloat(airtimeAmount))}</span>
-                                                </div>
-                                                
-                                                <div className="flex justify-between items-center text-xs font-bold">
-                                                    <span className="text-gray-500 uppercase tracking-widest flex items-center gap-1">Processing Fee ({(((airFee) / (useExact ? parseFloat(airtimeAmount) : parseFloat(airtimeAmount) - airFee)) * 100).toFixed(0)}%)</span>
-                                                    <span className="text-gray-600 dark:text-gray-400">{useExact ? '+' : '–'} {formatCurrency(airFee)}</span>
-                                                </div>
-
-                                                <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-brand-100/50 dark:bg-brand-950/50 border border-brand-200/50 dark:border-brand-900/50">
-                                                    <span className="text-[10px] font-black text-brand-700 dark:text-brand-400 uppercase tracking-tighter flex items-center gap-1.5">
-                                                        <Info className="w-3.5 h-3.5" /> Recipient Gets
-                                                    </span>
-                                                    <span className="text-sm font-black text-brand-700 dark:text-brand-300">{formatCurrency(airtimeToReceive)}</span>
-                                                </div>
-
-                                                <div className="pt-2 border-t border-brand-200/30">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-sm font-black text-brand-900 dark:text-brand-100 uppercase tracking-tighter">You Pay Total</span>
-                                                        <span className="text-2xl font-black text-brand-700 dark:text-brand-400">{formatCurrency(airTotal)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <button
-                                        onClick={handleBuyAirtime} disabled={loading || !detectedNetwork || parseFloat(airtimeAmount || '0') <= 0}
-                                        className="w-full py-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-black font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-                                    >
-                                        {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><Smartphone className="w-5 h-5"/> Recharge Airtime</>}
-                                    </button>
+                        <div className="space-y-6">
+                            <div>
+                                <FieldLabel>Which network?</FieldLabel>
+                                <div role="radiogroup" aria-label="Network" className="grid grid-cols-3 gap-2.5">
+                                    {['MTN', 'Telecel', 'AT'].map(netId => {
+                                        const isEnabled = airtimeNetworks.some(n => n.id === netId)
+                                        return (
+                                            <Pill
+                                                key={netId}
+                                                on={detectedNetwork === netId}
+                                                disabled={!isEnabled}
+                                                role="radio"
+                                                aria-checked={detectedNetwork === netId}
+                                                onClick={() => { setDetectedNetwork(netId as any); setIsManualSelection(true) }}
+                                                className="flex-col gap-1 py-2.5"
+                                            >
+                                                <NetworkIcon network={netId} size={28} />
+                                                <span className="text-xs">{isEnabled ? netId : `${netId} paused`}</span>
+                                            </Pill>
+                                        )
+                                    })}
                                 </div>
                             </div>
+
+                            <div>
+                                <FieldLabel htmlFor="air-phone" hint="(who gets the credit)">Phone number</FieldLabel>
+                                <input id="air-phone" type="tel" inputMode="tel" value={airtimePhone} onChange={(e) => setAirtimePhone(e.target.value)} placeholder="024 123 4567" className={FIELD} />
+                            </div>
+
+                            {airtimeNetworkWarning && <Note tone="warn">{airtimeNetworkWarning}</Note>}
+
+                            <div>
+                                <FieldLabel htmlFor="air-amount">How much?</FieldLabel>
+                                <div className="mb-3 flex flex-wrap gap-2">
+                                    {QUICK_AMOUNTS.map(q => (
+                                        <Pill key={q} on={airtimeAmount === String(q)} onClick={() => setAirtimeAmount(String(q))} className="min-w-[3.5rem]">{q}</Pill>
+                                    ))}
+                                </div>
+                                <div className="relative">
+                                    <span className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">GHS</span>
+                                    <input id="air-amount" type="number" inputMode="decimal" min="1" step="0.5" value={airtimeAmount} onChange={(e) => setAirtimeAmount(e.target.value)} placeholder="Or type an amount" className={cn(FIELD, 'pl-16')} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <FieldLabel htmlFor="air-email" hint="(receipt, optional)">Email</FieldLabel>
+                                <input id="air-email" type="email" inputMode="email" value={airtimeEmail} onChange={(e) => setAirtimeEmail(e.target.value)} placeholder="you@example.com" className={FIELD} />
+                            </div>
+
+                            <button type="button" role="switch" aria-checked={useExact} onClick={() => setUseExact(!useExact)} className={cn('flex w-full items-start gap-3 rounded-2xl px-4 py-3.5 text-left', FOCUS, useExact ? 'neu-inset' : 'neu-raised-sm neu-press')}>
+                                <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full', useExact ? 'clay-gold' : 'neu-inset')}>
+                                    {useExact && <Check className="h-3 w-3" strokeWidth={3} />}
+                                </span>
+                                <span>
+                                    <span className="block text-sm font-semibold text-foreground">Send the full amount</span>
+                                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                                        {useExact ? 'You pay the fee on top, so they get exactly what you typed.' : 'Off: the fee comes out of the amount, so they get a little less.'}
+                                    </span>
+                                </span>
+                            </button>
+
+                            {detectedNetwork && airtimeAmount !== '' && parseFloat(airtimeAmount) > 0 && (
+                                <TotalPlate
+                                    rows={[
+                                        { label: 'Airtime value', value: formatCurrency(parseFloat(airtimeAmount)) },
+                                        { label: `Fee (${(((airFee) / (useExact ? parseFloat(airtimeAmount) : parseFloat(airtimeAmount) - airFee)) * 100).toFixed(0)}%)`, value: `${useExact ? '+' : '–'} ${formatCurrency(airFee)}` },
+                                        { label: 'They receive', value: formatCurrency(airtimeToReceive), strong: true },
+                                    ]}
+                                    totalLabel="You pay"
+                                    total={formatCurrency(airTotal)}
+                                />
+                            )}
+
+                            <PrimaryButton onClick={handleBuyAirtime} disabled={loading || !detectedNetwork || parseFloat(airtimeAmount || '0') <= 0}>
+                                {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> One moment…</> : <><Smartphone className="h-5 w-5" /> Continue to payment</>}
+                            </PrimaryButton>
                         </div>
+                    </section>
                 )}
 
-                {/* ── Mashup Tab Content ── */}
+                {/* ── Mashup ── */}
                 {isShopMashupEnabled && activeTab === 'mashup' && (
-                    <div className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 transition-colors">
-                        <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-900 bg-brand-500 shadow-sm">
-                                <Zap className="w-6 h-6" />
+                    <section className="animate-in fade-in duration-300 motion-reduce:animate-none">
+                        <ServiceHeading icon={Zap} title="MTN Mashup" blurb="Data and talk time in one bundle, sent to any MTN number." />
+
+                        <div className="space-y-6">
+                            <div>
+                                <FieldLabel htmlFor="mash-phone" hint="(MTN only)">Phone number</FieldLabel>
+                                <input id="mash-phone" type="tel" inputMode="tel" value={mashupPhone} onChange={(e) => setMashupPhone(e.target.value)} placeholder="024 123 4567" className={FIELD} />
                             </div>
-                            <div className="text-left">
-                                <h2 className="text-h2 uppercase">MTN Mashup</h2>
-                                <p className="text-label text-gray-500 uppercase mt-1">Instant Mashup to any MTN</p>
+
+                            <div>
+                                <FieldLabel>What should lean bigger?</FieldLabel>
+                                <div role="radiogroup" aria-label="Bundle mix" className="grid grid-cols-2 gap-2.5">
+                                    <Pill on={mashupBundle === 'data'} role="radio" aria-checked={mashupBundle === 'data'} onClick={() => setMashupBundle('data')}><Zap className="h-4 w-4" /> More data</Pill>
+                                    <Pill on={mashupBundle === 'balanced'} role="radio" aria-checked={mashupBundle === 'balanced'} onClick={() => setMashupBundle('balanced')}><RefreshCw className="h-4 w-4" /> An even split</Pill>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-5">
-                            <div className="space-y-4">
+                            <div>
+                                <FieldLabel htmlFor="mash-amount">How much?</FieldLabel>
                                 <div className="relative">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                    <input
-                                        type="tel" value={mashupPhone} onChange={(e) => setMashupPhone(e.target.value)}
-                                        placeholder="MTN Number (e.g. 024XXXXXXX)"
-                                        className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                    />
+                                    <span className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">GHS</span>
+                                    <input id="mash-amount" type="number" inputMode="decimal" step="0.01" min={mashupMinAmount} max={mashupMaxAmount} value={mashupAmount} onChange={(e) => setMashupAmount(e.target.value)} placeholder="Amount" className={cn(FIELD, 'pl-16')} />
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => setMashupBundle('data')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'data' ? "border-brand-500 bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
-                                        <Zap className="w-4 h-4" /> Data Preferred
-                                    </button>
-                                    <button onClick={() => setMashupBundle('balanced')} className={cn("py-3 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2", mashupBundle === 'balanced' ? "border-brand-500 bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-yellow-600" : "border-gray-100 dark:border-gray-800 text-gray-500")}>
-                                        <RefreshCw className="w-4 h-4" /> Balanced Preferred
-                                    </button>
+                                <p className="mt-2 px-1 text-xs text-muted-foreground">Between GHS {mashupMinAmount.toFixed(2)} and GHS {mashupMaxAmount.toFixed(2)}.</p>
+                                <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                    {QUICK_AMOUNTS.filter(a => a <= 50).map(amt => (
+                                        <Pill key={amt} on={mashupAmount === String(amt)} onClick={() => setMashupAmount(amt.toString())} className="shrink-0">GHS {amt}</Pill>
+                                    ))}
                                 </div>
+                            </div>
 
-                                <div>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400">GHS</span>
-                                        <input
-                                            type="number" step="0.01" min={mashupMinAmount} max={mashupMaxAmount}
-                                            value={mashupAmount} onChange={(e) => setMashupAmount(e.target.value)}
-                                            placeholder="Amount"
-                                            className="w-full pl-14 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                        />
-                                    </div>
-                                    <p className="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                        Acceptable amount: GHS {mashupMinAmount.toFixed(2)} – GHS {mashupMaxAmount.toFixed(2)}
-                                    </p>
-                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
-                                        {QUICK_AMOUNTS.filter(a => a <= 50).map(amt => (
-                                            <button
-                                                key={amt} onClick={() => setMashupAmount(amt.toString())}
-                                                className="px-4 py-2 flex-shrink-0 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:border-yellow-200 transition-colors"
-                                            >
-                                                GHS {amt}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                            <div>
+                                <FieldLabel htmlFor="mash-email" hint="(receipt, optional)">Email</FieldLabel>
+                                <input id="mash-email" type="email" inputMode="email" value={mashupEmail} onChange={(e) => setMashupEmail(e.target.value)} placeholder="you@example.com" className={FIELD} />
+                            </div>
 
-                                <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                    <input
-                                        type="email" value={mashupEmail} onChange={(e) => setMashupEmail(e.target.value)}
-                                        placeholder="Email for receipt (Optional)"
-                                        className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                    />
-                                </div>
-
-                                {mashupAmount !== '' && parseFloat(mashupAmount) > 0 && (
-                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl p-5 border border-yellow-100 dark:border-yellow-800/50 shadow-inner">
-                                        <div className="space-y-3">
-                                            {mashupBreakdown && (
-                                                <div className="flex gap-2 p-3 bg-white/60 dark:bg-black/20 rounded-xl border border-yellow-200/50 dark:border-yellow-700/30 mb-2">
-                                                    <div className="flex-1 text-center border-r border-yellow-200/50 dark:border-yellow-700/50">
-                                                        <p className="text-[10px] font-bold text-yellow-600/70 dark:text-yellow-500/70 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
-                                                            <Zap className="w-3 h-3" /> Data
-                                                        </p>
-                                                        <p className="text-sm font-black text-brand-700 dark:text-brand-400">{mashupBreakdown.data}</p>
-                                                        {!mashupBreakdown.exact && <p className="text-xs text-brand-700 mt-0.5">Estimated Range</p>}
-                                                    </div>
-                                                    <div className="flex-1 text-center">
-                                                        <p className="text-[10px] font-bold text-yellow-600/70 dark:text-yellow-500/70 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
-                                                            <Phone className="w-3 h-3" /> Voice
-                                                        </p>
-                                                        <p className="text-sm font-black text-purple-700 dark:text-purple-400">{mashupBreakdown.voice}</p>
-                                                        {!mashupBreakdown.exact && <p className="text-xs text-purple-500 mt-0.5">Estimated Range</p>}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            
-                                            <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
-                                                <span>Mashup Value</span>
-                                                <span className="text-gray-900 dark:text-gray-200 font-black">{formatCurrency(parseFloat(mashupAmount))}</span>
+                            {mashupAmount !== '' && parseFloat(mashupAmount) > 0 && (
+                                <div className="space-y-3">
+                                    {mashupBreakdown && (
+                                        <div className="neu-inset grid grid-cols-2 divide-x divide-foreground/10 rounded-2xl py-3 text-center">
+                                            <div className="px-3">
+                                                <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground"><Zap className="h-3 w-3" /> Data</p>
+                                                <p className="mt-1 font-display text-lg font-bold text-foreground">{mashupBreakdown.data}</p>
                                             </div>
-                                            
-                                            <div className="flex justify-between items-center text-xs font-bold">
-                                                <span className="text-gray-500 uppercase tracking-widest flex items-center gap-1">Processing Fee ({(((mashFee) / parseFloat(mashupAmount)) * 100).toFixed(0)}%)</span>
-                                                <span className="text-gray-600 dark:text-gray-400">+ {formatCurrency(mashFee)}</span>
+                                            <div className="px-3">
+                                                <p className="flex items-center justify-center gap-1 text-xs font-semibold text-muted-foreground"><Phone className="h-3 w-3" /> Talk time</p>
+                                                <p className="mt-1 font-display text-lg font-bold text-foreground">{mashupBreakdown.voice}</p>
                                             </div>
-
-                                            <div className="pt-2 border-t border-yellow-200/50">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-sm font-black text-yellow-900 dark:text-yellow-100 uppercase tracking-tighter">You Pay Total</span>
-                                                    <span className="text-2xl font-black text-yellow-600 dark:text-yellow-400">{formatCurrency(mashTotal)}</span>
-                                                </div>
-                                            </div>
+                                            {!mashupBreakdown.exact && <p className="col-span-2 mt-2 text-xs text-muted-foreground">These are estimates. The final split may shift slightly.</p>}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                    <TotalPlate
+                                        rows={[
+                                            { label: 'Bundle value', value: formatCurrency(parseFloat(mashupAmount)) },
+                                            { label: `Fee (${(((mashFee) / parseFloat(mashupAmount)) * 100).toFixed(0)}%)`, value: `+ ${formatCurrency(mashFee)}` },
+                                        ]}
+                                        totalLabel="You pay"
+                                        total={formatCurrency(mashTotal)}
+                                    />
+                                </div>
+                            )}
 
-                                <button
-                                    onClick={handleBuyMashup}
-                                    disabled={
-                                        loading || !mashupBundle ||
-                                        !mashupAmount ||
-                                        parseFloat(mashupAmount) < mashupMinAmount ||
-                                        parseFloat(mashupAmount) > mashupMaxAmount
-                                    }
-                                    className="w-full py-4 rounded-xl bg-brand-500 hover:bg-yellow-500 text-gray-900 font-black text-base uppercase tracking-widest shadow-lg flex justify-center items-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-                                >
-                                    {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><Zap className="w-5 h-5"/> Buy Mashup</>}
-                                </button>
-                            </div>
+                            <PrimaryButton
+                                onClick={handleBuyMashup}
+                                disabled={loading || !mashupBundle || !mashupAmount || parseFloat(mashupAmount) < mashupMinAmount || parseFloat(mashupAmount) > mashupMaxAmount}
+                            >
+                                {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> One moment…</> : <><Zap className="h-5 w-5" /> Continue to payment</>}
+                            </PrimaryButton>
                         </div>
-                    </div>
+                    </section>
                 )}
 
                 {/* ── Results Checker / Vouchers Tab Content ── */}
@@ -1502,230 +1134,136 @@ export default function ShopStorefront({
                     }
 
                     return (
-                        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <section className="animate-in fade-in duration-300 motion-reduce:animate-none">
+                            <ServiceHeading icon={GraduationCap} title="Exam results checker" blurb="Official WAEC checker PINs. Yours appears on screen and by SMS the moment you pay." />
 
-                            {/* Section Header */}
-                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#0B1F3A] dark:bg-[#F5B800] shadow-sm flex-shrink-0">
-                                        <GraduationCap className="w-5 h-5 text-white dark:text-[#0B1F3A]" />
+                            <div className="space-y-6">
+                                <Link href={rcRetrieveHref} className={cn('neu-raised-sm neu-press flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5 text-sm', FOCUS)}>
+                                    <span>
+                                        <span className="block font-semibold text-foreground">Already bought one?</span>
+                                        <span className="block text-xs text-muted-foreground">Get your PIN back with your reference.</span>
+                                    </span>
+                                    <span className="clay-black flex h-9 shrink-0 items-center rounded-full px-4 text-xs font-semibold">Find it</span>
+                                </Link>
+
+                                <div>
+                                    <FieldLabel>Which exam?</FieldLabel>
+                                    <div role="radiogroup" aria-label="Exam type" className="space-y-2.5">
+                                        {rcTypes.map(t => {
+                                            const isSelected = selectedRCTypeId === t.id
+                                            const hasBulk = Array.isArray(t.bulk_pricing) && t.bulk_pricing.length > 0
+                                            const waecUrl = t.name.includes('BECE') ? 'eresults.waecgh.org' : 'ghana.waecdirect.org'
+                                            return (
+                                                // Tap a selected type again to deselect it.
+                                                <button key={t.id} type="button" role="radio" aria-checked={isSelected} onClick={() => setSelectedRCTypeId(prev => prev === t.id ? '' : t.id)}
+                                                    className={cn('flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left', FOCUS, isSelected ? 'neu-inset ring-2 ring-[var(--shop-accent,#F6C30F)]' : 'neu-raised-sm neu-press')}>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block break-words text-sm font-semibold leading-snug text-foreground">{t.name}</span>
+                                                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{waecUrl}{hasBulk ? ' · cheaper in bulk' : ''}</span>
+                                                    </span>
+                                                    <span className="font-display text-base font-bold tabular-nums text-foreground">{formatCurrency(t.customer_price + markupFor(t.id))}</span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <FieldLabel>How many?</FieldLabel>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <p className="px-1 text-xs text-muted-foreground">Up to {maxQty} per order</p>
+                                        <div className="neu-inset flex items-center rounded-full p-1">
+                                            <button type="button" aria-label="One fewer" onClick={() => setRCQuantity(q => Math.max(1, q - 1))} className={cn('neu-raised-sm neu-press flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold', FOCUS)}>–</button>
+                                            <input type="number" aria-label="Quantity" placeholder="1" min={1} max={maxQty} value={rcQuantity}
+                                                onChange={e => setRCQuantity(Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1)))}
+                                                className="h-10 w-14 bg-transparent text-center text-base font-bold text-foreground outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                                            <button type="button" aria-label="One more" onClick={() => setRCQuantity(q => Math.min(maxQty, q + 1))} className={cn('neu-raised-sm neu-press flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold', FOCUS)}>+</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <FieldLabel htmlFor="rc-phone" hint="(we text the PIN here)">Phone number</FieldLabel>
+                                        <input id="rc-phone" type="tel" inputMode="tel" value={rcPhone} onChange={e => setRCPhone(e.target.value)} placeholder="024 123 4567" className={FIELD} />
                                     </div>
                                     <div>
-                                        <h2 className="text-h2 uppercase">Results Checker</h2>
-                                        <p className="text-label text-gray-500 uppercase mt-1">Official WAEC exam credentials · Instant delivery</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Already bought banner */}
-                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-900 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-100">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="space-y-0.5">
-                                        <p className="text-sm font-semibold">Bought a voucher already?</p>
-                                        <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-200">
-                                            Use the secure retrieval page to review, reveal, and download your completed Results Checker vouchers again.
-                                        </p>
-                                    </div>
-                                    <Link
-                                        href={rcRetrieveHref}
-                                        className="inline-flex h-9 shrink-0 items-center rounded-xl bg-emerald-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-800 dark:bg-emerald-200 dark:text-emerald-950 dark:hover:bg-emerald-100"
-                                    >
-                                        Retrieve
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Exam Type */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-900 shadow-sm p-4 sm:p-5">
-                                <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Select Examination Type</span>
-                                <div className="flex flex-col gap-2">
-                                    {rcTypes.map(t => {
-                                        const isSelected = selectedRCTypeId === t.id
-                                        const hasBulk = Array.isArray(t.bulk_pricing) && t.bulk_pricing.length > 0
-                                        const waecUrl = t.name.includes('BECE') ? 'eresults.waecgh.org' : 'ghana.waecdirect.org'
-                                        return (
-                                            // Tap a selected type again to deselect it.
-                                            <button key={t.id} onClick={() => setSelectedRCTypeId(prev => prev === t.id ? '' : t.id)}
-                                                className={cn(
-                                                    'relative flex items-center gap-2.5 p-3 rounded-xl border-[1.5px] text-left transition-all duration-200 overflow-hidden',
-                                                    'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:content-[""] before:transition-colors',
-                                                    isSelected
-                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/[0.12] before:bg-emerald-500 ring-1 ring-emerald-500/30'
-                                                        : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 before:bg-transparent'
-                                                )}>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={cn('text-[13px] sm:text-sm font-semibold leading-snug break-words', isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white')}>{t.name}</p>
-                                                    <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 truncate">
-                                                        {waecUrl}{hasBulk ? ' · Bulk discounts' : ''}
-                                                    </p>
-                                                </div>
-                                                <p className="text-[13px] sm:text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{formatCurrency(t.customer_price + markupFor(t.id))}</p>
-                                                <div className={cn(
-                                                    'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
-                                                    isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 dark:border-gray-600'
-                                                )}>
-                                                    {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                                                </div>
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Steps 2 & 3 — Quantity, Delivery & Summary */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-900 shadow-sm p-5 space-y-5">
-
-                                {/* Quantity */}
-                                <div>
-                                    <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Set Quantity</span>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-[11px] text-gray-400 flex-1">Max {maxQty} per order</div>
-                                        <div className="flex items-center">
-                                            <button onClick={() => setRCQuantity(q => Math.max(1, q - 1))}
-                                                className="w-8 h-8 rounded-l-lg border-[1.5px] border-r-0 border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all bg-white dark:bg-gray-900">
-                                                –
-                                            </button>
-                                            <input type="number" title="Quantity" placeholder="1" min={1} max={maxQty} value={rcQuantity}
-                                                onChange={e => setRCQuantity(Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1)))}
-                                                className="w-12 h-8 text-center border-[1.5px] border-gray-200 dark:border-gray-700 border-x-0 text-sm font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                                            <button onClick={() => setRCQuantity(q => Math.min(maxQty, q + 1))}
-                                                className="w-8 h-8 rounded-r-lg border-[1.5px] border-l-0 border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:bg-[#0B1F3A] hover:text-white hover:border-[#0B1F3A] dark:hover:bg-[#F5B800] dark:hover:text-[#0B1F3A] dark:hover:border-[#F5B800] transition-all bg-white dark:bg-gray-900">
-                                                +
-                                            </button>
-                                        </div>
+                                        <FieldLabel htmlFor="rc-email" hint="(a copy, optional)">Email</FieldLabel>
+                                        <input id="rc-email" type="email" inputMode="email" value={rcEmail} onChange={e => setRCEmail(e.target.value)} placeholder="you@example.com" className={FIELD} />
                                     </div>
                                 </div>
 
-                                {/* Delivery */}
-                                <div>
-                                    <span className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Delivery Details</span>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="relative group">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-                                            <input type="tel" value={rcPhone} onChange={e => setRCPhone(e.target.value)} placeholder="Phone Number"
-                                                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                                        </div>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-                                            <input type="email" value={rcEmail} onChange={e => setRCEmail(e.target.value)} placeholder="Email (optional)"
-                                                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all" />
-                                        </div>
-                                    </div>
-                                    <p className="mt-2 text-[11px] text-gray-400 leading-tight">
-                                        Your PIN appears on screen instantly and is texted to your number. Add an email for a copy (optional).
-                                    </p>
-                                </div>
-
-                                {/* Order summary — only when type selected */}
                                 {selectedRCType && (() => {
                                     const bulkTiers = Array.isArray(selectedRCType.bulk_pricing) ? selectedRCType.bulk_pricing : []
                                     const sortedTiers = [...bulkTiers].sort((a, b) => a.min_qty - b.min_qty)
                                     const activeTier = bulkTiers.find(t => rcQuantity >= t.min_qty && rcQuantity <= t.max_qty)
                                     return (
-                                        <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                        <div className="space-y-4">
                                             {sortedTiers.length > 0 && (
-                                                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/40 rounded-xl px-3 py-2.5 space-y-1.5">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                                                        <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-tight">Bulk discounts — the more you buy, the less per voucher</p>
-                                                    </div>
-                                                    <div className="space-y-1">
+                                                <div className="neu-inset rounded-2xl p-4">
+                                                    <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><TrendingUp className="h-4 w-4" aria-hidden="true" /> Buy more, pay less each</p>
+                                                    <ul className="mt-3 space-y-1.5">
                                                         {sortedTiers.map((tier, i) => {
                                                             const isActive = !!activeTier && tier.min_qty === activeTier.min_qty && tier.max_qty === activeTier.max_qty
                                                             return (
-                                                                <div key={i} className={cn(
-                                                                    'flex items-center justify-between gap-2 text-[11px] leading-tight rounded-md px-2 py-1',
-                                                                    isActive ? 'bg-amber-100 dark:bg-amber-800/30 font-bold text-amber-900 dark:text-amber-200' : 'text-amber-700/90 dark:text-amber-300/90'
-                                                                )}>
-                                                                    <span className="whitespace-nowrap">{tier.min_qty}–{tier.max_qty} vouchers</span>
-                                                                    <span className="font-semibold tabular-nums whitespace-nowrap">{formatCurrency(tier.unit_price + markupFor(selectedRCType.id))}/ea</span>
-                                                                </div>
+                                                                <li key={i} className={cn('flex items-center justify-between gap-2 rounded-full px-3 py-1.5 text-sm', isActive ? 'clay-gold font-semibold' : 'text-muted-foreground')}>
+                                                                    <span>{tier.min_qty}–{tier.max_qty} vouchers</span>
+                                                                    <span className="tabular-nums">{formatCurrency(tier.unit_price + markupFor(selectedRCType.id))} each</span>
+                                                                </li>
                                                             )
                                                         })}
-                                                    </div>
+                                                    </ul>
                                                 </div>
                                             )}
-                                            <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-                                                <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 text-sm">
-                                                    <span className="text-gray-500 font-medium">Exam</span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{selectedRCType.name}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-sm">
-                                                    <span className="text-gray-500 font-medium">Quantity</span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{rcQuantity} {rcQuantity === 1 ? 'voucher' : 'vouchers'}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-sm">
-                                                    <span className="text-gray-500 font-medium">Subtotal</span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(subtotal)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-sm">
-                                                    <span className="text-gray-500 font-medium">Paystack fee <span className="text-[10px]">({feePercent}%)</span></span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(paystackFee)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center px-4 py-3">
-                                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
-                                                    <span className="text-xl font-black text-[#0B1F3A] dark:text-[#F5B800]">{formatCurrency(total)}</span>
-                                                </div>
-                                            </div>
+                                            <TotalPlate
+                                                rows={[
+                                                    { label: selectedRCType.name, value: `× ${rcQuantity}`, strong: true },
+                                                    { label: 'Subtotal', value: formatCurrency(subtotal) },
+                                                    { label: `Card fee (${feePercent}%)`, value: formatCurrency(paystackFee) },
+                                                ]}
+                                                totalLabel="You pay"
+                                                total={formatCurrency(total)}
+                                            />
                                         </div>
                                     )
                                 })()}
+
+                                <PrimaryButton onClick={() => setShowRCConfirmModal(true)} disabled={loading || !selectedRCTypeId}>
+                                    <Lock className="h-4 w-4" /> Review my order
+                                </PrimaryButton>
+                                <p className="-mt-3 text-center text-xs text-muted-foreground">No account needed.</p>
                             </div>
 
-                            {/* CTA */}
-                            <button onClick={() => setShowRCConfirmModal(true)} disabled={loading || !selectedRCTypeId}
-                                className="w-full py-4 rounded-xl bg-[#0B1F3A] dark:bg-[#F5B800] text-white dark:text-[#0B1F3A] text-sm font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50">
-                                <Lock className="w-4 h-4" /> Proceed to Checkout
-                            </button>
-                            <p className="text-center text-[11px] text-gray-400 -mt-2">Secured by Paystack · No account needed</p>
-
-                            {/* Confirm Purchase Modal */}
                             <Dialog open={showRCConfirmModal} onOpenChange={setShowRCConfirmModal}>
-                                <DialogContent className="rounded-[2rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl">
+                                <DialogContent className="max-w-sm gap-0 overflow-hidden rounded-[2rem] border-none bg-neu p-0 shadow-2xl">
                                     <DialogHeader className="sr-only">
                                         <DialogTitle>Confirm storefront results checker order</DialogTitle>
                                         <DialogDescription>
                                             Review the exam type, quantity, delivery phone number, email address, and payment total before continuing.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <div className="bg-[#0B1F3A] p-8 text-white space-y-2">
-                                        <h3 className="text-xl font-bold tracking-tight">Confirm Order</h3>
-                                        <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                                            Vouchers will be delivered to <span className="font-bold text-white">{rcPhone}</span> and <span className="font-bold text-white">{rcEmail}</span>.
+                                    <div className="bg-black px-7 pb-6 pt-8 text-white">
+                                        <h3 className="font-display text-2xl font-bold tracking-tight">Look right?</h3>
+                                        <p className="mt-2 text-sm leading-relaxed text-silver-200">
+                                            Your PIN{rcQuantity > 1 ? 's go' : ' goes'} to <span className="font-semibold text-white">{rcPhone}</span>{rcEmail.trim() ? <> and <span className="font-semibold text-white">{rcEmail.trim()}</span></> : null}.
                                         </p>
                                     </div>
-                                    <div className="p-8 space-y-6 bg-white dark:bg-gray-950">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center text-xs pb-3 border-b border-gray-200 dark:border-white/5">
-                                                <span className="text-gray-700 dark:text-gray-400 font-semibold">Exam Type</span>
-                                                <span className="font-bold text-gray-900 dark:text-white">{selectedRCType?.name}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs pb-3 border-b border-gray-200 dark:border-white/5">
-                                                <span className="text-gray-700 dark:text-gray-400 font-semibold">Quantity</span>
-                                                <span className="font-bold text-gray-900 dark:text-white">{rcQuantity} Units</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm pt-2">
-                                                <span className="text-gray-900 dark:text-white font-bold">Total Payable</span>
-                                                <span className="font-black text-[#0B1F3A] dark:text-[#F5B800]">{formatCurrency(total)}</span>
-                                            </div>
-                                        </div>
-
+                                    <div className="space-y-5 p-7">
+                                        <dl className="space-y-3 text-sm">
+                                            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Exam</dt><dd className="text-right font-semibold text-foreground">{selectedRCType?.name}</dd></div>
+                                            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Quantity</dt><dd className="font-semibold text-foreground">{rcQuantity}</dd></div>
+                                            <div className="flex items-baseline justify-between gap-4 border-t border-foreground/10 pt-3"><dt className="font-semibold text-foreground">Total</dt><dd className="font-display text-2xl font-bold tabular-nums text-foreground">{formatCurrency(total)}</dd></div>
+                                        </dl>
                                         <div className="flex gap-3">
-                                            <button className="flex-1 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-colors" onClick={() => setShowRCConfirmModal(false)}>
-                                                Cancel
-                                            </button>
-                                            <button 
-                                                className="flex-1 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest bg-[#0B1F3A] dark:bg-[#F5B800] text-white dark:text-[#0B1F3A] hover:opacity-90 shadow-md" 
-                                                onClick={handleBuyVouchers} 
-                                                disabled={loading}
-                                            >
-                                                {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirm'}
+                                            <button type="button" className={cn('neu-raised-sm neu-press h-12 flex-1 rounded-full text-sm font-semibold text-foreground', FOCUS)} onClick={() => setShowRCConfirmModal(false)}>Go back</button>
+                                            <button type="button" className={cn('clay-gold flex h-12 flex-1 items-center justify-center rounded-full text-sm font-semibold disabled:opacity-60', FOCUS)} onClick={handleBuyVouchers} disabled={loading}>
+                                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pay now'}
                                             </button>
                                         </div>
                                     </div>
                                 </DialogContent>
                             </Dialog>
-                        </div>
+                        </section>
                     )
                 })()}
 
@@ -1745,333 +1283,118 @@ export default function ShopStorefront({
                     />
                 )}
 
-                {/* ── AFA Registration Tab Content ── */}
+                {/* ── AFA ── */}
                 {isShopAfaEnabled && activeTab === 'afa' && (
-                    <div className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 transition-colors">
-                        <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white bg-amber-600 shadow-sm">
-                                <IdCard className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <h2 className="text-h2 uppercase">AFA Registration</h2>
-                                <p className="text-label text-gray-500 uppercase mt-1">Register Your SIM with Ghana Card</p>
-                            </div>
-                        </div>
-
+                    <section className="animate-in fade-in duration-300 motion-reduce:animate-none">
+                        <ServiceHeading icon={IdCard} title="Register your AFA SIM" blurb="Link your SIM to your Ghana Card details. It takes a couple of minutes." />
                         <AfaRegistrationForm shopSlug={shop.shop_slug} displayPrice={afaDisplayPrice} onSubmitDetails={handleAfaSubmit} />
-                    </div>
+                    </section>
                 )}
-            </div>
+            </StorefrontShell>
 
-            {/* ── Guest Push Notification FAB ────────────────────────────────── */}
-            {pushPermission !== 'unsupported' && (
-                isGuestSubscribed ? (
-                    <div className="fixed bottom-6 left-4 z-50 flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full px-4 py-3 shadow-lg animate-in slide-in-from-bottom-6 duration-700">
-                        <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <span className="text-xs font-bold text-green-700 dark:text-green-400">Subscribed</span>
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => setShowPushOptIn(true)}
-                        className="fixed bottom-6 left-4 z-50 flex items-center gap-2 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-full px-4 py-3 hover:scale-105 transition-transform animate-in slide-in-from-bottom-6 duration-700"
-                        aria-label="Get shop notifications"
-                    >
-                        <BellPlus className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Get Notified</span>
-                    </button>
-                )
-            )}
-
-            {/* WhatsApp floating button */}
-            {!isPwaPromptVisible && shop.whatsapp_number && (
-                <div className="fixed bottom-6 right-4 z-50 flex items-center gap-3 group animate-in slide-in-from-bottom-6 duration-700">
-                    <style dangerouslySetInnerHTML={{ __html: `
-                        @keyframes promptPeek {
-                            0%, 100% { transform: translateX(5px); opacity: 0; }
-                            10%, 90% { transform: translateX(0); opacity: 1; }
-                        }
-                        .animate-prompt-peek { animation: promptPeek 4s ease-in-out infinite; }
-                    ` }} />
-                    <div className="absolute right-[4.5rem] bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-3 py-1.5 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity animate-prompt-peek whitespace-nowrap">
-                        <span className="font-bold text-xs sm:text-sm tracking-tight text-gray-700 dark:text-gray-200">Need Help?</span>
-                        <div className="absolute top-1/2 -mt-1 -right-1.5 w-3 h-3 bg-white dark:bg-gray-800 border-r border-t border-gray-100 dark:border-gray-700 rotate-45" />
-                    </div>
-                    <a
-                        href={`https://wa.me/${shop.whatsapp_number}`} target="_blank" rel="noopener noreferrer"
-                        className="w-14 h-14 rounded-full bg-[#25D366] shadow-xl flex items-center justify-center hover:scale-110 transition-transform relative"
-                        aria-label="Chat on WhatsApp"
-                    >
-                        <div className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-20" />
-                        <svg viewBox="0 0 24 24" className="w-7 h-7 fill-white relative z-10" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.88 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                        </svg>
-                    </a>
-                </div>
-            )}
-
-            {/* ── Sidebar Navigation Overlay ── */}
-            <div className={cn("fixed inset-0 z-[100] transition-opacity duration-200", isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none")}>
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-                <div className={cn("absolute top-0 left-0 w-[300px] h-full bg-gray-50 dark:bg-gray-950 shadow-2xl transition-transform duration-200 transform flex flex-col will-change-transform", isSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
-                    <div className="p-5 relative flex flex-col items-center justify-center bg-[var(--brand-color)] h-32 overflow-hidden shadow-inner border-b border-black/10">
-                        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                        {shop.logo_url ? (
-                            <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-white/20 shadow-md mb-2">
-                                <Image src={shop.logo_url} alt="Logo" fill className="object-contain" />
-                            </div>
-                        ) : (
-                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shadow-md mb-2">
-                                <ShoppingCart className="w-6 h-6 text-white" />
-                            </div>
-                        )}
-                        <p className="font-black text-white text-lg truncate w-full text-center relative z-10 drop-shadow-md">{shop.shop_name}</p>
-                        <button 
-                            onClick={() => setIsSidebarOpen(false)} 
-                            className="absolute top-3 right-3 p-1.5 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm shadow-sm border border-white/10"
-                            aria-label="Close menu"
-                            title="Close menu"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto py-5 px-3 space-y-1.5">
-                        {/* ── Products ── */}
-                        <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.25em] px-3 pb-1">Products</p>
-
-                        <button onClick={() => selectProduct('data')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'data' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                            <div className={cn("p-1.5 rounded-lg", activeTab === 'data' ? "bg-emerald-500" : "bg-gray-100 dark:bg-gray-800")}>
-                                <Zap className={cn("w-4 h-4", activeTab === 'data' ? "text-white fill-white" : "text-gray-400")} />
-                            </div>
-                            <span className="font-bold flex-1 text-left">Data Packages</span>
-                            {activeTab === 'data' && <Check className="w-4 h-4 text-emerald-500" />}
-                        </button>
-
-                        {isShopAirtimeEnabled && (
-                            <button onClick={() => selectProduct('airtime')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'airtime' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'airtime' ? "bg-brand-500" : "bg-gray-100 dark:bg-gray-800")}>
-                                    <Smartphone className={cn("w-4 h-4", activeTab === 'airtime' ? "text-white" : "text-gray-400")} />
-                                </div>
-                                <span className="font-bold flex-1 text-left">Airtime Recharge</span>
-                                {activeTab === 'airtime' && <Check className="w-4 h-4 text-brand-700" />}
-                            </button>
-                        )}
-
-                        {isShopMashupEnabled && (
-                            <button onClick={() => selectProduct('mashup')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'mashup' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'mashup' ? "bg-brand-500" : "bg-gray-100 dark:bg-gray-800")}>
-                                    <Zap className={cn("w-4 h-4", activeTab === 'mashup' ? "text-gray-900 fill-gray-900" : "text-gray-400")} />
-                                </div>
-                                <span className="font-bold flex-1 text-left">MTN Mashup</span>
-                                {activeTab === 'mashup' && <Check className="w-4 h-4 text-amber-500" />}
-                            </button>
-                        )}
-
-                        {isRCEnabled && (
-                            <button onClick={() => selectProduct('vouchers')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'vouchers' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'vouchers' ? "bg-[#0B1F3A] dark:bg-[#F5B800]" : "bg-gray-100 dark:bg-gray-800")}>
-                                    <GraduationCap className={cn("w-4 h-4", activeTab === 'vouchers' ? "text-white dark:text-gray-900" : "text-gray-400")} />
-                                </div>
-                                <span className="font-bold flex-1 text-left">Results Checker</span>
-                                {activeTab === 'vouchers' && <Check className="w-4 h-4 text-[#0B1F3A] dark:text-[#F5B800]" />}
-                            </button>
-                        )}
-
-                        {utilitiesEnabled && (
-                            <button onClick={() => selectProduct('utilities')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'utilities' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'utilities' ? "bg-slate-700" : "bg-gray-100 dark:bg-gray-800")}>
-                                    <Receipt className={cn("w-4 h-4", activeTab === 'utilities' ? "text-white" : "text-gray-400")} />
-                                </div>
-                                <span className="font-bold flex-1 text-left">Utility Bills</span>
-                                {activeTab === 'utilities' && <Check className="w-4 h-4 text-slate-600 dark:text-slate-300" />}
-                            </button>
-                        )}
-
-                        {isShopAfaEnabled && (
-                            <button onClick={() => selectProduct('afa')} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all shadow-sm border", activeTab === 'afa' ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400 border-transparent")}>
-                                <div className={cn("p-1.5 rounded-lg", activeTab === 'afa' ? "bg-amber-600" : "bg-gray-100 dark:bg-gray-800")}>
-                                    <IdCard className={cn("w-4 h-4", activeTab === 'afa' ? "text-white" : "text-gray-400")} />
-                                </div>
-                                <span className="font-bold flex-1 text-left">AFA Registration</span>
-                                {activeTab === 'afa' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                            </button>
-                        )}
-
-                        <div className="my-4 border-t border-gray-200 dark:border-gray-800" />
-
-                        {/* ── Account & Links ── */}
-                        <p className="text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.25em] px-3 pb-1">Account</p>
-
-                        <Link href={`${baseLinkPath}/status?shop=${shop.shop_slug}&name=${encodeURIComponent(shop.shop_name)}`} onClick={() => setIsSidebarOpen(false)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 text-left font-bold text-gray-600 dark:text-gray-400 transition-colors">
-                            <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800"><History className="w-4 h-4 text-gray-400" /></div>
-                            Track My Orders
-                        </Link>
-                        {isRCEnabled && (
-                            <Link href={rcRetrieveHref} onClick={() => setIsSidebarOpen(false)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 text-left font-bold text-gray-600 dark:text-gray-400 transition-colors">
-                                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800"><GraduationCap className="w-4 h-4 text-gray-400" /></div>
-                                Retrieve Voucher
-                            </Link>
-                        )}
-                        <Link href={`${baseLinkPath}/${shop.shop_slug}/about`} onClick={() => setIsSidebarOpen(false)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 text-left font-bold text-gray-600 dark:text-gray-400 transition-colors">
-                            <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800"><Info className="w-4 h-4 text-gray-400" /></div>
-                            About Shop & Terms
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Announcement Modal ── */}
+            {/* ── Notice from the shop ── */}
             {announcement && showAnnouncementModal && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-                    {/* Backdrop — no dismiss on click, user must read */}
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-in fade-in duration-200" />
-
-                    {/* Card — bottom-sheet on mobile, centred dialog on sm+ */}
-                    <div className={cn(
-                        "relative w-full sm:max-w-md sm:mx-4",
-                        "bg-white dark:bg-gray-950",
-                        "rounded-t-[2.5rem] sm:rounded-[2.5rem]",
-                        "shadow-[0_-20px_80px_rgba(0,0,0,0.3)] sm:shadow-2xl",
-                        "overflow-hidden border border-white/10 dark:border-white/5",
-                        "animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-300"
-                    )}>
-                        {/* Drag handle pill (mobile) */}
-                        <div className="sm:hidden flex justify-center pt-3 pb-1">
-                            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-                        </div>
-
-                        {/* Gradient header */}
-                        <div className={cn(
-                            "relative overflow-hidden px-6 pt-6 pb-7 text-center",
-                            announcement.type === 'admin'
-                                ? "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500"
-                                : "bg-gradient-to-br from-brand-500 via-brand-600 to-brand-600"
-                        )}>
-                            {/* Decorative blobs */}
-                            <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" />
-                            <div className="absolute -left-6 bottom-0 w-24 h-24 rounded-full bg-black/5 pointer-events-none" />
-
-                            {/* Icon badge */}
-                            <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 mb-4">
-                                <Bell className="w-8 h-8 text-white" />
-                            </div>
-
-                            {/* Type label */}
-                            <div className="inline-block px-3 py-1 rounded-full bg-black/15 text-white text-[10px] font-medium tracking-wide mb-2">
-                                {announcement.type === 'admin' ? 'Official Platform Notice' : 'Shop Announcement'}
-                            </div>
-
-                            {/* Title */}
-                            <h3 className="text-base sm:text-lg font-semibold text-white leading-tight">
-                                {announcement.title || 'Important Update'}
+                <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={announcement.title || 'A notice from this shop'}>
+                    {/* No dismiss on backdrop click: the notice has to be read */}
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none" />
+                    <div className="relative w-full overflow-hidden rounded-t-[2rem] bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)] animate-in slide-in-from-bottom fade-in duration-300 motion-reduce:animate-none sm:mx-4 sm:max-w-md sm:rounded-[2rem]">
+                        <div className="relative bg-black px-7 pb-6 pt-7 text-white">
+                            <BrandSwoosh className="pointer-events-none absolute -bottom-4 -right-1/3 w-full opacity-70" />
+                            <span className="relative inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-brand-400">
+                                <Bell className="h-3.5 w-3.5" aria-hidden="true" />
+                                {announcement.type === 'admin' ? 'From the Capozy team' : `From ${shop.shop_name}`}
+                            </span>
+                            <h3 className="relative mt-3 font-display text-2xl font-bold leading-tight tracking-tight">
+                                {announcement.title || 'A quick update'}
                             </h3>
                         </div>
 
-                        {/* Scrollable message body */}
-                        <div className="overflow-y-auto max-h-[38vh] sm:max-h-[45vh] px-6 py-5 text-center custom-scrollbar">
-                            <p className="text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-normal text-left">
-                                {announcement.message}
-                            </p>
+                        <div className="max-h-[38vh] overflow-y-auto px-7 py-5 sm:max-h-[45vh]">
+                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">{announcement.message}</p>
                             <AnnouncementCTAButtons row={announcement} variant="modal" className="mt-5" />
                         </div>
 
-                        {/* Footer with countdown button */}
-                        <div className="px-6 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] sm:pb-6 pt-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40">
+                        <div className="px-7 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-2 sm:pb-7">
                             <button
                                 type="button"
                                 onClick={handleDismissAnnouncement}
                                 disabled={announcementCountdown > 0}
-                                className={cn(
-                                    "w-full py-4 rounded-2xl font-medium text-sm transition-all duration-200",
-                                    "flex items-center justify-center gap-2.5",
-                                    "active:scale-[0.98]",
-                                    announcementCountdown > 0
-                                        ? "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                                        : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-lg"
-                                )}
+                                className={cn('flex min-h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-full text-base font-semibold', FOCUS, announcementCountdown > 0 ? 'neu-inset text-muted-foreground' : 'clay-gold')}
                             >
                                 {announcementCountdown > 0 ? (
                                     <>
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-gray-400 dark:border-gray-500 text-xs font-semibold tabular-nums">
-                                            {announcementCountdown}
-                                        </span>
-                                        Please read…
+                                        <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current text-xs font-semibold tabular-nums">{announcementCountdown}</span>
+                                        Have a read first
                                     </>
-                                ) : (
-                                    'Got it, thanks!'
-                                )}
+                                ) : 'Got it'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ── RC Guest Success Modal ── */}
+            {/* ── Voucher delivered ── */}
             {showRCSuccess && rcSuccessData && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowRCSuccess(false)} />
-                    <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-gray-100 dark:border-gray-800">
-                        <div className="p-6 flex flex-col items-center text-center bg-[#22C55E]/5">
-                            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner border-4 border-white dark:border-gray-800 bg-[#22C55E]">
-                                {rcSuccessData.order.status === 'completed' ? (
-                                    <CheckCircle2 className="w-8 h-8 text-white" />
-                                ) : (
-                                    <Clock className="w-8 h-8 text-white" />
-                                )}
-                            </div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2 bg-white dark:bg-gray-800 shadow-sm border border-[#22C55E]/20 text-[#22C55E]">
-                                {rcSuccessData.order.status === 'completed' ? 'Purchase Successful' : 'Order Processing'}
+                <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Your voucher">
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in motion-reduce:animate-none" onClick={() => setShowRCSuccess(false)} />
+                    <div className="relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[2rem] bg-neu animate-in slide-in-from-bottom fade-in duration-300 motion-reduce:animate-none sm:max-w-sm sm:rounded-[2rem]">
+                        <div className="flex flex-col items-center bg-black px-7 pb-6 pt-8 text-center text-white">
+                            <span className="clay-gold flex h-14 w-14 items-center justify-center rounded-full">
+                                {rcSuccessData.order.status === 'completed' ? <CheckCircle2 className="h-7 w-7" /> : <Clock className="h-7 w-7" />}
                             </span>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white capitalize">
-                                {rcSuccessData.order.quantity}x {rcSuccessData.order.type_name}
+                            <h3 className="mt-4 font-display text-2xl font-bold leading-tight tracking-tight">
+                                {rcSuccessData.order.status === 'completed' ? 'Your voucher is ready' : 'We have your payment'}
                             </h3>
+                            <p className="mt-1 text-sm text-silver-200">{rcSuccessData.order.quantity} × {rcSuccessData.order.type_name}</p>
+                            <p className="mt-3 text-xs text-silver-200">Reference <span className="font-mono text-white">{rcSuccessData.order.reference_code}</span></p>
                         </div>
-                        <div className="p-6 pt-5 bg-white dark:bg-gray-900 space-y-4">
-                            <div className="space-y-3">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Reference: {rcSuccessData.order.reference_code}</p>
-                                {rcSuccessData.order.status === 'completed' ? (
-                                    <div className="space-y-3">
-                                        <div className="grid grid-cols-1 gap-2">
-                                            {rcSuccessData.vouchers.map((v: any, i: number) => {
-                                                const isRevealed = revealedRCPins.has(v.pin)
-                                                return (
-                                                    <div key={i} className="p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5 space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-xs font-bold text-gray-400 uppercase">Voucher {i + 1}</span>
-                                                            <button
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(`Serial: ${v.serial_number}\nPIN: ${v.pin}`)
-                                                                    toast.success('Copied to clipboard')
-                                                                }}
-                                                                className="text-xs font-bold text-brand-700 uppercase px-2 py-1"
-                                                            >
-                                                                Copy
-                                                            </button>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-xs text-gray-400 font-bold uppercase">Serial: <span className="text-gray-900 dark:text-white font-mono">{v.serial_number}</span></p>
-                                                            <div 
-                                                                onClick={() => toggleRCPinReveal(v.pin)}
-                                                                className="flex items-center justify-between p-1.5 bg-white dark:bg-black/20 rounded border border-gray-100 dark:border-white/5 cursor-pointer"
-                                                            >
-                                                                <span className={cn("font-mono text-xs font-bold", isRevealed ? "text-[#0B1F3A] dark:text-[#F5B800]" : "text-gray-300 blur-[3px]")}>
-                                                                    {isRevealed ? v.pin : "PIN HIDDEN"}
-                                                                </span>
-                                                                {isRevealed ? <EyeOff className="w-3 h-3 text-gray-400" /> : <Eye className="w-3 h-3 text-gray-400" />}
-                                                            </div>
-                                                        </div>
+
+                        <div className="space-y-4 p-6">
+                            {rcSuccessData.order.status === 'completed' ? (
+                                <>
+                                    <ul className="space-y-3">
+                                        {rcSuccessData.vouchers.map((v: any, i: number) => {
+                                            const isRevealed = revealedRCPins.has(v.pin)
+                                            return (
+                                                <li key={i} className="neu-inset space-y-3 rounded-2xl p-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-semibold text-foreground">Voucher {i + 1}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(`Serial: ${v.serial_number}\nPIN: ${v.pin}`)
+                                                                toast.success('Copied')
+                                                            }}
+                                                            className={cn('neu-raised-sm neu-press h-8 rounded-full px-3 text-xs font-semibold text-foreground', FOCUS)}
+                                                        >
+                                                            Copy
+                                                        </button>
                                                     </div>
-                                                )
-                                            })}
-                                        </div>
-                                        <p className="text-[11px] text-gray-500 text-center leading-relaxed">Results Checker delivered. Tap to reveal PINs or download the receipt below.</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 text-center">Your payment was received. We are processing your vouchers and will send them via SMS shortly.</p>
-                                )}
-                            </div>
+                                                    <p className="text-xs text-muted-foreground">Serial <span className="ml-1 font-mono text-sm text-foreground">{v.serial_number}</span></p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleRCPinReveal(v.pin)}
+                                                        aria-label={isRevealed ? 'Hide PIN' : 'Show PIN'}
+                                                        className={cn('neu-raised-sm flex min-h-[2.75rem] w-full items-center justify-between rounded-full px-4', FOCUS)}
+                                                    >
+                                                        <span className={cn('font-mono text-base font-bold tracking-wider', isRevealed ? 'text-foreground' : 'select-none text-muted-foreground blur-[3px]')}>
+                                                            {isRevealed ? v.pin : '••••••••••'}
+                                                        </span>
+                                                        {isRevealed ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                                                    </button>
+                                                </li>
+                                            )
+                                        })}
+                                    </ul>
+                                    <p className="text-center text-xs leading-relaxed text-muted-foreground">Tap a PIN to show it. Save the receipt before you close this.</p>
+                                </>
+                            ) : (
+                                <p className="text-center text-sm leading-relaxed text-muted-foreground">Your payment is in. We are preparing the voucher and will text it to you shortly.</p>
+                            )}
+
                             {rcSuccessData.order.status === 'completed' && rcSuccessData.vouchers.length > 0 && (
-                                <div className="space-y-2">
-                                    <button
+                                <div className="space-y-2.5">
+                                    <PrimaryButton
                                         onClick={() => downloadResultsCheckerVouchers(
                                             rcSuccessData.order,
                                             rcSuccessData.vouchers,
@@ -2079,21 +1402,21 @@ export default function ShopStorefront({
                                             rcSuccessData.order.customer_email || '',
                                             shop.shop_name
                                         )}
-                                        className="w-full py-3.5 rounded-xl bg-[#0B1F3A] dark:bg-[#F5B800] text-white dark:text-[#0B1F3A] font-bold text-xs uppercase tracking-widest shadow-md flex justify-center items-center gap-2 transition-transform active:scale-95"
                                     >
-                                        <Download className="w-4 h-4" /> Download Receipt
-                                    </button>
+                                        <Download className="h-4 w-4" /> Save receipt
+                                    </PrimaryButton>
                                     <Link
                                         href={`${rcRetrieveHref}?reference=${encodeURIComponent(rcSuccessData.order.reference_code)}`}
-                                        className="flex w-full items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                                        className={cn('neu-raised-sm neu-press flex min-h-[3rem] w-full items-center justify-center rounded-full text-sm font-semibold text-foreground', FOCUS)}
                                     >
-                                        Open Retrieve Page
+                                        Open the retrieve page
                                     </Link>
                                 </div>
                             )}
-                            <button 
+                            <button
+                                type="button"
                                 onClick={() => { setShowRCSuccess(false); router.replace(window.location.pathname) }}
-                                className="w-full py-3.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className={cn('w-full rounded-full py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground', FOCUS)}
                             >
                                 Close
                             </button>
@@ -2102,77 +1425,28 @@ export default function ShopStorefront({
                 </div>
             )}
 
-            {/* ── Push Notification Opt-In Sheet ─────────────────────────────── */}
+            {/* ── Order alerts opt-in ── */}
             {showPushOptIn && (
-                <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowPushOptIn(false)} />
-                    <div className={cn(
-                        "relative w-full sm:max-w-md sm:mx-4",
-                        "bg-white dark:bg-gray-950",
-                        "rounded-t-[2.5rem] sm:rounded-[2.5rem]",
-                        "shadow-[0_-20px_80px_rgba(0,0,0,0.3)] sm:shadow-2xl",
-                        "overflow-hidden border border-white/10 dark:border-white/5",
-                        "animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-300"
-                    )}>
-                        <div className="sm:hidden flex justify-center pt-3 pb-1">
-                            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-                        </div>
-
-                        {/* Gradient header */}
-                        <div className="relative overflow-hidden px-6 pt-6 pb-7 text-center bg-gradient-to-br from-violet-500 via-violet-600 to-purple-700">
-                            <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" />
-                            <div className="absolute -left-6 bottom-0 w-24 h-24 rounded-full bg-black/5 pointer-events-none" />
-                            <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 mb-4">
-                                <BellPlus className="w-8 h-8 text-white" />
-                            </div>
-                            <div className="inline-block px-3 py-1 rounded-full bg-black/15 text-white text-[10px] font-black uppercase tracking-widest mb-2">
-                                Shop Notifications
-                            </div>
-                            <h3 className="text-xl font-black text-white leading-tight">Stay in the loop</h3>
-                        </div>
-
-                        {/* Body */}
-                        <div className="px-6 py-5 space-y-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">
-                                Get instant alerts when <strong className="text-gray-900 dark:text-white">{shop.shop_name}</strong> posts new announcements or special offers.
+                <div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label="Order alerts">
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none" onClick={() => setShowPushOptIn(false)} />
+                    <div className="relative w-full overflow-hidden rounded-t-[2rem] bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)] animate-in slide-in-from-bottom fade-in duration-300 motion-reduce:animate-none sm:mx-4 sm:max-w-md sm:rounded-[2rem]">
+                        <div className="relative bg-black px-7 pb-6 pt-7 text-white">
+                            <BrandSwoosh className="pointer-events-none absolute -bottom-4 -right-1/3 w-full opacity-70" />
+                            <span className="clay-gold relative flex h-12 w-12 items-center justify-center rounded-full"><BellPlus className="h-5 w-5" aria-hidden="true" /></span>
+                            <h3 className="relative mt-4 font-display text-2xl font-bold leading-tight tracking-tight">Want a ping when something happens?</h3>
+                            <p className="relative mt-2 text-sm leading-relaxed text-silver-200">
+                                We will alert this device when <span className="font-semibold text-white">{shop.shop_name}</span> posts a notice or an offer.
                             </p>
-                            <div className="flex flex-col gap-2">
-                                {[
-                                    { icon: '📢', text: 'New announcements & offers' },
-                                    { icon: '⚡', text: 'Instant delivery to your device' },
-                                    { icon: '🔕', text: 'Turn off anytime in browser settings' },
-                                ].map(({ icon, text }) => (
-                                    <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-700 dark:text-gray-300">
-                                        <span className="text-base">{icon}</span>
-                                        <span className="font-medium">{text}</span>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="px-6 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] sm:pb-6 pt-2 space-y-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40">
-                            <button
-                                type="button"
-                                onClick={handleGuestSubscribe}
-                                disabled={isSubscribing}
-                                className={cn(
-                                    "w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all",
-                                    "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-lg disabled:opacity-60"
-                                )}
-                            >
-                                {isSubscribing
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Enabling…</>
-                                    : <><BellPlus className="w-4 h-4" /> Enable Notifications</>
-                                }
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowPushOptIn(false)}
-                                className="w-full py-2.5 rounded-2xl font-semibold text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                            >
+                        <div className="space-y-2.5 px-7 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-6 sm:pb-7">
+                            <PrimaryButton onClick={handleGuestSubscribe} disabled={isSubscribing}>
+                                {isSubscribing ? <><Loader2 className="h-4 w-4 animate-spin" /> Turning on…</> : <><BellPlus className="h-4 w-4" /> Turn on alerts</>}
+                            </PrimaryButton>
+                            <button type="button" onClick={() => setShowPushOptIn(false)} className={cn('w-full rounded-full py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground', FOCUS)}>
                                 Not now
                             </button>
+                            <p className="pt-1 text-center text-xs text-muted-foreground">You can switch them off any time in your browser settings.</p>
                         </div>
                     </div>
                 </div>

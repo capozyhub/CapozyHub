@@ -15,6 +15,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { StorefrontPageFrame } from '@/components/storefront/page-frame'
+import { isStorefrontHost } from '@/lib/storefront-host'
 
 // Contrast utility for sticky header text color
 const isLightColor = (hex: string) => {
@@ -39,59 +41,43 @@ interface Order {
 }
 
 const statusConfig = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
-    processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: Loader2 },
-    queued: { label: 'Queued', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400', icon: Hourglass },
-    completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
-    failed: { label: 'Failed', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: XCircle },
-    refunded: { label: 'Refunded', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400', icon: XCircle },
-    cancelled: { label: 'Cancelled', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400', icon: XCircle },
-}
+    pending: { label: 'Waiting', tone: 'wait', icon: Clock },
+    processing: { label: 'On its way', tone: 'wait', icon: Loader2 },
+    queued: { label: 'Queued', tone: 'wait', icon: Hourglass },
+    completed: { label: 'Delivered', tone: 'good', icon: CheckCircle2 },
+    failed: { label: 'Failed', tone: 'bad', icon: XCircle },
+    refunded: { label: 'Refunded', tone: 'bad', icon: XCircle },
+    cancelled: { label: 'Cancelled', tone: 'bad', icon: XCircle },
+} as const
 
 function OrderCard({ order, baseLinkPath }: { order: Order; baseLinkPath: string }) {
-    // Determine status config with fallback
     const cfg = statusConfig[order.status] || statusConfig.pending
     const Icon = cfg.icon
 
     return (
-        <Card className="overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-            <div className="p-4 flex items-center gap-4">
-                <div className={cn('w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0', cfg.color)}>
-                    <Icon className="w-5 h-5" />
+        <li className="neu-raised-sm flex items-center gap-4 rounded-2xl px-4 py-3.5">
+            <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-full', cfg.tone === 'good' ? 'clay-gold' : 'neu-inset', cfg.tone === 'bad' && 'text-red-600 dark:text-red-400')}>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                    <p className="truncate font-display text-lg font-bold leading-tight text-foreground">
+                        {order.network === 'AFA' ? order.package_size : `${order.network} ${order.package_size}`}
+                    </p>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">{formatCurrency(order.selling_price)}</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="font-bold text-sm text-slate-900 dark:text-slate-100 transition-colors">
-                                {order.network === 'AFA' ? order.package_size : `${order.network} ${order.package_size}`}
-                            </p>
-                            <Link href={`${baseLinkPath}/${order.shop_slug}`} className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-1">
-                                {order.shop_name}
-                            </Link>
-                        </div>
-                        <p className="font-black text-sm text-slate-800 dark:text-slate-200 transition-colors">{formatCurrency(order.selling_price)}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 mt-2">
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
-                            <Phone className="w-3 h-3 text-emerald-500" />
-                            {order.guest_phone || 'N/A'}
-                        </p>
-                        <div className="flex justify-between items-center">
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {new Date(order.created_at).toLocaleDateString()} {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                            <span className={cn('text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full', cfg.color)}>
-                                {cfg.label}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                    {cfg.label} · {new Date(order.created_at).toLocaleDateString()} {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-mono">{order.guest_phone || 'N/A'}</span>
+                    <span aria-hidden="true">·</span>
+                    <Link href={`${baseLinkPath}/${order.shop_slug}`} className="truncate font-semibold text-foreground underline-offset-4 hover:underline">{order.shop_name}</Link>
+                </p>
             </div>
-        </Card>
+        </li>
     )
 }
-
 interface ShopProfile {
     shop_name: string
     logo_url: string | null
@@ -120,8 +106,7 @@ export default function ShopStatusTracker() {
 
     useEffect(() => {
         // Detect if we are on the subdomain storefront or the main domain
-        const hostname = window.location.hostname
-        const isSub = hostname.startsWith('shop.') || (hostname !== 'capozygh.com' && hostname !== 'www.capozygh.com' && !hostname.includes('localhost'))
+        const isSub = isStorefrontHost(window.location.hostname)
         setIsStorefront(isSub)
     }, [])
 
@@ -221,157 +206,85 @@ export default function ShopStatusTracker() {
         }
     }
 
-    return (
-        <div className={cn("min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors duration-300", shopData && "theme-tracker")}>
-            {shopData && (
-                <style dangerouslySetInnerHTML={{ __html: `
-                    .theme-tracker { 
-                        --brand-color: ${safeBrandColor}; 
-                        --brand-contrast-text: ${brandContrastText};
-                    }
-                ` }} />
-            )}
-            
-            {/* ── Permanent Top Bar ── */}
-            {shopData && (
-                <>
-                    <div className="fixed top-0 left-0 w-full z-[45] shadow-lg border-b border-black/5 dark:border-white/5 bg-[var(--brand-color)]/95 backdrop-blur-md transition-all duration-300 ease-in-out">
-                        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                                {shopData.logo_url && (
-                                    <div className="relative w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-black/5 shadow-sm bg-white/20">
-                                        <Image src={shopData.logo_url} alt="Logo" fill className="object-contain" />
-                                    </div>
-                                )}
-                                <h1 className="font-black text-[15px] sm:text-lg truncate text-[var(--brand-contrast-text)] transition-colors">
-                                    {shopData.shop_name}
-                                </h1>
-                            </div>
-                            <ThemeToggle brandName={shopData.shop_name} />
-                        </div>
-                    </div>
-                    {/* Spacer */}
-                    <div className="h-[60px] flex-shrink-0" />
-                </>
-            )}
+    const FIELD = 'neu-inset h-[3.25rem] w-full rounded-full border-0 bg-transparent pl-12 pr-5 text-base text-foreground outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500'
+    const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500'
+    const shopHref = `${baseLinkPath}/${shopParam || searchOrders[0]?.shop_slug || lastShopSlug || ''}`
+    const hasShop = !!(shopParam || searchOrders[0]?.shop_slug || lastShopSlug)
+    const shopTitle = nameParam || shopData?.shop_name || null
 
-            <div className="max-w-md mx-auto p-4 space-y-8 mt-4">
-                {/* Page header */}
-                <div className="text-center space-y-2">
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white transition-colors">
-                        {nameParam || shopData?.shop_name ? `Track Your ${nameParam || shopData?.shop_name} Orders` : 'Track Your Order'}
-                    </h1>
-                    <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                        Orders within the past 48 hours.
-                    </p>
-                    {/* Buy More Data Button */}
-                    {(searchOrders.length > 0 || lastShopSlug || shopParam) && (
-                        <div className="pt-2">
-                            <Link
-                                href={`${baseLinkPath}/${shopParam || searchOrders[0]?.shop_slug || lastShopSlug}`}
-                                className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors"
-                            >
-                                <ShoppingCart className="w-4 h-4" />
-                                Buy More Data
-                            </Link>
+    return (
+        <StorefrontPageFrame
+            name={shopTitle || 'Order tracker'}
+            logoUrl={shopData?.logo_url}
+            brandColor={shopData?.brand_color}
+            backHref={hasShop ? shopHref : '/'}
+            backLabel={hasShop ? 'Back to shop' : 'Home'}
+            headerAction={<ThemeToggle brandName={shopTitle || 'Capozy'} />}
+        >
+            <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-foreground">Where is my order?</h1>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                Type the number you bought with. We show the last 48 hours{shopTitle ? ` of orders at ${shopTitle}` : ''}.
+            </p>
+
+            <form onSubmit={handleSearch} className="mt-6 space-y-5">
+                <div>
+                    <label htmlFor="track-phone" className="mb-2 block px-1 text-sm font-semibold text-foreground">Phone number</label>
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                        <input id="track-phone" type="tel" inputMode="tel" placeholder="024 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)} className={FIELD} />
+                    </div>
+                </div>
+                <button type="submit" disabled={searchLoading || !phone.trim()} className={cn('clay-gold flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-base font-semibold disabled:opacity-50', FOCUS)}>
+                    {searchLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Looking…</> : 'Find my orders'}
+                </button>
+                <p className="px-1 text-xs leading-relaxed text-muted-foreground">To keep things fast, results for a number refresh once a minute.</p>
+            </form>
+
+            {hasSearched && (
+                <section className="mt-8 animate-in fade-in duration-300 motion-reduce:animate-none" aria-live="polite">
+                    {searchOrders.length > 0 ? (
+                        <>
+                            <h2 className="mb-3 font-display text-xl font-bold tracking-tight text-foreground">
+                                {searchOrders.length} order{searchOrders.length === 1 ? '' : 's'} found
+                            </h2>
+                            <ul className="space-y-3">
+                                {searchOrders.map(order => <OrderCard key={order.id} order={order} baseLinkPath={baseLinkPath} />)}
+                            </ul>
+                            {hasShop && (
+                                <Link href={shopHref} className={cn('neu-raised-sm neu-press mt-5 flex min-h-[3rem] items-center justify-center gap-2 rounded-full text-sm font-semibold text-foreground', FOCUS)}>
+                                    <ShoppingCart className="h-4 w-4" aria-hidden="true" /> Buy something else
+                                </Link>
+                            )}
+                        </>
+                    ) : (
+                        <div className="neu-inset rounded-2xl px-5 py-8 text-center">
+                            <h2 className="font-display text-lg font-bold text-foreground">Nothing in the last 48 hours</h2>
+                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                                We found no recent orders for <span className="font-mono font-semibold text-foreground">{phone}</span>. Older ones are archived, so ask the shop if you need one of those.
+                            </p>
+                            {shopData && (
+                                <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+                                    {shopData.whatsapp_number && (
+                                        <a href={`https://wa.me/${shopData.whatsapp_number}`} target="_blank" rel="noreferrer" className={cn('clay-gold inline-flex min-h-[2.75rem] items-center gap-2 rounded-full px-4 text-sm font-semibold', FOCUS)}>
+                                            <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
+                                        </a>
+                                    )}
+                                    {shopData.owner_phone && (
+                                        <a href={`tel:${shopData.owner_phone}`} className={cn('neu-raised-sm neu-press inline-flex min-h-[2.75rem] items-center gap-2 rounded-full px-4 text-sm font-semibold text-foreground', FOCUS)}>
+                                            <Phone className="h-4 w-4" aria-hidden="true" /> Call
+                                        </a>
+                                    )}
+                                    {shopData.owner_email && (
+                                        <a href={`mailto:${shopData.owner_email}`} className={cn('neu-raised-sm neu-press inline-flex min-h-[2.75rem] items-center gap-2 rounded-full px-4 text-sm font-semibold text-foreground', FOCUS)}>
+                                            <Mail className="h-4 w-4" aria-hidden="true" /> Email
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
-                </div>
-
-                {/* ── UI Policy Descriptor Update ── */}
-                <div className="bg-brand-50 dark:bg-brand-900/20 text-brand-800 dark:text-brand-300 rounded-xl p-4 text-xs flex items-start gap-3 border border-brand-100 dark:border-brand-800/50 shadow-sm">
-                    <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
-                    <p className="leading-relaxed font-medium">Tracking operates instantly! To save on system resources, recent results are locked for 1 minute per number, showing only orders strictly within the past 48 hours.</p>
-                </div>
-
-                {/* ── Search Section ── */}
-                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 transition-colors">
-                    <CardContent className="p-5 space-y-4">
-                        <form onSubmit={handleSearch} className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                                    Phone Number
-                                </label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                        type="tel"
-                                        placeholder="0244123456"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        className="pl-9 h-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
-                                    />
-                                </div>
-                            </div>
-                            <Button
-                                type="submit"
-                                disabled={searchLoading || !phone.trim()}
-                                className="w-full h-11 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-[0.98] transition-all"
-                            >
-                                {searchLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Find My Orders'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* ── Search Results ── */}
-                {hasSearched && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-500">
-                        <div className="flex items-center gap-2 px-1">
-                            {searchOrders.length > 0 ? (
-                                <CalendarDays className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                                <Info className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            <h2 className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                                {searchOrders.length > 0 ? `Found ${searchOrders.length} Order${searchOrders.length === 1 ? '' : 's'}` : 'Search Results'}
-                            </h2>
-                        </div>
-
-                        {searchOrders.length === 0 ? (
-                            <div className="text-center py-10 px-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 transition-colors">
-                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4 shadow-inner">
-                                    <Search className="w-5 h-5 text-gray-400" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 dark:text-white text-lg transition-colors">Can't find your order, or looking for past orders?</h3>
-                                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                                    We couldn't find any recent orders for <span className="font-mono font-medium text-emerald-600">{phone}</span>.
-                                    Older orders are securely archived off-screen to keep the system fast.
-                                </p>
-                                
-                                {shopData && (
-                                    <div className="mt-6 text-left bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3 transition-colors">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest text-center mb-1">Contact Shop Owner for Help</p>
-                                        <div className="flex flex-col gap-2">
-                                            {shopData.whatsapp_number && (
-                                                <a href={`https://wa.me/${shopData.whatsapp_number}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm">
-                                                    <MessageCircle className="w-4 h-4" /> WhatsApp Support
-                                                </a>
-                                            )}
-                                            <div className="flex gap-2">
-                                                {shopData.owner_phone && (
-                                                    <a href={`tel:${shopData.owner_phone}`} className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm">
-                                                        <Phone className="w-4 h-4" /> Call
-                                                    </a>
-                                                )}
-                                                {shopData.owner_email && (
-                                                    <a href={`mailto:${shopData.owner_email}`} className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm">
-                                                        <Mail className="w-4 h-4" /> Email
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {searchOrders.map(order => <OrderCard key={order.id} order={order} baseLinkPath={baseLinkPath} />)}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
+                </section>
+            )}
+        </StorefrontPageFrame>
     )
 }

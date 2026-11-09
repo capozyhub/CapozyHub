@@ -5,7 +5,6 @@ import { Loader2, Smartphone, CheckCircle2, AlertTriangle, X, Check } from 'luci
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { NetworkIcon } from '@/components/network-icon'
-import { styleFor } from './NetworkSelectorCard'
 import { useChargePolling } from './useChargePolling'
 import { StorefrontTermsGate } from './StorefrontTermsGate'
 import { storefrontNeedsAccept, recordStorefrontAccept, getStoredStorefrontVersion } from '@/lib/storefront-terms'
@@ -16,6 +15,7 @@ const MOMO_PREFIX: Record<string, 'MTN' | 'Telecel' | 'AT'> = {
     '020': 'Telecel', '050': 'Telecel',
     '026': 'AT', '027': 'AT', '056': 'AT', '057': 'AT',
 }
+const FIELD = 'neu-inset mt-2 h-12 w-full rounded-xl border-0 px-4 text-base font-semibold text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500'
 const PROVIDERS: Array<{ id: 'MTN' | 'Telecel' | 'AT'; label: string; dot: string }> = [
     { id: 'MTN', label: 'MTN', dot: 'bg-amber-400' },
     { id: 'Telecel', label: 'Telecel', dot: 'bg-red-600' },
@@ -119,14 +119,26 @@ export function ServiceChargeSheet({
         } else setAutoDetected(false)
     }, [momoPhone])
 
-    const style = descriptor?.network ? styleFor(descriptor.network) : null
-
     const toggleSameForMomo = () => {
         if (useSameForMomo) { setUseSameForMomo(false); setMomoPhone('') }
         else { setUseSameForMomo(true); setMomoPhone(toLocalMomo(beneficiaryPhone)) }
     }
 
+    // Synchronous re-entry guard: `step` only flips to 'charging' after the terms fetch
+    // resolves, so without this a second tap in that window starts a second charge.
+    const authorizingRef = useRef(false)
+
     const authorize = async () => {
+        if (!descriptor || authorizingRef.current) return
+        authorizingRef.current = true
+        try {
+            await runAuthorize()
+        } finally {
+            authorizingRef.current = false
+        }
+    }
+
+    const runAuthorize = async () => {
         if (!descriptor) return
 
         // Guest terms gate — block the first charge until the current agreement is accepted.
@@ -191,7 +203,7 @@ export function ServiceChargeSheet({
     }
 
     const submitOtp = async () => {
-        if (!otp.trim()) { toast.error('Enter the OTP'); return }
+        if (!otp.trim() || step === 'charging') { if (!otp.trim()) toast.error('Enter the OTP'); return }
         setStep('charging')
         try {
             // The OTP route accepts both SHOP- and RC- references, so it is shared across services.
@@ -231,183 +243,180 @@ export function ServiceChargeSheet({
                 aria-describedby={undefined}
                 onInteractOutside={(e) => { if (step !== 'form' && step !== 'success' && step !== 'received' && step !== 'failed') e.preventDefault() }}
                 onEscapeKeyDown={(e) => { if (step !== 'form' && step !== 'success' && step !== 'received' && step !== 'failed') e.preventDefault() }}
-                className="!fixed !left-0 !right-0 !bottom-0 !top-auto !translate-x-0 !translate-y-0 w-full max-w-full sm:max-w-md sm:mx-auto rounded-t-[2rem] rounded-b-none p-0 gap-0 shadow-2xl border-x-0 border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain"
+                className="!fixed !left-0 !right-0 !bottom-0 !top-auto !translate-x-0 !translate-y-0 w-full max-w-full sm:max-w-md sm:mx-auto rounded-t-[2rem] rounded-b-none p-0 gap-0 bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)] border-x-0 border-b-0 border-t-0 max-h-[92dvh] overflow-y-auto overscroll-contain"
             >
                 <DialogTitle className="sr-only">{descriptor.title}</DialogTitle>
                 <div className="relative flex items-center justify-center pt-3 pb-1">
-                    <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-zinc-700" />
+                    <div className="h-1 w-9 rounded-full bg-foreground/15" />
                     {(step === 'form' || step === 'success' || step === 'received' || step === 'failed') && (
-                        <button onClick={onClose} className="absolute right-3 w-9 h-9 rounded-full bg-muted flex items-center justify-center" aria-label="Close">
-                            <X className="w-4 h-4" />
+                        <button onClick={onClose} className="neu-raised-sm neu-press absolute right-4 top-2 flex h-9 w-9 items-center justify-center rounded-full" aria-label="Close">
+                            <X className="h-4 w-4" />
                         </button>
                     )}
                 </div>
 
-                <div className={cn('mx-4 mt-2 rounded-2xl px-4 py-3 flex items-center justify-between', style?.cardBg || 'bg-emerald-600')}>
-                    <div className="flex items-center gap-2">
-                        {descriptor.network && <div className="p-1.5 bg-white/20 rounded-full"><NetworkIcon network={descriptor.network} size={22} /></div>}
-                        <span className={cn('font-black text-lg', style?.isMTN ? 'text-black' : 'text-white')}>{descriptor.title}</span>
+                {/* Order summary: a black plate, like the stage on the page behind */}
+                <div className="mx-5 mt-3 flex items-center justify-between gap-3 rounded-2xl bg-black px-4 py-3.5 text-white">
+                    <div className="flex min-w-0 items-center gap-3">
+                        {descriptor.network && <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10"><NetworkIcon network={descriptor.network} size={22} /></span>}
+                        <span className="truncate font-display text-lg font-bold tracking-tight">{descriptor.title}</span>
                     </div>
-                    <span className={cn('font-bold', style?.isMTN ? 'text-black' : 'text-white')}>{descriptor.amountLabel}</span>
+                    <span className="font-display text-lg font-bold tabular-nums text-brand-400">{descriptor.amountLabel}</span>
                 </div>
 
-                <div className="px-5 pb-10 pt-4 space-y-4">
+                <div className="space-y-5 px-5 pb-10 pt-5">
                     {step === 'form' && (
                         <>
-                            {/* 1. Beneficiary number — the line that RECEIVES the product (required, first) */}
                             {hasBeneficiary && (
                                 <>
                                     <div>
-                                        <label className="text-sm font-semibold text-foreground">
+                                        <label htmlFor="sheet-beneficiary" className="text-sm font-semibold text-foreground">
                                             {descriptor.beneficiary!.label} <span className="font-normal text-muted-foreground">{descriptor.beneficiary!.hint}</span>
                                         </label>
                                         <input
-                                            inputMode="numeric" placeholder="0241234567" value={beneficiaryPhone}
+                                            id="sheet-beneficiary"
+                                            inputMode="numeric" placeholder="024 123 4567" value={beneficiaryPhone}
                                             onChange={(e) => setBeneficiaryPhone(e.target.value.replace(/[^\d]/g, '').slice(0, 12))}
-                                            className="mt-2 w-full h-12 px-4 rounded-full border border-border bg-background text-base font-semibold text-foreground"
+                                            className={FIELD}
                                         />
                                     </div>
 
                                     <button
                                         type="button"
                                         onClick={toggleSameForMomo}
-                                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                        className="flex items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                                     >
                                         <span className={cn(
-                                            'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0',
-                                            useSameForMomo ? 'border-foreground bg-foreground' : 'border-border'
+                                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
+                                            useSameForMomo ? 'clay-gold' : 'neu-inset'
                                         )}>
-                                            {useSameForMomo && <Check className="w-3 h-3 text-background" />}
+                                            {useSameForMomo && <Check className="h-3 w-3" strokeWidth={3} />}
                                         </span>
-                                        Use this number for Mobile Money payment
+                                        I am paying from this same number
                                     </button>
                                 </>
                             )}
 
-                            {/* 2. MoMo number — the wallet that gets charged */}
                             <div>
-                                <label className="text-sm font-semibold text-foreground">
-                                    Mobile Money number <span className="font-normal text-muted-foreground">(to pay)</span>
+                                <label htmlFor="sheet-momo" className="text-sm font-semibold text-foreground">
+                                    Mobile Money number <span className="font-normal text-muted-foreground">(the one paying)</span>
                                 </label>
                                 <input
-                                    inputMode="numeric" placeholder="0241234567" value={momoPhone}
+                                    id="sheet-momo"
+                                    inputMode="numeric" placeholder="024 123 4567" value={momoPhone}
                                     onChange={(e) => setMomoPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                     disabled={useSameForMomo && hasBeneficiary}
-                                    className={cn(
-                                        'mt-2 w-full h-12 px-4 rounded-full border border-border bg-background text-base font-semibold text-foreground',
-                                        useSameForMomo && hasBeneficiary && 'opacity-60 cursor-not-allowed'
-                                    )}
+                                    className={cn(FIELD, useSameForMomo && hasBeneficiary && 'cursor-not-allowed opacity-60')}
                                 />
                             </div>
 
-                            {/* Network (auto-detected from the MoMo number; tap to override) */}
                             <div>
-                                <label className="text-sm font-semibold text-foreground">
-                                    Network {autoDetected && provider && <span className="ml-2 text-xs text-green-600 font-medium">Auto-detected</span>}
-                                </label>
-                                <div className="mt-2 grid grid-cols-3 gap-2">
+                                <p className="text-sm font-semibold text-foreground">
+                                    Network {autoDetected && provider && <span className="ml-2 text-xs font-medium text-muted-foreground">we picked this from your number</span>}
+                                </p>
+                                <div role="radiogroup" aria-label="Mobile money network" className="mt-2 grid grid-cols-3 gap-2.5">
                                     {PROVIDERS.map(p => (
-                                        <button key={p.id} onClick={() => { setProvider(p.id); setAutoDetected(false) }}
-                                            className={cn('flex items-center justify-center gap-1.5 h-11 rounded-xl border-2 text-sm font-semibold transition-colors',
-                                                provider === p.id ? 'border-foreground bg-muted' : 'border-border')}>
-                                            <span className={cn('w-2.5 h-2.5 rounded-full', p.dot)} /> {p.label}
+                                        <button key={p.id} type="button" role="radio" aria-checked={provider === p.id}
+                                            onClick={() => { setProvider(p.id); setAutoDetected(false) }}
+                                            className={cn('flex h-12 items-center justify-center gap-2 rounded-full text-sm font-semibold text-foreground',
+                                                provider === p.id ? 'neu-inset ring-2 ring-black dark:ring-brand-500' : 'neu-raised-sm neu-press')}>
+                                            <span className={cn('h-2.5 w-2.5 rounded-full', p.dot)} /> {p.label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Email (only when this service collects it in the sheet — e.g. data) */}
                             {descriptor.email && (
                                 <div>
-                                    <label className="text-sm font-semibold text-foreground">
+                                    <label htmlFor="sheet-email" className="text-sm font-semibold text-foreground">
                                         Email <span className="font-normal text-muted-foreground">{descriptor.email.hint}</span>
                                     </label>
                                     <input
+                                        id="sheet-email"
                                         type="email" inputMode="email" placeholder="you@example.com" value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="mt-2 w-full h-12 px-4 rounded-full border border-border bg-background text-base text-foreground"
+                                        className={FIELD}
                                     />
                                 </div>
                             )}
 
-                            <button onClick={authorize}
-                                className="w-full py-3 rounded-full bg-green-600 hover:bg-green-700 text-white font-bold text-base flex items-center justify-center gap-2">
-                                <Smartphone className="w-5 h-5" /> Proceed to payment
+                            <button onClick={authorize} className="clay-gold flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                                <Smartphone className="h-5 w-5" /> Pay with Mobile Money
                             </button>
-                            <p className="text-xs text-center text-muted-foreground">A small payment fee applies. Confirm the exact total on your phone.</p>
+                            <p className="text-center text-xs text-muted-foreground">A small processing fee is added. You will see the exact total on your phone before you approve.</p>
                         </>
                     )}
 
                     {step === 'charging' && (
-                        <div className="flex flex-col items-center py-10 gap-3"><Loader2 className="w-10 h-10 animate-spin text-green-600" /><p className="font-semibold text-foreground">Starting payment…</p></div>
+                        <div className="flex flex-col items-center gap-3 py-10"><Loader2 className="h-9 w-9 animate-spin text-foreground" /><p className="font-display text-lg font-bold text-foreground">Sending the prompt…</p></div>
                     )}
 
                     {step === 'otp' && (
                         <div className="space-y-4">
-                            <p className="text-sm font-medium text-center text-foreground">{displayText || 'Enter the OTP sent to your phone'}</p>
-                            <input placeholder="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} maxLength={6}
-                                className="w-full h-12 text-center text-xl font-mono tracking-widest rounded-xl border border-border bg-background text-foreground" />
-                            <button onClick={submitOtp} disabled={!otp} className="w-full h-12 rounded-full bg-green-600 text-white font-bold">Submit OTP</button>
-                            <button onClick={() => { stop(); setStep('form') }} className="w-full text-xs text-muted-foreground hover:underline">Cancel</button>
+                            <p className="text-center text-sm font-medium text-foreground">{displayText || 'Enter the code we just sent to your phone.'}</p>
+                            <input aria-label="Verification code" inputMode="numeric" placeholder="······" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} maxLength={6}
+                                className="neu-inset h-14 w-full rounded-xl border-0 text-center font-mono text-2xl tracking-[0.4em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500" />
+                            <button onClick={submitOtp} disabled={!otp} className="clay-gold flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-base font-semibold disabled:opacity-60">Confirm code</button>
+                            <button onClick={() => { stop(); setStep('form') }} className="w-full text-sm text-muted-foreground hover:text-foreground">Go back</button>
                         </div>
                     )}
 
                     {step === 'pending' && (
-                        <div className="flex flex-col items-center py-6 gap-4 text-center">
-                            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><Smartphone className="w-8 h-8 text-green-600" /></div>
-                            <div className="space-y-1">
-                                <p className="font-bold text-lg text-foreground">
-                                    {total != null ? `Approve GHS ${total.toFixed(2)} on your phone` : 'Approve on your phone'}
+                        <div className="flex flex-col items-center gap-5 py-4 text-center">
+                            <span className="clay-gold flex h-16 w-16 items-center justify-center rounded-full"><Smartphone className="h-8 w-8" /></span>
+                            <div className="space-y-1.5">
+                                <p className="font-display text-2xl font-bold tracking-tight text-foreground">
+                                    {total != null ? `Approve GHS ${total.toFixed(2)}` : 'Approve on your phone'}
                                 </p>
-                                <p className="text-sm text-muted-foreground">Enter your MoMo PIN on the prompt sent to <span className="font-semibold text-foreground">{momoPhone}</span>, then tap below.</p>
+                                <p className="text-sm text-muted-foreground">Enter your MoMo PIN on the prompt sent to <span className="font-semibold text-foreground">{momoPhone}</span>. We will pick it up as soon as you do.</p>
                             </div>
-                            <button onClick={async () => { const o = await iHavePaid(refForPaid.current); if (o === 'pending') toast.info("Not received yet — approve the prompt, then tap again.") }}
-                                disabled={checking} className="w-full h-12 rounded-full bg-green-600 text-white font-bold flex items-center justify-center gap-2">
-                                {checking ? <><Loader2 className="w-5 h-5 animate-spin" /> Checking…</> : <><CheckCircle2 className="w-5 h-5" /> I&apos;ve paid — check now</>}
+                            <button onClick={async () => { const o = await iHavePaid(refForPaid.current); if (o === 'pending') toast.info("Nothing yet. Approve the prompt on your phone, then try again.") }}
+                                disabled={checking} className="clay-black flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-base font-semibold disabled:opacity-60">
+                                {checking ? <><Loader2 className="h-5 w-5 animate-spin" /> Checking…</> : <><CheckCircle2 className="h-5 w-5" /> I have approved it</>}
                             </button>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>{pollCount >= PATIENT_POLLS ? 'Taking longer than usual — once you approve, you\'ll be credited automatically.' : 'Waiting for approval…'}</span>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>{pollCount >= PATIENT_POLLS ? "Taking longer than usual. Once you approve, it will go through on its own." : 'Waiting for your approval…'}</span>
                             </div>
-                            <button onClick={() => { stop(); onClose() }} className="text-xs text-muted-foreground hover:underline">Close</button>
+                            <button onClick={() => { stop(); onClose() }} className="text-sm text-muted-foreground hover:text-foreground">Close for now</button>
                         </div>
                     )}
 
                     {step === 'received' && (
-                        <div className="flex flex-col items-center py-8 gap-4 text-center">
-                            <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"><CheckCircle2 className="w-9 h-9 text-amber-600" /></div>
+                        <div className="flex flex-col items-center gap-5 py-6 text-center">
+                            <span className="clay-gold flex h-16 w-16 items-center justify-center rounded-full"><CheckCircle2 className="h-8 w-8" /></span>
                             <div>
-                                <p className="font-black text-xl text-foreground">Payment received</p>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <p className="font-display text-2xl font-bold tracking-tight text-foreground">We have your payment</p>
+                                <p className="mt-2 text-sm text-muted-foreground">
                                     {descriptor.receivedText
                                         ? descriptor.receivedText({ beneficiary: beneficiaryDisplay, momoPhone })
-                                        : "We've received your payment and are processing your order. You'll be notified as soon as it's delivered."}
+                                        : "Your order is being prepared. You will be told the moment it is delivered."}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Loader2 className="w-4 h-4 animate-spin" /><span>Finishing delivery…</span>
+                                <Loader2 className="h-4 w-4 animate-spin" /><span>Finishing up…</span>
                             </div>
-                            <button onClick={onClose} className="w-full h-12 rounded-full bg-foreground text-background font-bold">Done</button>
+                            <button onClick={onClose} className="clay-black flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-base font-semibold">Done</button>
                         </div>
                     )}
 
                     {step === 'success' && (
-                        <div className="flex flex-col items-center py-8 gap-4 text-center">
-                            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><CheckCircle2 className="w-9 h-9 text-green-600" /></div>
+                        <div className="flex flex-col items-center gap-5 py-6 text-center">
+                            <span className="clay-gold flex h-16 w-16 items-center justify-center rounded-full"><CheckCircle2 className="h-8 w-8" /></span>
                             <div>
-                                <p className="font-black text-xl text-foreground">Payment successful!</p>
-                                <p className="text-sm text-muted-foreground mt-1">{descriptor.successText({ beneficiary: beneficiaryDisplay, momoPhone })}</p>
+                                <p className="font-display text-2xl font-bold tracking-tight text-foreground">All done.</p>
+                                <p className="mt-2 text-sm text-muted-foreground">{descriptor.successText({ beneficiary: beneficiaryDisplay, momoPhone })}</p>
                             </div>
-                            <button onClick={onClose} className="w-full h-12 rounded-full bg-foreground text-background font-bold">Done</button>
+                            <button onClick={onClose} className="clay-black flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-base font-semibold">Done</button>
                         </div>
                     )}
 
                     {step === 'failed' && (
-                        <div className="flex flex-col items-center py-8 gap-4 text-center">
-                            <AlertTriangle className="w-10 h-10 text-red-500" />
-                            <p className="font-semibold text-foreground">Payment could not be completed</p>
+                        <div className="flex flex-col items-center gap-4 py-6 text-center">
+                            <span className="neu-inset flex h-16 w-16 items-center justify-center rounded-full"><AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" /></span>
+                            <p className="font-display text-xl font-bold tracking-tight text-foreground">That payment did not go through</p>
                             {failedMessage && <p className="text-sm text-muted-foreground">{failedMessage}</p>}
-                            <button onClick={() => setStep('form')} className="px-5 h-11 rounded-full border border-border font-semibold">Try Again</button>
+                            <button onClick={() => setStep('form')} className="clay-black flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-base font-semibold">Try again</button>
                         </div>
                     )}
                 </div>

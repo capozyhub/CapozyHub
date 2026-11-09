@@ -4,25 +4,23 @@ import ShopStatusTracker from '@/app/shop/status/ShopStatusTracker'
 import { Loader2 } from 'lucide-react'
 
 export const metadata: Metadata = {
-    title: 'Track Order Status',
-    description: 'Check the status of your data bundle order.',
+    title: 'Track an order',
+    description: 'See where your data, airtime or voucher order has got to.',
 }
 
 function StatusLoading() {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading tracker...</p>
+        <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-black">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-400" aria-hidden="true" />
+            <p className="text-sm font-semibold text-white">One moment…</p>
         </div>
     )
 }
 
 export default function ShopDomainStatusPage() {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
-            <Suspense fallback={<StatusLoading />}>
-                <ShopStatusTracker />
-            </Suspense>
-        </div>
+        <Suspense fallback={<StatusLoading />}>
+            <ShopStatusTracker />
+        </Suspense>
     )
 }

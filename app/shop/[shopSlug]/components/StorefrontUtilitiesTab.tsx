@@ -23,6 +23,7 @@ import { UtilityFlowSheet } from './UtilityFlowSheet'
 import type { ChargeDescriptor } from './ServiceChargeSheet'
 import { UtilityBillerLogo } from '@/components/utility-biller-logo'
 import { Clock, Receipt } from 'lucide-react'
+import { ServiceHeading } from '@/components/storefront/ui'
 
 interface Props {
     shopSlug: string
@@ -52,50 +53,37 @@ export function StorefrontUtilitiesTab({ shopSlug, enabledBillers, minAmount, ma
 
     if (billers.length === 0) {
         return (
-            <div className="mb-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm p-8 flex flex-col items-center text-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center">
-                    <Clock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
-                </div>
-                <p className="text-base font-bold text-gray-900 dark:text-white">Utility bills coming soon</p>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                    The shop owner has utility bill payments coming soon — check back shortly.
-                </p>
+            <div className="neu-inset flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center">
+                <Clock className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+                <p className="font-display text-lg font-bold text-foreground">Bill payments are not on yet</p>
+                <p className="max-w-xs text-sm text-muted-foreground">This shop has not switched them on. Check back soon.</p>
             </div>
         )
     }
 
     return (
-        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden p-5">
-                <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800 pb-5">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white bg-slate-700 shadow-sm">
-                        <Receipt className="w-6 h-6" />
-                    </div>
-                    <div className="text-left">
-                        <h2 className="text-h2 uppercase">Pay a Bill</h2>
-                        <p className="text-label text-gray-500 uppercase mt-1">Instant, secure checkout</p>
-                    </div>
-                </div>
+        <section className="animate-in fade-in duration-300 motion-reduce:animate-none">
+            <ServiceHeading icon={Receipt} title="Pay a bill" blurb="Electricity, water and TV. We check the account before you pay." />
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {billers.map((biller) => {
-                        const def = UTILITY_BILLERS[biller]
-                        const meta = UTILITY_BILLER_META[biller]
-                        return (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {billers.map((biller) => {
+                    const def = UTILITY_BILLERS[biller]
+                    const meta = UTILITY_BILLER_META[biller]
+                    return (
+                        <li key={biller}>
                             <button
-                                key={biller}
+                                type="button"
                                 onClick={() => openBiller(biller)}
-                                className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950/40 transition-all duration-200 active:scale-95 hover:shadow-md hover:border-gray-200 dark:hover:border-slate-700 text-center"
+                                className="neu-raised-sm neu-press flex h-full w-full flex-col items-center gap-2.5 rounded-2xl px-3 py-4 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500"
                             >
-                                <UtilityBillerLogo biller={biller} FallbackIcon={meta.Icon} badgeClassName={meta.badge} size={60} />
-                                <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 leading-tight">{def.label}</span>
-                                <span className="text-[9px] text-muted-foreground leading-tight">{meta.blurb}</span>
+                                <UtilityBillerLogo biller={biller} FallbackIcon={meta.Icon} badgeClassName={meta.badge} size={56} />
+                                <span className="text-sm font-semibold leading-tight text-foreground">{def.label}</span>
+                                <span className="text-xs leading-tight text-muted-foreground">{meta.blurb}</span>
                             </button>
-                        )
-                    })}
-                </div>
-            </div>
-
+                        </li>
+                    )
+                })}
+            </ul>
             <UtilityFlowSheet
                 biller={flowBiller}
                 open={flowOpen}
@@ -106,6 +94,6 @@ export function StorefrontUtilitiesTab({ shopSlug, enabledBillers, minAmount, ma
                 accountInputRef={accountInputRef}
                 onProceedToPayment={onProceedToPayment}
             />
-        </div>
+        </section>
     )
 }

@@ -5,6 +5,7 @@ import { ShieldCheck } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { VALID_REGIONS } from '@/lib/afa-validation'
+import { FIELD, PrimaryButton } from '@/components/storefront/ui'
 
 interface AfaRegistrationFormProps {
     shopSlug: string
@@ -69,74 +70,70 @@ export default function AfaRegistrationForm({ shopSlug: _shopSlug, displayPrice,
         }, email.trim())
     }
 
-    const field = 'w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500'
-    const labelCls = 'mb-1 block text-xs font-semibold text-muted-foreground'
+    const field = FIELD
+    const labelCls = 'mb-2 block px-1 text-sm font-semibold text-foreground'
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-start gap-2.5 rounded-xl border border-border bg-card/60 p-3.5">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                    We only use these details to register this number — they go straight to the AFA system, not anywhere else.
+        <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="neu-inset flex items-start gap-3 rounded-2xl px-4 py-3.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                    These details are used only to register this number. They go straight to the AFA system and nowhere else.
                 </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                    <label className={labelCls}>Full name</label>
-                    <input required value={fullName} onChange={e => setFullName(e.target.value)} maxLength={100}
-                        placeholder="As on the Ghana Card" className={field} />
-                </div>
-                <div>
-                    <label className={labelCls}>Phone to register</label>
-                    <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel"
-                        placeholder="0XXXXXXXXX" className={field} />
-                </div>
+            <div>
+                <label htmlFor="afa-name" className={labelCls}>Full name</label>
+                <input id="afa-name" required value={fullName} onChange={e => setFullName(e.target.value)} maxLength={100}
+                    placeholder="Exactly as on your Ghana Card" className={field} />
             </div>
 
             <div>
-                <label className={labelCls}>Ghana Card number</label>
-                <input required value={idNumber} onChange={e => setIdNumber(maskGc(e.target.value))}
-                    placeholder="GHA-XXXXXXXXX-X" className={cn(field, 'font-mono')} />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                    <label className={labelCls}>Region</label>
-                    <select required value={region} onChange={e => setRegion(e.target.value)} className={field}>
-                        <option value="">Select region</option>
-                        {VALID_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelCls}>Town / area</label>
-                    <input required value={location} onChange={e => setLocation(e.target.value)} maxLength={100}
-                        placeholder="e.g. Kumasi" className={field} />
-                </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                    <label className={labelCls}>Occupation</label>
-                    <input required value={occupation} onChange={e => setOccupation(e.target.value)} maxLength={100}
-                        placeholder="e.g. Trader" className={field} />
-                </div>
-                <div>
-                    <label className={labelCls}>Date of birth (18+)</label>
-                    <input required type="date" value={dob} onChange={e => setDob(e.target.value)} className={field} />
-                </div>
+                <label htmlFor="afa-phone" className={labelCls}>Number to register</label>
+                <input id="afa-phone" required value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel"
+                    placeholder="024 123 4567" className={field} />
             </div>
 
             <div>
-                <label className={labelCls}>Email <span className="font-normal">(optional — for your receipt)</span></label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254}
+                <label htmlFor="afa-gc" className={labelCls}>Ghana Card number</label>
+                <input id="afa-gc" required value={idNumber} onChange={e => setIdNumber(maskGc(e.target.value))}
+                    placeholder="GHA-000000000-0" className={cn(field, 'font-mono')} />
+            </div>
+
+            <div>
+                <label htmlFor="afa-region" className={labelCls}>Region</label>
+                <select id="afa-region" required value={region} onChange={e => setRegion(e.target.value)} className={cn(field, 'appearance-none')}>
+                    <option value="">Pick your region</option>
+                    {VALID_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+            </div>
+
+            <div>
+                <label htmlFor="afa-town" className={labelCls}>Town or area</label>
+                <input id="afa-town" required value={location} onChange={e => setLocation(e.target.value)} maxLength={100}
+                    placeholder="e.g. Kumasi" className={field} />
+            </div>
+
+            <div>
+                <label htmlFor="afa-job" className={labelCls}>What do you do?</label>
+                <input id="afa-job" required value={occupation} onChange={e => setOccupation(e.target.value)} maxLength={100}
+                    placeholder="e.g. Trader" className={field} />
+            </div>
+
+            <div>
+                <label htmlFor="afa-dob" className={labelCls}>Date of birth <span className="font-normal text-muted-foreground">(you must be 18 or older)</span></label>
+                <input id="afa-dob" required type="date" value={dob} onChange={e => setDob(e.target.value)} className={field} />
+            </div>
+
+            <div>
+                <label htmlFor="afa-email" className={labelCls}>Email <span className="font-normal text-muted-foreground">(receipt, optional)</span></label>
+                <input id="afa-email" type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254}
                     placeholder="you@example.com" className={field} />
             </div>
 
-            <button type="submit"
-                className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.99] disabled:opacity-60 px-4 py-3 text-sm font-bold text-white transition-all">
-                Continue to payment{displayPrice ? ` — GHS ${displayPrice.toFixed(2)}` : ''}
-            </button>
+            <PrimaryButton type="submit">
+                Continue to payment{displayPrice ? ` · GHS ${displayPrice.toFixed(2)}` : ''}
+            </PrimaryButton>
         </form>
     )
 }

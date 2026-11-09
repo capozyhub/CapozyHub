@@ -27,7 +27,6 @@ import {
     Loader2, Mail, Pencil, Phone, RefreshCw, ShieldCheck, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -35,7 +34,9 @@ import { UTILITY_BILLERS, type UtilityBiller } from '@/lib/hubtel-utility/biller
 import { UTILITY_BILLER_META } from './UtilityBillerMeta'
 import type { ChargeDescriptor } from './ServiceChargeSheet'
 import { UtilityBillerLogo } from '@/components/utility-biller-logo'
+import { FIELD } from '@/components/storefront/ui'
 
+const PRIMARY = 'clay-gold flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50'
 const isValidLocalPhone = (p: string) => /^0\d{9}$/.test(p)
 const QUICK_AMOUNTS = [10, 20, 50, 100]
 
@@ -198,7 +199,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
         <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
             <DialogContent
                 hideCloseButton
-                className="!fixed !left-0 !right-0 !bottom-0 !top-auto !translate-x-0 !translate-y-0 w-full max-w-full rounded-t-[2rem] rounded-b-none p-0 gap-0 shadow-2xl border-x-0 border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain"
+                className="!fixed !left-0 !right-0 !bottom-0 !top-auto !translate-x-0 !translate-y-0 w-full max-w-full sm:max-w-md sm:mx-auto rounded-t-[2rem] rounded-b-none p-0 gap-0 bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)] border-0 max-h-[92dvh] overflow-y-auto overscroll-contain"
                 aria-describedby={undefined}
                 onOpenAutoFocus={(e) => e.preventDefault()}
             >
@@ -206,9 +207,9 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
 
                 {/* Drag handle + close */}
                 <div className="relative flex items-center justify-center pt-3 pb-1">
-                    <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-zinc-700" />
+                    <div className="h-1 w-9 rounded-full bg-foreground/15" />
                     <DialogClose
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-40"
+                        className="neu-raised-sm neu-press absolute right-4 top-2 flex h-9 w-9 items-center justify-center rounded-full text-foreground disabled:pointer-events-none disabled:opacity-40"
                     >
                         <X className="w-4 h-4" />
                         <span className="sr-only">Close</span>
@@ -216,27 +217,27 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                 </div>
 
                 {/* Biller header */}
-                <div className="flex items-center gap-3 px-5 pt-1 pb-3">
+                <div className="mx-5 mt-3 mb-1 flex items-center gap-3 rounded-2xl bg-black px-4 py-3.5 text-white">
                     <UtilityBillerLogo biller={biller} FallbackIcon={meta.Icon} badgeClassName={meta.badge} size={40} />
                     <div className="min-w-0">
-                        <DialogTitle className="text-base font-bold leading-tight truncate">{def.label}</DialogTitle>
-                        <p className="text-xs text-muted-foreground truncate">
-                            GHS {minAmount.toFixed(0)}–{maxAmount.toFixed(0)} · Secure checkout
+                        <DialogTitle className="truncate font-display text-lg font-bold leading-tight tracking-tight">{def.label}</DialogTitle>
+                        <p className="truncate text-xs text-silver-200">
+                            From GHS {minAmount.toFixed(0)} to GHS {maxAmount.toFixed(0)}
                         </p>
                     </div>
                 </div>
 
-                <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] space-y-4">
+                <div className="space-y-5 px-5 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] pt-5">
                     <>
                             {/* ══ STEP 1 — ACCOUNT ══════════════════════════════════════ */}
                             {step === 'account' && (
                                 <div className="space-y-4 animate-in fade-in duration-200">
                                     {biller === 'ecg' ? (
                                         <>
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="sf-util-phone" className="text-sm font-medium">ECG phone number</Label>
+                                            <div>
+                                                <Label htmlFor="sf-util-phone" className="mb-2 block px-1 text-sm font-semibold">ECG phone number</Label>
                                                 <div className="relative">
-                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                    <Phone className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                                     <Input
                                                         ref={accountInputRef}
                                                         id="sf-util-phone"
@@ -246,22 +247,22 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                         maxLength={10}
                                                         value={phone}
                                                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                        className="pl-9 rounded-xl h-11 font-mono"
+                                                        className={cn(FIELD, 'pl-11 font-mono')}
                                                     />
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">We list the meters registered to this phone, and use it to reach you about this payment.</p>
                                             </div>
 
                                             {!ecgManual && (
-                                                <Button
-                                                    className="w-full h-11 rounded-xl font-semibold"
+                                                <button type="button"
+                                                    className={PRIMARY}
                                                     disabled={!isValidLocalPhone(phone) || lookupLoading}
                                                     onClick={handleLookupClick}
                                                 >
                                                     {lookupLoading
                                                         ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Finding meters…</>
                                                         : <>Find my meters <ArrowRight className="w-4 h-4 ml-1.5" /></>}
-                                                </Button>
+                                                </button>
                                             )}
 
                                             <button
@@ -285,9 +286,9 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                             </button>
 
                                             {ecgManual && (
-                                                <div className="space-y-3 rounded-xl border border-border p-3.5 animate-in fade-in duration-200">
-                                                    <div className="space-y-1.5">
-                                                        <Label htmlFor="sf-util-manual-meter" className="text-sm font-medium">Meter number</Label>
+                                                <div className="space-y-3 neu-inset rounded-2xl p-4 animate-in fade-in duration-200">
+                                                    <div>
+                                                        <Label htmlFor="sf-util-manual-meter" className="mb-2 block px-1 text-sm font-semibold">Meter number</Label>
                                                         <Input
                                                             ref={manualMeterRef}
                                                             id="sf-util-manual-meter"
@@ -303,7 +304,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                                 if (e.target.value !== account) setEcgConsent(false)
                                                                 setAccount(e.target.value)
                                                             }}
-                                                            className="rounded-xl h-11 font-mono"
+                                                            className={cn(FIELD, 'font-mono')}
                                                         />
                                                     </div>
                                                     <button
@@ -316,30 +317,30 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                         <span
                                                             aria-hidden
                                                             className={cn(
-                                                                'mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
-                                                                ecgConsent ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600'
+                                                                'mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors',
+                                                                ecgConsent ? 'clay-gold' : 'neu-inset'
                                                             )}
                                                         >
                                                             {ecgConsent && <Check className="w-3.5 h-3.5" />}
                                                         </span>
-                                                        <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                                        <span className="text-xs text-muted-foreground leading-relaxed">
                                                             ECG will link this meter to <span className="font-semibold">{phone || 'your phone'}</span>. I understand.
                                                         </span>
                                                     </button>
-                                                    <Button
-                                                        className="w-full h-11 rounded-xl font-semibold"
+                                                    <button type="button"
+                                                        className={PRIMARY}
                                                         disabled={!account.trim() || !ecgConsent || !isValidLocalPhone(phone)}
                                                         onClick={() => { setSelectedMeter(null); setInfo(null); goToAmount(null) }}
                                                     >
                                                         Continue with this meter <ArrowRight className="w-4 h-4 ml-1.5" />
-                                                    </Button>
+                                                    </button>
                                                 </div>
                                             )}
                                         </>
                                     ) : (
                                         <>
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="sf-util-account" className="text-sm font-medium">{def.accountLabel}</Label>
+                                            <div>
+                                                <Label htmlFor="sf-util-account" className="mb-2 block px-1 text-sm font-semibold">{def.accountLabel}</Label>
                                                 <Input
                                                     ref={accountInputRef}
                                                     id="sf-util-account"
@@ -349,14 +350,14 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                     maxLength={30}
                                                     value={account}
                                                     onChange={(e) => setAccount(e.target.value)}
-                                                    className="rounded-xl h-11 font-mono"
+                                                    className={cn(FIELD, 'font-mono')}
                                                 />
                                             </div>
 
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="sf-util-phone" className="text-sm font-medium">Phone number</Label>
+                                            <div>
+                                                <Label htmlFor="sf-util-phone" className="mb-2 block px-1 text-sm font-semibold">Phone number</Label>
                                                 <div className="relative">
-                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                    <Phone className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                                     <Input
                                                         id="sf-util-phone"
                                                         type="tel"
@@ -365,7 +366,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                         maxLength={10}
                                                         value={phone}
                                                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                                        className="pl-9 rounded-xl h-11 font-mono"
+                                                        className={cn(FIELD, 'pl-11 font-mono')}
                                                     />
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">
@@ -375,20 +376,20 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                 </p>
                                             </div>
 
-                                            <Button
-                                                className="w-full h-11 rounded-xl font-semibold"
+                                            <button type="button"
+                                                className={PRIMARY}
                                                 disabled={lookupLoading || !account.trim() || !isValidLocalPhone(phone)}
                                                 onClick={handleLookupClick}
                                             >
                                                 {lookupLoading
                                                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</>
-                                                    : <>Verify account <ArrowRight className="w-4 h-4 ml-1.5" /></>}
-                                            </Button>
+                                                    : <>Check this account <ArrowRight className="w-4 h-4 ml-1.5" /></>}
+                                            </button>
                                         </>
                                     )}
 
                                     {lookupError && (
-                                        <div className="rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 p-3.5 flex items-start gap-2.5">
+                                        <div className="neu-inset rounded-2xl p-4 flex items-start gap-2.5">
                                             <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm text-red-700 dark:text-red-400">{lookupError}</p>
@@ -410,14 +411,14 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     {biller === 'ecg' ? (
                                         <>
-                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 {info.meters.length > 0
                                                     ? `Select your meter — ${info.meters.length} linked to ${phone}`
                                                     : 'No meters found'}
                                             </p>
                                             {info.meters.length === 0 ? (
-                                                <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-4">
-                                                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                                                <div className="neu-inset rounded-2xl p-4">
+                                                    <p className="text-sm text-foreground">
                                                         No meters are registered to this phone yet. You can enter your meter number manually below.
                                                     </p>
                                                 </div>
@@ -438,7 +439,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                                 setEcgConsent(false)
                                                                 goToAmount(m.outstanding > 0 ? m.outstanding : null)
                                                             }}
-                                                            className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+                                                            className="flex flex-col items-start gap-2 neu-raised-sm neu-press rounded-2xl p-3.5 text-left"
                                                         >
                                                             <UtilityBillerLogo biller={biller} FallbackIcon={meta.Icon} badgeClassName={meta.badge} size={28} rounded="lg" />
                                                             <div className="min-w-0 w-full">
@@ -454,7 +455,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                                     Credit GHS {Math.abs(m.outstanding).toFixed(2)}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                                <span className="text-[11px] px-2 py-0.5 rounded-full bg-foreground/10 text-muted-foreground">
                                                                     No balance due
                                                                 </span>
                                                             )}
@@ -481,36 +482,36 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                         </>
                                     ) : (
                                         <>
-                                            <div className={cn('rounded-2xl border border-border bg-card p-4 shadow-sm ring-1', meta.ring)}>
+                                            <div className={cn('neu-inset rounded-2xl p-4', '')}>
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', meta.badge)}>
                                                         <ShieldCheck className="w-4 h-4" />
                                                     </div>
-                                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Verified account</p>
+                                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">We found this account</p>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="rounded-xl border border-border bg-background/60 p-3 col-span-2">
+                                                    <div className="neu-raised-sm rounded-xl p-3 col-span-2">
                                                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Name</p>
                                                         <p className="mt-0.5 text-sm font-bold text-foreground break-words">{info.accountName || 'Name unavailable'}</p>
                                                     </div>
-                                                    <div className="rounded-xl border border-border bg-background/60 p-3">
+                                                    <div className="neu-raised-sm rounded-xl p-3">
                                                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{def.accountLabel}</p>
                                                         <p className="mt-0.5 text-sm font-bold text-foreground font-mono truncate">{info.accountNumber || account.trim()}</p>
                                                     </div>
                                                     {typeof info.amountDue === 'number' && info.amountDue > 0 && (
-                                                        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3">
+                                                        <div className="neu-raised-sm rounded-xl p-3">
                                                             <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Amount due</p>
                                                             <p className="mt-0.5 text-sm font-bold text-amber-700 dark:text-amber-400 tabular-nums">GHS {info.amountDue.toFixed(2)}</p>
                                                         </div>
                                                     )}
                                                     {typeof info.amountDue === 'number' && info.amountDue < 0 && (
-                                                        <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-3">
+                                                        <div className="neu-raised-sm rounded-xl p-3">
                                                             <p className="text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">Account credit</p>
                                                             <p className="mt-0.5 text-sm font-bold text-green-700 dark:text-green-400 tabular-nums">GHS {Math.abs(info.amountDue).toFixed(2)}</p>
                                                         </div>
                                                     )}
                                                     {biller === 'startimes' && info.bouquet && (
-                                                        <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-3">
+                                                        <div className="neu-raised-sm rounded-xl p-3">
                                                             <p className="text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-400">Bouquet</p>
                                                             <p className="mt-0.5 text-sm font-bold text-red-700 dark:text-red-400 truncate">{info.bouquet}</p>
                                                         </div>
@@ -518,15 +519,15 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                 </div>
                                             </div>
 
-                                            <Button className="w-full h-11 rounded-xl font-semibold" onClick={() => goToAmount(amountDue)}>
+                                            <button type="button" className={PRIMARY} onClick={() => goToAmount(amountDue)}>
                                                 Continue <ArrowRight className="w-4 h-4 ml-1.5" />
-                                            </Button>
+                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={() => { setStep('account'); setInfo(null) }}
                                                 className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
                                             >
-                                                Not you? Change account
+                                                Not your account? Change it
                                             </button>
                                         </>
                                     )}
@@ -537,7 +538,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                             {step === 'amount' && (
                                 <div className="space-y-4 animate-in fade-in duration-200">
                                     {isEcgManualPath ? (
-                                        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-3 flex items-start gap-2.5">
+                                        <div className="neu-inset rounded-2xl p-3.5 flex items-start gap-2.5">
                                             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                                             <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
                                                 Unverified meter <span className="font-mono font-semibold">{account.trim()}</span> — ECG will link it to {phone}.
@@ -547,7 +548,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                         <button
                                             type="button"
                                             onClick={() => setStep('verify')}
-                                            className="w-full flex items-center gap-2.5 rounded-xl border border-border bg-card p-3 text-left hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                                            className="neu-raised-sm neu-press flex w-full items-center gap-3 rounded-2xl p-3.5 text-left"
                                         >
                                             <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-950/40 flex items-center justify-center shrink-0">
                                                 <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -560,13 +561,13 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                         </button>
                                     )}
 
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="sf-util-amount" className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                                    <div>
+                                        <Label htmlFor="sf-util-amount" className="mb-2 flex flex-wrap items-center gap-2 px-1 text-sm font-semibold">
                                             Amount (GHS)
                                             <span className="text-xs font-normal text-muted-foreground">Min {minAmount} · Max {maxAmount}</span>
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">GHS</span>
+                                            <span className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">GHS</span>
                                             <Input
                                                 id="sf-util-amount"
                                                 type="number"
@@ -577,7 +578,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                 step="0.01"
                                                 value={amount}
                                                 onChange={(e) => setAmount(e.target.value)}
-                                                className="pl-12 rounded-xl h-11 tabular-nums text-base font-semibold"
+                                                className={cn(FIELD, 'pl-16 tabular-nums font-semibold')}
                                             />
                                         </div>
                                     </div>
@@ -589,10 +590,8 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                                 type="button"
                                                 onClick={() => setAmount(String(q))}
                                                 className={cn(
-                                                    'px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors tabular-nums',
-                                                    parseFloat(amount) === q
-                                                        ? 'bg-foreground border-foreground text-background'
-                                                        : 'bg-card border-border text-foreground hover:border-slate-300 dark:hover:border-slate-600'
+                                                    'min-h-[2.5rem] rounded-full px-4 text-sm font-semibold tabular-nums text-foreground',
+                                                    parseFloat(amount) === q ? 'neu-inset ring-2 ring-[var(--shop-accent,#F6C30F)]' : 'neu-raised-sm neu-press'
                                                 )}
                                             >
                                                 {q}
@@ -602,7 +601,7 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                             <button
                                                 type="button"
                                                 onClick={() => setAmount(String(Math.min(amountDue, maxAmount).toFixed(2)))}
-                                                className="px-3.5 py-1.5 rounded-lg text-sm font-medium border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 tabular-nums"
+                                                className="clay-gold min-h-[2.5rem] rounded-full px-4 text-sm font-semibold tabular-nums"
                                             >
                                                 Due: {Math.min(amountDue, maxAmount).toFixed(2)}
                                             </button>
@@ -617,28 +616,28 @@ export function UtilityFlowSheet({ biller, open, onClose, shopSlug, minAmount, m
                                         </p>
                                     )}
 
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="sf-util-email" className="text-sm font-medium">Email (optional)</Label>
+                                    <div>
+                                        <Label htmlFor="sf-util-email" className="mb-2 block px-1 text-sm font-semibold">Email (optional)</Label>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <Mail className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                             <Input
                                                 id="sf-util-email"
                                                 type="email"
                                                 placeholder="Email (optional)"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
-                                                className="pl-9 rounded-xl h-11"
+                                                className={cn(FIELD, 'pl-11')}
                                             />
                                         </div>
                                     </div>
 
-                                    <Button
-                                        className="w-full h-12 rounded-xl font-semibold text-sm"
+                                    <button type="button"
+                                        className={PRIMARY}
                                         disabled={!amountValid || !isValidLocalPhone(phone) || !consentSatisfied}
                                         onClick={handlePay}
                                     >
-                                        Pay GHS {parsedAmount.toFixed(2)}
-                                    </Button>
+                                        Pay GHS {parsedAmount.toFixed(2)} with Mobile Money
+                                    </button>
 
                                     <button
                                         type="button"
