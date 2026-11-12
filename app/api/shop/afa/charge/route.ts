@@ -80,9 +80,9 @@ async function handlePost(request: NextRequest) {
             }
         }
 
-        // Empty/invalid email → white-labelled gmail.com synthetic (shop + phone +
-        // random), same as every other shop charge path.
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        // Empty/invalid email → white-labelled gmail.com synthetic (phone + random
+        // letters, no shop name), same as every other shop charge path.
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
         // SHOPAFA- prefix is load-bearing: the Paystack webhook backstop
         // (app/api/webhooks/paystack/route.ts) routes on it to processShopAfaOrder.
         const reference = `SHOPAFA-${shop.id.slice(0, 8)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`

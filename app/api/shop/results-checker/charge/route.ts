@@ -189,7 +189,7 @@ async function handlePost(request: NextRequest) {
         const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
         if (!PAYSTACK_SECRET_KEY) return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 })
 
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
         const paystackRef = `RC-${shop.id.slice(0, 8)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
 
         // Create pending order BEFORE charging (so the webhook/status poll can fulfill idempotently)

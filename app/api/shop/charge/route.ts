@@ -61,9 +61,10 @@ async function handlePost(request: NextRequest) {
         const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
         if (!PAYSTACK_SECRET_KEY) return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 })
 
-        // Empty/invalid email → white-labelled gmail.com synthetic (shop + phone +
-        // random). gmail has real MX so Paystack live accepts it; our own domains don't.
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        // Empty/invalid email → white-labelled gmail.com synthetic (phone + random
+        // letters, no shop name). gmail has real MX so Paystack live accepts it; our own
+        // domains don't.
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
         const reference = `SHOP-${shop.id.slice(0, 8)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
         const safeShopName = sanitizeForPaystack(shop.shop_name)
 

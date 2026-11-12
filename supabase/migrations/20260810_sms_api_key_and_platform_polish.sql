@@ -28,7 +28,7 @@ ALTER TABLE public.sms_accounts
 COMMENT ON COLUMN public.sms_accounts.webhook_url IS
     'Business-mode account''s delivery-status webhook endpoint. Dispatched by the sms-status-reconcile cron when a campaign resolves to a terminal state.';
 COMMENT ON COLUMN public.sms_accounts.webhook_secret IS
-    'HMAC-SHA256 signing secret for webhook payloads (X-KFT-Signature header). Shown once on generation, never returned again.';
+    'HMAC-SHA256 signing secret for webhook payloads (X-Capozy-Signature header). Shown once on generation, never returned again.';
 COMMENT ON COLUMN public.sms_accounts.low_balance_threshold IS
     'Credit balance below which one low-balance email notification fires. Default 50.';
 COMMENT ON COLUMN public.sms_accounts.low_balance_notified_at IS

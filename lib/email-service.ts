@@ -1000,7 +1000,7 @@ export async function sendAdminNewComplaintAlert(
         priority: string
     }
 ): Promise<EmailResult> {
-    const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@capozygh.com'
 
     const content = `
         <h1 class="greeting">New Complaint Alert</h1>
@@ -1347,7 +1347,7 @@ export async function sendAdminNewUserAlert(
         phoneNumber: string
     }
 ): Promise<EmailResult> {
-    const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@capozygh.com'
 
     const content = `
         <h1 class="greeting">New User Registration</h1>
@@ -1566,7 +1566,7 @@ export async function sendShopWithdrawalRejectedEmail(
 export async function sendAdminShopPricingSubmissionAlert(details: {
     shopName: string; ownerName: string; ownerEmail: string; shopId: string; date: string
 }): Promise<EmailResult> {
-    const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@capozygh.com'
     const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New Pricing Submission</h1>
@@ -1595,7 +1595,7 @@ export async function sendAdminShopPricingSubmissionAlert(details: {
 export async function sendAdminNewShopRegistrationAlert(details: {
     shopName: string; ownerName: string; ownerEmail: string; date: string
 }): Promise<EmailResult> {
-    const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@capozygh.com'
     const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New Shop Registration</h1>
@@ -1641,7 +1641,7 @@ export async function sendAdminShopWithdrawalRequestAlert(details: {
     const esc = escapeHtml
     const maskNum = (n: string) => !n ? '' : n.length <= 4 ? '****' : '*'.repeat(n.length - 4) + n.slice(-4)
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@capozygh.com'
     const siteUrl = getSiteUrl()
     const badge = details.isResubmission
         ? `<div style="text-align:center;margin:20px 0;"><span style="background:#7c3aed;color:#fff;padding:6px 16px;border-radius:50px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Resubmission</span></div>`
@@ -1686,7 +1686,7 @@ export async function sendAdminNewAfaApplicationAlert(details: {
     phone: string
     region: string
 }, toEmail?: string): Promise<EmailResult> {
-    const adminEmail = toEmail || process.env.ADMIN_EMAIL || 'kingflexytechnologies@gmail.com'
+    const adminEmail = toEmail || process.env.ADMIN_EMAIL || 'support@capozygh.com'
     const siteUrl = getSiteUrl()
     const content = `
         <h1 class="greeting">New AFA Membership Application</h1>
@@ -1982,7 +1982,7 @@ export async function sendMomoClaimSuccessEmail(
             <p class="highlight-text" style="color: #7f1d1d;">
                  <strong>Security Notice:</strong> If you did not make this MoMo claim,
                 please contact our support team immediately at
-                <a href="mailto:kingflexytechnologies@gmail.com" style="color: #dc2626;">kingflexytechnologies@gmail.com</a>
+                <a href="mailto:support@capozygh.com" style="color: #dc2626;">support@capozygh.com</a>
             </p>
         </div>
     `

@@ -46,9 +46,10 @@ export async function POST(request: NextRequest) {
         const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
         if (!PAYSTACK_SECRET_KEY) return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 })
 
-        // Empty/invalid email → white-labelled gmail.com synthetic (shop + phone +
-        // random), shared with the MoMo charge route so card + MoMo behave identically.
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        // Empty/invalid email → white-labelled gmail.com synthetic (phone + random
+        // letters, no shop name), shared with the MoMo charge route so card + MoMo behave
+        // identically.
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
         const paystackRef = `SHOP-${shop.id.slice(0, 8)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
         const protocol = request.headers.get('x-forwarded-proto') || 'https'
         const host = request.headers.get('host') || 'capozygh.com'

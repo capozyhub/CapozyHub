@@ -115,7 +115,7 @@ const DUMMY_HASH = bcrypt.hashSync('___not_a_real_api_key___', 10)
 // Each restricted key type is confined to one API section. These prefixes must
 // track the public developer-API paths in lib/developer-api.ts: a mismatch fails
 // OPEN (a standard key reaches /api/utilities/*) or closed (a commission key is
-// 403'd on its own endpoint). See .claude/skills/kingflexy-developer-api/SKILL.md.
+// 403'd on its own endpoint). See .claude/skills/capozy-developer-api/SKILL.md.
 const RESTRICTED_SCOPES: Record<'commission' | 'sms', RegExp> = {
     commission: /^\/api\/(?:utilities|airtime)(?:\/|$)/,
     sms: /^\/api\/sms(?:\/|$)/,

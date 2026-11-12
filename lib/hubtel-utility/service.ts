@@ -345,7 +345,7 @@ export async function fulfillUtilityCommission(args: {
             }
         }
         if (!isPlausibleEmail(email)) {
-            email = buildGuestEmail(`util-${biller}`, phone as string)
+            email = buildGuestEmail(phone as string)
         }
     }
 

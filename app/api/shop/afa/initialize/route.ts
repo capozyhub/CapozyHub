@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
         const paystackRef = `SHOPAFA-${shop.id.slice(0, 8)}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
         const protocol = request.headers.get('x-forwarded-proto') || 'https'
         const host = request.headers.get('host') || 'capozygh.com'

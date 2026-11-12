@@ -4,7 +4,7 @@ import { createHash, createHmac, randomBytes } from 'crypto'
  * Fire-and-forget delivery-status webhook for a resolved SMS campaign.
  * Best-effort notification — never throws, never blocks the caller. Signs
  * the JSON body with HMAC-SHA256 over the raw bytes using the account's
- * webhook_secret, sent as X-KFT-Signature. One retry on non-2xx/network
+ * webhook_secret, sent as X-Capozy-Signature. One retry on non-2xx/network
  * failure; failures are logged only.
  */
 export async function dispatchCampaignWebhook(db: any, campaignId: string): Promise<void> {
@@ -42,7 +42,7 @@ export async function dispatchCampaignWebhook(db: any, campaignId: string): Prom
             try {
                 const res = await fetch(account.webhook_url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-KFT-Signature': signature },
+                    headers: { 'Content-Type': 'application/json', 'X-Capozy-Signature': signature },
                     body: payload,
                     signal: AbortSignal.timeout(8000),
                 })

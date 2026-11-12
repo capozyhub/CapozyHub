@@ -178,7 +178,7 @@ export async function dispatchApiWebhook(supabase: any, params: ApiWebhookParams
             try {
                 const res = await fetch(keyRow.webhook_url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-KFT-Signature': signature },
+                    headers: { 'Content-Type': 'application/json', 'X-Capozy-Signature': signature },
                     body: payload,
                     // Refuse to follow redirects: validateWebhookUrl only vets the URL we
                     // were given, so an allowed public host could otherwise 302 us onto an

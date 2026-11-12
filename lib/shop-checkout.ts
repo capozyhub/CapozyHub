@@ -70,21 +70,19 @@ export function sanitizeForPaystack(text: string): string {
 
 /**
  * White-labelled synthetic email for guests who supply no email (or an invalid one).
- * Format: <shopname>-<phone>-<4 random digits>@gmail.com. We use gmail.com because it
- * has real MX records and is universally accepted by Paystack's live Charge AND Inline
- * (card) APIs — our own capozygh.com / shop.* domains are mail-less and get rejected,
- * which 502'd empty-email MoMo charges and blocked the card popup. The shop-name prefix
- * keeps the synthetic customer record tied to the storefront, and the random suffix keeps
- * it unique per attempt. Used by BOTH /api/shop/charge (MoMo) and /api/shop/initialize (card).
+ * Format: <phone>-<5 random letters>@gmail.com. We use gmail.com because it has real MX
+ * records and is universally accepted by Paystack's live Charge AND Inline (card) APIs —
+ * our own capozygh.com / shop.* domains are mail-less and get rejected, which 502'd
+ * empty-email MoMo charges and blocked the card popup. Deliberately carries no shop name
+ * or other shop-identifying text — the synthetic address must not leak which storefront
+ * a guest bought from. The random suffix keeps it unique per attempt. Used by BOTH
+ * /api/shop/charge (MoMo) and /api/shop/initialize (card), and the shared Hubtel utility
+ * service for billers that need an email fallback.
  */
-export function buildGuestEmail(shopName: string | null | undefined, phone: string): string {
-    const namePart = (shopName || 'shop')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '')
-        .slice(0, 20) || 'shop'
+export function buildGuestEmail(phone: string): string {
     const cleanPhone = (phone || '').replace(/\D/g, '') || 'guest'
-    const rand = crypto.randomInt(1000, 10000) // 4 random digits
-    return `${namePart}-${cleanPhone}-${rand}@gmail.com`
+    const letters = Array.from({ length: 5 }, () => String.fromCharCode(97 + crypto.randomInt(0, 26))).join('') // 5 random lowercase letters
+    return `${cleanPhone}-${letters}@gmail.com`
 }
 
 /**

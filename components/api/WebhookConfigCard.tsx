@@ -180,7 +180,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' | 'commissi
                                 </button>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                Verify each request with HMAC-SHA256 against the <code className="font-mono">X-KFT-Signature</code> header before trusting the payload.
+                                Verify each request with HMAC-SHA256 against the <code className="font-mono">X-Capozy-Signature</code> header before trusting the payload.
                             </p>
                         </div>
                     </div>

@@ -120,7 +120,7 @@ async function handlePost(request: NextRequest) {
             )
         }
         const { shop, cleanPhone, validatedGuestEmail, totalAmountPesewas, metadataPayload } = checkout
-        const paystackEmail = validatedGuestEmail || buildGuestEmail(shop.shop_name, cleanPhone)
+        const paystackEmail = validatedGuestEmail || buildGuestEmail(cleanPhone)
 
         // ── Toggle gate BEFORE any insert (dark seam) ────────────────────────────────
         const { data: toggleRow } = await db
