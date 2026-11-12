@@ -8,21 +8,17 @@ import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { resolveAfaPrice } from '@/lib/afa-pricing'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
     Tag, Save, Loader2, TrendingUp, AlertCircle, CheckCircle2,
     Clock, XCircle, Send, ArrowLeft, Sparkles, PhoneCall, Zap,
     Copy, Check, ExternalLink, PartyPopper, Lightbulb, MessageCircle,
-    IdCard
+    IdCard, RefreshCw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
@@ -67,31 +63,38 @@ interface ShopProfile {
     oos_networks?: string[]
 }
 
-const networkTabColors: Record<string, { active: string; inactive: string }> = {
-    MTN: {
-        active: 'bg-yellow-400 text-yellow-950 border-yellow-400 shadow-md',
-        inactive: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/30',
-    },
-    Telecel: {
-        active: 'bg-red-500 text-white border-red-500 shadow-md',
-        inactive: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30',
-    },
-    'AT-iShare': {
-        active: 'bg-brand-500 text-black border-brand-500 shadow-md',
-        inactive: 'bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30',
-    },
-    'AT-BigTime': {
-        active: 'bg-purple-600 text-white border-purple-600 shadow-md',
-        inactive: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30',
-    },
+// Telco brand colours are kept on purpose: people recognise their network at a glance.
+const NETWORK_DOT: Record<string, string> = {
+    MTN: 'bg-yellow-400',
+    Telecel: 'bg-red-500',
+    'AT-iShare': 'bg-blue-600',
+    'AT-BigTime': 'bg-blue-800',
+    AT: 'bg-blue-600',
 }
 
-const networkColors: Record<string, string> = {
-    MTN: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    Telecel: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    'AT-iShare': 'bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-400',
-    'AT-BigTime': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    AT: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+const FIELD = 'h-11 border-0 bg-transparent px-3 text-base font-semibold shadow-none placeholder:font-normal placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-0'
+const CLAY_GOLD = 'clay-gold inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold disabled:opacity-60'
+const CLAY_BLACK = 'clay-black inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold disabled:opacity-60'
+
+function Tip({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="neu-inset flex items-start gap-3 rounded-2xl p-4 text-xs leading-relaxed text-muted-foreground">
+            <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700 dark:text-brand-500" />
+            <p>{children}</p>
+        </div>
+    )
+}
+
+function Prefixed({ prefix, suffix, invalid, valid, children }: { prefix?: string; suffix?: string; invalid?: boolean; valid?: boolean; children: React.ReactNode }) {
+    return (
+        <div className={cn('well relative flex items-center rounded-xl', invalid && 'ring-2 ring-red-500/70', valid && 'ring-2 ring-emerald-500/50')}>
+            {prefix && <span className="pointer-events-none pl-3 text-[11px] font-semibold text-muted-foreground">{prefix}</span>}
+            {children}
+            {suffix && <span className="pointer-events-none pr-3 text-xs font-semibold text-muted-foreground">{suffix}</span>}
+        </div>
+    )
 }
 
 const NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
@@ -126,6 +129,7 @@ export default function ShopPricingPage() {
     const [dataMaxProfit, setDataMaxProfit] = useState<number>(Infinity) // no limit until settings load
 
     const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState(false)
     const [saving, setSaving] = useState(false)
     const [savingSection, setSavingSection] = useState<Section | null>(null)
     const [savingPkg, setSavingPkg] = useState<string | null>(null)
@@ -163,8 +167,9 @@ export default function ShopPricingPage() {
     }, [])
 
     useEffect(() => {
-        if (dbUser) fetchData()
-    }, [dbUser, isAdmin, isSubAdmin])
+        if (dbUser?.id) fetchData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dbUser?.id])
 
     // Exclusions are per-network/per-mode — a package unticked for MTN must not
     // stay unticked when the owner switches to Telecel.
@@ -173,12 +178,15 @@ export default function ShopPricingPage() {
     }, [bulkApplyTarget, bulkMode])
 
     const fetchData = async () => {
+        setLoadError(false)
         try {
-            const { data: shopData } = await ((supabase as any)
+            const { data: shopData, error: shopError } = await ((supabase as any)
                 .from('shop_profiles')
                 .select('id, shop_name, shop_slug, owner_id, approval_status, pricing_status, pricing_note, pricing_rejection_acknowledged, airtime_fee_mtn, airtime_fee_telecel, airtime_fee_at, results_checker_markup_customer, results_checker_markup_agent, mashup_fee_percent, afa_selling_price, oos_networks')
                 .eq('owner_id', dbUser!.id)
                 .maybeSingle())
+
+            if (shopError) throw shopError
 
             if (shopData && shopData.owner_id) {
                 const { data: uData } = await (supabase as any).from('users').select('role').eq('id', shopData.owner_id).single()
@@ -286,7 +294,9 @@ export default function ShopPricingPage() {
             }
             setPricing(priceMap)
         } catch (err) {
+            // Without this the page used to render as "awaiting approval" on a plain network failure.
             console.error(err)
+            setLoadError(true)
         } finally {
             setLoading(false)
         }
@@ -417,7 +427,9 @@ export default function ShopPricingPage() {
     const getProfit = (pkg: Package, sellingStr: string) => {
         const selling = parseFloat(sellingStr)
         if (isNaN(selling)) return null
-        return selling - getCostPrice(pkg)
+        // Rounded to the pesewa: 12.30 - 10.10 is 2.2000000000000006 in floating point,
+        // which wrongly failed a "max profit 2.20" check for a perfectly valid price.
+        return round2(selling - getCostPrice(pkg))
     }
 
     const isValidPrice = (pkg: Package, sellingStr: string) => {
@@ -459,6 +471,10 @@ export default function ShopPricingPage() {
         for (const net of ['mtn', 'telecel', 'at']) {
             const max = getMaxAirtimeProfit(net)
             const val = parseFloat(airtimeFees[net as keyof typeof airtimeFees] || '0')
+            if (val < 0) {
+                toast.error(`${net.toUpperCase()} airtime profit cannot be negative`)
+                return false
+            }
             if (val > max) {
                 toast.error(`${net.toUpperCase()} airtime profit exceeds maximum of ${max.toFixed(2)}%`)
                 return false
@@ -539,9 +555,12 @@ export default function ShopPricingPage() {
                 await postPricing({ airtimeFees })
                 toast.success('Airtime profit settings live!')
             } else if (section === 'rc') {
-                await postPricing({ rcMarkups: buildRcMarkupRows() })
+                const rcRows = buildRcMarkupRows()
+                if (rcRows.some(r => r.markup < 0)) { toast.error('Voucher profit cannot be negative'); return }
+                await postPricing({ rcMarkups: rcRows })
                 toast.success('Exam markups saved!')
             } else if (section === 'mashup') {
+                if (parseFloat(mashupFee) < 0) { toast.error('Mashup profit cannot be negative'); return }
                 await postPricing({ mashupFee: mashupFee || '0' })
                 toast.success('Mashup profit saved!')
             } else if (section === 'afa') {
@@ -689,7 +708,7 @@ export default function ShopPricingPage() {
         if (selling === null) {
             return { pkg, cost, selling: null, profit: null, warning: null }
         }
-        const profit = selling - cost
+        const profit = round2(selling - cost)
         const maxProfit = isFinite(dataMaxProfit) ? dataMaxProfit : 999
         let warning: string | null = null
         if (profit <= 0) warning = 'Below cost price'
@@ -732,62 +751,64 @@ export default function ShopPricingPage() {
     // ─── Render guards ────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="space-y-5" aria-busy="true" aria-label="Loading your pricing">
+                <div className="neu-raised-sm h-24 rounded-3xl" />
+                <div className="grid gap-5 lg:grid-cols-[14rem_1fr]">
+                    <div className="neu-raised-sm h-64 rounded-3xl" />
+                    <div className="neu-raised-sm h-96 rounded-3xl" />
+                </div>
+            </div>
+        )
+    }
+
+    if (loadError) {
+        return (
+            <div className="neu-raised-sm mx-auto mt-10 flex max-w-md flex-col items-center gap-3 rounded-3xl p-8 text-center">
+                <span className="neu-inset flex h-12 w-12 items-center justify-center rounded-2xl text-red-500"><AlertCircle className="h-6 w-6" /></span>
+                <h1 className="font-display text-lg font-semibold">We couldn&apos;t load your pricing</h1>
+                <p className="text-sm text-muted-foreground">Check your connection and try again. Your saved prices are safe.</p>
+                <button type="button" onClick={() => { setLoading(true); fetchData() }} className={cn(CLAY_GOLD, 'mt-1 h-10')}>
+                    <RefreshCw className="h-4 w-4" /> Try again
+                </button>
             </div>
         )
     }
 
     if (shop?.approval_status !== 'approved') {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                    <Clock className="w-8 h-8 text-yellow-600" />
-                </div>
-                <h2 className="text-xl font-bold">Awaiting Profile Approval</h2>
-                <p className="text-muted-foreground text-sm max-w-sm">
-                    Your shop profile is being reviewed by an admin. You'll be able to set your prices once your profile is approved.
+            <div className="neu-raised-sm mx-auto mt-10 flex max-w-md flex-col items-center gap-3 rounded-3xl p-8 text-center">
+                <span className="neu-inset flex h-14 w-14 items-center justify-center rounded-2xl text-brand-700 dark:text-brand-500"><Clock className="h-7 w-7" /></span>
+                <h1 className="font-display text-xl font-bold">Your shop is being reviewed</h1>
+                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    We check every new shop before it opens. Once it is approved you can set your prices here.
                 </p>
+                <Link href="/dashboard/shop" className="text-sm font-semibold text-brand-700 hover:underline dark:text-brand-500">Back to my shop</Link>
             </div>
         )
     }
 
     if (shop?.pricing_status === 'rejected' && !shop?.pricing_rejection_acknowledged) {
         return (
-            <div className="max-w-lg mx-auto py-10 space-y-4">
-                <Card className="border-red-200 dark:border-red-800">
-                    <CardContent className="p-6 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                                <XCircle className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-lg">Pricing Rejected</h2>
-                                <p className="text-sm text-muted-foreground">Admin has reviewed and rejected your submitted prices.</p>
-                            </div>
-                        </div>
+            <div className="neu-raised-sm mx-auto mt-6 max-w-lg space-y-5 rounded-3xl p-6 sm:p-8">
+                <div className="flex items-center gap-3">
+                    <span className="neu-inset flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-red-500"><XCircle className="h-6 w-6" /></span>
+                    <div>
+                        <h1 className="font-display text-lg font-bold">Your prices need a change</h1>
+                        <p className="text-sm text-muted-foreground">An admin looked at your prices and asked for a revision.</p>
+                    </div>
+                </div>
 
-                        {shop.pricing_note && (
-                            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                                <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Admin Note:</p>
-                                <p className="text-sm text-red-800 dark:text-red-300">{shop.pricing_note}</p>
-                            </div>
-                        )}
+                {shop.pricing_note && (
+                    <div className="neu-inset rounded-2xl p-4">
+                        <p className="mb-1 text-xs font-semibold text-red-600 dark:text-red-400">What the admin said</p>
+                        <p className="text-sm leading-relaxed">{shop.pricing_note}</p>
+                    </div>
+                )}
 
-                        <p className="text-sm text-muted-foreground">
-                            Please read the admin's feedback above, then click below to revise your prices.
-                        </p>
-
-                        <Button
-                            onClick={handleAcknowledge}
-                            disabled={acknowledging}
-                            className="w-full gap-2 h-12 clay clay-green"
-                        >
-                            {acknowledging ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                            I Understand, Let Me Revise
-                        </Button>
-                    </CardContent>
-                </Card>
+                <button type="button" onClick={handleAcknowledge} disabled={acknowledging} className={cn(CLAY_GOLD, 'w-full')}>
+                    {acknowledging ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    Got it, let me update my prices
+                </button>
             </div>
         )
     }
@@ -798,771 +819,702 @@ export default function ShopPricingPage() {
     const isResubmission = shop?.pricing_status === 'approved'
     const ownerIsReseller = shop?.owner_role === 'agent' || shop?.owner_role === 'dealer'
 
+    const panel = 'neu-raised-sm rounded-3xl p-5 sm:p-6'
+
     return (
         <div className="space-y-5 pb-32">
             {/* ── Header ── */}
-            <div className="flex flex-col gap-3">
-                <Link href="/dashboard/shop">
-                    <Button variant="ghost" size="sm" className="w-fit gap-2 -ml-2 text-muted-foreground hover:text-emerald-600 transition-colors">
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Shop Dashboard
-                    </Button>
-                </Link>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                        <h1 className="text-xl font-bold flex items-center gap-2">
-                            <Tag className="w-5 h-5 text-emerald-600" />
-                            Pricing
-                        </h1>
-                        <p className="text-muted-foreground text-sm mt-0.5">
-                            Set your profit on each service. Save sections individually or everything at once.
-                        </p>
-                    </div>
-                    <Button
-                        onClick={handleSubmitAll}
-                        disabled={saving}
-                        className="hidden sm:flex gap-2 h-10 px-5 rounded-xl font-semibold clay clay-green"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        {saving ? 'Saving...' : 'Save All & Go Live'}
-                    </Button>
-                </div>
-
-                {isResubmission && (
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex gap-2.5 text-xs text-amber-700 dark:text-amber-300">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-                        <span>
-                            <strong>Heads up!</strong> New prices go live automatically, but admins reserve the right to review and reject them later.
+            <header className="neu-raised-sm flex flex-col gap-4 rounded-3xl p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div className="min-w-0">
+                    <Link href="/dashboard/shop" className="mb-2 inline-flex items-center gap-1.5 rounded text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                        <ArrowLeft className="h-3.5 w-3.5" /> My shop
+                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">Your prices</h1>
+                        <span className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                            shop.pricing_status === 'approved'
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-brand-500/15 text-brand-700 dark:text-brand-500'
+                        )}>
+                            {shop.pricing_status === 'approved' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                            {shop.pricing_status === 'approved' ? 'Live on your storefront' : 'Not live yet'}
                         </span>
                     </div>
-                )}
-            </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Decide how much you earn on each sale. Save one section at a time, or everything at once.
+                    </p>
+                </div>
+                <button type="button" onClick={handleSubmitAll} disabled={saving} className={cn(CLAY_GOLD, 'hidden flex-shrink-0 sm:inline-flex')}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {saving ? 'Saving' : 'Save everything'}
+                </button>
+            </header>
 
-            {/* ── Section Tabs ── */}
-            <div className="flex p-1 bg-muted rounded-xl border shadow-sm overflow-x-auto">
-                {SECTIONS.map(({ id, label, icon: Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => setActiveSection(id)}
-                        className={cn(
-                            'flex-1 px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap',
-                            activeSection === id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                    </button>
-                ))}
-            </div>
+            {isResubmission && (
+                <div className="neu-inset flex items-start gap-3 rounded-2xl p-4 text-xs leading-relaxed text-muted-foreground">
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700 dark:text-brand-500" />
+                    <p>
+                        <span className="font-semibold text-foreground">New prices go live right away.</span> An admin can still review them later and ask you to change them.
+                    </p>
+                </div>
+            )}
 
-            {/* ════════════ DATA BUNDLES ════════════ */}
-            {activeSection === 'data' && (
-                <div className="space-y-5">
-                <Tabs value={pricingMode} onValueChange={(v) => setPricingMode(v as 'manual' | 'bulk')}>
-                    <TabsList className="grid grid-cols-2 w-full sm:w-64">
-                        <TabsTrigger value="manual">Manual</TabsTrigger>
-                        <TabsTrigger value="bulk">Bulk</TabsTrigger>
-                    </TabsList>
+            <div className="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start">
+                {/* ── Section rail ── */}
+                <nav aria-label="Pricing sections" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+                    {SECTIONS.map(({ id, label, icon: Icon }) => {
+                        const active = activeSection === id
+                        return (
+                            <button
+                                key={id}
+                                type="button"
+                                onClick={() => setActiveSection(id)}
+                                aria-current={active ? 'page' : undefined}
+                                className={cn(
+                                    'flex flex-shrink-0 items-center gap-2.5 whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                                    active ? 'neu-inset text-brand-700 dark:text-brand-500' : 'neu-raised-sm neu-press text-muted-foreground hover:text-foreground'
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                                {label}
+                            </button>
+                        )
+                    })}
+                </nav>
 
-                    {/* NOTE: the Bulk panel is declared first here purely because that's
-                        where it already lived — TabsList above fixes the visible order
-                        (Manual, Bulk) and only the active panel ever renders. */}
-                    <TabsContent value="bulk" className="pt-4">
-                    {/* Bulk apply with live preview */}
-                    <div className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/50 dark:bg-brand-900/10 p-4 sm:p-5 space-y-4">
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                                <TrendingUp className="w-4 h-4 text-brand-700" />
-                                <h2 className="text-sm font-bold text-brand-900 dark:text-brand-300">Bulk Pricing</h2>
+                <div className="min-w-0 space-y-5">
+                    {/* ════════════ DATA BUNDLES ════════════ */}
+                    {activeSection === 'data' && (
+                        <section aria-label="Data bundle prices" className={cn(panel, 'space-y-5')}>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <h2 className="font-display text-lg font-semibold">Data bundles</h2>
+                                <div role="tablist" aria-label="Pricing method" className="neu-inset flex rounded-xl p-1">
+                                    {(['manual', 'bulk'] as const).map(mode => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={pricingMode === mode}
+                                            onClick={() => setPricingMode(mode)}
+                                            className={cn(
+                                                'rounded-lg px-4 py-1.5 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                                                pricingMode === mode ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground'
+                                            )}
+                                        >
+                                            {mode === 'manual' ? 'One by one' : 'Price in bulk'}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            {/* Mode tabs */}
-                            <div className="flex p-0.5 bg-card rounded-lg border">
-                                {([
-                                    { id: 'flat', label: 'Rate per GB (GHS)' },
-                                    { id: 'percent', label: 'Margin (%)' },
-                                ] as const).map(m => (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => { setBulkMode(m.id); setBulkValue('') }}
-                                        className={cn(
-                                            'px-3 py-1.5 text-[11px] font-semibold rounded-md transition-all',
-                                            bulkMode === m.id ? 'bg-brand-600 text-black shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                                        )}
-                                    >
-                                        {m.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
 
-                        <p className="text-xs text-brand-700/80 dark:text-brand-400/80">
-                            {bulkMode === 'flat'
-                                ? 'Sets a selling price per GB — e.g. typing 5 means 1GB → GHS 5.00, 2GB → GHS 10.00, 500MB → GHS 2.50. Profit is calculated automatically.'
-                                : 'Adds a percentage of your cost as profit (e.g. cost + 5%). Bigger bundles earn more.'}
-                        </p>
+                            {pricingMode === 'bulk' && (
+                                <div className="space-y-4">
+                                    <Tip>
+                                        {bulkMode === 'flat'
+                                            ? 'Type a rate per GB and every bundle is priced for you. A rate of 5 means 1GB sells for GHS 5.00, 2GB for GHS 10.00 and 500MB for GHS 2.50.'
+                                            : 'Adds a percentage of your cost as profit, so bigger bundles earn you more. A margin of 5 means cost plus 5%.'}
+                                    </Tip>
 
-                        <div className="flex flex-col sm:flex-row gap-2.5">
-                            <div className="sm:w-44">
-                                <Select value={bulkApplyTarget} onValueChange={setBulkApplyTarget}>
-                                    <SelectTrigger className="h-10 rounded-lg bg-card font-semibold text-sm">
-                                        <SelectValue placeholder="Select Network" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-lg">
-                                        {NETWORKS.map(net => (
-                                            <SelectItem key={net} value={net}>{net}</SelectItem>
+                                    <div role="tablist" aria-label="Bulk pricing mode" className="neu-inset flex w-fit rounded-xl p-1">
+                                        {([
+                                            { id: 'flat', label: 'Rate per GB' },
+                                            { id: 'percent', label: 'Margin %' },
+                                        ] as const).map(m => (
+                                            <button
+                                                key={m.id}
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={bulkMode === m.id}
+                                                onClick={() => { setBulkMode(m.id); setBulkValue('') }}
+                                                className={cn(
+                                                    'rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                                                    bulkMode === m.id ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground'
+                                                )}
+                                            >
+                                                {m.label}
+                                            </button>
                                         ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="relative flex-1">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">
-                                    {bulkMode === 'flat' ? 'GHS/GB' : '%'}
-                                </span>
-                                <Input
-                                    type="number" min="0.01" step={bulkMode === 'flat' ? '0.5' : '0.1'} value={bulkValue}
-                                    onChange={(e) => setBulkValue(e.target.value)}
-                                    className={cn('h-10 rounded-lg bg-card font-semibold', bulkMode === 'flat' ? 'pl-16' : 'pl-12')}
-                                />
-                            </div>
-                        </div>
+                                    </div>
 
-                        {bulkTargets.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No packages found for {bulkApplyTarget}.</p>
-                        ) : (
-                            <div className="rounded-xl border bg-card overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-10">
-                                                <Checkbox
-                                                    checked={bulkAllSelected ? true : bulkSomeSelected ? 'indeterminate' : false}
-                                                    onCheckedChange={toggleBulkAll}
-                                                    aria-label="Select all packages"
+                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                        <div className="well rounded-xl sm:w-48">
+                                            <Select value={bulkApplyTarget} onValueChange={setBulkApplyTarget}>
+                                                <SelectTrigger aria-label="Network to price" className="h-11 border-0 bg-transparent px-3 text-sm font-semibold shadow-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-0">
+                                                    <SelectValue placeholder="Network" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    {NETWORKS.map(net => (
+                                                        <SelectItem key={net} value={net}>{net}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <Prefixed prefix={bulkMode === 'flat' ? 'GHS per GB' : '%'}>
+                                                <Input
+                                                    type="number" inputMode="decimal" min="0.01" step={bulkMode === 'flat' ? '0.5' : '0.1'} value={bulkValue}
+                                                    onChange={(e) => setBulkValue(e.target.value)}
+                                                    aria-label={bulkMode === 'flat' ? 'Rate per GB in cedis' : 'Margin percentage'}
+                                                    className={FIELD}
                                                 />
-                                            </TableHead>
-                                            <TableHead>Size</TableHead>
-                                            <TableHead>Cost</TableHead>
-                                            <TableHead>Current selling</TableHead>
-                                            <TableHead>New selling</TableHead>
-                                            <TableHead>New profit</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {bulkPreviewRows.map(({ pkg, cost, selling, profit, warning }) => {
-                                            const isExcluded = !warning && bulkExcludedIds.has(pkg.id)
-                                            const currentSelling = parseFloat(pricing[pkg.id] || '0') || null
-                                            return (
-                                                <TableRow key={pkg.id} className={warning || isExcluded ? 'opacity-60' : ''}>
-                                                    <TableCell>
-                                                        {!warning && selling !== null && (
+                                            </Prefixed>
+                                        </div>
+                                    </div>
+
+                                    {bulkTargets.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">No bundles found for {bulkApplyTarget}.</p>
+                                    ) : (
+                                        <div className="neu-inset overflow-x-auto rounded-2xl">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-10">
                                                             <Checkbox
-                                                                checked={!isExcluded}
-                                                                onCheckedChange={() => toggleBulkRow(pkg.id)}
-                                                                aria-label={`Include ${pkg.size} in bulk pricing`}
+                                                                checked={bulkAllSelected ? true : bulkSomeSelected ? 'indeterminate' : false}
+                                                                onCheckedChange={toggleBulkAll}
+                                                                aria-label="Select all bundles"
                                                             />
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="font-semibold">{pkg.size}</TableCell>
-                                                    <TableCell>{formatCurrency(cost)}</TableCell>
-                                                    <TableCell>{currentSelling !== null ? formatCurrency(currentSelling) : <span className="text-muted-foreground text-xs">not set</span>}</TableCell>
-                                                    <TableCell>{selling !== null ? formatCurrency(selling) : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                                                    <TableCell className={cn('font-semibold tabular-nums', warning ? 'text-red-600' : 'text-emerald-600')}>
-                                                        {profit !== null ? formatCurrency(profit) : '—'}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {warning ? (
-                                                            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950">
-                                                                <AlertCircle className="w-3 h-3" /> {warning}
-                                                            </Badge>
-                                                        ) : isExcluded ? (
-                                                            <Badge variant="outline" className="gap-1 text-muted-foreground">Excluded</Badge>
-                                                        ) : selling !== null ? (
-                                                            <Badge variant="outline" className="gap-1 text-green-600 border-green-300 bg-green-50 dark:bg-green-950">
-                                                                <CheckCircle2 className="w-3 h-3" /> Will update
-                                                            </Badge>
-                                                        ) : (
-                                                            <span className="text-muted-foreground text-xs">Enter a value above</span>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
+                                                        </TableHead>
+                                                        <TableHead>Size</TableHead>
+                                                        <TableHead>Your cost</TableHead>
+                                                        <TableHead>Now</TableHead>
+                                                        <TableHead>New price</TableHead>
+                                                        <TableHead>Your profit</TableHead>
+                                                        <TableHead>Result</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {bulkPreviewRows.map(({ pkg, cost, selling, profit, warning }) => {
+                                                        const isExcluded = !warning && bulkExcludedIds.has(pkg.id)
+                                                        const currentSelling = parseFloat(pricing[pkg.id] || '0') || null
+                                                        return (
+                                                            <TableRow key={pkg.id} className={warning || isExcluded ? 'opacity-60' : ''}>
+                                                                <TableCell>
+                                                                    {!warning && selling !== null && (
+                                                                        <Checkbox
+                                                                            checked={!isExcluded}
+                                                                            onCheckedChange={() => toggleBulkRow(pkg.id)}
+                                                                            aria-label={`Include ${pkg.size} in bulk pricing`}
+                                                                        />
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="font-semibold">{pkg.size}</TableCell>
+                                                                <TableCell className="tabular-nums">{formatCurrency(cost)}</TableCell>
+                                                                <TableCell className="tabular-nums">{currentSelling !== null ? formatCurrency(currentSelling) : <span className="text-xs text-muted-foreground">not set</span>}</TableCell>
+                                                                <TableCell className="tabular-nums">{selling !== null ? formatCurrency(selling) : <span className="text-xs text-muted-foreground">-</span>}</TableCell>
+                                                                <TableCell className={cn('font-semibold tabular-nums', warning ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                                                                    {profit !== null ? formatCurrency(profit) : '-'}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {warning ? (
+                                                                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:text-red-400">
+                                                                            <AlertCircle className="h-3 w-3" /> {warning}
+                                                                        </span>
+                                                                    ) : isExcluded ? (
+                                                                        <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Skipped</span>
+                                                                    ) : selling !== null ? (
+                                                                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                                            <CheckCircle2 className="h-3 w-3" /> Will change
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-xs text-muted-foreground">Enter a value</span>
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )
+                                                    })}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    )}
+
+                                    {parseFloat(bulkValue) > 0 && bulkPreviewRows.length > 0 && (
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <div className="space-y-0.5 text-xs text-muted-foreground" aria-live="polite">
+                                                <p><span className="font-semibold text-foreground">{bulkApplicableRows.length}</span> bundle(s) will change</p>
+                                                {bulkExcludedCount > 0 && <p>{bulkExcludedCount} skipped by you</p>}
+                                                {bulkWarningRows.length > 0 && (
+                                                    <p className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                                        <AlertCircle className="h-3 w-3" /> {bulkWarningRows.length} left out (see the table)
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <button type="button" onClick={handleApplyBulk} disabled={bulkApplicableRows.length === 0} className={cn(CLAY_BLACK, 'h-10')}>
+                                                Fill in {bulkApplicableRows.length}
+                                            </button>
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">This only fills in the prices. Switch to &ldquo;One by one&rdquo; to review them, then save.</p>
+                                </div>
+                            )}
+
+                            {pricingMode === 'manual' && (
+                                <div className="space-y-5">
+                                    <Tip>
+                                        Your cost is what you pay us and your profit is what you add on top. For example, a bundle that costs GHS 10 with GHS {ownerIsReseller ? '3' : '2'} profit sells for GHS {ownerIsReseller ? '13' : '12'}.
+                                        {' '}The most you can earn on one bundle is <strong className="text-foreground">{isFinite(dataMaxProfit) ? `GHS ${dataMaxProfit.toFixed(2)}` : 'unlimited'}</strong>, and you cannot sell below cost.
+                                    </Tip>
+
+                                    {/* Network picker (telco colours kept on purpose) */}
+                                    <div role="group" aria-label="Network" className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                                        {NETWORKS.map(network => {
+                                            const count = packages.filter(p => p.network === network).length
+                                            if (count === 0) return null
+                                            const isActiveTab = activeNetwork === network
+                                            return (
+                                                <button
+                                                    key={network}
+                                                    type="button"
+                                                    onClick={() => setActiveNetwork(network)}
+                                                    aria-pressed={isActiveTab}
+                                                    className={cn(
+                                                        'flex h-11 w-full items-center justify-between gap-2 rounded-2xl px-3.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+                                                        isActiveTab ? 'neu-inset text-foreground' : 'neu-raised-sm neu-press text-muted-foreground hover:text-foreground'
+                                                    )}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <span className={cn('h-2.5 w-2.5 rounded-full', NETWORK_DOT[network] ?? 'bg-foreground/40')} />
+                                                        {network}
+                                                    </span>
+                                                    <span className="text-[11px] tabular-nums text-muted-foreground">{count}</span>
+                                                </button>
                                             )
                                         })}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
-
-                        {parseFloat(bulkValue) > 0 && bulkPreviewRows.length > 0 && (
-                            <div className="flex items-center justify-between pt-2 border-t border-brand-100 dark:border-brand-900">
-                                <div className="text-xs text-muted-foreground space-y-0.5">
-                                    <p><span className="font-medium text-foreground">{bulkApplicableRows.length}</span> package(s) will be updated</p>
-                                    {bulkExcludedCount > 0 && <p>{bulkExcludedCount} excluded by you</p>}
-                                    {bulkWarningRows.length > 0 && (
-                                        <p className="text-amber-600 flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" /> {bulkWarningRows.length} skipped (see warnings above)
-                                        </p>
-                                    )}
-                                </div>
-                                <Button
-                                    onClick={handleApplyBulk}
-                                    disabled={bulkApplicableRows.length === 0}
-                                    className="bg-brand-600 hover:bg-brand-500 text-black px-5 rounded-lg h-10 font-semibold text-sm shrink-0"
-                                >
-                                    Apply to {bulkApplicableRows.length}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                    </TabsContent>
-
-                    <TabsContent value="manual" className="space-y-5 pt-4">
-                    {/* Pricing guide — compact */}
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
-                        <p>
-                            Your cost is what you pay us; your profit is what you add on top.
-                            Example: cost GHS 10 + GHS {ownerIsReseller ? '3' : '2'} profit = customer pays GHS {ownerIsReseller ? '13' : '12'}.
-                            {' '}Max profit per bundle: <strong>GHS {isFinite(dataMaxProfit) ? dataMaxProfit.toFixed(2) : 'no limit'}</strong>. You cannot sell below cost.
-                        </p>
-                    </div>
-
-                    {/* Network tabs — 2×2 on mobile, 4-col on sm+ */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {NETWORKS.map(network => {
-                            const count = packages.filter(p => p.network === network).length
-                            if (count === 0) return null
-                            const isActiveTab = activeNetwork === network
-                            const colors = networkTabColors[network] ?? {
-                                active: 'bg-card text-white border-slate-900 shadow-md',
-                                inactive: 'bg-card border-border text-muted-foreground hover:bg-muted/50',
-                            }
-                            return (
-                                <button
-                                    key={network}
-                                    onClick={() => setActiveNetwork(network)}
-                                    className={cn(
-                                        'flex items-center justify-between h-10 px-3 rounded-xl text-xs font-semibold transition-all border w-full',
-                                        isActiveTab ? colors.active : colors.inactive
-                                    )}
-                                >
-                                    <span>{network}</span>
-                                    <span className={cn('px-1.5 py-0.5 rounded-md text-[10px] font-bold', isActiveTab ? 'bg-black/10 dark:bg-card/20' : 'bg-black/5 dark:bg-card/10')}>
-                                        {count}
-                                    </span>
-                                </button>
-                            )
-                        })}
-                    </div>
-
-                    {/* Out-of-stock control for the active network */}
-                    {(() => {
-                        const lockedByAdmin = !!adminOOS[activeNetwork]
-                        const isOut = lockedByAdmin || shopOOS.includes(activeNetwork)
-                        return (
-                            <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 mb-3 bg-card/60 dark:bg-card/50">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-semibold">
-                                        {activeNetwork}: {isOut ? 'Out of Stock at the Moment' : 'In Stock'}
-                                    </span>
-                                    {lockedByAdmin && (
-                                        <span className="text-[10px] text-amber-600">
-                                            Temporarily unavailable platform-wide — set by Capozy Hub
-                                        </span>
-                                    )}
-                                </div>
-                                <Switch
-                                    checked={isOut}
-                                    disabled={lockedByAdmin || oosSaving === activeNetwork}
-                                    onCheckedChange={(v) => toggleShopNetworkStock(activeNetwork, v)}
-                                    aria-label={`Toggle ${activeNetwork} out of stock on your store`}
-                                />
-                            </div>
-                        )
-                    })()}
-
-                    {/* Package grid — 2-col on mobile */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
-                        {filteredPackages.map((pkg) => {
-                            const valStr = pricing[pkg.id] || ''
-                            const cost = getCostPrice(pkg)
-                            const finalSelling = parseFloat(valStr) || 0
-                            const profit = finalSelling > 0 ? finalSelling - cost : 0
-                            const valid = isValidPrice(pkg, valStr)
-                            const isSavingThis = savingPkg === pkg.id
-
-                            return (
-                                <div key={pkg.id} className={cn(
-                                    'flex flex-col p-3 rounded-xl border transition-all',
-                                    valStr && valid === false ? 'border-red-400 bg-red-50/50 dark:border-red-900/40' :
-                                        valStr && valid === true ? 'border-emerald-300 bg-card shadow-sm' : 'border-border bg-card/60 dark:bg-card/50'
-                                )}>
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-2 gap-1">
-                                        <h3 className="font-bold text-sm leading-tight">{pkg.size}</h3>
-                                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md shrink-0">
-                                            Cost: {formatCurrency(cost)}
-                                        </span>
                                     </div>
 
-                                    {/* Price input */}
-                                    <div className="relative mb-2">
-                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-semibold text-[11px] text-muted-foreground">GHS</span>
-                                        <Input
-                                            type="number" inputMode="decimal" value={valStr}
-                                            onChange={(e) => setPricing(prev => ({ ...prev, [pkg.id]: e.target.value }))}
-                                            placeholder={cost.toFixed(2)}
-                                            className={cn(
-                                                'h-9 rounded-lg pl-10 text-sm font-semibold',
-                                                valStr && valid === false ? 'border-red-500 bg-red-50 text-red-900' :
-                                                    valStr && valid === true ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 'bg-muted/50 '
-                                            )}
-                                        />
-                                    </div>
+                                    {/* Stock control for the active network */}
+                                    {(() => {
+                                        const lockedByAdmin = !!adminOOS[activeNetwork]
+                                        const isOut = lockedByAdmin || shopOOS.includes(activeNetwork)
+                                        return (
+                                            <div className="neu-inset flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold">
+                                                        {activeNetwork} is {isOut ? 'out of stock on your shop' : 'in stock'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {lockedByAdmin
+                                                            ? 'Capozy Hub has paused this network for everyone for now.'
+                                                            : 'Switch on to stop customers ordering it while you restock.'}
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    checked={isOut}
+                                                    disabled={lockedByAdmin || oosSaving === activeNetwork}
+                                                    onCheckedChange={(v) => toggleShopNetworkStock(activeNetwork, v)}
+                                                    aria-label={`Mark ${activeNetwork} out of stock on your shop`}
+                                                />
+                                            </div>
+                                        )
+                                    })()}
 
-                                    {/* Profit row */}
-                                    <div className="flex items-center justify-between text-xs mb-2">
-                                        <span className="text-muted-foreground font-medium">Profit</span>
-                                        <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-muted-foreground')}>
-                                            {valStr && valid !== null ? `+${formatCurrency(profit)}` : '—'}
-                                        </span>
-                                    </div>
-                                    {valStr && valid === false && (
-                                        <p className="text-[10px] text-red-600 font-semibold mb-2">
-                                            {profit <= 0 ? 'Must be above cost' : `Max GHS ${isFinite(dataMaxProfit) ? dataMaxProfit.toFixed(2) : '∞'}`}
-                                        </p>
+                                    {/* Bundle cards */}
+                                    {filteredPackages.length === 0 ? (
+                                        <p className="py-6 text-center text-sm text-muted-foreground">No {activeNetwork} bundles are available to price right now.</p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-3">
+                                            {filteredPackages.map((pkg) => {
+                                                const valStr = pricing[pkg.id] || ''
+                                                const cost = getCostPrice(pkg)
+                                                const profit = getProfit(pkg, valStr) ?? 0
+                                                const valid = isValidPrice(pkg, valStr)
+                                                const isSavingThis = savingPkg === pkg.id
+
+                                                return (
+                                                    <div key={pkg.id} className="neu-raised-sm flex flex-col gap-3 rounded-2xl p-4">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <h3 className="font-display text-base font-bold leading-tight">{pkg.size}</h3>
+                                                            <span className="shrink-0 text-[11px] font-medium text-muted-foreground">Cost {formatCurrency(cost)}</span>
+                                                        </div>
+
+                                                        <Prefixed prefix="GHS" invalid={!!valStr && valid === false} valid={!!valStr && valid === true}>
+                                                            <Input
+                                                                type="number" inputMode="decimal" value={valStr}
+                                                                onChange={(e) => setPricing(prev => ({ ...prev, [pkg.id]: e.target.value }))}
+                                                                placeholder={cost.toFixed(2)}
+                                                                aria-label={`Selling price for ${pkg.network} ${pkg.size}`}
+                                                                className={cn(FIELD, 'h-10 text-sm')}
+                                                            />
+                                                        </Prefixed>
+
+                                                        <div className="flex items-center justify-between text-xs" aria-live="polite">
+                                                            <span className="font-medium text-muted-foreground">You earn</span>
+                                                            <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600 dark:text-emerald-400' : valid === false ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
+                                                                {valStr && valid !== null ? `+${formatCurrency(profit)}` : '-'}
+                                                            </span>
+                                                        </div>
+                                                        {valStr && valid === false && (
+                                                            <p className="text-[11px] font-semibold text-red-600 dark:text-red-400">
+                                                                {profit <= 0 ? 'Price has to be above your cost' : `Most you can earn is GHS ${isFinite(dataMaxProfit) ? dataMaxProfit.toFixed(2) : '-'}`}
+                                                            </p>
+                                                        )}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSavePkg(pkg.id)}
+                                                            disabled={!!savingPkg || !valStr || valid !== true}
+                                                            className={cn(
+                                                                'mt-auto flex h-9 items-center justify-center gap-1.5 rounded-xl text-xs font-bold',
+                                                                valid === true ? 'clay-gold disabled:opacity-60' : 'neu-inset cursor-not-allowed text-muted-foreground'
+                                                            )}
+                                                        >
+                                                            {isSavingThis ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                                            {isSavingThis ? 'Saving' : 'Save'}
+                                                        </button>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     )}
 
-                                    {/* Per-card save */}
-                                    <button
-                                        onClick={() => handleSavePkg(pkg.id)}
-                                        disabled={!!savingPkg || !valStr}
-                                        className={cn(
-                                            'mt-auto flex items-center justify-center gap-1 h-7 rounded-lg text-[11px] font-semibold transition-all border',
-                                            valid === true
-                                                ? 'disabled:opacity-50 clay clay-green'
-                                                : 'bg-muted border-border text-muted-foreground cursor-not-allowed'
-                                        )}
-                                    >
-                                        {isSavingThis
-                                            ? <Loader2 className="w-3 h-3 animate-spin" />
-                                            : <Save className="w-3 h-3" />}
-                                        {isSavingThis ? 'Saving…' : 'Save'}
+                                    <button type="button" onClick={() => handleSaveSection('data')} disabled={savingSection === 'data'} className={cn(CLAY_BLACK, 'w-full sm:w-auto')}>
+                                        {savingSection === 'data' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                        Save all data prices
                                     </button>
                                 </div>
-                            )
-                        })}
-                    </div>
+                            )}
+                        </section>
+                    )}
 
-                    {/* Section save */}
-                    <Button
-                        onClick={() => handleSaveSection('data')}
-                        disabled={savingSection === 'data'}
-                        className="w-full sm:w-auto bg-card text-white dark:text-foreground hover:bg-black h-11 px-6 rounded-xl font-semibold gap-2"
-                    >
-                        {savingSection === 'data' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Data Prices
-                    </Button>
-                    </TabsContent>
-                </Tabs>
-                </div>
-            )}
+                    {/* ════════════ AIRTIME ════════════ */}
+                    {activeSection === 'airtime' && (
+                        <section aria-label="Airtime profit" className={cn(panel, 'space-y-5')}>
+                            <h2 className="font-display text-lg font-semibold">Airtime</h2>
+                            <Tip>
+                                You earn nothing on airtime until you set a markup below. The network&apos;s own fee and your markup together are capped at 10%.
+                            </Tip>
 
-            {/* ════════════ AIRTIME ════════════ */}
-            {activeSection === 'airtime' && (
-                <div className="space-y-4">
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-brand-50/70 dark:bg-brand-900/10 border border-brand-100 dark:border-brand-900 text-xs text-brand-800 dark:text-brand-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-brand-700" />
-                        <p>
-                            By default airtime profit is zero — you earn nothing until you set a markup below.
-                            The combined total fee (network cost + your markup) is capped at 10%.
-                        </p>
-                    </div>
+                            <div className="neu-inset divide-y divide-border rounded-2xl">
+                                {AIRTIME_NETWORKS.map(net => {
+                                    const key = net.toLowerCase() as keyof typeof airtimeFees
+                                    const maxAllowed = getMaxAirtimeProfit(net)
+                                    const val = parseFloat(airtimeFees[key] || '0')
+                                    const isOverLimit = val > maxAllowed || val < 0
 
-                    <div className="bg-card rounded-2xl border shadow-sm overflow-hidden divide-y divide-border dark:divide-border/60">
-                        {AIRTIME_NETWORKS.map(net => {
-                            const key = net.toLowerCase() as keyof typeof airtimeFees
-                            const maxAllowed = getMaxAirtimeProfit(net)
-                            const val = parseFloat(airtimeFees[key] || '0')
-                            const isOverLimit = val > maxAllowed
-
-                            return (
-                                <div key={net} className={cn(
-                                    'p-4 flex flex-col sm:flex-row sm:items-center gap-3',
-                                    isOverLimit ? 'bg-red-50/50 dark:bg-red-900/10' : ''
-                                )}>
-                                    <div className="flex items-center justify-between sm:w-36 shrink-0">
-                                        <Badge variant="outline" className={cn('px-2.5 py-0.5 font-semibold text-xs', networkColors[net] || networkColors['MTN'])}>{net}</Badge>
-                                        <div className="sm:hidden text-right">
-                                            <p className="text-[10px] text-muted-foreground font-medium">Max markup</p>
-                                            <p className="font-semibold text-sm">{maxAllowed.toFixed(2)}%</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="hidden sm:flex flex-1 items-center justify-center gap-8 text-center">
-                                        <div>
-                                            <p className="text-[10px] text-muted-foreground font-medium">Network cost</p>
-                                            <p className="font-semibold text-sm text-muted-foreground">{(10 - maxAllowed).toFixed(2)}%</p>
-                                        </div>
-                                        <div className="w-px h-6 bg-muted" />
-                                        <div>
-                                            <p className="text-[10px] text-muted-foreground font-medium">Max markup</p>
-                                            <p className="font-semibold text-sm">{maxAllowed.toFixed(2)}%</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="relative w-full sm:w-32 shrink-0">
-                                        <Input
-                                            type="number"
-                                            value={airtimeFees[key]}
-                                            onChange={e => setAirtimeFees(s => ({ ...s, [key]: e.target.value }))}
-                                            className={cn(
-                                                'rounded-lg h-10 pr-7 text-sm font-semibold text-center',
-                                                isOverLimit ? 'text-red-600 border-red-300 ring-1 ring-red-200' : 'bg-muted/50 '
-                                            )}
-                                            min="0" max={maxAllowed} step="0.1" placeholder="0.0"
-                                        />
-                                        <span className={cn('absolute right-3 top-1/2 -translate-y-1/2 font-semibold text-xs', isOverLimit ? 'text-red-500' : 'text-muted-foreground')}>%</span>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-
-                    <Button
-                        onClick={() => handleSaveSection('airtime')}
-                        disabled={savingSection === 'airtime'}
-                        className="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-black h-11 px-6 rounded-xl font-semibold gap-2"
-                    >
-                        {savingSection === 'airtime' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Airtime Profit
-                    </Button>
-                </div>
-            )}
-
-            {/* ════════════ RESULTS CHECKER ════════════ */}
-            {activeSection === 'rc' && (
-                <div className="space-y-4">
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
-                        <p>
-                            Set a separate profit for <strong>each exam type</strong>. Your profit is added to the voucher base price.
-                            {rcMaxMarkup > 0 && <> Max markup per voucher: <strong>GHS {rcMaxMarkup.toFixed(2)}</strong>.</>}
-                        </p>
-                    </div>
-
-                    {examTypes.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground text-sm">No exam types available right now.</div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {examTypes.map(exam => {
-                                const subInfo = isSubAgentOwner ? rcSubAgentPricing[exam.id] : undefined
-                                const notConfigured = isSubAgentOwner && !subInfo?.configured
-                                const cost = isSubAgentOwner
-                                    ? (subInfo?.configured ? subInfo.price : 0)
-                                    : (ownerIsReseller ? exam.agent_price : exam.customer_price)
-                                const markupStr = rcMarkups[exam.id] ?? ''
-                                const markup = parseFloat(markupStr) || 0
-                                const over = rcMaxMarkup > 0 && markup > rcMaxMarkup
-                                const sellPrice = cost + (over ? rcMaxMarkup : markup)
-
-                                return (
-                                    <div key={exam.id} className={cn(
-                                        'relative bg-card rounded-xl border p-4 shadow-sm space-y-3',
-                                        notConfigured && 'opacity-60'
-                                    )}>
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="font-bold text-sm">{exam.name}</h4>
-                                            {!notConfigured && (
-                                                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                                    Cost {formatCurrency(cost)}
+                                    return (
+                                        <div key={net} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                                            <div className="flex items-center justify-between sm:w-40 sm:shrink-0">
+                                                <span className="flex items-center gap-2 text-sm font-semibold">
+                                                    <span className={cn('h-2.5 w-2.5 rounded-full', NETWORK_DOT[net] ?? 'bg-foreground/40')} />
+                                                    {net === 'AT' ? 'AirtelTigo' : net}
                                                 </span>
-                                            )}
-                                        </div>
-
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-xs text-muted-foreground">GHS</span>
-                                            <Input
-                                                type="number" step="0.5" min="0" placeholder="0.00"
-                                                value={markupStr}
-                                                disabled={notConfigured}
-                                                onChange={e => setRcMarkups(prev => ({ ...prev, [exam.id]: e.target.value }))}
-                                                className={cn(
-                                                    'h-10 rounded-lg pl-11 text-sm font-semibold bg-muted/50 ',
-                                                    over && 'border-red-400 text-red-600 ring-1 ring-red-200'
-                                                )}
-                                            />
-                                        </div>
-                                        {notConfigured && (
-                                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-card/60 dark:bg-black/50">
-                                                <span className="bg-amber-600 dark:bg-amber-700 text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow">Not available</span>
+                                                <span className="text-xs text-muted-foreground sm:hidden">Up to {maxAllowed.toFixed(2)}%</span>
                                             </div>
-                                        )}
+
+                                            <div className="hidden flex-1 items-center justify-center gap-8 text-center sm:flex">
+                                                <div>
+                                                    <p className="text-[11px] font-medium text-muted-foreground">Network fee</p>
+                                                    <p className="text-sm font-semibold tabular-nums">{(10 - maxAllowed).toFixed(2)}%</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] font-medium text-muted-foreground">You can add up to</p>
+                                                    <p className="text-sm font-semibold tabular-nums">{maxAllowed.toFixed(2)}%</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="w-full sm:w-36 sm:shrink-0">
+                                                <Prefixed suffix="%" invalid={isOverLimit}>
+                                                    <Input
+                                                        type="number" inputMode="decimal"
+                                                        value={airtimeFees[key]}
+                                                        onChange={e => setAirtimeFees(s => ({ ...s, [key]: e.target.value }))}
+                                                        aria-label={`${net} airtime markup in percent`}
+                                                        className={cn(FIELD, 'text-center')}
+                                                        min="0" max={maxAllowed} step="0.1" placeholder="0.0"
+                                                    />
+                                                </Prefixed>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            <button type="button" onClick={() => handleSaveSection('airtime')} disabled={savingSection === 'airtime'} className={cn(CLAY_GOLD, 'w-full sm:w-auto')}>
+                                {savingSection === 'airtime' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                Save airtime profit
+                            </button>
+                        </section>
+                    )}
+
+                    {/* ════════════ RESULTS CHECKER ════════════ */}
+                    {activeSection === 'rc' && (
+                        <section aria-label="Results checker profit" className={cn(panel, 'space-y-5')}>
+                            <h2 className="font-display text-lg font-semibold">Results checker</h2>
+                            <Tip>
+                                Set your profit for <strong className="text-foreground">each exam</strong>. It is added on top of the voucher price.
+                                {rcMaxMarkup > 0 && <> You can add up to <strong className="text-foreground">GHS {rcMaxMarkup.toFixed(2)}</strong> per voucher.</>}
+                            </Tip>
+
+                            {examTypes.length === 0 ? (
+                                <p className="py-10 text-center text-sm text-muted-foreground">No exams are on offer right now.</p>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                    {examTypes.map(exam => {
+                                        const subInfo = isSubAgentOwner ? rcSubAgentPricing[exam.id] : undefined
+                                        const notConfigured = isSubAgentOwner && !subInfo?.configured
+                                        const cost = isSubAgentOwner
+                                            ? (subInfo?.configured ? subInfo.price : 0)
+                                            : (ownerIsReseller ? exam.agent_price : exam.customer_price)
+                                        const markupStr = rcMarkups[exam.id] ?? ''
+                                        const markup = parseFloat(markupStr) || 0
+                                        const negative = markup < 0
+                                        const over = rcMaxMarkup > 0 && markup > rcMaxMarkup
+                                        const sellPrice = cost + (over ? rcMaxMarkup : markup)
+
+                                        return (
+                                            <div key={exam.id} className={cn('neu-raised-sm relative space-y-3 rounded-2xl p-4', notConfigured && 'opacity-60')}>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <h3 className="font-display text-base font-bold">{exam.name}</h3>
+                                                    {!notConfigured && <span className="text-[11px] font-medium text-muted-foreground">Cost {formatCurrency(cost)}</span>}
+                                                </div>
+
+                                                <Prefixed prefix="GHS" invalid={over || negative}>
+                                                    <Input
+                                                        type="number" inputMode="decimal" step="0.5" min="0" placeholder="0.00"
+                                                        value={markupStr}
+                                                        disabled={notConfigured}
+                                                        onChange={e => setRcMarkups(prev => ({ ...prev, [exam.id]: e.target.value }))}
+                                                        aria-label={`Your profit on one ${exam.name} voucher`}
+                                                        className={cn(FIELD, 'h-10 text-sm')}
+                                                    />
+                                                </Prefixed>
+                                                {notConfigured && (
+                                                    <p className="text-[11px] font-semibold text-muted-foreground">Not available to you yet.</p>
+                                                )}
+                                                {over && (
+                                                    <p className="flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400">
+                                                        <AlertCircle className="h-3 w-3" /> Will be lowered to GHS {rcMaxMarkup.toFixed(2)} when you save
+                                                    </p>
+                                                )}
+                                                {negative && (
+                                                    <p className="flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400">
+                                                        <AlertCircle className="h-3 w-3" /> Profit cannot be negative
+                                                    </p>
+                                                )}
+
+                                                <div className="neu-inset space-y-1.5 rounded-xl p-3 text-xs">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-medium text-muted-foreground">Customer pays</span>
+                                                        <span className="font-bold tabular-nums">{formatCurrency(sellPrice)}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-medium text-muted-foreground">You earn</span>
+                                                        <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatCurrency(over ? rcMaxMarkup : Math.max(markup, 0))}</span>
+                                                    </div>
+                                                </div>
+
+                                                {exam.bulk_pricing && exam.bulk_pricing.length > 0 && (
+                                                    <div className="space-y-1 border-t border-border pt-2">
+                                                        <p className="text-[11px] font-semibold text-muted-foreground">Bulk tiers (your profit is added to each voucher)</p>
+                                                        {exam.bulk_pricing.map((tier, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between text-[11px]">
+                                                                <span className="text-muted-foreground">{tier.min_qty}{tier.max_qty >= 99999 ? '+' : `-${tier.max_qty}`} pcs</span>
+                                                                <span className="font-semibold tabular-nums">{formatCurrency(tier.unit_price + (over ? rcMaxMarkup : Math.max(markup, 0)))} each</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+
+                            <button type="button" onClick={() => handleSaveSection('rc')} disabled={savingSection === 'rc'} className={cn(CLAY_GOLD, 'w-full sm:w-auto')}>
+                                {savingSection === 'rc' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                Save exam profits
+                            </button>
+                        </section>
+                    )}
+
+                    {/* ════════════ MASHUP ════════════ */}
+                    {activeSection === 'mashup' && (
+                        <section aria-label="Mashup profit" className={cn(panel, 'max-w-xl space-y-5')}>
+                            <h2 className="font-display text-lg font-semibold">MTN Mashup</h2>
+                            <Tip>
+                                The percentage you earn on MTN Mashup orders placed through your storefront.
+                                {mashupMaxProfit > 0 && <> You can go up to <strong className="text-foreground">{mashupMaxProfit.toFixed(2)}%</strong>.</>}
+                            </Tip>
+
+                            {(() => {
+                                const feeNum = parseFloat(mashupFee)
+                                const over = mashupMaxProfit > 0 && feeNum > mashupMaxProfit
+                                const negative = feeNum < 0
+                                return (
+                                    <div className="space-y-3">
+                                        <label htmlFor="mashup-fee" className="text-sm font-semibold">Your profit margin</label>
+                                        <Prefixed suffix="%" invalid={over || negative}>
+                                            <Input
+                                                id="mashup-fee"
+                                                type="number" inputMode="decimal" step="0.1" min="0"
+                                                max={mashupMaxProfit > 0 ? mashupMaxProfit : undefined}
+                                                placeholder="0.0"
+                                                value={mashupFee}
+                                                onChange={e => setMashupFee(e.target.value)}
+                                                className={FIELD}
+                                            />
+                                        </Prefixed>
+
                                         {over && (
-                                            <p className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3" /> Clamped to GHS {rcMaxMarkup.toFixed(2)} on save
+                                            <p className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                                                <AlertCircle className="h-3.5 w-3.5" /> Too high. It will be lowered to {mashupMaxProfit.toFixed(2)}% when you save.
                                             </p>
                                         )}
-
-                                        <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground font-medium">Sells for</span>
-                                                <span className="font-bold text-emerald-600 tabular-nums">{formatCurrency(sellPrice)}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-muted-foreground font-medium">Your profit</span>
-                                                <span className="font-semibold text-emerald-500 tabular-nums">+{formatCurrency(over ? rcMaxMarkup : markup)}</span>
-                                            </div>
-                                        </div>
-
-                                        {exam.bulk_pricing && exam.bulk_pricing.length > 0 && (
-                                            <div className="space-y-1 pt-1 border-t border-border">
-                                                <p className="text-[10px] font-semibold text-muted-foreground">Bulk tiers (your profit applies per voucher)</p>
-                                                {exam.bulk_pricing.map((tier, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between text-[11px]">
-                                                        <span className="text-muted-foreground">
-                                                            {tier.min_qty}{tier.max_qty >= 99999 ? '+' : `–${tier.max_qty}`} pcs
-                                                        </span>
-                                                        <span className="font-semibold text-emerald-600 tabular-nums">{formatCurrency(tier.unit_price + (over ? rcMaxMarkup : markup))}/ea</span>
-                                                    </div>
-                                                ))}
+                                        {negative && (
+                                            <p className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                                                <AlertCircle className="h-3.5 w-3.5" /> Profit cannot be negative.
+                                            </p>
+                                        )}
+                                        {mashupFee && feeNum >= 0 && !over && (
+                                            <div className="neu-inset rounded-2xl p-4 text-sm" aria-live="polite">
+                                                On a GHS 100 Mashup order you earn <span className="font-bold text-brand-700 dark:text-brand-500">GHS {(feeNum || 0).toFixed(2)}</span>
                                             </div>
                                         )}
                                     </div>
                                 )
-                            })}
-                        </div>
+                            })()}
+
+                            <button type="button" onClick={() => handleSaveSection('mashup')} disabled={savingSection === 'mashup'} className={cn(CLAY_GOLD, 'w-full sm:w-auto')}>
+                                {savingSection === 'mashup' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                Save Mashup profit
+                            </button>
+                        </section>
                     )}
 
-                    <Button
-                        onClick={() => handleSaveSection('rc')}
-                        disabled={savingSection === 'rc'}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl font-semibold gap-2 clay clay-green"
-                    >
-                        {savingSection === 'rc' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Exam Markups
-                    </Button>
+                    {/* ════════════ AFA REGISTRATION ════════════ */}
+                    {activeSection === 'afa' && (() => {
+                        const valStr = afaSellingPrice
+                        const finalSelling = parseFloat(valStr) || 0
+                        const profit = valStr !== '' ? round2(finalSelling - afaCost) : null
+                        const maxProfit = afaMaxProfit > 0 ? afaMaxProfit : Infinity
+                        const valid = valStr === '' ? null : (profit !== null && profit > 0 && profit <= maxProfit)
+                        // A sub-agent owner with no AFA pricing configured has no real cost to
+                        // validate against, so they can never save against a made-up 0 floor.
+                        const notAvailable = isSubAgentOwner && !afaConfigured
+                        const saveDisabled = savingSection === 'afa' || notAvailable || (valStr !== '' && valid !== true)
+
+                        return (
+                            <section aria-label="AFA registration price" className={cn(panel, 'max-w-xl space-y-5')}>
+                                <h2 className="font-display text-lg font-semibold">AFA registration</h2>
+                                <Tip>
+                                    Type the full price you want to charge. Your profit is whatever is left after your cost. Saving a price turns AFA on for your storefront, and clearing the box turns it off.
+                                    {afaMaxProfit > 0 && <> You can earn up to <strong className="text-foreground">GHS {afaMaxProfit.toFixed(2)}</strong> per registration.</>}
+                                </Tip>
+
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <label htmlFor="afa-price" className="text-sm font-semibold">Price you charge</label>
+                                        {!notAvailable && <span className="text-[11px] font-medium text-muted-foreground">Your cost {formatCurrency(afaCost)}</span>}
+                                    </div>
+                                    <Prefixed prefix="GHS" invalid={!!valStr && valid === false} valid={!!valStr && valid === true}>
+                                        <Input
+                                            id="afa-price"
+                                            type="number" inputMode="decimal" step="0.5" min="0"
+                                            placeholder={`e.g. ${(afaCost + 2).toFixed(2)}`}
+                                            value={afaSellingPrice}
+                                            disabled={notAvailable}
+                                            onChange={e => setAfaSellingPrice(e.target.value)}
+                                            className={FIELD}
+                                        />
+                                    </Prefixed>
+
+                                    {!notAvailable && (
+                                        <div className="flex items-center justify-between text-xs" aria-live="polite">
+                                            <span className="font-medium text-muted-foreground">You earn</span>
+                                            <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600 dark:text-emerald-400' : valid === false ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
+                                                {valStr && profit !== null ? `+${formatCurrency(profit)}` : '-'}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {!notAvailable && valStr && valid === false && (
+                                        <p className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                                            <AlertCircle className="h-3.5 w-3.5" />
+                                            {profit !== null && profit <= 0
+                                                ? `Has to be more than your cost of GHS ${afaCost.toFixed(2)}`
+                                                : `The most you can earn is GHS ${afaMaxProfit.toFixed(2)}`}
+                                        </p>
+                                    )}
+
+                                    {(notAvailable || valStr === '') && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {notAvailable ? 'AFA registration is not available on your account yet.' : 'AFA registration is off for your shop right now.'}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <button type="button" onClick={() => handleSaveSection('afa')} disabled={saveDisabled} className={cn(CLAY_GOLD, 'w-full sm:w-auto')}>
+                                    {savingSection === 'afa' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    Save AFA price
+                                </button>
+                            </section>
+                        )
+                    })()}
                 </div>
-            )}
-
-            {/* ════════════ MASHUP ════════════ */}
-            {activeSection === 'mashup' && (
-                <div className="space-y-4 max-w-md">
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-                        <p>
-                            Your profit percentage on MTN Mashup orders placed through your storefront.
-                            {mashupMaxProfit > 0 && <> Max allowed: <strong>{mashupMaxProfit.toFixed(2)}%</strong>.</>}
-                        </p>
-                    </div>
-
-                    <div className="bg-card rounded-xl border p-4 shadow-sm space-y-3">
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold">Mashup Profit Margin</p>
-                            {mashupMaxProfit > 0 && (
-                                <span className="text-[11px] font-medium text-muted-foreground">Max {mashupMaxProfit.toFixed(2)}%</span>
-                            )}
-                        </div>
-
-                        <div className="relative">
-                            <Input
-                                type="number" step="0.1" min="0"
-                                max={mashupMaxProfit > 0 ? mashupMaxProfit : undefined}
-                                placeholder="0.0"
-                                value={mashupFee}
-                                onChange={e => setMashupFee(e.target.value)}
-                                className={cn(
-                                    'h-11 rounded-lg pr-9 text-base font-semibold bg-muted/50 ',
-                                    mashupMaxProfit > 0 && parseFloat(mashupFee) > mashupMaxProfit && 'border-red-400 text-red-600 ring-1 ring-red-200'
-                                )}
-                            />
-                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-semibold text-sm text-muted-foreground">%</span>
-                        </div>
-
-                        {mashupMaxProfit > 0 && parseFloat(mashupFee) > mashupMaxProfit && (
-                            <p className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                                <AlertCircle className="w-3.5 h-3.5" /> Exceeds maximum — clamped to {mashupMaxProfit.toFixed(2)}% on save.
-                            </p>
-                        )}
-
-                        {mashupFee && parseFloat(mashupFee) >= 0 && !(mashupMaxProfit > 0 && parseFloat(mashupFee) > mashupMaxProfit) && (
-                            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-100 dark:border-amber-800 text-xs">
-                                <p className="font-medium text-amber-900 dark:text-amber-200">
-                                    On a GHS 100 Mashup order you earn{' '}
-                                    <span className="font-bold text-amber-600">GHS {(parseFloat(mashupFee) || 0).toFixed(2)}</span>
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    <Button
-                        onClick={() => handleSaveSection('mashup')}
-                        disabled={savingSection === 'mashup'}
-                        className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white h-11 px-6 rounded-xl font-semibold gap-2"
-                    >
-                        {savingSection === 'mashup' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Mashup Profit
-                    </Button>
-                </div>
-            )}
-
-            {/* ════════════ AFA REGISTRATION ════════════ */}
-            {activeSection === 'afa' && (() => {
-                const valStr = afaSellingPrice
-                const finalSelling = parseFloat(valStr) || 0
-                const profit = valStr !== '' ? finalSelling - afaCost : null
-                const maxProfit = afaMaxProfit > 0 ? afaMaxProfit : Infinity
-                const valid = valStr === '' ? null : (profit !== null && profit > 0 && profit <= maxProfit)
-                // A sub-agent owner with no AFA pricing configured has no real cost to
-                // validate against — never let them save against a fabricated 0 floor.
-                const notAvailable = isSubAgentOwner && !afaConfigured
-                const saveDisabled = savingSection === 'afa' || notAvailable || (valStr !== '' && valid !== true)
-
-                return (
-                <div className="space-y-4 max-w-md">
-                    <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300">
-                        <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-                        <p>
-                            Type the full price you want to charge for an AFA registration — your profit is
-                            what's left after your cost. Saving a price turns AFA on for your storefront;
-                            clearing the field turns it off. You cannot sell below cost.
-                            {afaMaxProfit > 0 && <> Max profit per registration: <strong>GHS {afaMaxProfit.toFixed(2)}</strong>.</>}
-                        </p>
-                    </div>
-
-                    <div className={cn(
-                        'bg-card rounded-xl border p-4 shadow-sm space-y-3',
-                        valStr && valid === false ? 'border-red-400 bg-red-50/50 dark:border-red-900/40' :
-                            valStr && valid === true ? 'border-emerald-300' : ''
-                    )}>
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold">AFA Registration Price</p>
-                            {!notAvailable && (
-                                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                    Cost: {formatCurrency(afaCost)}
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="relative">
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-semibold text-xs text-muted-foreground">GHS</span>
-                            <Input
-                                type="number" inputMode="decimal" step="0.5" min="0"
-                                placeholder={`e.g. ${(afaCost + 2).toFixed(2)}`}
-                                value={afaSellingPrice}
-                                disabled={notAvailable}
-                                onChange={e => setAfaSellingPrice(e.target.value)}
-                                className={cn(
-                                    'h-11 rounded-lg pl-11 text-base font-semibold',
-                                    valStr && valid === false ? 'border-red-500 bg-red-50 text-red-900 dark:bg-red-950/20' :
-                                        valStr && valid === true ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' :
-                                            'bg-muted/50 '
-                                )}
-                            />
-                        </div>
-
-                        {/* Live profit readout */}
-                        {!notAvailable && (
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground font-medium">Profit</span>
-                                <span className={cn('font-semibold tabular-nums', valid === true ? 'text-emerald-600' : valid === false ? 'text-red-500' : 'text-muted-foreground')}>
-                                    {valStr && profit !== null ? `+${formatCurrency(profit)}` : '—'}
-                                </span>
-                            </div>
-                        )}
-
-                        {!notAvailable && valStr && valid === false && (
-                            <p className="text-xs text-red-600 font-semibold flex items-center gap-1">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                {profit !== null && profit <= 0
-                                    ? `Must be more than your cost of GHS ${afaCost.toFixed(2)}`
-                                    : `Max profit is GHS ${afaMaxProfit.toFixed(2)}`}
-                            </p>
-                        )}
-
-                        {(notAvailable || valStr === '') && (
-                            <p className="text-xs text-muted-foreground">AFA registration is currently off for your shop.</p>
-                        )}
-                    </div>
-
-                    <Button
-                        onClick={() => handleSaveSection('afa')}
-                        disabled={saveDisabled}
-                        className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white h-11 px-6 rounded-xl font-semibold gap-2 disabled:opacity-50"
-                    >
-                        {savingSection === 'afa' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save AFA Settings
-                    </Button>
-                </div>
-                )
-            })()}
-
-            {/* ── Mobile global save (floating) ── */}
-            <div className="fixed bottom-4 max-md:bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-4 right-4 z-40 sm:hidden">
-                <Button
-                    onClick={handleSubmitAll} disabled={saving}
-                    className="w-full h-12 rounded-xl font-semibold shadow-xl gap-2 clay clay-green"
-                >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    {saving ? 'Saving Everything...' : 'Save All & Go Live'}
-                </Button>
             </div>
 
-            {/* ── "Your Shop Is Live" completion modal ── */}
-            {showLiveModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-card rounded-2xl shadow-2xl border border-border p-6 max-w-md w-full space-y-5 animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
-                        <div className="text-center space-y-2">
-                            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                <PartyPopper className="w-8 h-8 text-emerald-600" />
-                            </div>
-                            <h2 className="text-lg font-bold">Your shop is fully set up! 🎉</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Customers can now buy from your storefront. Share your link to find your first customers.
-                            </p>
-                        </div>
+            {/* ── Mobile save-everything bar ── */}
+            <div className="fixed bottom-4 left-4 right-4 z-40 max-md:bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] sm:hidden">
+                <button type="button" onClick={handleSubmitAll} disabled={saving} className={cn(CLAY_GOLD, 'h-12 w-full shadow-xl')}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {saving ? 'Saving' : 'Save everything'}
+                </button>
+            </div>
 
-                        <div className="flex flex-col gap-2 bg-emerald-50/60 dark:bg-emerald-950/20 p-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                            <span className="text-xs font-mono text-emerald-800 dark:text-emerald-300 truncate px-2 py-1.5">{shopUrl}</span>
-                            <div className="flex gap-2">
-                                <Button onClick={copyLink} variant="secondary" size="sm" className="flex-1 h-9 bg-card text-emerald-600 gap-1.5 rounded-lg font-semibold">
-                                    {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy Link'}
-                                </Button>
-                                <a
-                                    className="flex-1"
-                                    href={`https://wa.me/?text=${encodeURIComponent(`🛍️ Buy affordable data bundles, airtime & vouchers from my shop: ${shopUrl}`)}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                >
-                                    <Button size="sm" className="w-full h-9 bg-[#25D366] hover:bg-[#1ebc57] text-white gap-1.5 rounded-lg font-semibold">
-                                        <MessageCircle className="w-3.5 h-3.5" /> Share on WhatsApp
-                                    </Button>
-                                </a>
-                            </div>
-                        </div>
+            {/* ── "Your shop is live" dialog ── */}
+            <Dialog open={showLiveModal} onOpenChange={setShowLiveModal}>
+                <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto rounded-3xl border-0 bg-neu">
+                    <DialogHeader className="items-center text-center">
+                        <span className="neu-inset flex h-14 w-14 items-center justify-center rounded-2xl text-brand-700 dark:text-brand-500">
+                            <PartyPopper className="h-7 w-7" />
+                        </span>
+                        <DialogTitle className="font-display text-xl">Your shop is open</DialogTitle>
+                        <DialogDescription>
+                            Customers can buy from your storefront now. Share your link to find your first buyers.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <div className="space-y-2">
-                            <p className="text-xs font-bold text-foreground">How to get more customers:</p>
-                            <ul className="space-y-1.5 text-xs text-muted-foreground">
-                                <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Share your link in WhatsApp groups and your status daily.</li>
-                                <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Keep your prices slightly below local competitors.</li>
-                                <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Post your storefront notice with promos to returning buyers.</li>
-                                <li className="flex gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" /> Respond fast on WhatsApp — speed builds trust and repeat sales.</li>
-                            </ul>
-                        </div>
-
+                    <div className="neu-inset flex flex-col gap-2 rounded-2xl p-2">
+                        <span className="truncate px-2 py-1.5 font-mono text-xs text-muted-foreground">{shopUrl}</span>
                         <div className="flex gap-2">
-                            <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
-                                <Button variant="outline" className="w-full gap-1.5 font-semibold">
-                                    <ExternalLink className="w-4 h-4" /> View Storefront
-                                </Button>
+                            <button type="button" onClick={copyLink} className="clay-silver inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-bold">
+                                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Copied' : 'Copy link'}
+                            </button>
+                            <a
+                                className="clay-black inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-bold"
+                                href={`https://wa.me/?text=${encodeURIComponent(`Buy affordable data bundles, airtime and vouchers from my shop: ${shopUrl}`)}`}
+                                target="_blank" rel="noopener noreferrer"
+                            >
+                                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                             </a>
-                            <Button className="flex-1 font-semibold clay clay-green" onClick={() => setShowLiveModal(false)}>
-                                Done
-                            </Button>
                         </div>
                     </div>
-                </div>
-            )}
+
+                    <div className="space-y-2">
+                        <p className="text-xs font-semibold">Ways to get your first sales</p>
+                        <ul className="space-y-1.5 text-xs text-muted-foreground">
+                            {[
+                                'Post your link in WhatsApp groups and on your status every day.',
+                                'Keep your prices a little below the shops around you.',
+                                'Use your storefront notice to announce promos.',
+                                'Reply fast on WhatsApp. Speed brings people back.',
+                            ].map(t => (
+                                <li key={t} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand-700 dark:text-brand-500" /> {t}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="clay-silver inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold">
+                            <ExternalLink className="h-4 w-4" /> View shop
+                        </a>
+                        <button type="button" className="clay-gold inline-flex h-11 flex-1 items-center justify-center rounded-2xl text-sm font-bold" onClick={() => setShowLiveModal(false)}>
+                            Done
+                        </button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
