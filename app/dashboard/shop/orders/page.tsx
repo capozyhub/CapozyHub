@@ -1,16 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
     ShoppingCart, Clock, CheckCircle2, XCircle, TrendingUp,
-    Search, ArrowLeft, AlertCircle, RefreshCcw, MessageSquare, Loader2, FileText, Coins, Smartphone, Hourglass, RefreshCw, AlertTriangle, IdCard, Ban, Zap
+    Search, ArrowLeft, AlertCircle, RefreshCcw, MessageSquare, FileText, Coins, Smartphone, Hourglass, RefreshCw, AlertTriangle, IdCard, Ban, Zap, Inbox
 } from 'lucide-react'
 
 // Mashup orders share airtime's shape (package_id == null); distinguish by
@@ -87,16 +85,21 @@ interface ShopFees {
 const effectiveStatus = (order: ShopOrder) => order.orders?.[0]?.status || order.status
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-    pending: { label: 'Pending', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400', icon: Clock },
-    queued: { label: 'Queued', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400', icon: Hourglass },
-    processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Clock },
-    completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
-    failed: { label: 'Failed', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
-    refunded: { label: 'Refunded', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', icon: AlertCircle },
+    pending: { label: 'Pending', color: 'bg-brand-500/15 text-brand-700 dark:text-brand-500', icon: Clock },
+    queued: { label: 'Queued', color: 'bg-brand-500/15 text-brand-700 dark:text-brand-500', icon: Hourglass },
+    processing: { label: 'Processing', color: 'bg-brand-500/15 text-brand-700 dark:text-brand-500', icon: Clock },
+    completed: { label: 'Delivered', color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', icon: CheckCircle2 },
+    failed: { label: 'Failed', color: 'bg-red-500/15 text-red-600 dark:text-red-400', icon: XCircle },
+    refunded: { label: 'Refunded', color: 'bg-foreground/10 text-muted-foreground', icon: AlertCircle },
     // afa_orders.status also includes 'cancelled' (no shop_orders/RC equivalent) —
     // without this entry it would silently fall through to the raw string label.
-    cancelled: { label: 'Cancelled', color: 'bg-muted text-foreground/80 dark:bg-muted/40 ', icon: Ban },
+    cancelled: { label: 'Cancelled', color: 'bg-foreground/10 text-muted-foreground', icon: Ban },
 }
+
+const PILL = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold'
+const ACTION_BTN = 'inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60'
+const SELECT = 'well h-10 shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500'
+const prettyStatus = (s: string) => s.replace(/_/g, ' ')
 
 // Trimmed to exactly the columns this page reads from shop_orders_effective
 // (see the order-card JSX and effectiveStatus/isRetryable below) instead of
@@ -127,16 +130,18 @@ interface VoucherStatsRow {
 }
 
 export default function ShopOrdersPage() {
-    const { dbUser, isAdmin, isSubAdmin } = useAuth()
-    const router = useRouter()
+    const { dbUser } = useAuth()
+    // Drops responses from superseded requests so fast filter/tab/page changes can't
+    // let an older, slower query overwrite the list and stats of the newer one.
+    const fetchSeq = useRef(0)
 
     // Data state
-    const [orders, setOrders] = useState<ShopOrder[]>([])
-    const [totalCount, setTotalCount] = useState(0)
+    const [orders, setOrdersState] = useState<ShopOrder[]>([])
+    const [totalCount, setTotalCountState] = useState(0)
     const [page, setPage] = useState(1)
     const [shopId, setShopId] = useState<string | null>(null)
-    const [initialLoading, setInitialLoading] = useState(true)
-    const [loading, setLoading] = useState(true)
+    const [initialLoading, setInitialLoadingState] = useState(true)
+    const [loading, setLoadingState] = useState(true)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [fees, setFees] = useState<ShopFees>({ mtn: 0, telecel: 0, at: 0 })
     const [hasNoRcMargin, setHasNoRcMargin] = useState(false)
@@ -153,7 +158,7 @@ export default function ShopOrdersPage() {
     const [debouncedSearchPhone, setDebouncedSearchPhone] = useState('')
 
     // Stats — computed server-side across the full filtered set (not just this page).
-    const [stats, setStats] = useState({ total: 0, pending: 0, queued: 0, processing: 0, completed: 0, refunded: 0, revenue: 0, profit: 0 })
+    const [stats, setStatsState] = useState({ total: 0, pending: 0, queued: 0, processing: 0, completed: 0, refunded: 0, revenue: 0, profit: 0 })
 
     // Complaint state
     const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null)
@@ -190,8 +195,8 @@ export default function ShopOrdersPage() {
 
             if (shopErr || !shopData) {
                 setShopId(null)
-                setInitialLoading(false)
-                setLoading(false)
+                setInitialLoadingState(false)
+                setLoadingState(false)
                 return
             }
 
@@ -236,6 +241,13 @@ export default function ShopOrdersPage() {
     }
 
     const fetchOrders = async (pageNum: number = page) => {
+        const seq = ++fetchSeq.current
+        const guard = <T,>(fn: (v: T) => void) => (v: T) => { if (seq === fetchSeq.current) fn(v) }
+        const setOrders = guard(setOrdersState)
+        const setTotalCount = guard(setTotalCountState)
+        const setLoading = guard(setLoadingState)
+        const setInitialLoading = guard(setInitialLoadingState)
+        const setStats = guard(setStatsState)
         if (!shopId) {
             setOrders([])
             setTotalCount(0)
@@ -500,9 +512,10 @@ export default function ShopOrdersPage() {
             }
         } catch (err) {
             console.error('Error fetching orders:', err)
-            toast.error('Failed to load orders')
+            if (seq === fetchSeq.current) toast.error('Could not load your orders. Check your connection and try again.')
             setOrders([])
             setTotalCount(0)
+            setStats({ total: 0, pending: 0, queued: 0, processing: 0, completed: 0, refunded: 0, revenue: 0, profit: 0 })
         } finally {
             setLoading(false)
             setInitialLoading(false)
@@ -546,11 +559,15 @@ export default function ShopOrdersPage() {
             toast.success('Complaint submitted successfully')
 
             // Optimistic Update: Add the complaint to the local state
-            setOrders(prevOrders => prevOrders.map(o => {
+            // Keep the mirror's status/retry fields — replacing the whole entry made the
+            // row's status fall back to the stale shop_orders status until the next refetch.
+            setOrdersState(prevOrders => prevOrders.map(o => {
                 if (o.id === selectedOrder.id) {
+                    const current = o.orders?.[0]
                     return {
                         ...o,
                         orders: [{
+                            ...(current ?? {}),
                             id: mirror.id,
                             complaints: [newComplaint]
                         }]
@@ -709,137 +726,154 @@ export default function ShopOrdersPage() {
 
     const hasNoAirtimeFees = fees.mtn === 0 && fees.telecel === 0 && fees.at === 0
 
+    // One label/icon source for every layout, so a row can never read differently on
+    // phone and desktop (mashup bundles used to show as "Airtime" on phones).
+    const describeOrder = (order: ShopOrder): { icon: React.ReactNode; label: string } => {
+        const ic = 'h-3.5 w-3.5 flex-shrink-0 text-brand-700 dark:text-brand-500'
+        if (order.is_utility) return { icon: <Coins className={ic} />, label: `${order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · ${order.type_name ?? ''}` }
+        if (order.is_rc) return { icon: <FileText className={ic} />, label: `${order.quantity}x ${order.type_name}` }
+        if (order.is_afa) return { icon: <IdCard className={ic} />, label: 'AFA registration' }
+        if (order.package_id == null && isMashupOrder(order.package_size)) return { icon: <Zap className={ic} />, label: 'MTN Mashup bundle' }
+        if (order.package_id == null) return { icon: <RefreshCcw className={ic} />, label: `${order.network ?? ''} airtime` }
+        return { icon: <ShoppingCart className={ic} />, label: `${order.network} ${order.package_size}` }
+    }
+
+    const TABS = [
+        { id: 'all', label: 'All', icon: TrendingUp },
+        { id: 'data', label: 'Data', icon: ShoppingCart },
+        { id: 'airtime', label: 'Airtime', icon: RefreshCcw },
+        { id: 'vouchers', label: 'Vouchers', icon: FileText },
+        { id: 'afa', label: 'AFA', icon: IdCard },
+        { id: 'utility', label: 'Bills', icon: Coins },
+    ] as const
+
     if (initialLoading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="space-y-5" aria-busy="true" aria-label="Loading your orders">
+                <div className="neu-raised-sm h-20 rounded-3xl" />
+                <div className="neu-raised-sm h-14 rounded-2xl" />
+                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+                    {[0, 1, 2, 3].map(i => <div key={i} className="neu-raised-sm h-20 rounded-2xl" />)}
+                </div>
+                <div className="neu-raised-sm h-96 rounded-3xl" />
             </div>
         )
     }
 
+    const profitLabel = (activeTab === 'vouchers' || activeTab === 'utility') ? 'Commission' : 'Profit'
+    const statTiles = [
+        { label: 'Orders', value: String(stats.total), icon: ShoppingCart, tone: 'text-brand-700 dark:text-brand-500' },
+        { label: 'In progress', value: String(stats.pending + stats.queued + stats.processing), icon: Clock, tone: 'text-brand-700 dark:text-brand-500' },
+        { label: 'Delivered', value: String(stats.completed), icon: CheckCircle2, tone: 'text-emerald-600 dark:text-emerald-400' },
+        { label: 'Refunded', value: String(stats.refunded), icon: AlertCircle, tone: 'text-muted-foreground' },
+        { label: 'Sales', value: formatCurrency(stats.revenue), icon: TrendingUp, tone: 'text-brand-700 dark:text-brand-500' },
+        { label: profitLabel, value: formatCurrency(stats.profit), icon: activeTab === 'vouchers' || activeTab === 'utility' ? Coins : TrendingUp, tone: 'text-emerald-600 dark:text-emerald-400' },
+    ]
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <Link href="/dashboard/shop">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <ShoppingCart className="w-6 h-6 text-emerald-600" />
-                        Shop Orders
-                    </h1>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="gap-2"
+        <div className="space-y-5 pb-20 md:pb-6">
+            <header className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                    <Link
+                        href="/dashboard/shop"
+                        aria-label="Back to your shop"
+                        className="neu-raised-sm neu-press flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                        <RefreshCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-                        Refresh
-                    </Button>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                    <div className="min-w-0">
+                        <h1 className="font-display text-2xl font-bold leading-tight">Orders</h1>
+                        <p className="truncate text-sm text-muted-foreground">Everything your customers have bought from your shop.</p>
+                    </div>
                 </div>
+                <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className={cn(ACTION_BTN, 'clay-silver h-11 flex-shrink-0 rounded-2xl px-4 text-sm')}
+                >
+                    <RefreshCcw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+                    <span className="hidden sm:inline">Refresh</span>
+                </button>
+            </header>
+
+            {/* Tabs */}
+            <div role="tablist" aria-label="Order type" className="neu-inset flex w-full gap-1 overflow-x-auto rounded-2xl p-1.5 sm:w-fit">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                            'flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex-none',
+                            activeTab === tab.id ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                    >
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
-            {/* Tabs & Filters Section */}
-            <div className="space-y-4">
-                {/* Tabs */}
-                <div className="flex p-1 bg-muted rounded-xl w-full sm:w-fit border shadow-sm overflow-x-auto">
-                    {([
-                        { id: 'all', label: 'All', icon: TrendingUp, active: 'text-emerald-600' },
-                        { id: 'data', label: 'Data', icon: ShoppingCart, active: 'text-emerald-600' },
-                        { id: 'airtime', label: 'Airtime', icon: RefreshCcw, active: 'text-purple-600' },
-                        { id: 'vouchers', label: 'Vouchers', icon: FileText, active: 'text-amber-600' },
-                        { id: 'afa', label: 'AFA', icon: IdCard, active: 'text-teal-600' },
-                        { id: 'utility', label: 'Utility Bills', icon: Coins, active: 'text-brand-700' },
-                    ] as const).map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "flex-1 sm:flex-none px-4 sm:px-5 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap",
-                                activeTab === tab.id ? cn("bg-card shadow-sm", tab.active) : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
-                        </button>
-                    ))}
+            {activeTab === 'airtime' && hasNoAirtimeFees && (
+                <div className="neu-raised-sm flex flex-col items-start gap-3 rounded-3xl p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                        <span className="neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-brand-700 dark:text-brand-500"><AlertCircle className="h-5 w-5" /></span>
+                        <div>
+                            <h2 className="font-display text-sm font-semibold">You are not earning on airtime yet</h2>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">Customers can still buy airtime from you, but with no fee set you keep nothing from these sales.</p>
+                        </div>
+                    </div>
+                    <Link href="/dashboard/shop/pricing" className="clay-gold inline-flex h-10 flex-shrink-0 items-center rounded-xl px-4 text-xs font-bold">Set my airtime fees</Link>
+                </div>
+            )}
+
+            {activeTab === 'vouchers' && hasNoRcMargin && (
+                <div className="neu-raised-sm flex flex-col items-start gap-3 rounded-3xl p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                        <span className="neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-brand-700 dark:text-brand-500"><Coins className="h-5 w-5" /></span>
+                        <div>
+                            <h2 className="font-display text-sm font-semibold">You are not earning on vouchers yet</h2>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">Customers can still buy results checker vouchers, but with no margin set you keep nothing from these sales.</p>
+                        </div>
+                    </div>
+                    <Link href="/dashboard/shop/pricing" className="clay-gold inline-flex h-10 flex-shrink-0 items-center rounded-xl px-4 text-xs font-bold">Set my margin</Link>
+                </div>
+            )}
+
+            {/* Filters */}
+            <div className="neu-raised-sm space-y-3 rounded-3xl p-4">
+                <div className="relative">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Find an order by phone number"
+                        title="Search by phone number"
+                        aria-label="Search by phone number"
+                        inputMode="tel"
+                        value={searchPhone}
+                        onChange={(e) => setSearchPhone(e.target.value)}
+                        className="well h-11 rounded-xl border-0 bg-transparent pl-10 shadow-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-0"
+                    />
                 </div>
 
-                {/* Airtime Warning Banner */}
-                {activeTab === 'airtime' && hasNoAirtimeFees && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-purple-50 border border-purple-100 dark:bg-purple-900/10 dark:border-purple-900/20">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
-                                <AlertCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-purple-900 dark:text-purple-100 uppercase tracking-tight">No Profit Gained</h3>
-                                <p className="text-xs text-purple-700 dark:text-purple-400">You haven't set any airtime fees yet. Customers can still buy airtime, but you won't earn any commission on these orders.</p>
-                            </div>
-                        </div>
-                        <Link href="/dashboard/shop/pricing">
-                            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white gap-2 shadow-lg shadow-purple-200 dark:shadow-none whitespace-nowrap">
-                                Set Fees & Start Earning
-                            </Button>
-                        </Link>
-                    </div>
-                )}
-
-                {/* Vouchers Warning Banner — only when NO margin is set anywhere */}
-                {activeTab === 'vouchers' && hasNoRcMargin && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-amber-50 border border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                                <Coins className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100 uppercase tracking-tight">No Profit Gained</h3>
-                                <p className="text-xs text-amber-700 dark:text-amber-400">You haven&apos;t set any Results Checker margin yet. Customers can still buy vouchers, but you won&apos;t earn any profit on these orders.</p>
-                            </div>
-                        </div>
-                        <Link href="/dashboard/shop/pricing">
-                            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-2 whitespace-nowrap">
-                                Set Margin &amp; Start Earning
-                            </Button>
-                        </Link>
-                    </div>
-                )}
-
-                <div className="space-y-3 bg-muted/30 p-4 rounded-xl border">
-                    {/* Search */}
-                    <div className="relative w-full lg:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search phone number..."
-                            title="Search phone number"
-                            aria-label="Search phone number"
-                            value={searchPhone}
-                            onChange={(e) => setSearchPhone(e.target.value)}
-                            className="pl-9 h-9 bg-background"
-                        />
-                    </div>
-
-                    {/* Date Filter — own row */}
-                    <div className="flex bg-muted rounded-lg p-1 w-full lg:w-fit overflow-x-auto">
-                        {[
+                <div className="flex flex-wrap items-center gap-2">
+                    <div role="group" aria-label="Time range" className="neu-inset flex rounded-xl p-1">
+                        {([
                             { id: 'today', label: 'Today' },
-                            { id: '7d', label: '7 Days' },
-                            { id: '30d', label: '30 Days' },
-                            { id: 'all', label: 'All' },
-                        ].map((f) => (
+                            { id: '7d', label: '7 days' },
+                            { id: '30d', label: '30 days' },
+                            { id: 'all', label: 'All time' },
+                        ] as const).map((f) => (
                             <button
                                 key={f.id}
-                                onClick={() => setFilterDate(f.id as any)}
+                                type="button"
+                                aria-pressed={filterDate === f.id}
+                                onClick={() => setFilterDate(f.id)}
                                 className={cn(
-                                    "flex-1 lg:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
-                                    filterDate === f.id ? "bg-card shadow-sm text-emerald-600" : "text-muted-foreground hover:text-foreground"
+                                    'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                                    filterDate === f.id ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
                                 {f.label}
@@ -847,423 +881,164 @@ export default function ShopOrdersPage() {
                         ))}
                     </div>
 
-                    {/* Network + Status + Source Filters — own row */}
-                    <div className="flex w-full overflow-x-auto gap-2">
-                        {/* Network Filter — hidden on vouchers/afa tabs; utility tab shows a biller select instead */}
-                        {activeTab === 'utility' ? (
+                    {activeTab === 'utility' ? (
                         <select
-                            title="Filter by Biller"
-                            aria-label="Filter by Biller"
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
+                            title="Filter by biller"
+                            aria-label="Filter by biller"
+                            className={SELECT}
                             value={utilityBillerFilter}
                             onChange={(e) => setUtilityBillerFilter(e.target.value as any)}
                         >
-                            <option value="all">All Billers</option>
+                            <option value="all">All billers</option>
                             {UTILITY_BILLER_KEYS.map((b) => (
                                 <option key={b} value={b}>{UTILITY_BILLERS[b].label}</option>
                             ))}
                         </select>
-                        ) : activeTab !== 'vouchers' && activeTab !== 'afa' && (
+                    ) : activeTab !== 'vouchers' && activeTab !== 'afa' && (
                         <select
-                            title="Filter by Network"
-                            aria-label="Filter by Network"
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
+                            title="Filter by network"
+                            aria-label="Filter by network"
+                            className={SELECT}
                             value={filterNetwork}
                             onChange={(e) => setFilterNetwork(e.target.value)}
                         >
-                            <option value="all">All Networks</option>
+                            <option value="all">All networks</option>
                             <option value="mtn">MTN</option>
                             <option value="telecel">Telecel</option>
-                            <option value="at">AT</option>
+                            <option value="at">AirtelTigo</option>
                         </select>
+                    )}
+
+                    <select
+                        title="Filter by status"
+                        aria-label="Filter by status"
+                        className={SELECT}
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="all">Any status</option>
+                        <option value="pending">Pending</option>
+                        {activeTab !== 'afa' && <option value="queued">Queued</option>}
+                        <option value="processing">Processing</option>
+                        <option value="completed">Delivered</option>
+                        {activeTab === 'afa' ? (
+                            <option value="cancelled">Cancelled</option>
+                        ) : (
+                            <>
+                                <option value="failed">Failed</option>
+                                <option value="refunded">Refunded</option>
+                            </>
                         )}
-
-                        {/* Status Filter */}
-                        <select
-                            title="Filter by Status"
-                            aria-label="Filter by Status"
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            {activeTab !== 'afa' && <option value="queued">Queued</option>}
-                            <option value="completed">Completed</option>
-                            <option value="processing">Processing</option>
-                            {activeTab === 'afa' ? (
-                                <option value="cancelled">Cancelled</option>
-                            ) : (
-                                <>
-                                    <option value="failed">Failed</option>
-                                    <option value="refunded">Refunded</option>
-                                </>
-                            )}
-                        </select>
-
-                    </div>
+                    </select>
                 </div>
             </div>
 
-            {/* Stats Cards — compact */}
-            <div className="grid grid-cols-3 lg:grid-cols-8 gap-2">
-                {[
-                    { label: 'Orders', value: stats.total, icon: ShoppingCart, color: 'text-brand-700' },
-                    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-yellow-600' },
-                    { label: 'Queued', value: stats.queued, icon: Hourglass, color: 'text-brand-700' },
-                    { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-orange-600' },
-                    { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600' },
-                    { label: 'Refunded', value: stats.refunded, icon: AlertCircle, color: 'text-purple-600' },
-                    { label: 'Revenue', value: formatCurrency(stats.revenue), icon: TrendingUp,
-                        color: activeTab === 'airtime' ? 'text-purple-600' : activeTab === 'vouchers' ? 'text-amber-600' : 'text-emerald-600' },
-                    { label: (activeTab === 'vouchers' || activeTab === 'utility') ? 'Commission' : 'Profit', value: formatCurrency(stats.profit), icon: (activeTab === 'vouchers' || activeTab === 'utility') ? Coins : TrendingUp,
-                        color: activeTab === 'airtime' ? 'text-purple-600' : activeTab === 'vouchers' ? 'text-amber-600' : 'text-emerald-600' },
-                ].map((stat) => (
-                    <Card key={stat.label} className="border shadow-sm rounded-xl">
-                        <CardContent className="p-3">
-                            <div className="flex items-center gap-1.5 mb-1">
-                                <stat.icon className={cn('w-3.5 h-3.5', stat.color)} />
-                                <p className="text-[11px] text-muted-foreground font-medium">{stat.label}</p>
-                            </div>
-                            <p className="text-sm sm:text-base font-bold tabular-nums truncate">{stat.value}</p>
-                        </CardContent>
-                    </Card>
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+                {statTiles.map(({ label, value, icon: Icon, tone }) => (
+                    <div key={label} className="neu-raised-sm rounded-2xl p-3.5">
+                        <div className="mb-1 flex items-center gap-1.5">
+                            <Icon className={cn('h-3.5 w-3.5', tone)} />
+                            <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+                        </div>
+                        <p className="truncate text-base font-bold tabular-nums">{value}</p>
+                    </div>
                 ))}
             </div>
 
-            {/* Orders List & Table */}
-            <Card>
-                <CardHeader className="p-4 border-b">
-                    <CardTitle className="text-base">Order History</CardTitle>
-                </CardHeader>
+            {/* Orders */}
+            <section aria-label="Order history" className="neu-raised-sm rounded-3xl p-4 sm:p-5">
+                <h2 className="font-display text-lg font-semibold">Order history</h2>
 
-                <CardContent className="p-0">
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b text-xs text-muted-foreground bg-muted/50 dark:bg-card/50">
-                                    <th className="text-left px-4 py-3 font-medium">Date</th>
-                                    <th className="text-left px-4 py-3 font-medium">Customer</th>
-                                    <th className="text-left px-4 py-3 font-medium">Package</th>
-                                    <th className="text-right px-4 py-3 font-medium">Price</th>
-                                    <th className="text-right px-4 py-3 font-medium">Profit</th>
-                                    <th className="text-center px-4 py-3 font-medium">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={6} className="text-center py-10">
-                                            <Loader2 className="w-6 h-6 mx-auto text-muted-foreground animate-spin" />
-                                        </td>
-                                    </tr>
-                                ) : orders.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="text-center py-10 text-muted-foreground">
-                                            No orders found matching your filters.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    orders.map((order) => {
-                                        const displayStatus = effectiveStatus(order)
-                                        const StatusIcon = statusConfig[displayStatus]?.icon || Clock
-                                        return (
-                                            <tr key={order.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                                                <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                                                    {new Date(order.created_at).toLocaleDateString()}
-                                                    <br />
-                                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </td>
-                                                <td className="px-4 py-3 font-mono text-xs">{order.guest_phone}</td>
-                                                <td className="px-4 py-3 text-xs font-medium">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        {order.is_utility ? (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Coins className="w-3 h-3 text-brand-700" />
-                                                                {order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · {order.type_name}
-                                                            </span>
-                                                        ) : order.is_rc ? (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <TrendingUp className="w-3 h-3 text-amber-600" />
-                                                                {order.quantity}x {order.type_name}
-                                                            </span>
-                                                        ) : order.is_afa ? (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <IdCard className="w-3 h-3 text-teal-600" />
-                                                                AFA Registration
-                                                            </span>
-                                                        ) : order.package_id == null && isMashupOrder(order.package_size) ? (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Zap className="w-3 h-3 text-amber-500 fill-current" />
-                                                                MTN Mashup Bundle
-                                                            </span>
-                                                        ) : order.package_id == null ? (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <RefreshCcw className="w-3 h-3 text-purple-600" />
-                                                                {order.network} Airtime
-                                                            </span>
-                                                        ) : (
-                                                            <span>{order.network} {order.package_size}</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-medium">{formatCurrency(order.selling_price)}</td>
-                                                <td className="px-4 py-3 text-right text-emerald-600 font-semibold">
-                                                    {order.status === 'failed' ? <span className="text-muted-foreground">—</span> : formatCurrency(order.profit)}
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <span className={cn(
-                                                            'inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full',
-                                                            statusConfig[displayStatus]?.color || 'bg-muted text-muted-foreground'
-                                                        )}>
-                                                            <StatusIcon className="w-3 h-3" />
-                                                            {statusConfig[displayStatus]?.label || displayStatus}
-                                                        </span>
-
-                                                        {(() => {
-                                                            const retryTag = getRetryTag(order.orders?.[0] || {})
-                                                            const selfCompletedTag = getSelfCompletedTag(order.orders?.[0] || {})
-                                                            const tag = selfCompletedTag || retryTag
-                                                            return tag ? (
-                                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase ${tag.badge}`}>
-                                                                    {tag.label}
-                                                                </span>
-                                                            ) : null
-                                                        })()}
-
-                                                        {/* Complaint Status, Retry Button, Confirm Received, or Complain Button */}
-                                                        {(() => {
-                                                            const orderComplaints = order.is_rc ? (order.rc_complaints || []) : (order.orders?.[0]?.complaints || [])
-                                                            if (orderComplaints.length > 0) {
-                                                                const complaintStatus = orderComplaints[0].status
-                                                                return (
-                                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800">
-                                                                        <MessageSquare className="w-2.5 h-2.5" />
-                                                                        <span className="text-[9px] font-bold uppercase">
-                                                                            Complaint: {complaintStatus.replace('_', ' ')}
-                                                                        </span>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                            if (isRetryable(order)) {
-                                                                return (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 px-2 text-[10px] text-brand-700 hover:text-brand-700 hover:bg-brand-50"
-                                                                        onClick={() => handleRetry(order)}
-                                                                    >
-                                                                        <RefreshCw className="w-3 h-3 mr-1" />
-                                                                        Retry
-                                                                    </Button>
-                                                                )
-                                                            }
-                                                            if (isShopConfirmReceivedEligible(order)) {
-                                                                return (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 px-2 text-[10px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                                                        onClick={() => handleConfirmReceived(order)}
-                                                                    >
-                                                                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                                        Confirm Received
-                                                                    </Button>
-                                                                )
-                                                            }
-                                                            if (order.status === 'completed' && !order.is_rc && !order.is_afa && !order.is_utility && isWithin48Hours(order.created_at)) {
-                                                                return (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="h-6 px-2 text-[10px] text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                                                                        onClick={() => {
-                                                                            setSelectedOrder(order)
-                                                                            setComplaintDescription('')
-                                                                        }}
-                                                                    >
-                                                                        <MessageSquare className="w-3 h-3 mr-1" />
-                                                                        Complain
-                                                                    </Button>
-                                                                )
-                                                            }
-                                                            return null
-                                                        })()}
-
-                                                        {!order.is_rc && !order.is_afa && !order.is_utility && isMomoLookupEligible({ status: effectiveStatus(order) }) && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="h-6 px-2 text-[10px] text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                                                                onClick={() => { setMomoOrderId(order.id); setMomoModalOpen(true) }}
-                                                            >
-                                                                <Smartphone className="w-3 h-3 mr-1" />
-                                                                View MoMo
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                {loading ? (
+                    <div className="mt-3 space-y-3" aria-busy="true" aria-label="Loading orders">
+                        {[0, 1, 2, 3].map(i => <div key={i} className="neu-inset h-16 rounded-2xl" />)}
                     </div>
+                ) : orders.length === 0 ? (
+                    <div className="mt-5 flex flex-col items-center gap-2 rounded-2xl py-10 text-center">
+                        <span className="neu-inset flex h-12 w-12 items-center justify-center rounded-2xl text-muted-foreground"><Inbox className="h-5 w-5" /></span>
+                        <p className="text-sm font-medium">No orders match these filters</p>
+                        <p className="text-xs text-muted-foreground">Try a longer time range or clear the search.</p>
+                    </div>
+                ) : (
+                    <ul className="mt-3 divide-y divide-border">
+                        {orders.map((order) => {
+                            const displayStatus = effectiveStatus(order)
+                            const st = statusConfig[displayStatus]
+                            const StatusIcon = st?.icon || Clock
+                            const { icon, label } = describeOrder(order)
+                            const tag = getSelfCompletedTag(order.orders?.[0] || {}) || getRetryTag(order.orders?.[0] || {})
+                            const orderComplaints = order.is_rc ? (order.rc_complaints || []) : (order.orders?.[0]?.complaints || [])
+                            const canMomo = !order.is_rc && !order.is_afa && !order.is_utility && isMomoLookupEligible({ status: displayStatus })
+                            const canComplain = displayStatus === 'completed' && !order.is_rc && !order.is_afa && !order.is_utility && isWithin48Hours(order.created_at)
+                            const when = new Date(order.created_at)
 
-                    {/* Mobile Card View */}
-                    <div className="md:hidden divide-y">
-                        {loading ? (
-                            <div className="text-center py-10">
-                                <Loader2 className="w-6 h-6 mx-auto text-muted-foreground animate-spin" />
-                            </div>
-                        ) : orders.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground">
-                                No orders found matching your filters.
-                            </div>
-                        ) : (
-                            orders.map((order) => {
-                                const displayStatus = order.orders?.[0]?.status || order.status
-                                const StatusIcon = statusConfig[displayStatus]?.icon || Clock
-                                return (
-                                    <div key={order.id} className="p-4 space-y-4 hover:bg-muted/30 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-bold text-sm flex items-center gap-2 flex-wrap">
-                                                    {order.is_utility ? (
-                                                        <><Coins className="w-3.5 h-3.5 text-brand-700" /> {order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · {order.type_name}</>
-                                                    ) : order.is_rc ? (
-                                                        <><TrendingUp className="w-3.5 h-3.5 text-amber-600" /> {order.quantity}x {order.type_name}</>
-                                                    ) : order.is_afa ? (
-                                                        <><IdCard className="w-3.5 h-3.5 text-teal-600" /> AFA Registration</>
-                                                    ) : order.package_id == null && isMashupOrder(order.package_size) ? (
-                                                        <><Zap className="w-3.5 h-3.5 text-amber-500 fill-current" /> MTN Mashup Bundle</>
-                                                    ) : order.order_type === 'airtime' || order.package_id == null ? (
-                                                        <><RefreshCcw className="w-3.5 h-3.5 text-purple-600" /> {order.network} Airtime</>
-                                                    ) : (
-                                                        <>{order.network} {order.package_size}</>
-                                                    )}
-                                                </p>
-                                                <p className="text-xs font-mono text-muted-foreground mt-0.5">{order.guest_phone}</p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <span className={cn(
-                                                    'inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full',
-                                                    statusConfig[displayStatus]?.color || 'bg-muted text-muted-foreground'
-                                                )}>
-                                                    <StatusIcon className="w-3 h-3" />
-                                                    {statusConfig[displayStatus]?.label || displayStatus}
-                                                </span>
-                                                {(() => {
-                                                    const retryTag = getRetryTag(order.orders?.[0] || {})
-                                                    const selfCompletedTag = getSelfCompletedTag(order.orders?.[0] || {})
-                                                    const tag = selfCompletedTag || retryTag
-                                                    return tag ? (
-                                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase ${tag.badge}`}>
-                                                            {tag.label}
-                                                        </span>
-                                                    ) : null
-                                                })()}
-                                            </div>
+                            return (
+                                <li key={order.id} className="py-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="flex items-center gap-2 text-sm font-semibold">
+                                                {icon}
+                                                <span className="truncate">{label}</span>
+                                            </p>
+                                            <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                                                {order.guest_phone} · {when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, {when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
                                         </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] uppercase text-muted-foreground font-medium">Date & Time</p>
-                                                <p className="text-xs">
-                                                    {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
-                                            </div>
-                                            <div className="space-y-1 text-right">
-                                                <p className="text-[10px] uppercase text-muted-foreground font-medium">Earnings</p>
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <span className="text-xs font-medium">{formatCurrency(order.selling_price)}</span>
-                                                    <span className="text-xs font-bold text-emerald-600">({formatCurrency(order.profit)})</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Area for Mobile */}
-                                        <div className="pt-2 space-y-2">
-                                            {(() => {
-                                                const orderComplaints = order.is_rc ? (order.rc_complaints || []) : (order.orders?.[0]?.complaints || [])
-                                                if (orderComplaints.length > 0) {
-                                                    const complaintStatus = orderComplaints[0].status
-                                                    return (
-                                                        <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800 w-full">
-                                                            <MessageSquare className="w-3.5 h-3.5" />
-                                                            <span className="text-[11px] font-bold uppercase tracking-wide">
-                                                                Complaint: {complaintStatus.replace('_', ' ')}
-                                                            </span>
-                                                        </div>
-                                                    )
-                                                }
-                                                if (isRetryable(order)) {
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="w-full h-9 text-xs text-brand-700 hover:text-brand-700 hover:bg-brand-50 border-brand-200 dark:border-brand-900"
-                                                            onClick={() => handleRetry(order)}
-                                                        >
-                                                            <RefreshCw className="w-3.5 h-3.5 mr-2" />
-                                                            Retry Order
-                                                        </Button>
-                                                    )
-                                                }
-                                                if (isShopConfirmReceivedEligible(order)) {
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="w-full h-9 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:border-emerald-900"
-                                                            onClick={() => handleConfirmReceived(order)}
-                                                        >
-                                                            <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                                                            Confirm Received
-                                                        </Button>
-                                                    )
-                                                }
-                                                if (order.status === 'completed' && !order.is_rc && !order.is_afa && !order.is_utility && isWithin48Hours(order.created_at)) {
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="w-full h-9 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 dark:border-orange-900"
-                                                            onClick={() => {
-                                                                setSelectedOrder(order)
-                                                                setComplaintDescription('')
-                                                            }}
-                                                        >
-                                                            <MessageSquare className="w-3.5 h-3.5 mr-2" />
-                                                            File a Complaint
-                                                        </Button>
-                                                    )
-                                                }
-                                                return null
-                                            })()}
-
-                                            {!order.is_rc && !order.is_afa && !order.is_utility && isMomoLookupEligible({ status: effectiveStatus(order) }) && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="w-full h-9 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200 dark:border-purple-900"
-                                                    onClick={() => { setMomoOrderId(order.id); setMomoModalOpen(true) }}
-                                                >
-                                                    <Smartphone className="w-3.5 h-3.5 mr-2" />
-                                                    View MoMo Details
-                                                </Button>
-                                            )}
+                                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                                            <span className="text-sm font-semibold tabular-nums">{formatCurrency(order.selling_price)}</span>
+                                            <span className="text-[11px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                                {displayStatus === 'failed' || displayStatus === 'refunded' ? <span className="text-muted-foreground">No profit</span> : `+${formatCurrency(order.profit)}`}
+                                            </span>
                                         </div>
                                     </div>
-                                )
-                            })
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+
+                                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                        <span className={cn(PILL, st?.color || 'bg-foreground/10 text-muted-foreground')}>
+                                            <StatusIcon className="h-3 w-3" />
+                                            {st?.label || prettyStatus(displayStatus)}
+                                        </span>
+                                        {tag && <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase ${tag.badge}`}>{tag.label}</span>}
+
+                                        {orderComplaints.length > 0 ? (
+                                            <span className={cn(PILL, 'neu-inset text-brand-700 dark:text-brand-500')}>
+                                                <MessageSquare className="h-3 w-3" /> Complaint: {prettyStatus(String(orderComplaints[0].status ?? 'open'))}
+                                            </span>
+                                        ) : isRetryable(order) ? (
+                                            <button type="button" onClick={() => handleRetry(order)} className={cn(ACTION_BTN, 'clay-gold h-8 px-3')}>
+                                                <RefreshCw className="h-3.5 w-3.5" /> Retry order
+                                            </button>
+                                        ) : isShopConfirmReceivedEligible(order) ? (
+                                            <button type="button" onClick={() => handleConfirmReceived(order)} className={cn(ACTION_BTN, 'clay-black h-8 px-3')}>
+                                                <CheckCircle2 className="h-3.5 w-3.5" /> Customer got it
+                                            </button>
+                                        ) : canComplain ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setSelectedOrder(order); setComplaintDescription('') }}
+                                                className={cn(ACTION_BTN, 'neu-raised-sm neu-press h-8 px-3 text-foreground')}
+                                            >
+                                                <MessageSquare className="h-3.5 w-3.5" /> Report a problem
+                                            </button>
+                                        ) : null}
+
+                                        {canMomo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setMomoOrderId(order.id); setMomoModalOpen(true) }}
+                                                className={cn(ACTION_BTN, 'neu-raised-sm neu-press h-8 px-3 text-foreground')}
+                                            >
+                                                <Smartphone className="h-3.5 w-3.5" /> MoMo details
+                                            </button>
+                                        )}
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                )}
+            </section>
+
 
             <PaginationControls
                 page={page}
@@ -1283,29 +1058,30 @@ export default function ShopOrdersPage() {
             <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>File a Complaint</DialogTitle>
+                        <DialogTitle className="font-display">Report a problem</DialogTitle>
                         <DialogDescription>
-                            Describe the issue for order to {selectedOrder?.guest_phone}
+                            Tell us what went wrong with the order to {selectedOrder?.guest_phone}.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        <div className="p-4 rounded-xl bg-muted/50 text-sm">
+                        <div className="neu-inset space-y-1 rounded-2xl p-4 text-sm">
                             <div className="flex justify-between">
-                                <span>Phone:</span>
+                                <span className="text-muted-foreground">Phone</span>
                                 <span className="font-mono">{selectedOrder?.guest_phone}</span>
                             </div>
-                            <div className="flex justify-between mt-1">
-                                <span>Package:</span>
-                                <span>{selectedOrder?.network} {selectedOrder?.package_size}</span>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Order</span>
+                                <span>{selectedOrder ? describeOrder(selectedOrder).label : ''}</span>
                             </div>
-                            <div className="flex justify-between mt-1">
-                                <span>Price:</span>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Price</span>
                                 <span>{formatCurrency(selectedOrder?.selling_price || 0)}</span>
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Issue Description</Label>
+                            <Label htmlFor="complaint-description">What happened?</Label>
                             <Textarea
+                                id="complaint-description"
                                 placeholder="Describe the problem your customer is facing..."
                                 value={complaintDescription}
                                 onChange={(e) => setComplaintDescription(e.target.value)}
@@ -1317,15 +1093,8 @@ export default function ShopOrdersPage() {
                         <Button variant="outline" onClick={() => setSelectedOrder(null)}>
                             Cancel
                         </Button>
-                        <Button onClick={submitComplaint} disabled={isSubmitting || !complaintDescription}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Submitting...
-                                </>
-                            ) : (
-                                'Submit Complaint'
-                            )}
+                        <Button onClick={submitComplaint} disabled={isSubmitting || !complaintDescription.trim()} className="clay-gold font-bold">
+                            {isSubmitting ? 'Sending…' : 'Send report'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1341,18 +1110,18 @@ export default function ShopOrdersPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
-                        <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
+                        <div className="neu-inset flex items-start gap-2 rounded-2xl p-3 text-sm text-amber-700 dark:text-amber-300">
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>Today&apos;s cost price will be charged to your Capozy Wallet — this may differ from what you originally paid. You&apos;ll see the exact amount charged once the retry succeeds.</span>
                         </div>
-                        <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
+                        <div className="neu-inset flex items-start gap-2 rounded-2xl p-3 text-sm text-brand-700 dark:text-brand-500">
                             <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>For MTN numbers, we recommend waiting 24 hours after a failed order before retrying, so the number can be verified into the MTN UP2U account.</span>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setRetryTarget(null)} disabled={retryBusy}>Cancel</Button>
-                        <Button onClick={submitRetry} disabled={retryBusy}>
+                        <Button onClick={submitRetry} disabled={retryBusy} className="clay-gold font-bold">
                             {retryBusy ? 'Retrying…' : 'Confirm retry'}
                         </Button>
                     </DialogFooter>
@@ -1373,7 +1142,7 @@ export default function ShopOrdersPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmTarget(null)} disabled={confirmBusy}>Cancel</Button>
-                        <Button onClick={submitConfirmReceived} disabled={confirmBusy}>
+                        <Button onClick={submitConfirmReceived} disabled={confirmBusy} className="clay-gold font-bold">
                             {confirmBusy ? 'Confirming…' : 'Yes, mark complete'}
                         </Button>
                     </DialogFooter>
