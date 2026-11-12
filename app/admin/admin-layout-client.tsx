@@ -139,7 +139,6 @@ export default function AdminLayoutClient({
                 onClose={handleCloseNotifications}
                 highlightedId={highlightedId}
                 onClearHighlight={clearHighlight}
-                onUnreadCountChange={setUnreadCount}
             />
         </div>
     )

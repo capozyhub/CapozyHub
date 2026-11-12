@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/lib/toast'
 import { Notification } from '@/types/supabase'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import {
     Bell,
-    BellOff,
     X,
     Check,
     Trash2,
@@ -34,7 +31,6 @@ interface NotificationModalProps {
     onClose: () => void
     highlightedId: string | null
     onClearHighlight: () => void
-    onUnreadCountChange?: (count: number) => void
 }
 
 // Notification icon + background are shared with the full notifications page
@@ -59,7 +55,6 @@ export function NotificationModal({
     onClose,
     highlightedId,
     onClearHighlight,
-    onUnreadCountChange,
 }: NotificationModalProps) {
     const { dbUser } = useAuth()
     const router = useRouter()
@@ -166,13 +161,12 @@ export function NotificationModal({
             const rows: Notification[] = data || []
             lastFetchedAtRef.current = Date.now()
             setNotifications(rows)
-            onUnreadCountChange?.(rows.filter(n => !n.is_read).length)
         } catch {
             toast.error('Failed to load notifications')
         } finally {
             setIsLoading(false)
         }
-    }, [dbUser, onUnreadCountChange])
+    }, [dbUser])
 
     // First open: show skeleton. Re-opens: show cached rows instantly, and only
     // hit the network again if they have actually gone stale (see REFETCH_STALE_MS).
@@ -209,10 +203,6 @@ export function NotificationModal({
         return () => { supabase.removeChannel(channel) }
     }, [dbUser, isOpen])
 
-    useEffect(() => {
-        onUnreadCountChange?.(notifications.filter(n => !n.is_read).length)
-    }, [notifications, onUnreadCountChange])
-
     // ── Highlight scroll ─────────────────────────────────────────────────────
     useEffect(() => {
         if (!highlightedId || isLoading) return
@@ -235,7 +225,8 @@ export function NotificationModal({
 
     // ── Actions ───────────────────────────────────────────────────────────────
     const markAsRead = async (id: string) => {
-        await (supabase.from('notifications') as any).update({ is_read: true }).eq('id', id)
+        const { error } = await (supabase.from('notifications') as any).update({ is_read: true }).eq('id', id)
+        if (error) { toast.error('Failed to mark as read'); return }
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
     }
 
@@ -265,7 +256,8 @@ export function NotificationModal({
 
     const deleteNotif = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation()
-        await (supabase.from('notifications') as any).delete().eq('id', id)
+        const { error } = await (supabase.from('notifications') as any).delete().eq('id', id)
+        if (error) { toast.error('Failed to delete notification'); return }
         setNotifications(prev => prev.filter(n => n.id !== id))
         toast.success('Notification deleted')
     }
@@ -321,24 +313,23 @@ export function NotificationModal({
                 aria-hidden="true"
             />
 
-            {/* Panel — semi-transparent, no blur */}
+            {/* Panel — neu-raised card, same material as the rest of the dashboard */}
             <div
                 ref={panelRef}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Notifications"
+                aria-label="What's new"
                 className={cn(
                     'fixed z-[51]',
                     isDragging ? '' : 'transition-[transform,opacity] duration-200 ease-out',
                     // Mobile: full-width bottom sheet
-                    'bottom-0 left-0 right-0 rounded-t-2xl',
+                    'bottom-0 left-0 right-0 rounded-t-[1.75rem]',
                     // Desktop: top-right drawer
-                    'sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto sm:w-[420px] sm:rounded-2xl',
+                    'sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto sm:w-[420px] sm:rounded-[1.75rem]',
                     isOpen
                         ? 'translate-y-0 opacity-100 sm:translate-y-0 pointer-events-auto'
                         : 'translate-y-full opacity-0 pointer-events-none sm:translate-y-[-12px]',
-                    'bg-card/95 border border-border/70',
-                    'shadow-xl',
+                    'neu-raised',
                     'max-h-[85dvh] sm:max-h-[80vh] flex flex-col',
                 )}
                 onTouchStart={handleTouchStart}
@@ -347,130 +338,124 @@ export function NotificationModal({
             >
                 {/* Drag handle — mobile bottom sheet only */}
                 <div className="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0">
-                    <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
                 </div>
 
                 {/* ── Header ───────────────────────────────────────────────── */}
-                <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/60 flex-shrink-0">
+                <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 flex-shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <div className="neu-inset w-8 h-8 rounded-full flex items-center justify-center">
                             <Bell className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <div>
-                            <h2 className="text-sm font-semibold text-foreground leading-tight">Notifications</h2>
-                            <p className="text-[11px] text-muted-foreground leading-tight">
-                                {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
-                            </p>
+                        <div className="flex items-center gap-2">
+                            <h2 className="font-display text-sm font-semibold text-foreground leading-tight">What&apos;s new</h2>
+                            {unreadCount > 0 && (
+                                <span className="clay-gold flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
                         </div>
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                        {unreadCount > 0 && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={markAllAsRead}
-                                disabled={markingAllRead}
-                                className="h-8 px-2.5 text-muted-foreground hover:text-foreground dark:hover:text-white text-xs gap-1"
-                            >
-                                {markingAllRead ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                <span>Mark all read</span>
-                            </Button>
-                        )}
-                        {notifications.length > 0 && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={deleteAll}
-                                disabled={deletingAll}
-                                className="h-8 px-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs gap-1"
-                            >
-                                {deletingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash className="w-3 h-3" />}
-                                <span>Clear all</span>
-                            </Button>
-                        )}
-                        <Button
-                            size="icon"
-                            variant="ghost"
+                        <button
+                            type="button"
                             onClick={() => { onClose(); router.push('/dashboard/notifications?tab=settings') }}
                             title="Notification settings"
-                            className="w-8 h-8 text-muted-foreground hover:text-foreground dark:hover:text-white flex-shrink-0"
+                            className="neu-raised-sm neu-press w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0"
                         >
                             <Settings className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            size="icon"
-                            variant="ghost"
+                        </button>
+                        <button
+                            type="button"
                             onClick={onClose}
-                            className="w-8 h-8 text-muted-foreground hover:text-foreground dark:hover:text-white flex-shrink-0"
+                            className="neu-raised-sm neu-press w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0"
                         >
                             <X className="w-4 h-4" />
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
-                {/* ── Filter tabs ──────────────────────────────────────────── */}
-                <div className="flex gap-1.5 px-4 sm:px-5 py-2.5 border-b border-border/60 flex-shrink-0">
-                    {(['all', 'unread'] as const).map(tab => (
-                        <button
-                            type="button"
-                            key={tab}
-                            onClick={() => setFilter(tab)}
-                            className={cn(
-                                'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                                filter === tab
-                                    ? 'bg-card text-white dark:text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted'
-                            )}
-                        >
-                            {tab === 'all' ? `All (${notifications.length})` : `Unread (${unreadCount})`}
-                        </button>
-                    ))}
+                {/* ── Filter tabs + quick actions ─────────────────────────── */}
+                <div className="flex items-center justify-between gap-2 px-4 sm:px-5 pb-2.5 flex-shrink-0">
+                    <div className="neu-inset flex items-center gap-1 rounded-xl p-1 w-fit">
+                        {(['all', 'unread'] as const).map(tab => (
+                            <button
+                                type="button"
+                                key={tab}
+                                onClick={() => setFilter(tab)}
+                                className={cn(
+                                    'px-3 py-1 rounded-lg text-xs font-semibold transition-colors',
+                                    filter === tab
+                                        ? 'neu-raised-sm text-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                )}
+                            >
+                                {tab === 'all' ? `Everything (${notifications.length})` : `Unread (${unreadCount})`}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {unreadCount > 0 && (
+                            <button type="button" onClick={markAllAsRead} disabled={markingAllRead}
+                                title="Mark everything read"
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-60">
+                                {markingAllRead ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                            </button>
+                        )}
+                        {notifications.length > 0 && (
+                            <button type="button" onClick={deleteAll} disabled={deletingAll}
+                                title="Clear everything"
+                                className="text-red-400 hover:text-red-600 disabled:opacity-60">
+                                {deletingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash className="w-3.5 h-3.5" />}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* ── Action prompts (push + install) — only when needed ────── */}
                 {(showPushPrompt || showInstallPrompt) && (
-                    <div className="flex flex-col gap-2 px-3 sm:px-4 pt-2.5 pb-1 flex-shrink-0">
+                    <div className="flex flex-col gap-2 px-3 sm:px-4 pt-1 pb-1 flex-shrink-0">
                         {showPushPrompt && (
-                            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-100 dark:border-brand-900/50">
+                            <div className="neu-inset flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center flex-shrink-0">
-                                        <Bell className="w-3.5 h-3.5 text-brand-700" />
+                                    <div className="clay-blue w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Bell className="w-3.5 h-3.5" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-brand-900 dark:text-brand-200 leading-tight truncate">Enable Notifications</p>
-                                        <p className="text-[10px] text-brand-700 dark:text-brand-400 leading-tight">Get real-time order updates</p>
+                                        <p className="text-xs font-semibold text-foreground leading-tight truncate">Never miss an update</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Instant pings the moment your order moves</p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={async () => { await requestPermission() }}
                                     disabled={isSubscribing}
-                                    className="flex-shrink-0 px-3 py-1 rounded-lg bg-brand-500 hover:bg-brand-600 text-black text-[11px] font-semibold transition-colors disabled:opacity-60"
+                                    className="clay-gold flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold disabled:opacity-60"
                                 >
-                                    {isSubscribing ? 'Enabling...' : 'Enable'}
+                                    {isSubscribing ? 'Turning on…' : 'Turn on'}
                                 </button>
                             </div>
                         )}
 
                         {showInstallPrompt && (
-                            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/50">
+                            <div className="neu-inset flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
-                                        <Download className="w-3.5 h-3.5 text-emerald-500" />
+                                    <div className="clay-green w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Download className="w-3.5 h-3.5" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-200 leading-tight truncate">Install the App</p>
-                                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-tight">Faster push notifications & offline access</p>
+                                        <p className="text-xs font-semibold text-foreground leading-tight truncate">Add Capozy Hub to your home screen</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Quicker alerts, even offline</p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleInstall}
                                     disabled={isInstalling}
-                                    className="flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors disabled:opacity-60 clay clay-green"
+                                    className="clay-green flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold disabled:opacity-60"
                                 >
-                                    {isInstalling ? 'Installing...' : 'Install'}
+                                    {isInstalling ? 'Adding…' : 'Add'}
                                 </button>
                             </div>
                         )}
@@ -482,23 +467,23 @@ export function NotificationModal({
                     {isLoading ? (
                         <div className="space-y-2 py-1">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 ">
-                                    <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+                                <div key={i} className="neu-raised-sm flex items-start gap-3 p-3 rounded-2xl">
+                                    <div className="neu-inset w-9 h-9 rounded-full flex-shrink-0" />
                                     <div className="flex-1 space-y-1.5">
-                                        <Skeleton className="h-3 w-3/4 rounded" />
-                                        <Skeleton className="h-3 w-full rounded" />
-                                        <Skeleton className="h-2.5 w-1/3 rounded" />
+                                        <div className="neu-inset h-3 w-3/4 rounded-full" />
+                                        <div className="neu-inset h-3 w-full rounded-full" />
+                                        <div className="neu-inset h-2.5 w-1/3 rounded-full" />
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
-                            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                            <div className="neu-inset w-14 h-14 rounded-full flex items-center justify-center">
                                 <Bell className="w-6 h-6 text-muted-foreground" />
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                                {filter === 'unread' ? "You've read everything" : 'Nothing here yet'}
                             </p>
                         </div>
                     ) : (
@@ -510,12 +495,8 @@ export function NotificationModal({
                                     id={`notif-${notif.id}`}
                                     onClick={() => handleNotifClick(notif)}
                                     className={cn(
-                                        'group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer',
-                                        'bg-card border border-border',
-                                        'transition-colors duration-150',
-                                        'hover:bg-muted/50 dark:hover:bg-muted',
-                                        !notif.is_read && 'border-l-[3px] border-l-blue-500',
-                                        isHighlighted && 'bg-brand-50 dark:bg-brand-950/40 border-l-[3px] border-l-blue-500'
+                                        'group relative flex items-start gap-3 p-3 rounded-2xl cursor-pointer neu-raised-sm neu-press transition-shadow',
+                                        isHighlighted && 'ring-2 ring-brand-400'
                                     )}
                                 >
                                     {/* Icon bubble */}
@@ -549,13 +530,13 @@ export function NotificationModal({
                                     )}
 
                                     {/* Actions — revealed on hover */}
-                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-card rounded-lg p-0.5 shadow-sm border border-border">
+                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 neu-raised-sm rounded-xl p-0.5">
                                         {!notif.is_read && (
                                             <button
                                                 type="button"
                                                 onClick={async (e) => { e.stopPropagation(); await markAsRead(notif.id) }}
                                                 title="Mark as read"
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/30 transition-colors"
+                                                className="w-6 h-6 flex items-center justify-center rounded-lg text-brand-700 hover:text-brand-800 transition-colors"
                                             >
                                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                             </button>
@@ -564,7 +545,7 @@ export function NotificationModal({
                                             type="button"
                                             onClick={(e) => deleteNotif(e, notif.id)}
                                             title="Delete"
-                                            className="w-6 h-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                                            className="w-6 h-6 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 transition-colors"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
@@ -575,17 +556,17 @@ export function NotificationModal({
                     )}
                 </div>
 
-                {/* ── Footer: see-all link + mobile drag handle ─────────────── */}
-                <div className="flex-shrink-0 border-t border-border/60">
+                {/* ── Footer: view-full-inbox button + mobile drag handle ───── */}
+                <div className="flex-shrink-0 px-3 sm:px-4 pb-3 pt-1">
                     <button
                         type="button"
                         onClick={() => { onClose(); router.push('/dashboard/notifications') }}
-                        className="w-full flex items-center justify-center gap-1 py-3 text-xs font-medium text-brand-700 dark:text-brand-400 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors"
+                        className="clay-silver w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold"
                     >
-                        See all notifications <ChevronRight className="w-3.5 h-3.5" />
+                        View full inbox <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                    <div className="flex justify-center pb-2.5 sm:hidden">
-                        <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                    <div className="flex justify-center pt-2.5 sm:hidden">
+                        <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
                     </div>
                 </div>
             </div>

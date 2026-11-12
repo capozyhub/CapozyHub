@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
 import { Bell, BellOff, Loader2 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
@@ -54,30 +53,32 @@ export default function NotificationSettings() {
     return (
         <div className="space-y-6 max-w-2xl">
             {/* Master push */}
-            <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+            <section className="neu-raised-sm rounded-2xl p-4 sm:p-5">
                 <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-                        <Bell className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <div className="clay-green w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Bell className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-foreground">Push notifications</h3>
+                        <h3 className="text-sm font-semibold text-foreground">Push alerts</h3>
                         {!isSupported ? (
-                            <p className="text-xs text-muted-foreground mt-1">Your browser doesn&apos;t support push notifications.</p>
+                            <p className="text-xs text-muted-foreground mt-1">This browser can&apos;t receive push alerts.</p>
                         ) : permission === 'denied' ? (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Blocked in your browser settings. Re-allow notifications for this site to enable.</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Notifications are blocked for this site. Re-allow them in your browser settings to turn alerts back on.</p>
                         ) : permission === 'granted' ? (
                             <>
-                                <p className="text-xs text-muted-foreground mt-1">You&apos;re receiving real-time alerts on this device.</p>
-                                <Button size="sm" variant="outline" className="mt-3 gap-1.5" disabled={isUnsubscribing} onClick={async () => { await unsubscribe(); toast.success('Push disabled on this device') }}>
-                                    {isUnsubscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellOff className="w-3.5 h-3.5" />} Disable on this device
-                                </Button>
+                                <p className="text-xs text-muted-foreground mt-1">This device is wired in — alerts land the moment something happens.</p>
+                                <button type="button" disabled={isUnsubscribing} onClick={async () => { await unsubscribe(); toast.success('Push disabled on this device') }}
+                                    className="neu-raised-sm neu-press mt-3 flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-semibold text-foreground disabled:opacity-60">
+                                    {isUnsubscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellOff className="w-3.5 h-3.5" />} Turn off on this device
+                                </button>
                             </>
                         ) : (
                             <>
-                                <p className="text-xs text-muted-foreground mt-1">Get instant alerts for orders, payments, and announcements.</p>
-                                <Button size="sm" className="mt-3 gap-1.5" disabled={isSubscribing} onClick={async () => { await requestPermission() }}>
-                                    {isSubscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />} Enable push
-                                </Button>
+                                <p className="text-xs text-muted-foreground mt-1">Turn this on and you&apos;ll know the moment an order, payment or message changes.</p>
+                                <button type="button" disabled={isSubscribing} onClick={async () => { await requestPermission() }}
+                                    className="clay-gold mt-3 flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-semibold disabled:opacity-60">
+                                    {isSubscribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />} Turn on push alerts
+                                </button>
                             </>
                         )}
                     </div>
@@ -85,10 +86,10 @@ export default function NotificationSettings() {
             </section>
 
             {/* Per-category mutes */}
-            <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-                <h3 className="text-sm font-semibold text-foreground">Notification categories</h3>
-                <p className="text-xs text-muted-foreground mt-1">Muting a category stops device push alerts. You&apos;ll still see them in your inbox.</p>
-                <div className="mt-4 divide-y divide-border">
+            <section className="neu-raised-sm rounded-2xl p-4 sm:p-5">
+                <h3 className="text-sm font-semibold text-foreground">What you hear about</h3>
+                <p className="text-xs text-muted-foreground mt-1">Muting a category only stops the push ping — it still lands in your inbox.</p>
+                <div className="mt-4 divide-y divide-border/60">
                     {loading ? (
                         <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
                     ) : CATEGORY_ORDER.map(cat => (

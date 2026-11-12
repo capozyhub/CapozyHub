@@ -7,8 +7,6 @@ import { useNotificationsList } from '@/hooks/useNotificationsList'
 import { NotifIcon, iconBg } from '@/components/dashboard/notification-visuals'
 import { NotificationMessage } from '@/components/dashboard/notification-message'
 import { categoryForType, CATEGORY_ORDER, CATEGORY_LABEL, type NotificationCategory } from '@/lib/notification-categories'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn, formatDate } from '@/lib/utils'
 import { Bell, Check, Trash2, Search, Loader2, CheckCircle2 } from 'lucide-react'
 import type { Notification } from '@/types/supabase'
@@ -71,40 +69,41 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
         <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex flex-col gap-3">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <div className="neu-inset flex items-center gap-2 rounded-2xl px-4 py-2.5">
+                    <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <input
                         value={query} onChange={e => setQuery(e.target.value)}
-                        placeholder="Search notifications"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        placeholder="Search your activity"
+                        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                     />
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                     {(['all', ...CATEGORY_ORDER] as CatFilter[]).map(c => (
                         <button key={c} type="button" onClick={() => setCat(c)}
-                            className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                                cat === c ? 'bg-card text-white dark:text-foreground'
-                                    : 'text-muted-foreground bg-muted hover:bg-muted dark:hover:bg-muted')}>
-                            {c === 'all' ? 'All' : CATEGORY_LABEL[c]}
+                            className={cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors',
+                                cat === c ? 'neu-raised-sm text-foreground' : 'neu-inset text-muted-foreground hover:text-foreground')}>
+                            {c === 'all' ? 'Everything' : CATEGORY_LABEL[c]}
                         </button>
                     ))}
-                    <span className="w-px h-5 bg-muted mx-1 flex-shrink-0" />
+                    <span className="w-px h-5 bg-border mx-1 flex-shrink-0" />
                     <button type="button" onClick={() => setOnlyUnread(v => !v)}
-                        className={cn('px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                            onlyUnread ? 'bg-brand-600 text-black' : 'text-muted-foreground bg-muted hover:bg-muted dark:hover:bg-muted')}>
+                        className={cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors',
+                            onlyUnread ? 'clay-gold' : 'neu-inset text-muted-foreground hover:text-foreground')}>
                         Unread ({unreadCount})
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={markAllAsRead}>
-                            <Check className="w-3.5 h-3.5" /> Mark all read
-                        </Button>
+                        <button type="button" onClick={markAllAsRead}
+                            className="neu-raised-sm neu-press flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground">
+                            <Check className="w-3.5 h-3.5" /> Mark everything read
+                        </button>
                     )}
                     {notifications.length > 0 && (
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs text-red-500 hover:text-red-600" onClick={() => { if (confirm('Clear all notifications?')) deleteAll() }}>
-                            <Trash2 className="w-3.5 h-3.5" /> Clear all
-                        </Button>
+                        <button type="button" onClick={() => { if (confirm("Clear your whole notification history? This can't be undone.")) deleteAll() }}
+                            className="neu-raised-sm neu-press flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-red-500 hover:text-red-600">
+                            <Trash2 className="w-3.5 h-3.5" /> Clear everything
+                        </button>
                     )}
                 </div>
             </div>
@@ -113,16 +112,19 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
             {isLoading ? (
                 <div className="space-y-2">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
-                            <Skeleton className="w-9 h-9 rounded-full" />
-                            <div className="flex-1 space-y-1.5"><Skeleton className="h-3 w-1/2" /><Skeleton className="h-3 w-full" /></div>
+                        <div key={i} className="neu-raised-sm flex items-start gap-3 p-3 rounded-2xl">
+                            <div className="neu-inset w-9 h-9 rounded-full flex-shrink-0" />
+                            <div className="flex-1 space-y-1.5">
+                                <div className="neu-inset h-3 w-1/2 rounded-full" />
+                                <div className="neu-inset h-3 w-full rounded-full" />
+                            </div>
                         </div>
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center"><Bell className="w-6 h-6 text-muted-foreground" /></div>
-                    <p className="text-sm text-muted-foreground">{query || cat !== 'all' || onlyUnread ? 'Nothing matches this filter' : 'No notifications yet'}</p>
+                    <div className="neu-inset w-14 h-14 rounded-full flex items-center justify-center"><Bell className="w-6 h-6 text-muted-foreground" /></div>
+                    <p className="text-sm text-muted-foreground">{query || cat !== 'all' || onlyUnread ? "Nothing matches that" : "Nothing here yet — your activity will show up as it happens"}</p>
                 </div>
             ) : (
                 <div className="space-y-5">
@@ -132,8 +134,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                             {groups[label].map(n => (
                                 <div key={n.id} id={`notif-row-${n.id}`}
                                     onClick={() => handleClick(n)}
-                                    className={cn('group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer bg-card border border-border hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors',
-                                        !n.is_read && 'border-l-[3px] border-l-blue-500',
+                                    className={cn('group relative flex items-start gap-3 p-3 rounded-2xl cursor-pointer neu-raised-sm neu-press transition-shadow',
                                         n.id === highlightId && 'ring-2 ring-brand-400')}>
                                     <div className={cn('w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', iconBg(n.type))}>
                                         <NotifIcon type={n.type} />
@@ -147,13 +148,13 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                                         <p className="text-[10px] text-muted-foreground mt-1.5">{formatDate(n.created_at ?? '')}</p>
                                     </div>
                                     {!n.is_read && <span className="absolute top-3.5 right-3 w-2 h-2 rounded-full bg-brand-500" />}
-                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 bg-card rounded-lg p-0.5 shadow-sm border border-border">
+                                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1 neu-raised-sm rounded-xl p-0.5">
                                         {!n.is_read && (
                                             <button type="button" title="Mark as read" onClick={e => { e.stopPropagation(); markAsRead(n.id) }}
-                                                className="w-6 h-6 flex items-center justify-center rounded-md text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/30"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                                                className="w-6 h-6 flex items-center justify-center rounded-lg text-brand-700 hover:text-brand-800"><CheckCircle2 className="w-3.5 h-3.5" /></button>
                                         )}
                                         <button type="button" title="Delete" onClick={e => { e.stopPropagation(); deleteNotif(n.id) }}
-                                            className="w-6 h-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"><Trash2 className="w-3.5 h-3.5" /></button>
+                                            className="w-6 h-6 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>
                                 </div>
                             ))}
@@ -161,9 +162,10 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                     ))}
                     {hasMore && !query && cat === 'all' && !onlyUnread && (
                         <div className="flex justify-center pt-2">
-                            <Button variant="outline" size="sm" onClick={loadMore} disabled={isLoadingMore} className="gap-1.5">
-                                {isLoadingMore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Load more
-                            </Button>
+                            <button type="button" onClick={loadMore} disabled={isLoadingMore}
+                                className="neu-raised-sm neu-press flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-foreground disabled:opacity-60">
+                                {isLoadingMore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Show more
+                            </button>
                         </div>
                     )}
                 </div>

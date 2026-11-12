@@ -158,7 +158,6 @@ export default function DashboardLayoutClient({
                     onClose={handleCloseNotifications}
                     highlightedId={highlightedId}
                     onClearHighlight={clearHighlight}
-                    onUnreadCountChange={setUnreadCount}
                 />
             </div>
         )
@@ -207,7 +206,6 @@ export default function DashboardLayoutClient({
                 onClose={handleCloseNotifications}
                 highlightedId={highlightedId}
                 onClearHighlight={clearHighlight}
-                onUnreadCountChange={setUnreadCount}
             />
 
             <FloatingRefreshButton />
