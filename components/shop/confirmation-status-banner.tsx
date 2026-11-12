@@ -120,54 +120,31 @@ export function ConfirmationStatusBanner() {
     }
 
     return (
-        <div
-            className={cn(
-                'relative rounded-2xl border p-4 pr-10',
-                isWarning
-                    ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50'
-                    : 'bg-gray-50 dark:bg-zinc-900/40 border-gray-200 dark:border-gray-800',
-            )}
-        >
+        <section aria-label="Order text messages" className="neu-raised-sm relative rounded-3xl p-4 pr-12">
             <button
                 type="button"
                 onClick={handleDismiss}
                 aria-label="Dismiss"
-                className={cn(
-                    'absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-colors',
-                    isWarning
-                        ? 'text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/40'
-                        : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
-                )}
+                className="neu-inset absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
             >
-                <X className="w-3.5 h-3.5" />
+                <X className="h-3.5 w-3.5" />
             </button>
 
             <div className="flex items-start gap-3">
-                {isWarning ? (
-                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                ) : (
-                    <Info className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                )}
+                <span className={cn('neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl', isWarning ? 'text-brand-700 dark:text-brand-500' : 'text-muted-foreground')}>
+                    {isWarning ? <AlertTriangle className="h-5 w-5" /> : <Info className="h-5 w-5" />}
+                </span>
                 <div className="min-w-0 flex-1">
-                    <p className={cn('text-sm font-semibold', isWarning ? 'text-amber-900 dark:text-amber-200' : 'text-gray-700 dark:text-gray-300')}>
-                        {gap.title}
-                    </p>
-                    <p className={cn('text-xs mt-0.5', isWarning ? 'text-amber-800/90 dark:text-amber-300/90' : 'text-gray-500 dark:text-gray-400')}>
-                        {gap.body}
-                    </p>
+                    <p className="font-display text-sm font-semibold">{gap.title}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{gap.body}</p>
                     <Link
                         href="/dashboard/shop/sms"
-                        className={cn(
-                            'inline-flex items-center gap-1 mt-2 text-xs font-semibold',
-                            isWarning
-                                ? 'text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200'
-                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100',
-                        )}
+                        className="mt-2 inline-flex items-center gap-1 rounded text-xs font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-brand-500"
                     >
-                        {isWarning ? 'Fix in Shop SMS' : 'Manage in Shop SMS'} <ArrowRight className="w-3 h-3" />
+                        {isWarning ? 'Fix in Shop SMS' : 'Manage in Shop SMS'} <ArrowRight className="h-3 w-3" />
                     </Link>
                 </div>
             </div>
-        </div>
+        </section>
     )
 }

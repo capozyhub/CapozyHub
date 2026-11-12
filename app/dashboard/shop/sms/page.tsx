@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { formatCurrency, cn } from '@/lib/utils'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +26,13 @@ import {
 import { toast } from '@/lib/toast'
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+function Card({ className, children }: { className?: string; children: React.ReactNode }) {
+    return <div className={cn('neu-raised-sm rounded-3xl', className)}>{children}</div>
+}
+function CardContent({ className, children }: { className?: string; children: React.ReactNode }) {
+    return <div className={className}>{children}</div>
+}
 
 interface SmsTemplate { id: string; name: string; body: string; created_at?: string }
 interface SmsBundle   { id: string; name: string; credits: number; price: number }
@@ -496,8 +502,8 @@ export default function ShopSmsPage() {
 
     // ── Sub-components ────────────────────────────────────────────────────────
 
-    const WalletCard = ({ label, amount, sub, color }: { label: string; amount: number; sub: string; color: string }) => (
-        <Card className={cn('rounded-xl border shadow-sm', color)}>
+    const WalletCard = ({ label, amount, sub }: { label: string; amount: number; sub: string }) => (
+        <Card className="rounded-2xl">
             <CardContent className="p-2.5 sm:p-3">
                 <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">{label}</p>
                 <p className="text-sm sm:text-base font-bold tabular-nums truncate mt-0.5">{sub === 'credits' ? amount.toLocaleString() : formatCurrency(amount)}</p>
@@ -507,7 +513,7 @@ export default function ShopSmsPage() {
     )
 
     const PaySourceToggle = ({ showBalance = false }: { showBalance?: boolean }) => (
-        <div className="flex p-1 bg-muted rounded-xl gap-1">
+        <div className="neu-inset flex gap-1 rounded-2xl p-1">
             {([
                 { id: 'profit' as const, label: 'Profit Wallet', balance: status?.profitBalance ?? 0 },
                 { id: 'wallet' as const, label: 'Main Wallet',   balance: status?.mainBalance   ?? 0 },
@@ -517,13 +523,13 @@ export default function ShopSmsPage() {
                     type="button"
                     onClick={() => setPaySource(s.id)}
                     className={cn(
-                        'flex-1 flex flex-col items-center justify-center gap-0 h-11 rounded-lg text-xs font-semibold transition-all px-2',
-                        paySource === s.id ? 'bg-card shadow-sm text-emerald-600' : 'text-muted-foreground hover:text-foreground',
+                        'flex-1 flex flex-col items-center justify-center gap-0 h-11 rounded-xl text-xs font-semibold transition-all px-2',
+                        paySource === s.id ? 'neu-raised-sm text-brand-700 dark:text-brand-500' : 'text-muted-foreground hover:text-foreground',
                     )}
                 >
                     <span className="flex items-center gap-1"><Wallet className="w-3 h-3" />{s.label}</span>
                     {showBalance && (
-                        <span className={cn('text-[10px] tabular-nums', paySource === s.id ? 'text-emerald-600/80' : 'text-muted-foreground/60')}>
+                        <span className={cn('text-[10px] tabular-nums', paySource === s.id ? 'text-foreground/70' : 'text-muted-foreground/60')}>
                             {formatCurrency(s.balance)}
                         </span>
                     )}
@@ -544,7 +550,7 @@ export default function ShopSmsPage() {
     if (!status) {
         return (
             <div className="text-center py-20 text-muted-foreground text-sm">
-                Failed to load SMS feature. <button className="text-emerald-600 underline" onClick={() => { setLoading(true); fetchAll() }}>Retry</button>
+                Failed to load SMS feature. <button className="text-brand-700 underline dark:text-brand-500" onClick={() => { setLoading(true); fetchAll() }}>Retry</button>
             </div>
         )
     }
@@ -569,28 +575,31 @@ export default function ShopSmsPage() {
         <div className="space-y-5 pb-20 md:pb-6 max-w-2xl mx-auto">
 
             {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                    <Link href="/dashboard/shop">
-                        <Button variant="ghost" size="sm" className="w-fit gap-2 -ml-2 text-muted-foreground hover:text-emerald-600">
-                            <ArrowLeft className="w-4 h-4" /> Back to Shop Dashboard
-                        </Button>
+            <section aria-label="Customer SMS" className="neu-night relative overflow-hidden rounded-3xl p-5 text-white sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                    <Link href="/dashboard/shop" className="inline-flex items-center gap-1.5 rounded text-sm font-semibold text-white/60 hover:text-white">
+                        <ArrowLeft className="h-4 w-4" /> Back to your shop
                     </Link>
-                    <h1 className="text-xl font-bold flex items-center gap-2 mt-1">
-                        <MessageSquare className="w-5 h-5 text-emerald-600" /> Customer SMS
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-0.5">Send promos and updates to your customers by SMS.</p>
+                    <button
+                        type="button"
+                        onClick={() => fetchAll()}
+                        className="neu-night-in inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white/80"
+                    >
+                        <RefreshCcw className="h-3.5 w-3.5" /> Refresh
+                    </button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setLoading(false); fetchAll() }} className="gap-1.5 w-fit shrink-0">
-                    <RefreshCcw className="w-3.5 h-3.5" /> Refresh
-                </Button>
-            </div>
+                <h1 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">Customer SMS</h1>
+                <p className="mt-1 text-sm text-white/60">Message your customers about offers, and keep them posted on orders.</p>
+                <p className="mt-5 text-xs font-medium text-white/50">SMS credits</p>
+                <p className="font-display text-4xl font-bold leading-none tracking-tight sm:text-5xl">
+                    <span className="text-brand-500">{status.credits.toLocaleString()}</span>
+                </p>
+            </section>
 
             {/* ── Wallet row ── */}
-            <div className="grid grid-cols-3 gap-2">
-                <WalletCard label="SMS Credits"    amount={status.credits}       sub="credits"         color="border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-900/10" />
-                <WalletCard label="Profit Wallet"  amount={status.profitBalance} sub="available"       color="border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/10" />
-                <WalletCard label="Main Wallet"    amount={status.mainBalance}   sub="available"       color="border-brand-200 dark:border-brand-900 bg-brand-50/50 dark:bg-brand-900/10" />
+            <div className="grid grid-cols-2 gap-3">
+                <WalletCard label="Profit wallet" amount={status.profitBalance} sub="available" />
+                <WalletCard label="Main wallet"   amount={status.mainBalance}   sub="available" />
             </div>
 
             {/* ── Your Sender IDs (single active slot — see the state block above) ── */}
@@ -598,12 +607,12 @@ export default function ShopSmsPage() {
                 <CardContent className="p-4 sm:p-5 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                         <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                            <BadgeCheck className="w-4 h-4 text-emerald-500" /> Your Sender ID
+                            <BadgeCheck className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Your Sender ID
                         </h3>
                         <span className={cn(
                             'text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0',
-                            approvedSender ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                : pendingSender ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            approvedSender ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : pendingSender ? 'bg-brand-500/15 text-brand-700 dark:text-brand-500'
                                 : 'bg-muted text-muted-foreground',
                         )}>
                             {approvedSender ? 'Active' : pendingSender ? 'Under review' : 'Not set'}
@@ -618,12 +627,7 @@ export default function ShopSmsPage() {
                                 <div
                                     key={sd.id}
                                     className={cn(
-                                        'flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border',
-                                        sd.status === 'approved'
-                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-                                            : sd.status === 'under_review'
-                                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-                                            : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900',
+                                        'neu-inset flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5',
                                     )}
                                 >
                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -694,7 +698,7 @@ export default function ShopSmsPage() {
                                             key={s}
                                             type="button"
                                             onClick={() => { setSenderReqError(null); setSenderInput(s) }}
-                                            className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-muted hover:bg-emerald-100 dark:hover:bg-emerald-900/20 hover:text-emerald-700 transition-colors border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
+                                            className="neu-raised-sm neu-press text-[11px] font-mono font-medium px-2.5 py-1 rounded-full"
                                         >
                                             {s}
                                         </button>
@@ -705,7 +709,7 @@ export default function ShopSmsPage() {
                                 <Input
                                     value={senderInput}
                                     onChange={e => { setSenderReqError(null); setSenderInput(e.target.value.slice(0, 11)) }}
-                                    placeholder="e.g. KFT Shop"
+                                    placeholder="e.g. Kofi Data"
                                     className="h-10 font-mono text-sm"
                                     maxLength={11}
                                     autoComplete="off"
@@ -713,7 +717,7 @@ export default function ShopSmsPage() {
                                 <Button
                                     onClick={handleSenderRequest}
                                     disabled={submittingSender || senderInput.trim().length < 3 || !/^[A-Za-z0-9 ]*$/.test(senderInput)}
-                                    className="h-10 font-semibold gap-1.5 shrink-0 clay clay-green"
+                                    className="h-10 font-semibold gap-1.5 shrink-0 clay-gold"
                                 >
                                     {submittingSender ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                                     {approvedSender ? 'Replace' : 'Request'}
@@ -749,7 +753,7 @@ export default function ShopSmsPage() {
             {/* ── Feature disabled ── */}
             {!status.enabled && (
                 <div className="text-center py-16 space-y-3">
-                    <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center">
+                    <div className="neu-inset mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
                         <Lock className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="font-semibold">SMS is temporarily unavailable</p>
@@ -760,10 +764,10 @@ export default function ShopSmsPage() {
             {/* ── Not yet activated ── */}
             {status.enabled && !status.activated && (
                 <div className="max-w-md mx-auto space-y-4">
-                    <Card className="border shadow-sm rounded-2xl">
+                    <Card className="rounded-3xl">
                         <CardContent className="p-6 space-y-4 text-center">
-                            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                <Lock className="w-7 h-7 text-emerald-600" />
+                            <div className="neu-inset mx-auto flex h-16 w-16 items-center justify-center rounded-2xl">
+                                <Lock className="w-7 h-7 text-brand-700 dark:text-brand-500" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-bold">Unlock Customer SMS</h2>
@@ -771,7 +775,7 @@ export default function ShopSmsPage() {
                             </div>
 
                             {/* Bonus promo */}
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-left">
+                            <div className="neu-inset flex items-center gap-2 rounded-2xl px-3 py-2 text-left">
                                 <Gift className="w-4 h-4 text-amber-600 flex-shrink-0" />
                                 <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
                                     Activate now and get <strong>{status.bonusCreditCount} free SMS credits</strong> to get started!
@@ -786,7 +790,7 @@ export default function ShopSmsPage() {
                             </div>
 
                             <div>
-                                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(status.activationFee)}</p>
+                                <p className="font-display text-3xl font-bold text-brand-700 dark:text-brand-500">{formatCurrency(status.activationFee)}</p>
                                 <p className="text-xs text-muted-foreground">one-time activation fee</p>
                             </div>
 
@@ -794,7 +798,7 @@ export default function ShopSmsPage() {
 
                             {/* Low balance warning */}
                             {activeBalance < status.activationFee && (
-                                <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-left">
+                                <div className="neu-inset flex items-start gap-2 rounded-2xl p-3 text-left text-xs text-amber-700 dark:text-amber-400">
                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                     <span>
                                         {paySource === 'profit' ? 'Profit' : 'Main'} wallet balance ({formatCurrency(activeBalance)}) is below the activation fee.{' '}
@@ -806,7 +810,7 @@ export default function ShopSmsPage() {
                             <Button
                                 onClick={handleActivate}
                                 disabled={activating || activeBalance < status.activationFee}
-                                className="w-full h-12 font-semibold gap-2 clay clay-green"
+                                className="w-full h-12 font-semibold gap-2 clay-gold"
                             >
                                 {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                                 {activating ? 'Activating...' : `Activate for ${formatCurrency(status.activationFee)}`}
@@ -822,7 +826,7 @@ export default function ShopSmsPage() {
 
                     {/* Welcome bonus claim banner */}
                     {!status.bonusClaimed && (
-                        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center justify-between gap-3 neu-raised-sm px-4 py-3 rounded-2xl">
                             <div className="flex items-start gap-2.5">
                                 <Gift className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                 <div>
@@ -834,7 +838,7 @@ export default function ShopSmsPage() {
                                 size="sm"
                                 onClick={handleClaimBonus}
                                 disabled={claimingBonus}
-                                className="bg-amber-500 hover:bg-amber-600 text-white font-semibold gap-1.5 shrink-0 h-9"
+                                className="clay-gold font-bold gap-1.5 shrink-0 h-9"
                             >
                                 {claimingBonus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5" />}
                                 Claim
@@ -863,7 +867,7 @@ export default function ShopSmsPage() {
                     <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                <Coins className="w-4 h-4 text-emerald-500" /> Buy Credits
+                                <Coins className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Buy Credits
                             </h3>
                             <div className="w-60"><PaySourceToggle showBalance /></div>
                         </div>
@@ -873,7 +877,7 @@ export default function ShopSmsPage() {
                                 const canAfford = activeBalance >= b.price
                                 const perSms    = b.price / b.credits
                                 return (
-                                    <Card key={b.id} className={cn('rounded-xl border shadow-sm transition-all hover:shadow-md h-full', canAfford ? 'hover:border-emerald-200 dark:hover:border-emerald-900' : 'opacity-70')}>
+                                    <Card key={b.id} className={cn('h-full rounded-2xl transition-all', canAfford ? '' : 'opacity-70')}>
                                         <CardContent className="p-2.5 sm:p-3 flex flex-col gap-1.5 sm:gap-2 h-full">
                                             <div>
                                                 <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Messages</p>
@@ -883,7 +887,7 @@ export default function ShopSmsPage() {
                                             </div>
 
                                             <div className="mt-auto">
-                                                <p className="text-xs sm:text-sm font-bold text-emerald-600 tabular-nums leading-tight">
+                                                <p className="text-xs sm:text-sm font-bold text-brand-700 dark:text-brand-500 tabular-nums leading-tight">
                                                     {formatCurrency(b.price)}
                                                 </p>
                                                 <p className="text-[8px] sm:text-[9px] text-muted-foreground leading-tight">
@@ -901,7 +905,7 @@ export default function ShopSmsPage() {
                                                 size="sm"
                                                 onClick={() => setBuyModal(b)}
                                                 disabled={purchasingId === b.id || !canAfford}
-                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs font-semibold gap-1 px-2 clay clay-green"
+                                                className="w-full h-7 sm:h-8 text-[11px] sm:text-xs font-semibold gap-1 px-2 clay-gold"
                                             >
                                                 {purchasingId === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                                                 Buy
@@ -916,7 +920,7 @@ export default function ShopSmsPage() {
 
                         <TabsContent value="send" className="space-y-5 mt-4">
                     {/* ── Sending rules / avoid scams ── */}
-                    <Card className="rounded-2xl border-amber-200 dark:border-amber-900 bg-amber-50/40 dark:bg-amber-900/10">
+                    <Card className="rounded-2xl">
                         <CardContent className="p-4 sm:p-5">
                             <button
                                 type="button"
@@ -954,7 +958,7 @@ export default function ShopSmsPage() {
                                             <strong>Do</strong> promote your real bundles, prices and your shop link — that&apos;s what customers love.
                                         </span>
                                     </div>
-                                    <div className="flex items-start gap-2 rounded-lg bg-amber-100/60 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2.5">
+                                    <div className="flex items-start gap-2 neu-inset rounded-xl p-2.5">
                                         <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                                         <span className="text-amber-800 dark:text-amber-300">
                                             Blocked messages cost <strong>no credits</strong> and are reported to admin. Repeated scam attempts will <strong>disable your SMS feature</strong>.
@@ -969,7 +973,7 @@ export default function ShopSmsPage() {
                     <Card className="rounded-2xl">
                         <CardContent className="p-4 sm:p-5 space-y-4">
                             <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                <Send className="w-4 h-4 text-emerald-500" /> Compose Message
+                                <Send className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Compose Message
                             </h3>
 
                             {/* Recipients */}
@@ -996,7 +1000,7 @@ export default function ShopSmsPage() {
                                 </div>
 
                                 {showPicker && (
-                                    <div className="max-h-44 overflow-y-auto rounded-xl border divide-y">
+                                    <div className="neu-inset max-h-44 divide-y divide-border overflow-y-auto rounded-2xl">
                                         {customers.length === 0 ? (
                                             <p className="text-xs text-muted-foreground text-center py-4">No customers yet — add numbers manually below.</p>
                                         ) : customers.map(c => (
@@ -1009,7 +1013,7 @@ export default function ShopSmsPage() {
                                                     <p className="text-xs font-semibold">{c.name || c.phone}</p>
                                                     <p className="text-[11px] text-muted-foreground font-mono">{c.phone}</p>
                                                 </div>
-                                                <div className={cn('w-4 h-4 rounded border-2 flex items-center justify-center', selectedPhones.has(c.phone) ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground/30')}>
+                                                <div className={cn('w-4 h-4 rounded border-2 flex items-center justify-center', selectedPhones.has(c.phone) ? 'bg-brand-500 border-brand-500' : 'border-muted-foreground/30')}>
                                                     {selectedPhones.has(c.phone) && <Check className="w-2.5 h-2.5 text-white" />}
                                                 </div>
                                             </button>
@@ -1038,12 +1042,12 @@ export default function ShopSmsPage() {
                                 {(selectedPhones.size > 0 || manualPhones.length > 0) && (
                                     <div className="flex flex-wrap gap-1.5">
                                         {[...selectedPhones].map(p => (
-                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-brand-500/15 text-brand-700 dark:text-brand-500 px-2 py-0.5 rounded-full">
                                                 {p}<button onClick={() => toggleCustomer(p)} title="Remove"><X className="w-3 h-3" /></button>
                                             </span>
                                         ))}
                                         {manualPhones.map(p => (
-                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 px-2 py-0.5 rounded-full">
+                                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-mono bg-foreground/10 text-foreground px-2 py-0.5 rounded-full">
                                                 {p}<button onClick={() => setManualPhones(prev => prev.filter(x => x !== p))} title="Remove"><X className="w-3 h-3" /></button>
                                             </span>
                                         ))}
@@ -1064,7 +1068,7 @@ export default function ShopSmsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPreview(v => !v)}
-                                        className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
+                                        className="flex items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-500 hover:underline"
                                     >
                                         {showPreview ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                                         {showPreview ? 'Hide' : 'Live'} Preview
@@ -1086,7 +1090,7 @@ export default function ShopSmsPage() {
                                             key={qi.label}
                                             type="button"
                                             onClick={() => quickInsert(qi.text)}
-                                            className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted hover:bg-emerald-100 dark:hover:bg-emerald-900/20 hover:text-emerald-700 transition-colors border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
+                                            className="neu-raised-sm neu-press text-[11px] font-medium px-2.5 py-1 rounded-full"
                                         >
                                             {qi.label}
                                         </button>
@@ -1113,7 +1117,7 @@ export default function ShopSmsPage() {
 
                                 {/* Live preview */}
                                 {showPreview && (
-                                    <div className="rounded-xl border bg-muted/30 p-3">
+                                    <div className="neu-inset rounded-2xl p-3">
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <Smartphone className="w-3 h-3 text-muted-foreground" />
                                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Recipient preview</p>
@@ -1136,7 +1140,7 @@ export default function ShopSmsPage() {
                                         {segInfo.length} chars · {segInfo.segments} SMS
                                         {segInfo.encoding === 'unicode' && ' · emoji/special reduces limit to 70'}
                                     </span>
-                                    <span className={cn('font-semibold', insufficient ? 'text-red-600' : 'text-emerald-600')}>
+                                    <span className={cn('font-semibold', insufficient ? 'text-red-600' : 'text-brand-700 dark:text-brand-500')}>
                                         {allRecipients.length > 0
                                             ? `${segInfo.segments} × ${allRecipients.length} = ${creditsNeeded} credits`
                                             : `${segInfo.segments} credit(s) per recipient`}
@@ -1149,14 +1153,14 @@ export default function ShopSmsPage() {
                                 <button
                                     type="button"
                                     onClick={() => { setNewTplBody(message); setTplModal(true) }}
-                                    className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
+                                    className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-700 dark:text-brand-500 hover:underline"
                                 >
                                     <Copy className="w-3 h-3" /> Save as template
                                 </button>
                             )}
 
                             {insufficient && (
-                                <div className="flex gap-2 items-start p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-400">
+                                <div className="neu-inset flex items-start gap-2 rounded-2xl p-3 text-xs text-red-600 dark:text-red-400">
                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                     <span>Not enough credits — this send needs {creditsNeeded} but you have {status.credits}. Buy a bundle from the <strong>Buy Credits</strong> tab.</span>
                                 </div>
@@ -1165,7 +1169,7 @@ export default function ShopSmsPage() {
                             <Button
                                 onClick={() => { setSendError(null); setSendModal(true) }}
                                 disabled={!canSend}
-                                className="w-full h-11 font-semibold gap-2 clay clay-green"
+                                className="w-full h-11 font-semibold gap-2 clay-gold"
                             >
                                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 {sending ? 'Sending...' : allRecipients.length > 0 ? `Review & Send to ${allRecipients.length} recipient(s)` : 'Send SMS'}
@@ -1186,7 +1190,7 @@ export default function ShopSmsPage() {
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                        <MessageSquare className="w-4 h-4 text-emerald-500" /> Automatic order confirmations
+                                        <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Automatic order confirmations
                                     </h3>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         Text every customer automatically when their order completes.
@@ -1205,14 +1209,14 @@ export default function ShopSmsPage() {
                                 the switch, so say so rather than letting the owner think
                                 they are paying for texts that never go out. */}
                             {confirmEnabled && !status.hasApprovedSender && (
-                                <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
+                                <div className="neu-inset mt-3 flex items-start gap-2 rounded-xl p-2.5 text-xs text-amber-700 dark:text-amber-400">
                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                     <span>Waiting on an approved Sender ID — no confirmations are being sent yet, and no credits are being used for them.</span>
                                 </div>
                             )}
 
                             {!confirmEnabled && (
-                                <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-muted/60 border text-xs text-muted-foreground">
+                                <div className="neu-inset mt-3 flex items-start gap-2 rounded-xl p-2.5 text-xs text-muted-foreground">
                                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                     <span>Customers won&apos;t get a text when their order completes. Your manual sends are unaffected.</span>
                                 </div>
@@ -1227,7 +1231,7 @@ export default function ShopSmsPage() {
                         <CardContent className="p-4 sm:p-5 space-y-3">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                    <BookTemplate className="w-4 h-4 text-emerald-500" /> Message Templates
+                                    <BookTemplate className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Message Templates
                                 </h3>
                                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setTplModal(true)}>
                                     <Plus className="w-3 h-3" /> New
@@ -1241,7 +1245,7 @@ export default function ShopSmsPage() {
                                         No templates yet. Click <strong>New</strong> to create your first one.
                                     </p>
                                 ) : shopTemplates.map(t => (
-                                    <div key={t.id} className="flex items-start gap-3 p-3 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors">
+                                    <div key={t.id} className="neu-inset flex items-start gap-3 rounded-2xl p-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold">{t.name}</p>
                                             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{t.body}</p>
@@ -1250,7 +1254,7 @@ export default function ShopSmsPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-7 text-xs px-2.5 gap-1 text-emerald-600 border-emerald-200 dark:border-emerald-800"
+                                                className="h-7 text-xs px-2.5 gap-1"
                                                 onClick={() => applyTemplate(t.body)}
                                             >
                                                 <Copy className="w-3 h-3" /> Use
@@ -1276,16 +1280,16 @@ export default function ShopSmsPage() {
                     {/* ── Recent sends ── */}
                     <Card className="rounded-2xl overflow-hidden">
                         <CardContent className="p-0">
-                            <div className="px-4 py-3 border-b">
+                            <div className="px-4 py-3 border-b border-border">
                                 <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                    <Clock className="w-4 h-4 text-emerald-500" /> Recent Sends
+                                    <Clock className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Recent Sends
                                 </h3>
                             </div>
 
                             {/* Usage breakdown — makes clear where credits actually went.
                                 Automatic order-confirmation SMS silently consumes a share
                                 of credits owners previously could not see. */}
-                            <div className="px-4 py-2.5 border-b bg-muted/20 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                            <div className="px-4 py-2.5 border-b border-border flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                                 <span className="text-muted-foreground">Manual <strong className="text-foreground tabular-nums">{status.usageBreakdown.manual}</strong></span>
                                 <span className="text-muted-foreground">Auto-confirm <strong className="text-foreground tabular-nums">{status.usageBreakdown.auto_confirmation}</strong></span>
                                 <span className="text-muted-foreground">Adjustments <strong className="text-foreground tabular-nums">{status.usageBreakdown.reconciliation}</strong></span>
@@ -1293,7 +1297,7 @@ export default function ShopSmsPage() {
                             </div>
 
                             {status.recentLogs.length === 0 ? (
-                                <p className="text-xs text-muted-foreground text-center py-8">No messages sent yet.</p>
+                                <p className="text-xs text-muted-foreground text-center py-8">Nothing sent yet. Your first message will show up here.</p>
                             ) : (
                                 <div className="divide-y">
                                     {status.recentLogs.map(log => (
@@ -1301,7 +1305,7 @@ export default function ShopSmsPage() {
                                             <div className="min-w-0">
                                                 <p className="text-xs font-medium truncate max-w-[240px] sm:max-w-md flex items-center gap-1.5">
                                                     {log.source === 'auto_confirmation' && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 shrink-0">Auto</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-brand-500/15 text-brand-700 dark:text-brand-500 shrink-0">Auto</span>
                                                     )}
                                                     {log.source === 'reconciliation' && (
                                                         <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-muted text-foreground/80 shrink-0">Adjustment</span>
@@ -1331,9 +1335,9 @@ export default function ShopSmsPage() {
                                             <div className="text-right flex-shrink-0">
                                                 <span className={cn(
                                                     'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
-                                                    log.status === 'sent'    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
-                                                    log.status === 'partial' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                                                                               'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                                                    log.status === 'sent'    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
+                                                    log.status === 'partial' ? 'bg-brand-500/15 text-brand-700 dark:text-brand-500' :
+                                                                               'bg-red-500/15 text-red-600 dark:text-red-400'
                                                 )}>
                                                     {log.status}
                                                 </span>
@@ -1360,14 +1364,14 @@ export default function ShopSmsPage() {
                     </DialogHeader>
                     {buyModal && (
                         <div className="space-y-4">
-                            <div className="rounded-xl bg-muted/40 p-4 space-y-2.5 text-sm">
+                            <div className="neu-inset rounded-2xl p-4 space-y-2.5 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Bundle</span>
                                     <span className="font-semibold">{buyModal.name}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">SMS Credits</span>
-                                    <span className="font-bold text-emerald-600">{buyModal.credits.toLocaleString()}</span>
+                                    <span className="font-bold text-brand-700 dark:text-brand-500">{buyModal.credits.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Cost</span>
@@ -1382,7 +1386,7 @@ export default function ShopSmsPage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Wallet balance</span>
-                                    <span className={cn('font-semibold tabular-nums', activeBalance < buyModal.price ? 'text-red-600' : 'text-emerald-600')}>
+                                    <span className={cn('font-semibold tabular-nums', activeBalance < buyModal.price ? 'text-red-600' : 'text-brand-700 dark:text-brand-500')}>
                                         {formatCurrency(activeBalance)}
                                     </span>
                                 </div>
@@ -1400,7 +1404,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={() => buyModal && handlePurchase(buyModal)}
                             disabled={!buyModal || activeBalance < buyModal.price || !!purchasingId}
-                            className="gap-1.5 clay clay-green"
+                            className="gap-1.5 clay-gold"
                         >
                             {purchasingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Coins className="w-3.5 h-3.5" />}
                             Confirm Purchase
@@ -1419,12 +1423,12 @@ export default function ShopSmsPage() {
                     </DialogHeader>
                     <div className="space-y-4">
                         {/* Message preview — tokens substituted so this matches what recipients receive */}
-                        <div className="rounded-xl border bg-muted/30 p-3">
+                        <div className="neu-inset rounded-2xl p-3">
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Message preview</p>
                             <p className="text-sm text-foreground whitespace-pre-wrap break-words line-clamp-5">{previewMessage}</p>
                         </div>
                         {/* Cost breakdown */}
-                        <div className="rounded-xl bg-muted/40 p-4 space-y-2 text-sm">
+                        <div className="neu-inset rounded-2xl p-4 space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Recipients</span>
                                 <span className="font-semibold">{allRecipients.length}</span>
@@ -1435,7 +1439,7 @@ export default function ShopSmsPage() {
                             </div>
                             <div className="flex justify-between border-t pt-2">
                                 <span className="text-muted-foreground">Total credits</span>
-                                <span className="font-bold text-lg text-emerald-600">{creditsNeeded}</span>
+                                <span className="font-bold text-lg text-brand-700 dark:text-brand-500">{creditsNeeded}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Remaining after send</span>
@@ -1447,7 +1451,7 @@ export default function ShopSmsPage() {
                         {/* Send failure reason (INSUFFICIENT_CREDITS, blocked content, rate
                             limit…) — exact server message, always visible, not just a toast. */}
                         {sendError && (
-                            <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-400">
+                            <div className="neu-inset flex items-start gap-2 rounded-2xl p-3 text-xs text-red-600 dark:text-red-400">
                                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                 <span>{sendError}</span>
                             </div>
@@ -1458,7 +1462,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={handleSend}
                             disabled={sending || insufficient}
-                            className="gap-1.5 clay clay-green"
+                            className="gap-1.5 clay-gold"
                         >
                             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                             Send Now
@@ -1508,7 +1512,7 @@ export default function ShopSmsPage() {
                         <Button
                             onClick={handleSaveTemplate}
                             disabled={savingTemplate || !newTplName.trim() || newTplBody.trim().length < 3}
-                            className="gap-1.5 clay clay-green"
+                            className="gap-1.5 clay-gold"
                         >
                             {savingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
                             Save Template
