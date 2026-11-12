@@ -12,6 +12,7 @@ import { Bricolage_Grotesque, Figtree } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
+import { UpdatePrompt } from '@/components/update-prompt'
 import { ThemeProvider } from '@/components/theme-provider'
 import { OfflineOverlay } from '@/components/offline-overlay'
 import { BRAND } from '@/lib/brand'
@@ -156,6 +157,7 @@ export default function RootLayout({
                                 <OfflineOverlay />
                                 {children}
                                 <Toaster position="top-right" richColors />
+                                <UpdatePrompt />
                             </UIProvider>
                     </AuthProvider>
                 </ThemeProvider>
