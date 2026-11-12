@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { Pager, usePaged } from '@/components/shop/pager'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import {
     AlertCircle, ArrowDownRight, ArrowLeft, ArrowRightLeft, Download, Inbox,
     RefreshCw, RotateCcw, TrendingUp, Wallet,
@@ -32,7 +34,7 @@ const FILTERS: { id: Filter; label: string }[] = [
     { id: 'commission_transfer_in', label: 'Transfers' },
 ]
 
-const ROW_LIMIT = 200
+const ROW_LIMIT = 10000
 
 // Withdrawals use several in-flight statuses on the way to "completed".
 function statusChip(status: string): { label: string; className: string } {
@@ -49,6 +51,7 @@ export default function ShopEarningsPage() {
     const [rows, setRows] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [failed, setFailed] = useState(false)
+    const [capped, setCapped] = useState(false)
     const [typeFilter, setTypeFilter] = useState<Filter>('all')
     // A slow response for an earlier filter must never overwrite a newer one.
     const seq = useRef(0)
@@ -68,13 +71,17 @@ export default function ShopEarningsPage() {
             setWallet(w)
             if (!w) { setRows([]); return }
 
-            let q = (supabase.from('shop_wallet_transactions') as any)
-                .select('*').eq('shop_wallet_id', w.id).order('created_at', { ascending: false }).limit(ROW_LIMIT)
-            if (typeFilter !== 'all') q = q.eq('type', typeFilter)
-            const { data, error } = await q
-            if (error) throw error
+            // Paged past the 1000-row request cap, stable order with id last.
+            const { rows: loaded, truncated: capped, failed: readFailed } = await fetchAllRows(() => {
+                let q = (supabase.from('shop_wallet_transactions') as any)
+                    .select('*').eq('shop_wallet_id', w.id)
+                if (typeFilter !== 'all') q = q.eq('type', typeFilter)
+                return q.order('created_at', { ascending: false }).order('id', { ascending: false })
+            }, ROW_LIMIT)
+            if (readFailed && loaded.length === 0) throw new Error('Could not load wallet activity')
             if (mine !== seq.current) return
-            setRows(data || [])
+            setRows(loaded)
+            setCapped(capped || readFailed)
         } catch (e) {
             if (mine !== seq.current) return
             console.error('Error loading shop earnings:', e)
@@ -85,6 +92,8 @@ export default function ShopEarningsPage() {
     }, [userId, typeFilter])
 
     useEffect(() => { fetchData() }, [fetchData])
+
+    const paged = usePaged(rows, typeFilter)
 
     const exportCsv = () => {
         // Spreadsheet apps run cells that start with = + - @ as formulas, so those are defused.
@@ -182,7 +191,7 @@ export default function ShopEarningsPage() {
                     ) : (
                         <>
                             <ul className={cn('divide-y divide-border transition-opacity', loading && 'opacity-60')}>
-                                {rows.map((r) => {
+                                {paged.visible.map((r) => {
                                     const meta = TYPE_META[r.type] || { label: String(r.type).replace(/_/g, ' '), sign: '+' as const, tone: 'text-foreground', Icon: Wallet }
                                     const Icon = meta.Icon
                                     const chip = statusChip(String(r.status ?? ''))
@@ -208,8 +217,9 @@ export default function ShopEarningsPage() {
                                     )
                                 })}
                             </ul>
-                            {rows.length >= ROW_LIMIT && (
-                                <p className="mt-3 text-center text-xs text-muted-foreground">Showing your latest {ROW_LIMIT} movements. Pick a type above to narrow it down.</p>
+                            <Pager page={paged.page} pages={paged.pages} size={paged.size} total={paged.total} onPage={paged.setPage} onSize={paged.setSize} />
+                            {capped && (
+                                <p className="mt-3 text-center text-xs text-muted-foreground">Showing your latest {ROW_LIMIT.toLocaleString()} movements. Pick a type above to narrow it down.</p>
                             )}
                         </>
                     )}

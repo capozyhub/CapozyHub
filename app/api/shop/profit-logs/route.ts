@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 
 // GET — all ledger data for the profit-logs page.
 // Centralising here means every DB query runs behind a server-side
@@ -30,76 +31,42 @@ export async function GET() {
 
         const walletId: string | null = (walletRow as any)?.id ?? null
 
+        // Every ledger source is paged past the 1000-row request cap (up to 10,000 each, stable
+        // order with id last) so the running balance is built from the whole history.
+        const all = (table: string, cols: string, apply: (q: any) => any) =>
+            fetchAllRows(() => apply((supabase as any).from(table).select(cols)).order('created_at', { ascending: false }).order('id', { ascending: false }))
+        const none = Promise.resolve({ rows: [] as any[], truncated: false, failed: false })
+
         const [ordersRes, rcRes, afaRes, wdRes, smsRes, smsActRes, utilCommRes] = await Promise.allSettled([
-            supabase
-                .from('shop_orders')
-                .select('id, network, package_size, package_id, guest_phone, profit, status, created_at, source')
-                .eq('shop_id', shopId)
-                .order('created_at', { ascending: false })
-                .limit(500),
-            supabase
-                .from('results_checker_orders')
-                .select('id, type_name, quantity, customer_phone, shop_markup, status, created_at, source')
-                .eq('shop_id', shopId)
-                .neq('payment_status', 'pending_payment')
-                .order('created_at', { ascending: false })
-                .limit(200),
-            // AFA registrations live in their own table, same as results_checker_orders
-            // above — joined in here as a fourth parallel array (afaOrders) rather than
-            // merged into `orders`, since AFA rows have no package_id/network shape to
-            // reuse. Deliberately select only non-KYC columns: never full_name/ghana_card.
-            supabase
-                .from('afa_orders')
-                .select('id, phone, selling_price, profit, status, created_at, source')
-                .eq('shop_id', shopId)
-                .order('created_at', { ascending: false })
-                .limit(200),
-            walletId
-                ? supabase
-                    .from('shop_wallet_transactions')
-                    .select('id, amount, fee, net_amount, status, account_name, momo_number, created_at')
-                    .eq('shop_wallet_id', walletId)
-                    .eq('type', 'withdrawal')
-                    .order('created_at', { ascending: false })
-                    .limit(200)
-                : Promise.resolve({ data: [] }),
-            supabase
-                .from('shop_sms_purchases')
-                .select('id, credits, price, created_at, shop_sms_bundles(name)')
-                .eq('shop_id', shopId)
-                .order('created_at', { ascending: false })
-                .limit(100),
-            supabase
-                .from('shop_sms_activations')
-                .select('id, amount_paid, created_at')
-                .eq('shop_id', shopId)
-                .order('created_at', { ascending: false })
-                .limit(10),
-            walletId
-                ? supabase
-                    .from('shop_wallet_transactions')
-                    .select('id, amount, description, created_at')
-                    .eq('shop_wallet_id', walletId)
-                    .eq('type', 'utility_commission')
-                    .order('created_at', { ascending: false })
-                    .limit(200)
-                : Promise.resolve({ data: [] }),
+            all('shop_orders', 'id, network, package_size, package_id, guest_phone, profit, status, created_at, source', q => q.eq('shop_id', shopId)),
+            all('results_checker_orders', 'id, type_name, quantity, customer_phone, shop_markup, status, created_at, source', q => q.eq('shop_id', shopId).neq('payment_status', 'pending_payment')),
+            // AFA rows have no package_id/network shape; select only non-KYC columns (never full_name/ghana_card).
+            all('afa_orders', 'id, phone, selling_price, profit, status, created_at, source', q => q.eq('shop_id', shopId)),
+            walletId ? all('shop_wallet_transactions', 'id, amount, fee, net_amount, status, account_name, momo_number, created_at', q => q.eq('shop_wallet_id', walletId).eq('type', 'withdrawal')) : none,
+            all('shop_sms_purchases', 'id, credits, price, created_at, shop_sms_bundles(name)', q => q.eq('shop_id', shopId)),
+            all('shop_sms_activations', 'id, amount_paid, created_at', q => q.eq('shop_id', shopId)),
+            walletId ? all('shop_wallet_transactions', 'id, amount, description, created_at', q => q.eq('shop_wallet_id', walletId).eq('type', 'utility_commission')) : none,
         ])
+
+        const rowsOf = (r: PromiseSettledResult<{ rows: any[] }>) => (r.status === 'fulfilled' ? r.value.rows : [])
+        const incomplete = [ordersRes, rcRes, afaRes, wdRes, smsRes, smsActRes, utilCommRes].some(
+            r => r.status === 'rejected' || r.value.truncated || r.value.failed,
+        )
 
         return NextResponse.json({
             success: true,
             data: {
                 wallet:              walletRow || null,
-                orders:              (ordersRes.status  === 'fulfilled' ? ordersRes.value?.data  : null) || [],
-                rcOrders:            (rcRes.status       === 'fulfilled' ? rcRes.value?.data       : null) || [],
-                afaOrders:           (afaRes.status      === 'fulfilled' ? afaRes.value?.data      : null) || [],
-                withdrawals:         (wdRes.status       === 'fulfilled' ? wdRes.value?.data       : null) || [],
-                smsPurchases:        (smsRes.status      === 'fulfilled' ? smsRes.value?.data      : null) || [],
-                smsActs:             (smsActRes.status   === 'fulfilled' ? smsActRes.value?.data   : null) || [],
-                utilityCommissions:  (utilCommRes.status === 'fulfilled' ? utilCommRes.value?.data : null) || [],
+                orders:              rowsOf(ordersRes),
+                rcOrders:            rowsOf(rcRes),
+                afaOrders:           rowsOf(afaRes),
+                withdrawals:         rowsOf(wdRes),
+                smsPurchases:        rowsOf(smsRes),
+                smsActs:             rowsOf(smsActRes),
+                utilityCommissions:  rowsOf(utilCommRes),
+                incomplete,
             },
-        })
-    } catch (err) {
+        })    } catch (err) {
         console.error('[ProfitLogs] API error:', err)
         return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
     }

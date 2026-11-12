@@ -1,5 +1,6 @@
 'use client'
 
+import { Pager, usePaged } from '@/components/shop/pager'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
@@ -55,6 +56,7 @@ export default function ShopCustomersPage() {
     const [shopName, setShopName] = useState('')
     const [loading, setLoading] = useState(true)
     const [loadFailed, setLoadFailed] = useState(false)
+    const [truncated, setTruncated] = useState(false)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [search, setSearch] = useState('')
     const [sortKey, setSortKey] = useState<SortKey>('recent')
@@ -89,6 +91,7 @@ export default function ShopCustomersPage() {
             const json = await res.json().catch(() => null)
             if (json?.success) {
                 setCustomers(json.data.customers)
+                setTruncated(!!json.data.truncated)
                 return true
             }
             toast.error(json?.error || 'Could not load your customers')
@@ -157,6 +160,8 @@ export default function ShopCustomersPage() {
         const top = [...customers].sort((a, b) => b.total_spent - a.total_spent)[0]
         return top && top.total_spent > 0 ? top.id : null
     }, [customers])
+
+    const paged = usePaged(filtered, `${search}|${sortKey}`)
 
     const openEdit = (c: ShopCustomer) => {
         setEditing(c)
@@ -341,7 +346,7 @@ export default function ShopCustomersPage() {
                     </div>
                 ) : (
                     <ul className="divide-y divide-border">
-                        {filtered.map(c => (
+                        {paged.visible.map(c => (
                             <li key={c.id}>
                                 <button
                                     type="button"
@@ -383,6 +388,8 @@ export default function ShopCustomersPage() {
                         ))}
                     </ul>
                 )}
+                <Pager page={paged.page} pages={paged.pages} size={paged.size} total={paged.total} onPage={paged.setPage} onSize={paged.setSize} />
+                {truncated && <p className="mt-3 text-center text-xs text-muted-foreground">Showing your 10,000 most recent customers.</p>}
             </section>
 
             {/* SMS shortcut */}

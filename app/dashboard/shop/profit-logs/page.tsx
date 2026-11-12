@@ -1,5 +1,7 @@
 'use client'
 
+import { Pager, usePaged } from '@/components/shop/pager'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -77,6 +79,7 @@ export default function ShopProfitLogsPage() {
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
     const [loading, setLoading] = useState(true)
     const [failed, setFailed] = useState(false)
+    const [incomplete, setIncomplete] = useState(false)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [filterDate, setFilterDate] = useState<DateFilter>('30d')
     const [kindFilter, setKindFilter] = useState<KindFilter>('all')
@@ -91,6 +94,7 @@ export default function ShopProfitLogsPage() {
             const { wallet: walletRow, orders, rcOrders, afaOrders, withdrawals, smsPurchases, smsActs, utilityCommissions } = json.data
 
             if (walletRow) setWallet(walletRow)
+            setIncomplete(!!json.data.incomplete)
 
             // Refund claw-backs and commission transfers also move this wallet but are not in the
             // API payload, so without them every "balance after" figure drifted. They are optional
@@ -98,13 +102,13 @@ export default function ShopProfitLogsPage() {
             let walletMoves: any[] = []
             if (walletRow?.id) {
                 try {
-                    const { data } = await (supabase.from('shop_wallet_transactions') as any)
+                    const { rows } = await fetchAllRows(() => (supabase.from('shop_wallet_transactions') as any)
                         .select('id, type, amount, status, created_at')
                         .eq('shop_wallet_id', walletRow.id)
                         .in('type', ['profit_reversal', 'commission_transfer_in'])
                         .order('created_at', { ascending: false })
-                        .limit(200)
-                    walletMoves = data || []
+                        .order('id', { ascending: false }))
+                    walletMoves = rows
                 } catch { /* optional */ }
             }
 
@@ -262,6 +266,8 @@ export default function ShopProfitLogsPage() {
         return true
     })
 
+    const paged = usePaged(visible, `${filterDate}|${kindFilter}`)
+
     // Money that went back to the wallet (reversed) is neither earned nor spent.
     const counted = periodEntries.filter(movesBalance)
     const periodEarned = counted.filter(e => e.kind === 'credit').reduce((s, e) => s + e.amount, 0)
@@ -319,6 +325,13 @@ export default function ShopProfitLogsPage() {
                     <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} /> Refresh
                 </button>
             </header>
+
+            {incomplete && (
+                <div className="neu-inset flex items-start gap-3 rounded-2xl p-4 text-xs text-muted-foreground" role="status">
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700 dark:text-brand-500" />
+                    You have a very long history, so the oldest entries may be missing and the balance column may be off for them.
+                </div>
+            )}
 
             {failed && (
                 <div className="neu-inset flex items-start gap-3 rounded-2xl p-4 text-xs text-muted-foreground" role="status">
@@ -399,7 +412,7 @@ export default function ShopProfitLogsPage() {
                     </div>
                 ) : (
                     <ul className="mt-2 divide-y divide-border">
-                        {visible.map((entry) => {
+                        {paged.visible.map((entry) => {
                             const EntryIcon = ENTRY_ICON[entry.entryType]
                             const isCredit = entry.kind === 'credit'
                             const chip = statusChip(entry)
@@ -440,6 +453,7 @@ export default function ShopProfitLogsPage() {
                         })}
                     </ul>
                 )}
+                <Pager page={paged.page} pages={paged.pages} size={paged.size} total={paged.total} onPage={paged.setPage} onSize={paged.setSize} />
             </section>
 
             {visible.length > 0 && (

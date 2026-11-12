@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 
 // Owners may edit only tags and notes — every other column is system-managed
 // by the order triggers.
@@ -34,15 +35,18 @@ export async function GET() {
 
         const shopId = (shop as any).id
 
-        const { data: customers, error } = await supabase
-            .from('shop_customers')
-            .select('id, phone, name, tags, notes, total_orders, total_spent, first_order_at, last_order_at')
-            .eq('shop_id', shopId)
-            .order('last_order_at', { ascending: false })
-            .limit(1000)
+        // Paged past the 1000-row request cap (stable order: id last) so large shops are not cut off.
+        const { rows: customers, truncated, failed } = await fetchAllRows(() =>
+            (supabase as any)
+                .from('shop_customers')
+                .select('id, phone, name, tags, notes, total_orders, total_spent, first_order_at, last_order_at')
+                .eq('shop_id', shopId)
+                .order('last_order_at', { ascending: false })
+                .order('id', { ascending: false }),
+        )
 
-        if (error) {
-            console.error('[ShopCustomers] List error:', error)
+        if (failed && customers.length === 0) {
+            console.error('[ShopCustomers] List error')
             return NextResponse.json({ success: false, error: 'Failed to load customers' }, { status: 500 })
         }
 
@@ -60,7 +64,7 @@ export async function GET() {
 
         const withFlag = ((customers as any[]) || []).map(c => ({ ...c, from_ussd: ussdPhones.has(c.phone) }))
 
-        return NextResponse.json({ success: true, data: { customers: withFlag } })
+        return NextResponse.json({ success: true, data: { customers: withFlag, truncated: truncated || failed } })
     } catch (err) {
         console.error('[ShopCustomers] GET error:', err)
         return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
