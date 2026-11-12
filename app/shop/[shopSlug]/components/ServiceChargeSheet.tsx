@@ -101,7 +101,11 @@ export function ServiceChargeSheet({
             // this flow has no separate beneficiary field of its own.
             setMomoPhone(!descriptor?.beneficiary ? toLocalMomo(descriptor?.initialMomoPhone || '') : '')
             setProvider(''); setAutoDetected(false)
-            setUseSameForMomo(!!descriptor?.beneficiary); setEmail('')
+            // Off by default: the payer and recipient are frequently different people (buying
+            // data for someone else), so defaulting to "same number" pre-fills a MoMo field the
+            // buyer then has to notice and correct. Ticking it on is what pulls the beneficiary
+            // number into the MoMo field (see the sync effect below).
+            setUseSameForMomo(false); setEmail('')
             setReference(''); refForPaid.current = ''; setOtp(''); setDisplayText(''); setTotal(null); setFailedMessage(''); setShowTermsGate(false)
         } else stop()
     }, [open, descriptor, stop])
