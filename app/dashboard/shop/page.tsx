@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Switch } from '@/components/ui/switch'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { ShopInsights } from '@/components/shop/shop-insights'
 import { ConfirmationStatusBanner } from '@/components/shop/confirmation-status-banner'
 import { PromoCarousel } from '@/components/promo-carousel/PromoCarousel'
@@ -86,6 +87,7 @@ export default function ShopDashboardPage() {
     const [stats, setStats] = useState<ShopStats | null>(null)
     const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
     const [previousOrders, setPreviousOrders] = useState<RecentOrder[]>([])
+    const [dataNote, setDataNote] = useState<'capped' | 'partial-error' | null>(null)
     const [filter, setFilter] = useState<'all' | 'today' | '7d' | '30d'>('all')
     const [loading, setLoading] = useState(true)
     const [isFiltering, setIsFiltering] = useState(false)
@@ -163,19 +165,9 @@ export default function ShopDashboardPage() {
         // shop_orders_effective resolves each order's real current status through its
         // retry chain (effective_status) — plain shop_orders.status goes stale on retry
         // since the sync trigger only fires for the original mirror order, not retries.
-        let query = (supabase as any)
-            .from('shop_orders_effective')
-            .select('*')
-            .eq('shop_id', shopData.id)
-
-        let rcQuery = (supabase as any)
-            .from('results_checker_orders')
-            .select('*')
-            .eq('shop_id', shopData.id)
-            .neq('payment_status', 'pending_payment')
-
         const now = new Date()
         // Fetch one extra window behind the current one so growth can be compared.
+        let fromIso: string | null = null
         const DAY = 24 * 60 * 60 * 1000
         let windowStart: number | null = null
         let windowLength = 0
@@ -191,14 +183,25 @@ export default function ShopDashboardPage() {
         }
         if (windowStart !== null) {
             const from = new Date(windowStart - windowLength).toISOString()
-            query = query.gte('created_at', from)
-            rcQuery = rcQuery.gte('created_at', from)
+            fromIso = from
         }
 
+        // Paged reads: Supabase caps one request at 1000 rows, which would silently
+        // truncate stats and charts for a busy shop.
+        const buildOrders = () => {
+            let q = (supabase as any).from('shop_orders_effective').select('*').eq('shop_id', shopData.id)
+            if (fromIso) q = q.gte('created_at', fromIso)
+            return q.order('created_at', { ascending: false }).order('id', { ascending: false })
+        }
+        const buildRc = () => {
+            let q = (supabase as any).from('results_checker_orders').select('*').eq('shop_id', shopData.id).neq('payment_status', 'pending_payment')
+            if (fromIso) q = q.gte('created_at', fromIso)
+            return q.order('created_at', { ascending: false }).order('id', { ascending: false })
+        }
         const [walletSettled, ordersSettled, rcOrdersSettled] = await Promise.allSettled([
             (supabase as any).from('shop_wallets').select('*').eq('owner_id', dbUser!.id).maybeSingle(),
-            query.order('created_at', { ascending: false }),
-            rcQuery.order('created_at', { ascending: false }),
+            fetchAllRows(buildOrders),
+            fetchAllRows(buildRc),
         ])
 
         // A slower, older request resolving after a newer one must never overwrite it.
@@ -208,9 +211,14 @@ export default function ShopDashboardPage() {
             setWallet(walletSettled.value.data)
         }
 
-        const rawDataOrders = (ordersSettled.status === 'fulfilled' ? ordersSettled.value?.data : null) || []
-        const rawRcOrders = (rcOrdersSettled.status === 'fulfilled' ? rcOrdersSettled.value?.data : null) || []
-
+        const ordersRes = ordersSettled.status === 'fulfilled' ? ordersSettled.value : null
+        const rcRes = rcOrdersSettled.status === 'fulfilled' ? rcOrdersSettled.value : null
+        setDataNote(
+            !ordersRes || !rcRes || ordersRes.failed || rcRes.failed ? 'partial-error'
+            : ordersRes.truncated || rcRes.truncated ? 'capped' : null,
+        )
+        const rawDataOrders = ordersRes?.rows ?? []
+        const rawRcOrders = rcRes?.rows ?? []
         // Use effective_status (resolves the retry chain) for stats/display, falling
         // back to the raw status for rows with no retry history.
         const dataOrders = rawDataOrders.map((o: any) => ({ ...o, status: o.effective_status || o.status }))
@@ -675,6 +683,14 @@ export default function ShopDashboardPage() {
                     ))}
                 </div>
             </div>
+
+            {dataNote && (
+                <p role="status" className="neu-inset rounded-2xl px-4 py-3 text-xs leading-snug text-muted-foreground">
+                    {dataNote === 'capped'
+                        ? 'You have a lot of orders. These figures use your most recent 10,000, so pick Today, 7D or 30D for exact numbers.'
+                        : 'Some orders could not be loaded, so these figures may be incomplete. Tap Refresh to try again.'}
+                </p>
+            )}
 
             {/* ── Chart, best sellers, customers ── */}
             <div className={cn('transition-opacity duration-300', (isPending || isFiltering) && 'opacity-50 pointer-events-none')}>
