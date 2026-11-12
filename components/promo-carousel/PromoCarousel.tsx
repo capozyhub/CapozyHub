@@ -7,11 +7,11 @@ import { cn } from '@/lib/utils'
 import type { PromoSlide, PromoTheme } from '@/lib/promo-carousel/types'
 
 const THEME_GRADIENTS: Record<PromoTheme, string> = {
-    amber: 'from-amber-700 via-orange-800 to-amber-950',
-    violet: 'from-violet-700 via-purple-800 to-violet-950',
-    emerald: 'from-emerald-700 via-emerald-800 to-emerald-950',
-    blue: 'from-brand-700 via-brand-800 to-brand-950',
-    rose: 'from-rose-700 via-rose-800 to-rose-950',
+    amber: 'from-brand-800 via-brand-900 to-neutral-950',
+    violet: 'from-violet-800 via-violet-900 to-neutral-950',
+    emerald: 'from-emerald-800 via-emerald-900 to-neutral-950',
+    blue: 'from-brand-800 via-brand-900 to-neutral-950',
+    rose: 'from-rose-800 via-rose-900 to-neutral-950',
 }
 
 const ADVANCE_MS = 5000
@@ -173,7 +173,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                         <div
                             key={slide.id}
                             className={cn(
-                                'snap-center shrink-0 w-full h-44 sm:h-48 rounded-2xl p-5 flex flex-col justify-between text-white bg-gradient-to-br shadow-lg',
+                                'snap-center shrink-0 w-full h-44 sm:h-48 rounded-2xl p-5 sm:px-12 flex flex-col justify-between text-white bg-gradient-to-br shadow-lg',
                                 THEME_GRADIENTS[slide.theme],
                             )}
                         >
@@ -188,7 +188,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                             </div>
                             <div className="space-y-1">
                                 <p className="text-base font-bold leading-tight">{slide.title}</p>
-                                <p className="text-xs text-white/80 leading-snug line-clamp-2">{slide.body}</p>
+                                <p className="text-xs text-white/90 leading-snug line-clamp-2">{slide.body}</p>
                             </div>
                             <button
                                 onClick={() => handleCta(slide)}

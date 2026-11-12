@@ -677,7 +677,7 @@ export default function ShopSetupPage() {
                         <button type="button" onClick={startOver} className="ml-3 font-medium text-silver-200 underline underline-offset-2 hover:text-white">Start over</button>
                     )}
                 </p>
-                <h1 key={step.key} className="mt-2 max-w-md font-display text-3xl font-bold leading-[1.05] tracking-tight text-balance animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none sm:text-4xl">
+                <h1 key={step.key} className="mt-2 max-w-md font-display text-3xl font-bold leading-[1.05] tracking-tight !text-white text-balance animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none sm:text-4xl">
                     {step.heading}
                 </h1>
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-silver-200 sm:text-base">{step.lead}</p>
@@ -894,7 +894,7 @@ export default function ShopSetupPage() {
                                     </label>
                                     {accentAdjusted && (
                                         <Notice tone="info">
-                                            That shade is too light or too dark to read on the storefront, so it shows as Capozy gold. Pick a mid-tone to see yours.
+                                            We nudge that shade a little so it stays readable on the storefront. It shows as <span className="font-mono">{resolveAccent(form.brand_color)}</span>.
                                         </Notice>
                                     )}
                                     <p className="text-xs text-muted-foreground">Your colour is used for small touches: the logo ring, the line under your name and selected options. The rest stays Capozy black and gold.</p>

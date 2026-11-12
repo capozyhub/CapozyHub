@@ -588,7 +588,7 @@ export default function ShopSmsPage() {
                         <RefreshCcw className="h-3.5 w-3.5" /> Refresh
                     </button>
                 </div>
-                <h1 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">Customer SMS</h1>
+                <h1 className="mt-4 font-display text-2xl font-bold tracking-tight !text-white sm:text-3xl">Customer SMS</h1>
                 <p className="mt-1 text-sm text-white/60">Message your customers about offers, and keep them posted on orders.</p>
                 <p className="mt-5 text-xs font-medium text-white/50">SMS credits</p>
                 <p className="font-display text-4xl font-bold leading-none tracking-tight sm:text-5xl">

@@ -8,12 +8,13 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
 import {
     Store, TrendingUp, ShoppingCart, ArrowRight,
-    Settings, Tag, Banknote, Clock, CheckCircle2, XCircle,
+    Settings, Share2, Tag, Banknote, Clock, CheckCircle2, XCircle,
     AlertCircle, ExternalLink, Copy, Check, RefreshCcw, Crown,
     MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Receipt, Inbox
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Switch } from '@/components/ui/switch'
+import { ShopInsights } from '@/components/shop/shop-insights'
 import { ConfirmationStatusBanner } from '@/components/shop/confirmation-status-banner'
 import { PromoCarousel } from '@/components/promo-carousel/PromoCarousel'
 import { buildShopDashboardSlides } from '@/lib/promo-carousel/shop-dashboard-slides'
@@ -84,6 +85,7 @@ export default function ShopDashboardPage() {
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
     const [stats, setStats] = useState<ShopStats | null>(null)
     const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
+    const [previousOrders, setPreviousOrders] = useState<RecentOrder[]>([])
     const [filter, setFilter] = useState<'all' | 'today' | '7d' | '30d'>('all')
     const [loading, setLoading] = useState(true)
     const [isFiltering, setIsFiltering] = useState(false)
@@ -173,18 +175,24 @@ export default function ShopDashboardPage() {
             .neq('payment_status', 'pending_payment')
 
         const now = new Date()
+        // Fetch one extra window behind the current one so growth can be compared.
+        const DAY = 24 * 60 * 60 * 1000
+        let windowStart: number | null = null
+        let windowLength = 0
         if (filter === 'today') {
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-            query = query.gte('created_at', startOfDay)
-            rcQuery = rcQuery.gte('created_at', startOfDay)
+            windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+            windowLength = DAY
         } else if (filter === '7d') {
-            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-            query = query.gte('created_at', sevenDaysAgo)
-            rcQuery = rcQuery.gte('created_at', sevenDaysAgo)
+            windowStart = now.getTime() - 7 * DAY
+            windowLength = 7 * DAY
         } else if (filter === '30d') {
-            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
-            query = query.gte('created_at', thirtyDaysAgo)
-            rcQuery = rcQuery.gte('created_at', thirtyDaysAgo)
+            windowStart = now.getTime() - 30 * DAY
+            windowLength = 30 * DAY
+        }
+        if (windowStart !== null) {
+            const from = new Date(windowStart - windowLength).toISOString()
+            query = query.gte('created_at', from)
+            rcQuery = rcQuery.gte('created_at', from)
         }
 
         const [walletSettled, ordersSettled, rcOrdersSettled] = await Promise.allSettled([
@@ -220,7 +228,9 @@ export default function ShopDashboardPage() {
             source: o.source
         }))
 
-        const allOrders = [...dataOrders, ...mappedRcOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        const fetched = [...dataOrders, ...mappedRcOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        const allOrders = windowStart === null ? fetched : fetched.filter((o: any) => new Date(o.created_at).getTime() >= windowStart!)
+        setPreviousOrders(windowStart === null ? [] : fetched.filter((o: any) => new Date(o.created_at).getTime() < windowStart!))
         setRecentOrders(allOrders)
 
         // Calculate stats
@@ -467,6 +477,14 @@ export default function ShopDashboardPage() {
         ...(shopIsLive ? [{ href: shopUrl, label: 'Storefront', hint: 'View it live', icon: ExternalLink, external: true }] : []),
     ]
 
+    const checklist = [
+        { label: 'Shop approved', done: shop.approval_status === 'approved', href: '/dashboard/shop/setup' },
+        { label: 'Prices approved', done: shop.pricing_status === 'approved', href: '/dashboard/shop/pricing' },
+        { label: 'Customer SMS switched on', done: smsConfirmEnabled, href: '/dashboard/shop/sms' },
+        { label: 'Storefront notice written', done: !!shopAnnouncement?.message, href: '#storefront-notice' },
+        { label: 'First sale made', done: (wallet?.total_earned || 0) > 0, href: shopUrl || '/dashboard/shop' },
+    ]
+
     const statCards = [
         { label: 'Sales', value: formatCurrency(stats?.total_revenue || 0), accent: 'text-brand-700 dark:text-brand-500', icon: Banknote },
         { label: 'Profit', value: formatCurrency(stats?.total_profit || 0), accent: 'text-emerald-600 dark:text-emerald-400', icon: TrendingUp },
@@ -485,7 +503,7 @@ export default function ShopDashboardPage() {
                                 <Store className="h-5 w-5" />
                             </span>
                             <div className="min-w-0">
-                                <h1 className="font-display truncate text-lg font-bold tracking-tight sm:text-xl">{shop.shop_name}</h1>
+                                <h1 className="font-display truncate text-lg font-bold tracking-tight !text-white sm:text-xl">{shop.shop_name}</h1>
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                     <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold', cfg?.className)}>
                                         <StatusIcon className="w-3 h-3" />
@@ -551,6 +569,12 @@ export default function ShopDashboardPage() {
                             <button type="button" onClick={copyLink} className="clay-silver inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl px-3.5 text-xs font-bold sm:flex-none">
                                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied!' : 'Copy link'}
                             </button>
+                            <a
+                                href={`https://wa.me/?text=${encodeURIComponent(`Buy data bundles, airtime and more from ${shop.shop_name}: ${shopUrl}`)}`}
+                                target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" aria-label="Share on WhatsApp"
+                            >
+                                <span className="clay-black inline-flex h-9 w-9 items-center justify-center rounded-xl"><Share2 className="w-3.5 h-3.5" /></span>
+                            </a>
                             <a href={shopUrl} target="_blank" rel="noopener noreferrer" title="Open shop" aria-label="Open shop">
                                 <span className="clay-black inline-flex h-9 w-9 items-center justify-center rounded-xl"><ExternalLink className="w-3.5 h-3.5" /></span>
                             </a>
@@ -572,6 +596,32 @@ export default function ShopDashboardPage() {
                     brandColor: /^#([A-Fa-f0-9]{3}){1,4}$/.test(shop.brand_color) ? shop.brand_color : '#F6C30F',
                 })}
             />
+
+            {/* ── Go-live checklist (hidden once everything is done) ── */}
+            {!checklist.every(c => c.done) && (
+                <section aria-label="Setup checklist" className="neu-raised-sm rounded-3xl p-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="font-display text-base font-semibold">Get your shop earning</h2>
+                        <span className="text-xs font-semibold text-muted-foreground">{checklist.filter(c => c.done).length} of {checklist.length} done</span>
+                    </div>
+                    <div className="neu-inset mt-3 h-2 overflow-hidden rounded-full">
+                        <div className="h-full rounded-full bg-brand-500" style={{ width: `${(checklist.filter(c => c.done).length / checklist.length) * 100}%` }} />
+                    </div>
+                    <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {checklist.map(c => (
+                            <li key={c.label}>
+                                <Link href={c.href} className="neu-inset flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm">
+                                    {c.done
+                                        ? <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" />
+                                        : <span className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-muted-foreground/40" />}
+                                    <span className={cn('font-medium', c.done && 'text-muted-foreground line-through')}>{c.label}</span>
+                                    {!c.done && <ArrowRight className="ml-auto h-4 w-4 text-brand-700 dark:text-brand-500" />}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             {/* ── Quick Links ── */}
             <ul className="grid grid-cols-4 gap-2.5 sm:grid-cols-4 md:grid-cols-8">
@@ -626,10 +676,15 @@ export default function ShopDashboardPage() {
                 </div>
             </div>
 
+            {/* ── Chart, best sellers, customers ── */}
+            <div className={cn('transition-opacity duration-300', (isPending || isFiltering) && 'opacity-50 pointer-events-none')}>
+                <ShopInsights orders={recentOrders} previous={previousOrders} window={filter} />
+            </div>
+
             {/* ── Notices, toggles + Activity ── */}
             <div className={cn('grid grid-cols-1 gap-4 lg:grid-cols-12', isPending && 'opacity-50 pointer-events-none')}>
                 <div className="lg:col-span-4 space-y-4">
-                    <div className="neu-raised-sm space-y-3 rounded-3xl p-4">
+                    <div id="storefront-notice" className="neu-raised-sm scroll-mt-24 space-y-3 rounded-3xl p-4">
                         <div className="flex items-center gap-2 font-display text-sm font-semibold"><MessageCircle className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Storefront notice</div>
                         {adminAnnActive && (
                             <div className="neu-inset flex items-center gap-2 rounded-xl p-2.5 text-xs text-amber-600 dark:text-amber-400">
