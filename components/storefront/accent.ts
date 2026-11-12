@@ -15,11 +15,35 @@ function luminance(hex: string): number {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-/** Returns a 6-digit hex that has usable contrast on both black and the light sheet. */
+// Mid-tones only: >= ~3:1 against black needs l >= 0.1; >= ~3:1 against #E8E8E8 needs l <= 0.28.
+const MIN_L = 0.1
+const MAX_L = 0.28
+
+function mix(hex: string, target: 0 | 255, t: number): string {
+    const n = parseInt(hex.slice(1), 16)
+    const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v + (target - v) * t))
+    return '#' + ch.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
+/**
+ * Returns a 6-digit hex that has usable contrast on both black and the light sheet. A colour
+ * outside the readable range keeps its hue and is deepened (too light) or lightened (too dark)
+ * just enough to fit, so green still reads as green. Only an invalid value falls back to gold.
+ */
 export function resolveAccent(color: string | null | undefined): string {
     const c = (color || '').trim()
     if (!HEX.test(c)) return FALLBACK_ACCENT
+    if (c.toUpperCase() === FALLBACK_ACCENT) return FALLBACK_ACCENT
     const l = luminance(c)
-    // Mid-tones only: >= ~3:1 against black needs l >= 0.1; >= ~3:1 against #E8E8E8 needs l <= 0.28.
-    return l >= 0.1 && l <= 0.28 ? c : FALLBACK_ACCENT
+    if (l >= MIN_L && l <= MAX_L) return c
+
+    const tooLight = l > MAX_L
+    const target = tooLight ? 0 : 255
+    let lo = 0, hi = 1
+    for (let i = 0; i < 12; i++) {
+        const mid = (lo + hi) / 2
+        const ok = tooLight ? luminance(mix(c, target, mid)) <= MAX_L - 0.02 : luminance(mix(c, target, mid)) >= MIN_L + 0.01
+        if (ok) hi = mid; else lo = mid
+    }
+    return mix(c, target, hi)
 }
