@@ -15,6 +15,17 @@ import {
     urlSchema,
     colorSchema,
 } from '@/lib/validation'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
+import { cleanText, validateShopDescription, validateShopName, validateShopSlug } from '@/lib/shop-profile-rules'
+
+// A logo may only be one this user uploaded through /api/shop/upload. Accepting any
+// https URL let an owner point the storefront at third-party images (tracking pixels,
+// hot-linked or swapped-out content) and could break next/image on the storefront.
+function isOwnLogoUrl(url: string, userId: string): boolean {
+    const base = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '')
+    if (!base) return false
+    return url.startsWith(`${base}/storage/v1/object/public/shop-logos/${userId}/`)
+}
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 // Every field a shop owner is allowed to write. Protected fields (owner_id,
@@ -33,7 +44,7 @@ const shopProfileSchema = z.object({
     brand_color:     colorSchema.optional(),
     brand_accent:    colorSchema.optional(),
     logo_url:        urlSchema.or(z.literal('')).optional().nullable(),
-    divider_style:   shortTextSchema.optional(),
+    divider_style:   z.string().regex(/^[a-z-]{1,40}$/, 'Invalid style').optional(),
     // Setup wizard state — strictly shaped, never trusted for anything
     // beyond resuming the wizard UI.
     setup_progress:  z.object({
@@ -71,7 +82,21 @@ async function handleShopProfileWrite(request: NextRequest, mode: 'create' | 'up
         }
 
         const userId = authUser.id
-        const body = await request.json()
+
+        const limit = await limitDistributed('shop-profile-write', userId, 60, 60)
+        if (!limit.allowed) {
+            return NextResponse.json(
+                { error: 'Too many changes in a short time. Wait a moment and try again.' },
+                { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } }
+            )
+        }
+
+        let body: unknown
+        try {
+            body = await request.json()
+        } catch {
+            return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+        }
 
         // 2. Strict input validation (XSS / format prevention)
         const validation = shopProfileSchema.safeParse(body)
@@ -101,9 +126,12 @@ async function handleShopProfileWrite(request: NextRequest, mode: 'create' | 'up
 
         // Build safe DB payload — empty optional strings become null
         const dbPayload = {
-            shop_name:       data.shop_name.trim(),
+            shop_name:       cleanText(data.shop_name),
             shop_slug:       data.shop_slug.trim(),
-            description:     emptyToNull(data.description),
+            // Same omitted-means-untouched rule as the fields below. This used to be
+            // emptyToNull(undefined), which turned every partial wizard PUT into
+            // "clear the description".
+            description:     data.description === undefined ? undefined : emptyToNull(data.description ? cleanText(data.description) : data.description),
             // Omitted (undefined) means "field not sent this request" — leave the
             // key out of the payload entirely (JSON.stringify drops undefined
             // values) so a partial PUT from a later wizard step never clobbers a
@@ -131,7 +159,37 @@ async function handleShopProfileWrite(request: NextRequest, mode: 'create' | 'up
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
+        // Public-identity rules (name, link, description, logo). Only fields the owner is
+        // actually changing are held to the current rules, so a shop created before the
+        // rules existed can still save other settings.
+        const collectIdentityErrors = (
+            prev: { shop_name: string; shop_slug: string; description: string | null; logo_url: string | null } | null
+        ): string[] => {
+            const errs: string[] = []
+            if (!prev || dbPayload.shop_name !== prev.shop_name) {
+                const e = validateShopName(dbPayload.shop_name)
+                if (e) errs.push(`shop_name: ${e}`)
+            }
+            if (!prev || dbPayload.shop_slug !== prev.shop_slug) {
+                const e = validateShopSlug(dbPayload.shop_slug)
+                if (e) errs.push(`shop_slug: ${e}`)
+            }
+            if (dbPayload.description && dbPayload.description !== prev?.description) {
+                const e = validateShopDescription(dbPayload.description)
+                if (e) errs.push(`description: ${e}`)
+            }
+            if (dbPayload.logo_url && dbPayload.logo_url !== prev?.logo_url && !isOwnLogoUrl(dbPayload.logo_url, userId)) {
+                errs.push('logo_url: Upload your logo with the logo uploader')
+            }
+            return errs
+        }
+
         if (mode === 'create') {
+            const createErrors = collectIdentityErrors(null)
+            if (createErrors.length > 0) {
+                return NextResponse.json({ error: 'Invalid input', details: createErrors }, { status: 400 })
+            }
+
             // Check the user doesn't already have a shop (idempotency guard)
             const { data: existing } = await (supabaseAdmin as any)
                 .from('shop_profiles')
@@ -191,12 +249,30 @@ async function handleShopProfileWrite(request: NextRequest, mode: 'create' | 'up
             // Verify shop belongs to this authenticated user before updating
             const { data: existing } = await (supabaseAdmin as any)
                 .from('shop_profiles')
-                .select('id, is_active')
+                .select('id, is_active, pricing_status, shop_name, shop_slug, description, logo_url')
                 .eq('owner_id', userId)
                 .maybeSingle()
 
             if (!existing) {
                 return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+            }
+
+            const updateErrors = collectIdentityErrors(existing)
+            if (updateErrors.length > 0) {
+                return NextResponse.json({ error: 'Invalid input', details: updateErrors }, { status: 400 })
+            }
+
+            // The link is printed on customers' screenshots and shared in groups. Once the
+            // shop is live (or its prices are approved) renaming it would break every one
+            // of those links and free the old name for someone else to claim.
+            if (
+                dbPayload.shop_slug !== existing.shop_slug &&
+                (existing.is_active || existing.pricing_status === 'approved')
+            ) {
+                return NextResponse.json(
+                    { error: 'Invalid input', details: ['shop_slug: Your shop link cannot be changed once your shop has gone live'] },
+                    { status: 400 }
+                )
             }
 
             // Security gate: owner_phone is optional at write time (the wizard
