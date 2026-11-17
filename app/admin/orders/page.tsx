@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, Fragment, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -110,7 +110,7 @@ export default function AdminOrdersPage() {
     useEffect(() => { fetchOrdersRef.current = fetchOrders })
     useEffect(() => { fetchBatchesRef.current = fetchBatches })
 
-    // Realtime subscription — auto-updates when orders or batches change in DB
+    // Realtime subscription â€” auto-updates when orders or batches change in DB
     useEffect(() => {
         const triggerLiveRefresh = () => {
             if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current)
@@ -158,7 +158,7 @@ export default function AdminOrdersPage() {
     const fetchOrders = async (force = false) => {
 
         try {
-            // No cap — the API now pages through ALL pending data orders so the
+            // No cap â€” the API now pages through ALL pending data orders so the
             // admin can download the entire queue (Vercel Pro: longer timeouts).
             const response = await fetch('/api/admin/orders?available=true')
             if (!response.ok) {
@@ -346,7 +346,7 @@ export default function AdminOrdersPage() {
         writeFile(workbook, filename)
     }
 
-    // Refund is issued via a controlled dialog (NO native confirm() — iOS-PWA safe).
+    // Refund is issued via a controlled dialog (NO native confirm() â€” iOS-PWA safe).
     // handleRefund opens the dialog; submitRefund performs the idempotent server call.
     const [refundOrder, setRefundOrder] = useState<any | null>(null)
     const [refundMechanism, setRefundMechanism] = useState<'owner_wallet' | 'paystack'>('owner_wallet')
@@ -379,8 +379,8 @@ export default function AdminOrdersPage() {
 
             const outcome = result.data?.outcome
             if (outcome === 'refund_initiated') {
-                // Paystack refund is async — the order finalizes to 'refunded' via webhook.
-                toast.success('Paystack refund initiated — it completes once Paystack processes it.')
+                // Paystack refund is async â€” the order finalizes to 'refunded' via webhook.
+                toast.success('Paystack refund initiated â€” it completes once Paystack processes it.')
             } else {
                 setOrders(prev => Array.isArray(prev)
                     ? prev.map(o => o.id === refundOrder.id ? { ...o, status: 'refunded', payment_status: 'refunded' } : o)
@@ -399,11 +399,29 @@ export default function AdminOrdersPage() {
         }
     }
 
-    // Retry is issued via a controlled dialog (NO native confirm() — iOS-PWA safe),
+    // Retry is issued via a controlled dialog (NO native confirm() â€” iOS-PWA safe),
     // mirroring the refund dialog above. handleRetry opens the dialog; submitRetry
     // performs the idempotent server call to /api/admin/orders/retry.
     const [retryTarget, setRetryTarget] = useState<any | null>(null)
     const [retryBusy, setRetryBusy] = useState(false)
+
+    // Generic confirm dialog â€” replaces native confirm(), which is unreliable in an
+    // iOS home-screen PWA (can silently no-op instead of showing a prompt), for every
+    // destructive batch action below. One dialog + one piece of state instead of a
+    // bespoke controlled dialog per action.
+    const [pendingConfirm, setPendingConfirm] = useState<{ title: string; description: string; onConfirm: () => void | Promise<void>; busy?: boolean } | null>(null)
+    const askConfirm = (title: string, description: string, onConfirm: () => void | Promise<void>) => {
+        setPendingConfirm({ title, description, onConfirm })
+    }
+    const runPendingConfirm = async () => {
+        if (!pendingConfirm) return
+        setPendingConfirm(c => c ? { ...c, busy: true } : c)
+        try {
+            await pendingConfirm.onConfirm()
+        } finally {
+            setPendingConfirm(null)
+        }
+    }
 
     const handleRetry = (order: any) => {
         setRetryTarget(order)
@@ -424,18 +442,18 @@ export default function AdminOrdersPage() {
                 const outcome = result.outcome as string | undefined
                 const messages: Record<string, string> = {
                     insufficient_balance: `Insufficient wallet balance to fund this retry${result.required != null && result.available != null
-                            ? ` — needs GHS ${Number(result.required).toFixed(2)}, wallet has GHS ${Number(result.available).toFixed(2)}`
+                            ? ` â€” needs GHS ${Number(result.required).toFixed(2)}, wallet has GHS ${Number(result.available).toFixed(2)}`
                             : ''
                         }.`,
-                    retry_locked: `This order is locked from further retries after 3 attempts${result.until ? ` — try again after ${new Date(result.until).toLocaleString()}` : ', try again later'
+                    retry_locked: `This order is locked from further retries after 3 attempts${result.until ? ` â€” try again after ${new Date(result.until).toLocaleString()}` : ', try again later'
                         }.`,
                     retry_too_soon: 'Please wait a few seconds before retrying this order again.',
-                    paystack_refund_no_wallet: "This order was refunded to the customer's card via Paystack — there is no wallet to charge for a retry.",
+                    paystack_refund_no_wallet: "This order was refunded to the customer's card via Paystack â€” there is no wallet to charge for a retry.",
                     not_retryable: result.error || 'This order is not in a retryable state.',
                     admin_only: result.error || 'Only an admin can retry a failed order.',
                     not_owner: result.error || 'You are not authorized to retry this order.',
-                    duplicate_attempt: 'This retry was already submitted — refresh and check the order status before trying again.',
-                    retry_already_in_progress: 'A previous retry for this order already succeeded or is in progress — refresh to see its current status.',
+                    duplicate_attempt: 'This retry was already submitted â€” refresh and check the order status before trying again.',
+                    retry_already_in_progress: 'A previous retry for this order already succeeded or is in progress â€” refresh to see its current status.',
                     owner_not_found: 'Could not find the shop owner to fund this retry.',
                     no_wallet_user: 'This order has no wallet to charge for a retry.',
                     invalid_charge_amount: 'Could not determine a valid retry price for this order.',
@@ -447,7 +465,7 @@ export default function AdminOrdersPage() {
             const data = result.data
             toast.success(
                 data?.message ||
-                (data?.chargedAmount ? `Retry dispatched — GHS ${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
+                (data?.chargedAmount ? `Retry dispatched â€” GHS ${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
             )
             setRetryTarget(null)
             fetchOrders(true)
@@ -483,10 +501,14 @@ export default function AdminOrdersPage() {
             return
         }
 
-        if (!confirm(`This will export ${pendingOrders.length} pending orders and move them to the "Downloaded" tab. Continue?`)) {
-            return
-        }
+        askConfirm(
+            'Export pending orders?',
+            `This will export ${pendingOrders.length} pending orders and move them to the "Downloaded" tab.`,
+            () => runExportExcel(pendingOrders)
+        )
+    }
 
+    const runExportExcel = async (pendingOrders: any[]) => {
         setIsDownloading(true)
         try {
             const idempotencyKey = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -710,8 +732,15 @@ export default function AdminOrdersPage() {
             }
         }
 
-        const onUpdateBatchStatus = async (status: string) => {
-            if (!confirm(`Mark all ${batchOrders.length} orders as ${status}?`)) return
+        const onUpdateBatchStatus = (status: string) => {
+            askConfirm(
+                'Update batch status?',
+                `Mark all ${batchOrders.length} orders as ${status}?`,
+                () => runUpdateBatchStatus(status)
+            )
+        }
+
+        const runUpdateBatchStatus = async (status: string) => {
             setIsUpdating(true)
             try {
                 const response = await fetch('/api/admin/orders/update-status', {
@@ -735,7 +764,7 @@ export default function AdminOrdersPage() {
         }
 
         const onRefundBatch = async () => {
-            // Load orders first if the card hasn't been expanded yet — need the id list.
+            // Load orders first if the card hasn't been expanded yet â€” need the id list.
             let idsSource = batchOrders
             if (!hasLoaded) {
                 setIsLoadingOrders(true)
@@ -756,11 +785,17 @@ export default function AdminOrdersPage() {
                 return
             }
             if (ids.length > 50) {
-                toast.error('This batch has more than 50 orders — refund in smaller batches or use the main Fulfillment page.')
+                toast.error('This batch has more than 50 orders â€” refund in smaller batches or use the main Fulfillment page.')
                 return
             }
-            if (!confirm(`Refund ${ids.length} order(s) in this batch? Already-completed or already-refunded orders are skipped automatically.`)) return
+            askConfirm(
+                'Refund batch?',
+                `Refund ${ids.length} order(s) in this batch? Already-completed or already-refunded orders are skipped automatically.`,
+                () => runRefundBatch(ids)
+            )
+        }
 
+        const runRefundBatch = async (ids: string[]) => {
             setIsUpdating(true)
             try {
                 const response = await fetch('/api/admin/orders/bulk-refund', {
@@ -771,7 +806,7 @@ export default function AdminOrdersPage() {
                 const data = await response.json()
                 if (!response.ok || !data.success) throw new Error(data.error || 'Batch refund failed')
                 const s = data.data?.summary ?? { ok: 0, skipped: 0, failed: 0 }
-                toast.success(`Refunded ${s.ok} · skipped ${s.skipped} · failed ${s.failed}`)
+                toast.success(`Refunded ${s.ok} Â· skipped ${s.skipped} Â· failed ${s.failed}`)
                 setBatchOrders(prev => Array.isArray(prev) ? prev.map(o => ({ ...o, status: 'refunded', payment_status: 'refunded' })) : [])
                 fetchBatches(0, true)
             } catch (error: any) {
@@ -781,7 +816,7 @@ export default function AdminOrdersPage() {
             }
         }
 
-        const onDeleteFailedOrders = async () => {
+        const onDeleteFailedOrders = () => {
             const failedCount = batchOrders.filter(o => o.status === 'failed').length
 
             if (failedCount === 0) {
@@ -789,8 +824,14 @@ export default function AdminOrdersPage() {
                 return
             }
 
-            if (!confirm(`Delete ${failedCount} failed order(s)? This will permanently remove them from the system and cannot be undone.`)) return
+            askConfirm(
+                'Delete failed orders?',
+                `Delete ${failedCount} failed order(s)? This will permanently remove them from the system and cannot be undone.`,
+                runDeleteFailedOrders
+            )
+        }
 
+        const runDeleteFailedOrders = async () => {
             setIsUpdating(true)
             try {
                 const response = await fetch('/api/admin/orders/delete-failed', {
@@ -1119,7 +1160,7 @@ export default function AdminOrdersPage() {
                                         placeholder="Search orders..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-purple-500 transition-all rounded-xl"
+                                        className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-ring transition-all rounded-xl"
                                     />
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
@@ -1266,7 +1307,7 @@ export default function AdminOrdersPage() {
                                 placeholder="Search batches by phone, ref..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-purple-500 transition-all rounded-xl"
+                                className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-ring transition-all rounded-xl"
                             />
                         </div>
                         <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1429,20 +1470,20 @@ export default function AdminOrdersPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Refund dialog — controlled, iOS-PWA safe (no native confirm) */}
+            {/* Refund dialog â€” controlled, iOS-PWA safe (no native confirm) */}
             <Dialog open={!!refundOrder} onOpenChange={(o) => { if (!o && !refundBusy) { setRefundOrder(null); setRefundReason('') } }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Refund order</DialogTitle>
                         <DialogDescription>
-                            {refundOrder?.reference_code ? `Ref ${refundOrder.reference_code} · ` : ''}GHS {Number(refundOrder?.price ?? 0).toFixed(2)}
+                            {refundOrder?.reference_code ? `Ref ${refundOrder.reference_code} Â· ` : ''}GHS {Number(refundOrder?.price ?? 0).toFixed(2)}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
                         {refundOrder?.status === 'processing' && (
                             <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
                                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>This order is <b>processing</b> — the supplier may already have delivered it. Refunding now risks paying out on a delivered order.</span>
+                                <span>This order is <b>processing</b> â€” the supplier may already have delivered it. Refunding now risks paying out on a delivered order.</span>
                             </div>
                         )}
                         {refundOrder?.shop_order_id ? (
@@ -1462,7 +1503,7 @@ export default function AdminOrdersPage() {
                         <textarea
                             value={refundReason}
                             onChange={(e) => setRefundReason(e.target.value)}
-                            placeholder="Reason (optional)…"
+                            placeholder="Reason (optional)â€¦"
                             rows={2}
                             className="w-full text-sm rounded-md border border-input bg-background px-2.5 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         />
@@ -1470,42 +1511,60 @@ export default function AdminOrdersPage() {
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => { setRefundOrder(null); setRefundReason('') }} disabled={refundBusy}>Cancel</Button>
                         <Button variant="destructive" onClick={submitRefund} disabled={refundBusy}>
-                            {refundBusy ? 'Processing…' : 'Confirm refund'}
+                            {refundBusy ? 'Processingâ€¦' : 'Confirm refund'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Retry dialog — controlled, iOS-PWA safe (no native confirm) */}
+            {/* Retry dialog â€” controlled, iOS-PWA safe (no native confirm) */}
             <Dialog open={!!retryTarget} onOpenChange={(o) => { if (!o && !retryBusy) setRetryTarget(null) }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Retry order</DialogTitle>
                         <DialogDescription>
-                            {retryTarget?.reference_code ? `Ref ${retryTarget.reference_code} · ` : ''}Status: {retryTarget?.status}
+                            {retryTarget?.reference_code ? `Ref ${retryTarget.reference_code} Â· ` : ''}Status: {retryTarget?.status}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
                         {retryTarget?.status === 'refunded' ? (
                             <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
                                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>This order was refunded — retrying will charge <b>today&apos;s price</b> to the {retryTarget?.shop_order_id ? "shop owner's" : "buyer's"} wallet. The exact amount charged will be confirmed after the retry succeeds.</span>
+                                <span>This order was refunded â€” retrying will charge <b>today&apos;s price</b> to the {retryTarget?.shop_order_id ? "shop owner's" : "buyer's"} wallet. The exact amount charged will be confirmed after the retry succeeds.</span>
                             </div>
                         ) : (
                             <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
                                 <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>This order failed and was never refunded — retrying re-dispatches it at no charge.</span>
+                                <span>This order failed and was never refunded â€” retrying re-dispatches it at no charge.</span>
                             </div>
                         )}
                         <p className="text-sm text-muted-foreground">
                             Retry attempts used: <b>{retryTarget?.retry_count ?? 0} / 3</b>
-                            {(retryTarget?.retry_count ?? 0) >= 3 ? ' — further retries are locked for 24h after the last attempt.' : ''}
+                            {(retryTarget?.retry_count ?? 0) >= 3 ? ' â€” further retries are locked for 24h after the last attempt.' : ''}
                         </p>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setRetryTarget(null)} disabled={retryBusy}>Cancel</Button>
                         <Button onClick={submitRetry} disabled={retryBusy}>
-                            {retryBusy ? 'Retrying…' : 'Confirm retry'}
+                            {retryBusy ? 'Retryingâ€¦' : 'Confirm retry'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Generic confirm dialog â€” every destructive batch action above routes through
+                this instead of native confirm(), which can silently no-op in an iOS
+                home-screen PWA. */}
+            <Dialog open={!!pendingConfirm} onOpenChange={(o) => { if (!o && !pendingConfirm?.busy) setPendingConfirm(null) }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{pendingConfirm?.title}</DialogTitle>
+                        <DialogDescription>{pendingConfirm?.description}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setPendingConfirm(null)} disabled={pendingConfirm?.busy}>Cancel</Button>
+                        <Button variant="destructive" onClick={runPendingConfirm} disabled={pendingConfirm?.busy}>
+                            {pendingConfirm?.busy ? 'Workingâ€¦' : 'Confirm'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

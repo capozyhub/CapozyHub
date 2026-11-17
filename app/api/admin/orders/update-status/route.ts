@@ -1,10 +1,9 @@
-import { cookies } from 'next/headers'
-import { createRouteClient } from '@/lib/supabase-server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { syncShopOrderStatus } from '@/lib/shop-service'
 import { waitUntil } from '@vercel/functions'
 import { notifyDataOrderWebhook } from '@/lib/data-order-webhook'
+import { validateAdminAccess } from '@/lib/auth-utils'
 
 // Create a service role client to bypass RLS for admin updates functions
 const supabaseAdmin = createClient(
@@ -18,30 +17,14 @@ const supabaseAdmin = createClient(
     }
 )
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const supabase = await createRouteClient()
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-
-        if (!authUser) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            )
-        }
-
-        // Verify admin role
-        const { data: user } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', authUser.id)
-            .single()
-
-        if (!user || (user.role !== 'admin' && user.role !== 'sub-admin')) {
-            return NextResponse.json(
-                { error: 'Forbidden: Admin access required' },
-                { status: 403 }
-            )
+        // Role read via the service-role client (validateAdminAccess), not an RLS-scoped
+        // one — this route accepts both admin and sub-admin, same posture as this folder's
+        // other routes (orders/batches), so it's gated by the same path-based allowlist.
+        const authResult = await validateAdminAccess(true, request)
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status })
         }
 
         const body = await request.json()
@@ -89,7 +72,7 @@ export async function POST(request: Request) {
 
             if (fetchError) {
                 console.error('Error fetching batch orders:', fetchError)
-                return NextResponse.json({ error: fetchError.message }, { status: 500 })
+                return NextResponse.json({ error: 'Failed to load batch orders' }, { status: 500 })
             }
             targetOrderIds = (batchOrders || []).map(o => o.id)
         } else {
@@ -110,7 +93,7 @@ export async function POST(request: Request) {
 
         if (refundCheckError) {
             console.error('Error checking refund state:', refundCheckError)
-            return NextResponse.json({ error: refundCheckError.message }, { status: 500 })
+            return NextResponse.json({ error: 'Failed to check refund state' }, { status: 500 })
         }
         const refundedIds = new Set((refundCheckRows || []).map(o => o.id))
         targetOrderIds = targetOrderIds.filter(id => !refundedIds.has(id))
@@ -138,7 +121,7 @@ export async function POST(request: Request) {
         if (error) {
             console.error('Error updating orders:', error)
             return NextResponse.json(
-                { error: error.message },
+                { error: 'Failed to update orders' },
                 { status: 500 }
             )
         }
@@ -179,10 +162,10 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ success: true, count: targetOrderIds.length })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error in update status route:', error)
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: 'Internal server error' },
             { status: 500 }
         )
     }

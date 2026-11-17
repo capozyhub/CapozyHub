@@ -274,8 +274,8 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true, checked, updated, skippedDuplicateId, wiped: wipedIds.length, wipedIds, notFoundInDbIds, errors })
-    } catch (err: any) {
+    } catch (err) {
         console.error('[SyncSelection] Unexpected error:', err)
-        return NextResponse.json({ success: false, error: err.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
     }
 }

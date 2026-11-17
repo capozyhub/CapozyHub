@@ -227,8 +227,8 @@ export async function POST(request: NextRequest) {
             success: true,
             data: { orders: limitedOrders, notFound, sizeMismatch, totalMatched: limitedOrders.length, truncated },
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('[BulkLookup] error:', error)
-        return NextResponse.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
     }
 }

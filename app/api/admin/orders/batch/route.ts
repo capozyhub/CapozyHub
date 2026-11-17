@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient } from '@/lib/supabase-server'
-import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { syncShopOrderStatus } from '@/lib/shop-service'
+import { validateAdminAccess } from '@/lib/auth-utils'
 
 // Create a service role client to bypass RLS for admin updates functions
 const supabaseAdmin = createClient(
@@ -17,24 +16,19 @@ const supabaseAdmin = createClient(
 )
 export async function POST(request: NextRequest) {
     try {
-        const cookieStore = await cookies()
-        const supabaseUserClient = await createRouteClient()
-        const { data: { user: authUser }, error: authError } = await supabaseUserClient.auth.getUser()
-
-        if (authError || !authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        const authResult = await validateAdminAccess(true, request)
+        if (authResult.error || !authResult.user) {
+            return NextResponse.json({ error: authResult.error || 'Unauthorized' }, { status: authResult.status || 401 })
         }
+        const authUser = authResult.user
 
-        // Check if user is admin
-        const { data: userData } = await supabaseUserClient
+        // First name for the generated filename — read separately since
+        // validateAdminAccess only returns role.
+        const { data: userData } = await supabaseAdmin
             .from('users')
-            .select('role, first_name')
+            .select('first_name')
             .eq('id', authUser.id)
             .single()
-
-        if (userData?.role !== 'admin' && userData?.role !== 'sub-admin') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        }
 
         const body = await request.json()
         const { orderIds, filename, network, idempotencyKey } = body
@@ -126,8 +120,8 @@ export async function POST(request: NextRequest) {
             filename: (batch as any).filename,
             updatedCount: orderIds.length
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Batch Creation Error:', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

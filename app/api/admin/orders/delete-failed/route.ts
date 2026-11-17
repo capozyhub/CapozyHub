@@ -1,27 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
+import { validateAdminAccess } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
     try {
-        const cookieStore = await cookies()
-        const supabaseUserClient = await createRouteClient()
-        const { data: { user: authUser }, error: authError } = await supabaseUserClient.auth.getUser()
-
-        if (authError || !authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Check if user is admin
-        const { data: userData } = await supabaseUserClient
-            .from('users')
-            .select('role')
-            .eq('id', authUser.id)
-            .single()
-
-        if (userData?.role !== 'admin' && userData?.role !== 'sub-admin') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const authResult = await validateAdminAccess(true, request)
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status })
         }
 
         const body = await request.json()
@@ -41,7 +26,10 @@ export async function POST(request: NextRequest) {
             .eq('download_batch_id', batchId)
             .eq('status', 'failed')
 
-        if (ordersError) throw ordersError
+        if (ordersError) {
+            console.error('Failed to load batch orders:', ordersError)
+            return NextResponse.json({ error: 'Failed to load batch orders' }, { status: 500 })
+        }
 
         if (!batchOrders || batchOrders.length === 0) {
             return NextResponse.json({ error: 'No failed orders found in this batch' }, { status: 404 })
@@ -56,31 +44,48 @@ export async function POST(request: NextRequest) {
             .delete()
             .in('id', orderIds)
 
-        if (deleteError) throw deleteError
+        if (deleteError) {
+            console.error('Failed to delete failed orders:', deleteError)
+            return NextResponse.json({ error: 'Failed to delete orders' }, { status: 500 })
+        }
 
-        // 3. Update batch order_count
-        const { error: batchUpdateError } = await (supabase
-            .from('download_batches') as any)
-            .update({ order_count: 0 })
-            .eq('id', batchId)
+        // 3. Re-count what's actually left in the batch — a batch mixes failed orders with
+        // completed/processing ones, so it is not necessarily empty just because its failed
+        // orders are gone. The previous version unconditionally zeroed order_count and
+        // deleted the batch row here, which would silently orphan any surviving orders'
+        // download_batch_id reference (they'd vanish from the Downloaded History tab).
+        const { count: remaining, error: countError } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('download_batch_id', batchId)
 
-        if (batchUpdateError) throw batchUpdateError
+        if (countError) {
+            // The deletion above already succeeded — don't fail the request over a
+            // bookkeeping read, just leave order_count stale rather than guessing.
+            console.error('Failed to recount batch orders:', countError)
+        } else {
+            const { error: batchUpdateError } = await (supabase
+                .from('download_batches') as any)
+                .update({ order_count: remaining || 0 })
+                .eq('id', batchId)
+            if (batchUpdateError) console.error('Failed to update batch order_count:', batchUpdateError)
 
-        // 4. Optionally delete the batch if no orders left
-        const { error: batchDeleteError } = await supabase
-            .from('download_batches')
-            .delete()
-            .eq('id', batchId)
-
-        if (batchDeleteError) console.error('Failed to delete batch:', batchDeleteError)
+            if ((remaining || 0) === 0) {
+                const { error: batchDeleteError } = await supabase
+                    .from('download_batches')
+                    .delete()
+                    .eq('id', batchId)
+                if (batchDeleteError) console.error('Failed to delete empty batch:', batchDeleteError)
+            }
+        }
 
         return NextResponse.json({
             success: true,
             deletedCount: failedOrderCount,
             message: `Deleted ${failedOrderCount} failed order(s)`
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Failed Order Deletion Error:', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }
