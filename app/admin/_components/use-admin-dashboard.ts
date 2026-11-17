@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type DashRange = 'today' | '7d' | '30d'
 
@@ -89,8 +89,6 @@ export interface EngineStatus {
     todayOrders: number
     failedToday: number
     failedRateToday: number
-    supplierBalance: number | null
-    supplierCurrency: string | null
 }
 
 export interface AdminDashboardData {
@@ -118,7 +116,12 @@ export function useAdminDashboard(range: DashRange): AdminDashboardData {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    // Sequence guard: a slow response for an older range must not overwrite a newer one.
+    const seq = useRef(0)
+    const hasData = useRef(false)
+
     const fetchAll = useCallback(async () => {
+        const mine = ++seq.current
         try {
             setError(null)
             const [s, t, a, e] = await Promise.all([
@@ -127,20 +130,32 @@ export function useAdminDashboard(range: DashRange): AdminDashboardData {
                 fetch('/api/admin/activity?limit=12'),
                 fetch('/api/admin/engine-status'),
             ])
+            if (mine !== seq.current) return
 
             if (!s.ok) {
                 const body = await s.json().catch(() => ({}))
                 throw new Error(body.error || 'Failed to load stats')
             }
-            setStats(await s.json())
-            setTrends(t.ok ? await t.json() : null)
-            setActivity(a.ok ? await a.json() : [])
-            setEngine(e.ok ? await e.json() : null)
+            const [sJson, tJson, aJson, eJson] = await Promise.all([
+                s.json(),
+                t.ok ? t.json() : null,
+                a.ok ? a.json() : [],
+                e.ok ? e.json() : null,
+            ])
+            if (mine !== seq.current) return
+            setStats(sJson)
+            setTrends(tJson)
+            setActivity(Array.isArray(aJson) ? aJson : [])
+            setEngine(eJson)
+            hasData.current = true
         } catch (err: any) {
+            if (mine !== seq.current) return
             console.error('Error loading admin dashboard:', err)
-            setError(err.message || 'Failed to load dashboard')
+            // A failed refresh keeps the figures already on screen; only a failed
+            // first load blocks the page.
+            if (!hasData.current) setError(err.message || 'Failed to load dashboard')
         } finally {
-            setIsLoading(false)
+            if (mine === seq.current) setIsLoading(false)
         }
     }, [range])
 

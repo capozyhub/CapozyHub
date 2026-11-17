@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json(data)
-    } catch (error: any) {
+    } catch (error) {
         console.error('Admin Trends Fetch Error:', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

@@ -52,13 +52,10 @@ export function OperationalHealthPanel({ stats, engine, counts }: { stats: Admin
                 <Stat icon={RotateCcw} label="Refunds (total)" value={formatCurrency(stats?.refundsAmount ?? 0)} color={accent.violet} href="/admin/orders" />
                 <Stat icon={Banknote} label="Withdrawals" value={counts.pendingWithdrawals} color={accent.emerald} href="/admin/shops/withdrawals" />
                 <Stat icon={BadgeCheck} label="AFA Pending" value={counts.pendingAfa} color={accent.violet} href="/admin/afa-management" />
-                <Stat
-                    icon={Banknote}
-                    label="Supplier Float"
-                    value={engine?.supplierBalance != null ? formatCurrency(engine.supplierBalance) : '—'}
-                    color={accent.slate}
-                />
             </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+                No supplier is connected yet, so orders wait for manual fulfillment.
+            </p>
         </div>
     )
 }

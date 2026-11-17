@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
             // so it can warn instead of presenting 0 as truth.
             degraded: true
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Admin Stats Fetch Error:', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }
