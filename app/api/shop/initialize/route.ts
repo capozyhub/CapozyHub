@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         const checkout = await computeShopCheckout(db, body)
         if (!checkout.ok) {
             return NextResponse.json(
-                { error: checkout.error, ...(checkout.contact ? { contact: checkout.contact } : {}) },
+                { error: checkout.error, ...(checkout.code ? { code: checkout.code, actualNetwork: checkout.actualNetwork } : {}), ...(checkout.contact ? { contact: checkout.contact } : {}) },
                 { status: checkout.status }
             )
         }

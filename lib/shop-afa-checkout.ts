@@ -4,6 +4,7 @@
 // fixed base price per role, not a per-item shop_pricing row like data bundles).
 
 import { validateAfaRegistration } from '@/lib/afa-validation'
+import { validateGhanaianPhone } from '@/lib/phone-validation'
 import { AFA_PRICE_KEYS, resolveAfaPrice } from '@/lib/afa-pricing'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
@@ -57,6 +58,9 @@ export async function computeShopAfaCheckout(db: any, body: ShopAfaCheckoutInput
     const cleanPhone = guestPhone.replace(/\s+/g, '')
     if (!/^(0\d{9}|233\d{9})$/.test(cleanPhone)) {
         return { ok: false, status: 400, error: 'Invalid phone number. Use format: 0XXXXXXXXX or 233XXXXXXXXX' }
+    }
+    if (!validateGhanaianPhone(cleanPhone).isValid) {
+        return { ok: false, status: 400, error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.' }
     }
 
     const validation = validateAfaRegistration(formData)

@@ -12,6 +12,7 @@ import crypto from 'crypto'
 import { computeShopAfaCheckout } from '@/lib/shop-afa-checkout'
 import { sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
 import { guardGuestCharge } from '@/lib/guest-charge-guard'
+import { resolveMomoWallet } from '@/lib/momo-wallet'
 
 // Best-effort per-lambda IP rate limit (10/min). Real dup-guard is the DB UNIQUE
 // constraint on shop_afa_pending_orders.paystack_reference. Mirrors shop/charge/route.ts.
@@ -52,10 +53,11 @@ async function handlePost(request: NextRequest) {
         if (!/^0[0-9]{9}$/.test(momoPhone)) {
             return NextResponse.json({ error: 'Enter a valid Ghana mobile money number (e.g. 0241234567)' }, { status: 400 })
         }
-        const provider = (momoProvider && PROVIDER_MAP[momoProvider]) || GHANA_NETWORK_MAP[momoPhone.slice(0, 3)] || null
-        if (!provider) {
-            return NextResponse.json({ error: 'Could not detect your mobile money network. Please select it.', needsManualSelection: true }, { status: 400 })
+        const wallet = resolveMomoWallet(momoPhone, momoProvider, body.momoPortedConfirmed)
+        if (!wallet.ok) {
+            return NextResponse.json({ error: wallet.error, code: wallet.code, actualNetwork: wallet.actualNetwork, scope: 'momo' }, { status: wallet.status })
         }
+        const provider = wallet.provider
 
         const { createServerClient } = await import('@/lib/supabase')
         const db = createServerClient() as any

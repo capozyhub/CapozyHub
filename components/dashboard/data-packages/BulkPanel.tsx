@@ -79,6 +79,8 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
     const [validating, setValidating] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [previewDone, setPreviewDone] = useState(false)
+    // Buyer says numbers on other networks' prefixes were ported to this network.
+    const [allowPorted, setAllowPorted] = useState(false)
     // Idempotency key for the batch: made when the preview succeeds and reused on retries,
     // so a double click can never place (and charge for) the same batch twice.
     const [batchRef, setBatchRef] = useState('')
@@ -98,7 +100,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
             if (!phone.isValid) return { ...line, packagePrice: 0, isValid: false, errorMessage: 'Invalid phone' }
 
             const detected = detectNetwork(line.phoneNumber)
-            if (network !== 'AT-BigTime' && detected !== carrierFamily(network)) {
+            if (!allowPorted && detected !== carrierFamily(network)) {
                 return { ...line, packagePrice: 0, isValid: false, errorMessage: `Wrong network (${detected})` }
             }
             const pkg = packages.find(p => {
@@ -166,7 +168,7 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                 body: JSON.stringify({
                     batchReference: batchRef,
                     expectedTotal: Math.round(total * 100) / 100,
-                    orders: valid.map(o => ({ packageId: o.packageId, phoneNumber: validateGhanaianPhone(o.phoneNumber).normalizedNumber })),
+                    orders: valid.map(o => ({ packageId: o.packageId, phoneNumber: validateGhanaianPhone(o.phoneNumber).normalizedNumber, portedConfirmed: allowPorted })),
                 }),
             })
             const data = await readJson(res)
@@ -332,6 +334,11 @@ export function BulkPanel({ packages, network, getPrice, balance, onPlaced, onPr
                     </ul>
                 </div>
             )}
+
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={allowPorted} onChange={e => { setAllowPorted(e.target.checked); reset() }} className="mt-0.5 h-4 w-4" />
+                <span>Some of these numbers were ported to this network. Allow numbers whose prefix belongs to another network (numbers that match no MTN, Telecel or AT prefix are still rejected).</span>
+            </label>
 
             <div className="surface flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
                 <p className="min-w-0 flex-1 text-sm text-muted-foreground">

@@ -5,6 +5,7 @@ import { Loader2, Smartphone, CheckCircle2, AlertTriangle, X, Check } from 'luci
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { NetworkIcon } from '@/components/network-icon'
+import { validateGhanaianPhone } from '@/lib/phone-validation'
 import { useChargePolling } from './useChargePolling'
 import { StorefrontTermsGate } from './StorefrontTermsGate'
 import { storefrontNeedsAccept, recordStorefrontAccept, getStoredStorefrontVersion } from '@/lib/storefront-terms'
@@ -123,6 +124,23 @@ export function ServiceChargeSheet({
         } else setAutoDetected(false)
     }, [momoPhone])
 
+    // Ported-number confirmations. A prefix says which network a number STARTED on; Ghana has
+    // number portability, so when the server reports a prefix/network mismatch the buyer can
+    // confirm the number was ported and carry on. Refs (not state) so the retry that follows the
+    // confirm click sees the flag immediately. Cleared whenever the number or network changes.
+    const portedRef = useRef({ recipient: false, momo: false })
+    const [mismatch, setMismatch] = useState<{ scope: 'recipient' | 'momo'; message: string } | null>(null)
+    useEffect(() => { portedRef.current.recipient = false; setMismatch(m => (m?.scope === 'recipient' ? null : m)) }, [beneficiaryPhone])
+    useEffect(() => { portedRef.current.momo = false; setMismatch(m => (m?.scope === 'momo' ? null : m)) }, [momoPhone, provider])
+    useEffect(() => { if (open) { portedRef.current = { recipient: false, momo: false }; setMismatch(null) } }, [open, descriptor])
+
+    const confirmPorted = () => {
+        if (!mismatch) return
+        portedRef.current[mismatch.scope] = true
+        setMismatch(null)
+        void authorize()
+    }
+
     const toggleSameForMomo = () => {
         if (useSameForMomo) { setUseSameForMomo(false); setMomoPhone('') }
         else { setUseSameForMomo(true); setMomoPhone(toLocalMomo(beneficiaryPhone)) }
@@ -170,8 +188,16 @@ export function ServiceChargeSheet({
             toast.error(`Enter the ${descriptor.beneficiary!.label.toLowerCase()}`)
             return
         }
+        if (hasBeneficiary && !validateGhanaianPhone(beneficiary).isValid) {
+            toast.error('That number does not belong to MTN, Telecel or AT. Check it and try again.')
+            return
+        }
         if (!/^0[0-9]{9}$/.test(momoPhone)) {
             toast.error('Enter a valid Mobile Money number (e.g. 0241234567)')
+            return
+        }
+        if (!validateGhanaianPhone(momoPhone).isValid) {
+            toast.error('That Mobile Money number does not belong to MTN, Telecel or AT. Check it and try again.')
             return
         }
         if (!provider) {
@@ -187,10 +213,18 @@ export function ServiceChargeSheet({
         try {
             const res = await fetch(descriptor.chargeUrl, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(descriptor.buildBody({ beneficiary, momoPhone, provider, email: email.trim() || undefined })),
+                body: JSON.stringify({
+                    ...descriptor.buildBody({ beneficiary, momoPhone, provider, email: email.trim() || undefined }),
+                    ...(portedRef.current.recipient ? { portedConfirmed: true } : {}),
+                    ...(portedRef.current.momo ? { momoPortedConfirmed: true } : {}),
+                }),
             })
             const data = await res.json().catch(() => ({}))
             if (!res.ok) {
+                if (data.code === 'NETWORK_MISMATCH') {
+                    setMismatch({ scope: data.scope === 'momo' ? 'momo' : 'recipient', message: data.error }); setStep('form'); return
+                }
+                if (data.code === 'INVALID_PREFIX') { setStep('form'); toast.error(data.error); return }
                 if (data.needsManualSelection) { setProvider(''); setAutoDetected(false); setStep('form'); toast.error('Select your MoMo network.'); return }
                 throw new Error(data.error || `Payment service error (HTTP ${res.status})`)
             }
@@ -341,6 +375,15 @@ export function ServiceChargeSheet({
                                         onChange={(e) => setEmail(e.target.value)}
                                         className={FIELD}
                                     />
+                                </div>
+                            )}
+
+                            {mismatch && (
+                                <div role="alert" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-foreground">
+                                    <p className="font-semibold">{mismatch.message}</p>
+                                    <button type="button" onClick={confirmPorted} className="mt-2 min-h-10 rounded-full bg-foreground px-4 text-sm font-semibold text-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                                        Yes, this number is ported — continue
+                                    </button>
                                 </div>
                             )}
 

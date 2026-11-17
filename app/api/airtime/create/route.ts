@@ -7,6 +7,7 @@ import { sendAdminAirtimeOrderEmail } from '@/lib/email-service'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { quoteAirtime, AIRTIME_NETWORK_KEY_MAP } from '@/lib/airtime-pricing'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
+import { checkRecipientNetwork } from '@/lib/phone-validation'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { isValidClientReference } from '@/lib/data-orders/place'
 import { placeAirtimeOrder } from '@/lib/data-orders/place-airtime'
@@ -70,7 +71,11 @@ export async function POST(request: NextRequest) {
 
         const cleanPhone = toCanonicalPhone(beneficiaryPhone)
         if (!cleanPhone) {
-            return NextResponse.json({ error: 'Invalid phone number. Use a Ghana mobile number: 0XXXXXXXXX (10 digits)' }, { status: 400 })
+            return NextResponse.json({ error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.', code: 'INVALID_PREFIX' }, { status: 400 })
+        }
+        const netCheck = checkRecipientNetwork(cleanPhone, network, { portedConfirmed: body?.portedConfirmed === true })
+        if (!netCheck.ok) {
+            return NextResponse.json({ error: netCheck.message, code: netCheck.code, actualNetwork: netCheck.actualNetwork }, { status: 400 })
         }
 
         if (clientReferenceCode !== undefined && clientReferenceCode !== null && !isValidClientReference(clientReferenceCode)) {

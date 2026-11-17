@@ -9,6 +9,7 @@ import { channelForMsisdn } from '@/lib/hubtel-receive-money'
 import { isNumberVerified, sendVerificationOtp } from '@/lib/hubtel-receive/number-verification'
 import { sanitizeForStorage } from '@/lib/sanitize-for-storage'
 import { guardGuestCharge } from '@/lib/guest-charge-guard'
+import { resolveMomoWallet } from '@/lib/momo-wallet'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,12 @@ async function handlePost(request: NextRequest) {
         // (ECG/Ghana Water customer phone) — the two are allowed to differ.
         if (typeof momoNumber !== 'string' || !/^0\d{9}$/.test(momoNumber)) {
             return NextResponse.json({ error: 'Invalid MoMo number. Use format: 0XXXXXXXXX' }, { status: 400 })
+        }
+        // Real MTN/Telecel/AT prefix, agreeing with the selected network unless the payer
+        // confirmed the number was ported.
+        const wallet = resolveMomoWallet(momoNumber, momoProvider, body.momoPortedConfirmed)
+        if (!wallet.ok) {
+            return NextResponse.json({ error: wallet.error, code: wallet.code, actualNetwork: wallet.actualNetwork, scope: 'momo' }, { status: wallet.status })
         }
         const momo233 = toMsisdn233(momoNumber)
 

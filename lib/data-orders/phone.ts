@@ -20,12 +20,14 @@ export function toCanonicalPhone(raw: unknown): string | null {
 
 /**
  * Is this canonical number on the carrier a bundle is for? MTN, Telecel and AT iShare bundles
- * only work on their own carrier's numbers; AT BigTime works on any number. The dashboard
+ * only work on their own carrier's numbers (AT iShare and AT BigTime are both AirtelTigo). The dashboard
  * checks this as you type, but a hand-made request skips the dashboard, so the purchase
  * routes check it too: a mismatched order would only fail at the supplier and need a refund.
  */
-export function recipientMatchesNetwork(canonical: string, packageNetwork: string): boolean {
-    if (packageNetwork === 'AT-BigTime') return true
+export function recipientMatchesNetwork(canonical: string, packageNetwork: string, portedConfirmed = false): boolean {
+    // The buyer confirmed the number was ported to this network. The number itself was already
+    // checked to carry a real Ghana prefix by toCanonicalPhone.
+    if (portedConfirmed) return true
     const carrier = getNetworkFromPrefix(canonical.slice(0, 3))
     const expected = packageNetwork.startsWith('AT') ? 'AirtelTigo' : packageNetwork
     return carrier === expected

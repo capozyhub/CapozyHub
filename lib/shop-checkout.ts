@@ -12,6 +12,7 @@ import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { isUtilityBiller, UTILITY_BILLERS } from '@/lib/hubtel-utility/billers'
 import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { parseSettingNumber } from '@/lib/paystack-fees'
+import { checkRecipientNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 
 export interface ShopCheckoutInput {
     shopSlug: string
@@ -26,6 +27,8 @@ export interface ShopCheckoutInput {
     utilityBiller?: string
     utilityAccount?: string
     utilityPhone?: string
+    /** Buyer confirmed the recipient number was ported to the selected network. */
+    portedConfirmed?: boolean
 }
 
 export interface ShopCheckoutResult {
@@ -44,6 +47,9 @@ export interface ShopCheckoutError {
     status: number
     error: string
     contact?: { phone?: string; whatsapp?: string; email?: string }
+    /** Set on a recipient-number rejection so the UI can offer the "it's ported" confirmation. */
+    code?: 'INVALID_PREFIX' | 'NETWORK_MISMATCH'
+    actualNetwork?: string | null
 }
 
 /** The networks a storefront airtime order can target (mashup is always MTN). */
@@ -129,6 +135,16 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     const cleanPhone = guestPhone.replace(/\s+/g, '')
     if (!/^(0\d{9}|233\d{9})$/.test(cleanPhone)) {
         return { ok: false, status: 400, error: 'Invalid phone number. Use format: 0XXXXXXXXX or 233XXXXXXXXX' }
+    }
+    // Every storefront order needs a real MTN/Telecel/AT number. For airtime and mashup the
+    // number must also be on the selected network unless the buyer confirmed it was ported.
+    // (Data is checked below, once the package's network is known.)
+    const portedConfirmed = body.portedConfirmed === true
+    if (orderType === 'airtime' || orderType === 'mashup') {
+        const net = checkRecipientNetwork(cleanPhone, String(network), { portedConfirmed })
+        if (!net.ok) return { ok: false, status: 400, error: net.message, code: net.code, actualNetwork: net.actualNetwork }
+    } else if (!validateGhanaianPhone(cleanPhone).isValid) {
+        return { ok: false, status: 400, error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.', code: 'INVALID_PREFIX', actualNetwork: null }
     }
 
     const { data: shop, error: shopError } = await db
@@ -316,6 +332,11 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     } else {
         const { data: pkg } = await db.from('data_packages').select('*').eq('id', packageId).eq('is_available', true).single()
         if (!pkg) return { ok: false, status: 404, error: 'Package not found or unavailable' }
+
+        // A bundle only works on its own carrier (AT iShare / BigTime = AirtelTigo), unless the
+        // buyer confirmed the number was ported to it.
+        const dataNet = checkRecipientNetwork(cleanPhone, pkg.network, { portedConfirmed })
+        if (!dataNet.ok) return { ok: false, status: 400, error: dataNet.message, code: dataNet.code, actualNetwork: dataNet.actualNetwork }
 
         // Per-network out-of-stock guard (admin ∪ this shop). Pre-charge.
         const adminOOS = await getAdminOOSNetworks(db)

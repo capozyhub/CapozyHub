@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
 import { calculatePaystackFee, generateReferenceCode } from '@/lib/utils'
+import { resolveMomoWallet } from '@/lib/momo-wallet'
 import { parseMoneyAmount, resolvePaystackFeePercent, resolveTopupLimits, roundMoney } from '@/lib/paystack-fees'
 
 const GHANA_NETWORK_MAP: Record<string, string> = {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { amount: rawAmount, phone, provider } = await request.json()
+        const { amount: rawAmount, phone, provider, momoPortedConfirmed } = await request.json()
 
         // Strict type check: a string amount would make `amount + fee` below
         // concatenate instead of add, corrupting the charged total. More than 2
@@ -46,17 +47,16 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const VALID_PROVIDERS = ['MTN', 'VOD', 'ATL']
-        const providedProvider = provider && VALID_PROVIDERS.includes(provider) ? provider : null
-        const detectedProvider = GHANA_NETWORK_MAP[phone.slice(0, 3)] ?? null
-        const resolvedProvider = providedProvider ?? detectedProvider
-
-        if (!resolvedProvider) {
+        // Real MTN/Telecel/AT prefix that agrees with the selected network, unless the
+        // payer confirmed the number was ported.
+        const wallet = resolveMomoWallet(phone, provider, momoPortedConfirmed)
+        if (!wallet.ok) {
             return NextResponse.json(
-                { error: 'Could not detect network. Please select your network manually.', needsManualSelection: true },
-                { status: 400 }
+                { error: wallet.error, code: wallet.code, actualNetwork: wallet.actualNetwork },
+                { status: wallet.status }
             )
         }
+        const resolvedProvider: string = wallet.provider
 
         const userId = authUser.id
 

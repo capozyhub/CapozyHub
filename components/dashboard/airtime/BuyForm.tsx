@@ -76,8 +76,13 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
     const detected = carrierToNetwork(phoneCheck?.network)
     const phoneError = phoneCheck && !phoneCheck.isValid ? phoneCheck.error || 'That does not look like a Ghana mobile number.' : ''
     const networkMismatch = !phoneError && detected && effectiveNetwork && detected !== effectiveNetwork
-        ? `This looks like a ${detected} number, but you picked ${effectiveNetwork}. Check before you pay.`
+        ? `This looks like a ${detected} number, but you picked ${effectiveNetwork}.`
         : ''
+    // A prefix says where a number started; the buyer may confirm it was ported. The
+    // confirmation is tied to this exact number + network, so changing either clears it.
+    const portedKey = `${phone}|${effectiveNetwork}`
+    const [portedFor, setPortedFor] = useState('')
+    const portedConfirmed = !!networkMismatch && portedFor === portedKey
 
     // The very same arithmetic and limits the server applies when the order is placed.
     const quoted = useMemo(() => {
@@ -96,10 +101,11 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
     const canAfford = quote !== null && balance !== null && balance >= quote.totalPaid
     const productOn = mode === 'mashup' ? mashupAvailable : airtimeOn && !!effectiveNetwork && isNetworkEnabled(settings, effectiveNetwork)
 
+    const numberOk = !!phoneCheck?.isValid && (!networkMismatch || portedConfirmed)
     const stepReady = step === 1 ? productOn
-        : step === 2 ? !!phoneCheck?.isValid
+        : step === 2 ? numberOk
         : step === 3 ? !!quote && canAfford
-        : !!quote && !!phoneCheck?.isValid && productOn && canAfford
+        : !!quote && numberOk && productOn && canAfford
 
     const product = mode === 'mashup' ? 'Mashup bundle' : 'airtime'
 
@@ -127,6 +133,7 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                     type: mode,
                     bundle_preference: mode === 'mashup' ? bundlePreference : undefined,
                     referenceCode: reference,
+                    portedConfirmed,
                 }),
             })
             const data = await res.json().catch(() => ({}))
@@ -316,6 +323,12 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                                     <p id="phone-help" role={phoneError || networkMismatch ? 'alert' : undefined} className={cn('min-h-5 text-xs', phoneError ? 'font-medium text-red-600 dark:text-red-400' : networkMismatch ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
                                         {phoneError || networkMismatch || (phone.length > 0 && phone.length < 10 ? `${10 - phone.length} more digit${10 - phone.length === 1 ? '' : 's'} to go.` : 'Ten digits, starting with 0.')}
                                     </p>
+                                    {networkMismatch && (
+                                        <label className="mt-2 flex items-start gap-2 text-xs font-medium">
+                                            <input type="checkbox" checked={portedConfirmed} onChange={e => setPortedFor(e.target.checked ? portedKey : '')} className="mt-0.5 h-4 w-4" />
+                                            <span>This number has been ported to {effectiveNetwork}.</span>
+                                        </label>
+                                    )}
                                 </div>
                             )}
 
@@ -418,7 +431,7 @@ export function BuyForm({ settings, role, balance, onPlaced, onViewHistory }: Bu
                                         {balance !== null && <Row label="Wallet after" value={formatCurrency(balance - quote.totalPaid)} />}
                                         <div className="border-t border-border pt-2.5"><Row label="Total" value={formatCurrency(quote.totalPaid)} strong /></div>
                                     </dl>
-                                    {networkMismatch && <p role="alert" className="text-xs font-medium text-amber-700 dark:text-amber-400">{networkMismatch}</p>}
+                                    {networkMismatch && <p role="alert" className="text-xs font-medium text-amber-700 dark:text-amber-400">{networkMismatch} Confirmed as ported.</p>}
                                 </>
                             )}
 

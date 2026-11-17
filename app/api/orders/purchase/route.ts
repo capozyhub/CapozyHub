@@ -14,6 +14,7 @@ import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
 import { toCanonicalPhone, recipientMatchesNetwork } from '@/lib/data-orders/phone'
+import { getNetworkFromPrefix } from '@/lib/phone-validation'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { placeDataOrders, isValidWebReference } from '@/lib/data-orders/place'
 
@@ -99,8 +100,12 @@ export async function POST(request: NextRequest) {
         }
 
         // The dashboard checks this as you type; a hand-made request skips the dashboard.
-        if (!recipientMatchesNetwork(recipient, p.network)) {
-            return NextResponse.json({ error: `This number is not on ${p.network}` }, { status: 400 })
+        if (!recipientMatchesNetwork(recipient, p.network, body.portedConfirmed === true)) {
+            return NextResponse.json({
+                error: `This number looks like ${getNetworkFromPrefix(recipient.slice(0, 3))}, not ${p.network}. If it was ported to ${p.network}, confirm that to continue.`,
+                code: 'NETWORK_MISMATCH',
+                actualNetwork: getNetworkFromPrefix(recipient.slice(0, 3)),
+            }, { status: 400 })
         }
 
         let blocked: Set<string>

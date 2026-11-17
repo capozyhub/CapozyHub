@@ -15,6 +15,7 @@ import {
 } from '@/lib/results-checker-pricing'
 import { deliverVouchers } from '@/lib/results-checker-notification-service'
 import { phoneSchema, emailSchema } from '@/lib/validation'
+import { validateGhanaianPhone } from '@/lib/phone-validation'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 import { loadBuyer } from '@/lib/data-orders/guards'
 import { isValidClientReference } from '@/lib/data-orders/place'
@@ -101,6 +102,9 @@ export async function POST(request: NextRequest) {
         const rawRecipientEmail = recipientEmail ? String(recipientEmail).trim() : ''
         if (rawRecipientPhone && !phoneSchema.safeParse(rawRecipientPhone).success) {
             return NextResponse.json({ error: 'Invalid recipient phone number' }, { status: 400 })
+        }
+        if (rawRecipientPhone && !validateGhanaianPhone(rawRecipientPhone).isValid) {
+            return NextResponse.json({ error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.', code: 'INVALID_PREFIX' }, { status: 400 })
         }
         if (rawRecipientEmail && !emailSchema.safeParse(rawRecipientEmail).success) {
             return NextResponse.json({ error: 'Invalid recipient email address' }, { status: 400 })

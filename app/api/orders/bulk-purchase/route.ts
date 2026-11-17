@@ -21,6 +21,8 @@ const DISPATCH_BUDGET_MS = 45_000
 interface BulkOrderItem {
     packageId: string
     phoneNumber: string
+    /** Buyer confirmed this row's number was ported to the package's network. */
+    portedConfirmed?: boolean
 }
 
 interface FulfillmentOutcome {
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Shape and phone numbers are checked row by row; the first bad row names itself.
-        const orders: Array<BulkOrderItem & { recipient: string }> = []
+        const orders: Array<BulkOrderItem & { recipient: string; ported: boolean }> = []
         for (let i = 0; i < rawOrders.length; i++) {
             const row = rawOrders[i] as Partial<BulkOrderItem> | null
             if (!row || typeof row.packageId !== 'string' || !row.packageId) {
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
             if (!recipient) {
                 return NextResponse.json({ error: `Row ${i + 1}: invalid phone number` }, { status: 400 })
             }
-            orders.push({ packageId: row.packageId, phoneNumber: recipient, recipient })
+            orders.push({ packageId: row.packageId, phoneNumber: recipient, recipient, ported: row.portedConfirmed === true })
         }
 
         // Optional idempotency key for the whole batch: each order's reference is derived from it,
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
             const pkg = pkgMap.get(order.packageId)
             if (!pkg) { problems.push(`Row ${i + 1}: package not found`); return null }
             if (isNetworkOOS(adminOOS, pkg.network)) { problems.push(`Row ${i + 1}: ${pkg.network} is out of stock`); return null }
-            if (!recipientMatchesNetwork(order.recipient, pkg.network)) { problems.push(`Row ${i + 1}: number is not on ${pkg.network}`); return null }
+            if (!recipientMatchesNetwork(order.recipient, pkg.network, order.ported)) { problems.push(`Row ${i + 1}: number is not on ${pkg.network} (confirm it is ported to buy anyway)`); return null }
             const price = Math.round(resolveOwnerCost(pkg, {
                 role: buyer.role,
                 agent_expires_at: buyer.agent_expires_at,

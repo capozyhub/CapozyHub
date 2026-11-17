@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateReferenceCode } from '@/lib/utils'
+import { validateGhanaianPhone } from '@/lib/phone-validation'
 import {
     isStorefrontRCEnabled,
     getMaxQuantity,
@@ -81,6 +82,13 @@ export async function POST(request: NextRequest) {
         if (!isValidResultsCheckerPhone(cleanPhone)) {
             return NextResponse.json(
                 { error: 'Invalid phone number. Use format: 0XXXXXXXXX or 233XXXXXXXXX' },
+                { status: 400 }
+            )
+        }
+        // Vouchers go out by SMS: any real MTN/Telecel/AT number, never an unknown prefix.
+        if (!validateGhanaianPhone(cleanPhone).isValid) {
+            return NextResponse.json(
+                { error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.', code: 'INVALID_PREFIX' },
                 { status: 400 }
             )
         }

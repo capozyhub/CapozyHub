@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
+import { getNetworkFromPrefix, validateGhanaianPhone } from '@/lib/phone-validation'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { downloadResultsCheckerVouchers } from '@/lib/results-checker-utils'
@@ -569,19 +570,10 @@ export default function ShopStorefront({
         const prefix = clean.substring(0, 3)
         let detected: 'MTN' | 'Telecel' | 'AT' | null = null
         
-        const prefixes = {
-            MTN: ['024', '054', '055', '059', '025', '053', '098'],
-            Telecel: ['020', '050'],
-            AT: ['026', '027', '056', '028', '058', '057'] // Includes 057 and 028 from main site
-        }
+        // Single source of truth: lib/phone-validation (MTN, Telecel, AirtelTigo/AT).
+        const carrier = getNetworkFromPrefix(prefix)
+        if (carrier) detected = carrier === 'AirtelTigo' ? 'AT' : (carrier as 'MTN' | 'Telecel')
 
-        for (const [net, prfxs] of Object.entries(prefixes)) {
-            if (prfxs.includes(prefix)) {
-                detected = net as 'MTN' | 'Telecel' | 'AT'
-                break
-            }
-        }
-        
         if (detected && airtimeNetworks.some(n => n.id === detected)) {
             setDetectedNetwork(detected)
         } else {
@@ -595,23 +587,12 @@ export default function ShopStorefront({
         if (clean.length < 3) return null
 
         const prefix = clean.substring(0, 3)
-        const prefixes = {
-            MTN: ['024', '054', '055', '059', '025', '053', '098'],
-            Telecel: ['020', '050'],
-            AT: ['026', '027', '056', '028', '058', '057']
-        }
-        
-        let actualNet = null
-        for (const [net, prfxs] of Object.entries(prefixes)) {
-            if (prfxs.includes(prefix)) {
-                actualNet = net
-                break
-            }
-        }
+        const carrier = getNetworkFromPrefix(prefix)
+        const actualNet = carrier === 'AirtelTigo' ? 'AT' : carrier
 
-        if (!actualNet) return 'Unrecognized prefix — please confirm your network.'
+        if (!actualNet) return 'This number does not belong to MTN, Telecel or AT. Check it and try again.'
         if (detectedNetwork && actualNet !== detectedNetwork) {
-            return `This number looks like it belongs to ${actualNet}. Please verify before proceeding.`
+            return `This number looks like ${actualNet}, not ${detectedNetwork}. If it was ported, you can confirm that at checkout.`
         }
         return null
     }, [airtimePhone, detectedNetwork])
@@ -665,6 +646,7 @@ export default function ShopStorefront({
 
         const cleanPhone = airtimePhone.replace(/\s+/g, '')
         if (!/^(0\d{9}|233\d{9})$/.test(cleanPhone)) { toast.error('Enter a valid recipient phone number'); return }
+        if (!validateGhanaianPhone(cleanPhone).isValid) { toast.error('That number does not belong to MTN, Telecel or AT'); return }
         try { localStorage.setItem('shop_last_phone', cleanPhone) } catch (_) { }
 
         // Open the in-app MoMo charge sheet (no redirect). The recipient, amount and email
@@ -706,6 +688,7 @@ export default function ShopStorefront({
 
         const cleanPhone = mashupPhone.replace(/\s+/g, '')
         if (!/^(0\d{9}|233\d{9})$/.test(cleanPhone)) { toast.error('Enter a valid recipient phone number'); return }
+        if (!validateGhanaianPhone(cleanPhone).isValid) { toast.error('That number does not belong to MTN, Telecel or AT'); return }
         try { localStorage.setItem('shop_last_phone', cleanPhone) } catch (_) { }
 
         // Open the in-app MoMo charge sheet (no redirect). Recipient/amount/bundle/email are
@@ -1072,6 +1055,7 @@ export default function ShopStorefront({
                         if (!selectedRCTypeId) { toast.error('Select a voucher type'); return }
                         const cleanPhone = rcPhone.replace(/\s+/g, '')
                         if (!/^(0\d{9}|233\d{9})$/.test(cleanPhone)) { toast.error('Enter a valid phone number'); return }
+                        if (!validateGhanaianPhone(cleanPhone).isValid) { toast.error('That number does not belong to MTN, Telecel or AT'); return }
                         // Email is OPTIONAL — the voucher shows on screen and is texted. Only reject a
                         // non-empty value that is malformed.
                         const emailTrim = rcEmail.trim()

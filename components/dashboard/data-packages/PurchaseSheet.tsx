@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/lib/toast'
 import { cn, formatCurrency, generateReferenceCode } from '@/lib/utils'
-import { detectNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
+import { checkRecipientNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 import type { Bundle } from './types'
 import { carrierFamily, NETWORK_COLOR, networkClayClass, networkLabel } from './network-meta'
 import { errorMessage, isPriceChanged, readJson } from './api'
@@ -43,6 +43,9 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
     const phoneRef = useRef<HTMLInputElement>(null)
     const [phone, setPhone] = useState('')
     const [phoneError, setPhoneError] = useState('')
+    // Number is on a different network than the bundle; fine if the buyer confirms it was ported.
+    const [mismatch, setMismatch] = useState('')
+    const [ported, setPorted] = useState(false)
     const [buying, setBuying] = useState(false)
     const [placed, setPlaced] = useState<PlacedDetails | null>(null)
     // One reference per attempt. Sent with every retry of the same purchase, so a double tap
@@ -53,6 +56,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
         if (!pkg) return
         setPhone('')
         setPhoneError('')
+        setMismatch(''); setPorted(false)
         setPlaced(null)
         setReference(generateReferenceCode())
     }, [pkg?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,17 +70,18 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
     const onPhoneChange = (value: string) => {
         setPhone(value)
         setPhoneError('')
+        setMismatch('')
+        setPorted(false)
         if (!pkg || value.replace(/\D/g, '').length < 10) return
         const check = validateGhanaianPhone(value)
         if (!check.isValid) {
-            setPhoneError(check.error || 'Invalid phone number')
+            setPhoneError(check.error === 'Invalid network prefix' ? 'This number does not belong to MTN, Telecel or AT' : (check.error || 'Invalid phone number'))
             return
         }
-        // AT BigTime works on any number; every other bundle is for its own network.
-        const detected = detectNetwork(value)
-        if (pkg.network !== 'AT-BigTime' && detected !== carrierFamily(pkg.network)) {
-            setPhoneError(`This number is on ${detected}, not ${networkLabel(pkg.network)}`)
-        }
+        // Every bundle is for its own network (AT iShare / BigTime = AirtelTigo). A number that
+        // looks like another network may have been ported: the buyer can confirm that.
+        const net = checkRecipientNetwork(value, pkg.network)
+        if (!net.ok) setMismatch(`This number looks like ${net.actualNetwork}, not ${networkLabel(pkg.network)}.`)
     }
 
     const buy = async () => {
@@ -84,13 +89,14 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
         const check = validateGhanaianPhone(phone)
         if (!check.isValid) { setPhoneError(check.error || 'Invalid phone number'); return }
         if (!canAfford) { setPhoneError('Insufficient wallet balance'); return }
+        if (mismatch && !ported) { setPhoneError('Confirm the number was ported, or use a number on this network'); return }
 
         setBuying(true)
         try {
             const res = await fetch('/api/orders/purchase', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ packageId: pkg.id, phoneNumber: check.normalizedNumber, referenceCode: reference, expectedPrice: price }),
+                body: JSON.stringify({ packageId: pkg.id, phoneNumber: check.normalizedNumber, referenceCode: reference, expectedPrice: price, portedConfirmed: ported }),
             })
             const data = await readJson(res)
             if (isPriceChanged(res, data)) onPriceChanged()
@@ -233,6 +239,12 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                             <AlertCircle className="h-3.5 w-3.5" /> {phoneError}
                                         </p>
                                     )}
+                                    {mismatch && (
+                                        <label className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs font-medium">
+                                            <input type="checkbox" checked={ported} onChange={e => setPorted(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                                            <span>{mismatch} I confirm this number has been ported to {networkLabel(pkg?.network ?? '')}.</span>
+                                        </label>
+                                    )}
                                 </div>
 
                                 <dl className="well space-y-2 rounded-2xl p-4 text-sm">
@@ -249,7 +261,7 @@ export function PurchaseSheet({ pkg, price, balance, onClose, onPurchased, onPri
                                 </dl>
 
                                 {canAfford ? (
-                                    <Button variant="network" onClick={buy} disabled={buying || !phone || !!phoneError} className={cn(clay, 'h-12 w-full text-base')}>
+                                    <Button variant="network" onClick={buy} disabled={buying || !phone || !!phoneError || (!!mismatch && !ported)} className={cn(clay, 'h-12 w-full text-base')}>
                                         {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</> : `Pay ${formatCurrency(price)}`}
                                     </Button>
                                 ) : (

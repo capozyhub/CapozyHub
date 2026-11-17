@@ -22,9 +22,11 @@ check(recipientMatchesNetwork('0501234567', 'Telecel'), true, '050 is Telecel')
 check(recipientMatchesNetwork('0261234567', 'AT-iShare'), true, 'AirtelTigo number, AT iShare bundle')
 check(recipientMatchesNetwork('0571234567', 'AT-iShare'), true, '057 is AirtelTigo')
 check(recipientMatchesNetwork('0241234567', 'AT-iShare'), false, 'MTN number, AT iShare bundle')
-// BigTime works on any number.
-check(recipientMatchesNetwork('0241234567', 'AT-BigTime'), true, 'BigTime on MTN number')
-check(recipientMatchesNetwork('0201234567', 'AT-BigTime'), true, 'BigTime on Telecel number')
+// BigTime is an AirtelTigo bundle, same as iShare: AT numbers only.
+check(recipientMatchesNetwork('0271234567', 'AT-BigTime'), true, 'BigTime on AT number')
+check(recipientMatchesNetwork('0241234567', 'AT-BigTime'), false, 'BigTime on MTN number')
+check(recipientMatchesNetwork('0201234567', 'AT-BigTime'), false, 'BigTime on Telecel number')
+check(recipientMatchesNetwork('0241234567', 'AT-BigTime', true), true, 'BigTime on ported number')
 
 // The canonical form is what gets checked, so every spelling gets the same answer.
 check(recipientMatchesNetwork(toCanonicalPhone('+233 24 123 4567')!, 'MTN'), true, '+233 spelling')

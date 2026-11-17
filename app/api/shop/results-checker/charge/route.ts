@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { resolveMomoWallet } from '@/lib/momo-wallet'
+import { validateGhanaianPhone } from '@/lib/phone-validation'
 import {
     isStorefrontRCEnabled,
     getMaxQuantity,
@@ -77,10 +79,11 @@ async function handlePost(request: NextRequest) {
         if (!/^0[0-9]{9}$/.test(momoPhone)) {
             return NextResponse.json({ error: 'Enter a valid Ghana mobile money number (e.g. 0241234567)' }, { status: 400 })
         }
-        const provider = (momoProvider && PROVIDER_MAP[momoProvider]) || GHANA_NETWORK_MAP[momoPhone.slice(0, 3)] || null
-        if (!provider) {
-            return NextResponse.json({ error: 'Could not detect your mobile money network. Please select it.', needsManualSelection: true }, { status: 400 })
+        const wallet = resolveMomoWallet(momoPhone, momoProvider, body.momoPortedConfirmed)
+        if (!wallet.ok) {
+            return NextResponse.json({ error: wallet.error, code: wallet.code, actualNetwork: wallet.actualNetwork, scope: 'momo' }, { status: wallet.status })
         }
+        const provider = wallet.provider
 
         // Rate limit (mirrors RC initialize: 5/min per ip+shop)
         const rlKey = `${ip}-rc-charge-${shopSlug}`
@@ -94,6 +97,11 @@ async function handlePost(request: NextRequest) {
         const cleanPhone = normalizeResultsCheckerPhone(String(guestPhone))
         if (!isValidResultsCheckerPhone(cleanPhone)) {
             return NextResponse.json({ error: 'Invalid phone number. Use format: 0XXXXXXXXX or 233XXXXXXXXX' }, { status: 400 })
+        }
+        // Vouchers are delivered by SMS, so the number must be a real MTN/Telecel/AT one (any of
+        // them: a voucher isn't tied to a network).
+        if (!validateGhanaianPhone(cleanPhone).isValid) {
+            return NextResponse.json({ error: 'This number does not belong to MTN, Telecel or AT. Check it and try again.', code: 'INVALID_PREFIX' }, { status: 400 })
         }
 
         // Email is OPTIONAL for RC storefront (voucher is also shown on-screen + texted).

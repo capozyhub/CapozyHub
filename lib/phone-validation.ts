@@ -98,6 +98,43 @@ export function getNetworkFromPrefix(prefix: string): string | null {
     return null
 }
 
+/** Collapse any of our network spellings (AT-iShare, AirtelTigo, Telecel...) to a carrier. */
+export function carrierOf(network: string): 'MTN' | 'Telecel' | 'AirtelTigo' | null {
+    const n = (network || '').trim().toUpperCase()
+    if (n.startsWith('MTN')) return 'MTN'
+    if (n.startsWith('TELECEL') || n.startsWith('VODAFONE')) return 'Telecel'
+    if (n.startsWith('AT') || n.startsWith('AIRTEL')) return 'AirtelTigo'
+    return null
+}
+
+export type RecipientNetworkCheck =
+    | { ok: true; ported: boolean }
+    | { ok: false; code: 'INVALID_PREFIX' | 'NETWORK_MISMATCH'; actualNetwork: string | null; message: string }
+
+/**
+ * Is `phone` fit to receive a `selectedNetwork` product?
+ *  - A number whose prefix belongs to no Ghana network (MTN/Telecel/AT) is ALWAYS rejected.
+ *  - A valid prefix on a different network is a mismatch, which ported numbers legitimately
+ *    produce (Ghana has number portability), so it passes only if the buyer confirmed the
+ *    number is ported (`portedConfirmed`).
+ *  - AT-iShare and AT-BigTime are both AirtelTigo bundles, so they map to the AT prefixes.
+ */
+export function checkRecipientNetwork(
+    phone: string,
+    selectedNetwork: string,
+    opts: { portedConfirmed?: boolean } = {},
+): RecipientNetworkCheck {
+    const v = validateGhanaianPhone(phone)
+    if (!v.isValid) {
+        return { ok: false, code: 'INVALID_PREFIX', actualNetwork: null, message: v.error === 'Invalid network prefix' ? 'This number does not belong to MTN, Telecel or AT. Check it and try again.' : 'Enter a valid 10-digit Ghana mobile number.' }
+    }
+    const expected = carrierOf(selectedNetwork)
+    const actual = v.network as 'MTN' | 'Telecel' | 'AirtelTigo'
+    if (!expected || expected === actual) return { ok: true, ported: false }
+    if (opts.portedConfirmed) return { ok: true, ported: true }
+    return { ok: false, code: 'NETWORK_MISMATCH', actualNetwork: actual, message: `This number looks like ${actual}, not ${selectedNetwork}. If it was ported to ${selectedNetwork}, confirm that to continue.` }
+}
+
 export function isValidPrefix(prefix: string): boolean {
     return Object.values(NETWORK_PREFIXES).flat().includes(prefix)
 }
