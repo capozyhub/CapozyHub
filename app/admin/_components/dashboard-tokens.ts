@@ -8,11 +8,11 @@
 
 /** Primary elevated surface (KPI cards, panels). */
 export const cardSurface =
-    'rounded-2xl border border-zinc-200/70 dark:border-white/10 bg-white dark:bg-[#0B0F14] shadow-sm dark:shadow-none'
+    'rounded-xl border border-border bg-card shadow-sm dark:shadow-none'
 
 /** Secondary/recessed surface (inner tiles, list rows). */
 export const mutedSurface =
-    'rounded-xl border border-zinc-200/70 dark:border-white/10 bg-zinc-50 dark:bg-[#0A0A0A]'
+    'rounded-lg border border-border bg-muted/40'
 
 export const sectionLabel =
     'text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400'
@@ -21,8 +21,8 @@ export const kpiValue = 'text-2xl font-bold tracking-tight text-zinc-900 dark:te
 
 /** Semantic accent palette (hex for charts; classes used inline in JSX). */
 export const accent = {
-    red: '#E60000',      // alert / brand primary
-    yellow: '#F6C30F',   // highlight
+    red: '#DC2626',      // alert (semantic only, not brand)
+    yellow: '#F6A900',   // Capozy gold: primary highlight
     emerald: '#10B981',  // positive money movement
     rose: '#F43F5E',     // negative / debt
     blue: '#3B82F6',

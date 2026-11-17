@@ -46,7 +46,7 @@ export function ProductSourceBreakdown({ byCategory, bySource }: { byCategory: B
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <Radio className="w-4 h-4" style={{ color: accent.emerald }} />
-                        <p className={sectionLabel}>By Source</p>
+                        <p className={sectionLabel}>By Channel</p>
                     </div>
                     {!bySource ? <div className="h-24 animate-pulse rounded-xl bg-muted dark:bg-card/5" /> : <BreakdownList rows={bySource} keyName="source" />}
                 </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { formatCurrency, cn } from '@/lib/utils'
-import { TrendingUp, TrendingDown, DollarSign, Banknote, ShoppingCart, CheckCircle2, Wallet, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Banknote, ShoppingCart, CheckCircle2 } from 'lucide-react'
 import { cardSurface, sectionLabel, kpiValue, accent, deltaPct } from './dashboard-tokens'
 import type { AdminStats, AdminTrends, DashRange } from './use-admin-dashboard'
 
@@ -53,8 +53,8 @@ interface Kpi {
 export function KpiStrip({ stats, trends, range }: { stats: AdminStats | null; trends: AdminTrends | null; range: DashRange }) {
     if (!stats) {
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {[...Array(6)].map((_, i) => <div key={i} className={cn(cardSurface, 'h-28 animate-pulse')} />)}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[...Array(4)].map((_, i) => <div key={i} className={cn(cardSurface, 'h-28 animate-pulse')} />)}
             </div>
         )
     }
@@ -80,12 +80,10 @@ export function KpiStrip({ stats, trends, range }: { stats: AdminStats | null; t
             spark: series.map(p => p.orders), sparkColor: accent.blue,
         },
         { label: 'Success Rate', value: `${stats.successRate}%`, icon: CheckCircle2, iconColor: accent.violet },
-        { label: 'Float Balance', value: formatCurrency(stats.totalWalletBalance), icon: Wallet, iconColor: accent.slate },
-        { label: "Today's Orders", value: String(stats.todayOrders), icon: Clock, iconColor: accent.red },
     ]
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {kpis.map(k => {
                 const Icon = k.icon
                 return (

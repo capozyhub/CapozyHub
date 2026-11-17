@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
                 <p className="text-sm text-muted-foreground">{error}</p>
                 <button
                     onClick={refresh}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-card text-white text-sm hover:bg-muted transition-colors"
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" /> Retry
                 </button>
