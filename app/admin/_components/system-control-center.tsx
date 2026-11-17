@@ -15,7 +15,6 @@ import { CRITICAL_TOGGLE_KEYS, MONEY_CONFIG_KEYS, TOGGLE_META, type ToggleKey } 
 const DEFAULT_ON: Record<ToggleKey, boolean> = {
     auto_fulfillment_enabled: false,
     page_access_storefront: true,
-    mtn_express_delivery_enabled: false,
 }
 
 const MONEY_LABELS: Record<string, { label: string; prefix?: string; suffix?: string }> = {

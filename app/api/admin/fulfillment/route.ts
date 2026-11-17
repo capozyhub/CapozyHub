@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
-import { cookies } from 'next/headers'
+import { validateAdminAccess } from '@/lib/auth-utils'
 import { resolveSupplier } from '@/lib/order-supplier'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 
+// Admin-only. The Fulfillment page itself is already out of reach for sub-admin
+// (admin-layout-client.tsx redirects any pathname outside /admin/orders), and every
+// mutation route next to this one (refulfill, sync-*, balance, toggle-supplier-network)
+// is admin-only too — this GET must match, not quietly allow a wider role than the UI
+// that calls it, or the "sub-admin limited to orders" guarantee has a hole in it.
 export async function GET(request: NextRequest) {
     try {
-        const cookieStore = await cookies()
-        const supabaseUserClient = await createRouteClient()
-        const { data: { user: authUser }, error: authError } = await supabaseUserClient.auth.getUser()
-
-        if (authError || !authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Check if user is admin
-        const { data: userData } = await supabaseUserClient
-            .from('users')
-            .select('role')
-            .eq('id', authUser.id)
-            .single()
-
-        if (userData?.role !== 'admin' && userData?.role !== 'sub-admin') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const authResult = await validateAdminAccess(false, request)
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status })
         }
 
         const { searchParams } = new URL(request.url)
@@ -32,93 +23,109 @@ export async function GET(request: NextRequest) {
         const startDate = searchParams.get('startDate')
         const endDate = searchParams.get('endDate')
         const search = searchParams.get('search')
-        const limit = parseInt(searchParams.get('limit') || '1000')
+        // Bounded well past PostgREST's 1000-row response cap — fetchAllRows pages
+        // past it below — but still capped so a wide, unfiltered query can't pull
+        // the entire orders table into one request.
+        const requestedLimit = parseInt(searchParams.get('limit') || '1000')
+        const maxRows = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 20000) : 1000
 
         // Use service role client to bypass RLS
         const supabase = createServerClient()
 
-        let query = supabase
-            .from('orders')
-            .select(`
-                id, created_at, phone_number, network, size, price, status, user_id, shop_name, shop_order_id, cost_price_at_time, source, refunded_at, download_batch_id, fulfillment_method,
-                retry_count, retry_from_status, retry_of_order_id, retried_by_role, self_completed_at, self_completed_by_role,
-                users!orders_user_id_fkey (
-                    first_name,
-                    last_name,
-                    role,
-                    email
-                ),
-                shop_orders (
-                    cost_price,
-                    admin_cost_at_time
-                ),
-                mtn_fulfillment_tracking (
-                    status,
-                    api_response,
-                    retry_count,
-                    created_at
-                )
-            `)
+        // Rebuilds the filtered query from scratch on every call — fetchAllRows pages
+        // by calling this repeatedly with a different .range(), and a Supabase query
+        // builder is single-use once awaited, so each page needs its own fresh instance.
+        const buildQuery = () => {
+            let query = supabase
+                .from('orders')
+                .select(`
+                    id, created_at, phone_number, network, size, price, status, user_id, shop_name, shop_order_id, cost_price_at_time, source, refunded_at, download_batch_id, fulfillment_method,
+                    retry_count, retry_from_status, retry_of_order_id, retried_by_role, self_completed_at, self_completed_by_role,
+                    users!orders_user_id_fkey (
+                        first_name,
+                        last_name,
+                        role,
+                        email
+                    ),
+                    shop_orders (
+                        cost_price,
+                        admin_cost_at_time
+                    ),
+                    mtn_fulfillment_tracking (
+                        status,
+                        api_response,
+                        retry_count,
+                        created_at
+                    )
+                `)
 
-        // DATA PACKAGES ONLY. Exclude Special MTN Mashup reliably by category
-        // (fulfilled on /admin/mtn-mashup), and airtime mirrors — which carry
-        // category='data' but an "... Airtime" size — via the size heuristic.
-        query = (query as any)
-            .neq('category', 'mtn_mashup')
-            .not('size', 'ilike', '%Airtime%')
-            .not('size', 'ilike', '%Mashup%')
+            // DATA PACKAGES ONLY. Exclude Special MTN Mashup reliably by category
+            // (fulfilled on /admin/mtn-mashup), and airtime mirrors — which carry
+            // category='data' but an "... Airtime" size — via the size heuristic.
+            query = (query as any)
+                .neq('category', 'mtn_mashup')
+                .not('size', 'ilike', '%Airtime%')
+                .not('size', 'ilike', '%Mashup%')
 
-        // Filter by pertinent statuses for fulfillment center
-        if (status === 'refunded') {
-            // Match refunded_at, not status — an order whose status later drifted away from
-            // 'refunded' (e.g. a sync route overwriting it) must still surface here. refunded_at
-            // is the permanent record of the refund; current status is not.
-            query = query.not('refunded_at', 'is', null)
-        } else if (status && status !== 'All') {
-            query = query.eq('status', status)
-        } else {
-            // 'refunded' is terminal like 'completed' — include it so the fulfillment page can
-            // show refund stats + a client-side Refunded filter without a separate fetch.
-            // 'queued' = held for MTN number registration; include it so the page shows the
-            // queued stats card + filter (it is NOT dispatchable until released to 'pending').
-            query = query.in('status', ['processing', 'failed', 'completed', 'pending', 'queued', 'refunded'])
+            // Filter by pertinent statuses for fulfillment center
+            if (status === 'refunded') {
+                // Match refunded_at, not status — an order whose status later drifted away from
+                // 'refunded' (e.g. a sync route overwriting it) must still surface here. refunded_at
+                // is the permanent record of the refund; current status is not.
+                query = query.not('refunded_at', 'is', null)
+            } else if (status && status !== 'All') {
+                query = query.eq('status', status)
+            } else {
+                // 'refunded' is terminal like 'completed' — include it so the fulfillment page can
+                // show refund stats + a client-side Refunded filter without a separate fetch.
+                // 'queued' = held for MTN number registration; include it so the page shows the
+                // queued stats card + filter (it is NOT dispatchable until released to 'pending').
+                query = query.in('status', ['processing', 'failed', 'completed', 'pending', 'queued', 'refunded'])
+            }
+
+            if (network && network !== 'All') {
+                query = query.eq('network', network)
+            }
+
+            // Channel (origin) — mirrors the classification the fulfillment page used to
+            // apply client-side only (over the first `limit` rows). Applying it at the DB
+            // level means it now reflects the full matching set, not just the first page.
+            if (channel === 'ussd') {
+                query = query.in('source', ['ussd', 'ussd_shop'])
+            } else if (channel === 'shop') {
+                query = query.or('shop_order_id.not.is.null,source.eq.shop')
+            } else if (channel === 'web') {
+                query = query
+                    .not('source', 'in', '("ussd","ussd_shop","shop")')
+                    .is('shop_order_id', null)
+            }
+
+            if (startDate) {
+                query = query.gte('created_at', startDate)
+            }
+            if (endDate) {
+                query = query.lte('created_at', endDate)
+            }
+
+            if (search) {
+                query = query.ilike('phone_number', `%${search}%`)
+            }
+
+            return (query as any).order('created_at', { ascending: false })
         }
 
-        if (network && network !== 'All') {
-            query = query.eq('network', network)
-        }
+        // Pages past PostgREST's ~1000-row cap so a filter that matches more than
+        // that (e.g. status=All with no date range) doesn't silently truncate the
+        // queue — the page's "N orders" counts and bulk actions must see every
+        // matching row, not just the first 1000.
+        const { rows: rawOrders, truncated, failed } = await fetchAllRows(
+            buildQuery,
+            maxRows
+        )
 
-        // Channel (origin) — mirrors the classification the fulfillment page used to
-        // apply client-side only (over the first `limit` rows). Applying it at the DB
-        // level means it now reflects the full matching set, not just the first page.
-        if (channel === 'ussd') {
-            query = query.in('source', ['ussd', 'ussd_shop'])
-        } else if (channel === 'shop') {
-            query = query.or('shop_order_id.not.is.null,source.eq.shop')
-        } else if (channel === 'web') {
-            query = query
-                .not('source', 'in', '("ussd","ussd_shop","shop")')
-                .is('shop_order_id', null)
-        }
-
-        if (startDate) {
-            query = query.gte('created_at', startDate)
-        }
-        if (endDate) {
-            query = query.lte('created_at', endDate)
-        }
-
-        if (search) {
-            query = query.ilike('phone_number', `%${search}%`)
-        }
-
-        const { data: rawOrders, error: fetchError } = await query
-            .order('created_at', { ascending: false })
-            .limit(limit)
-
-        if (fetchError) {
-            console.error('[FulfillmentFetch] Error:', fetchError)
-            throw fetchError
+        if (failed) {
+            console.error('[FulfillmentFetch] Error paging orders')
+            return NextResponse.json({ error: 'Failed to load fulfillment queue' }, { status: 500 })
         }
 
         // Transform data to match expected frontend structure (extracting transaction_id)
@@ -154,10 +161,11 @@ export async function GET(request: NextRequest) {
         })
 
         return NextResponse.json({
-            orders: orders
+            orders,
+            truncated,
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Fulfillment Orders Fetch Error:', error)
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

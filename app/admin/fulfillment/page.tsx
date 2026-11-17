@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getStatusBadgeClass, shouldShowRefundOverlay, REFUND_OVERLAY_BADGE_CLASS, getRetryTag, isRetryEligible, getSelfCompletedTag } from '@/lib/order-status'
-import { SUPPLIER_META, SUPPLIER_FILTERS, type SupplierTag, SUPPLIER_NETWORK_SETTING_KEYS, type SupplierKey } from '@/lib/order-supplier'
+import { SUPPLIER_META, SUPPLIER_FILTERS, type SupplierTag, SUPPLIER_NETWORK_SETTING_KEYS, type SupplierKey, type SupplierSettingKey } from '@/lib/order-supplier'
 import { toggleSupplierNetwork } from '@/lib/fulfillment-supplier-toggle'
 import { computeDateRange, type DateFilterId, DATE_FILTER_PRESETS } from '@/lib/admin-date-range'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -172,60 +172,12 @@ export default function FulfillmentPage() {
     const [isSavingSettings, setIsSavingSettings] = useState(false)
     const [networkConfigOpen, setNetworkConfigOpen] = useState(false)
 
-    // MTN Express Delivery (DataKazina, MTN-only) — flipped via the audited
-    // /api/admin/settings/toggle route so it stays in sync with the dashboard
-    // System Control Center and keeps the admin_settings audit trail.
-    const [mtnExpressEnabled, setMtnExpressEnabled] = useState(false)
-    const [isSavingExpress, setIsSavingExpress] = useState(false)
-
-    // Balance state
-    const [balance, setBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [codecraftBalance, setCodecraftBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [xpressBalance, setXpressBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [ghdataBalance, setGhdataBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [agentportalBalance, setAgentportalBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [bundleportalBalance, setBundleportalBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [hendylinksBalance, setHendylinksBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [spfastitBalance, setSpfastitBalance] = useState<{ amount: number; currency: string } | null>(null)
-    const [isLoadingBalance, setIsLoadingBalance] = useState(false)
-
-    // Sync CodeCraft Status state
-    const [isSyncing, setIsSyncing] = useState(false)
-    const [syncCooldown, setSyncCooldown] = useState(false)
-    
-    // Sync Dakazina Status state
-    const [isSyncingDakazina, setIsSyncingDakazina] = useState(false)
-    const [dakazinaSyncCooldown, setDakazinaSyncCooldown] = useState(false)
-
-    // Sync Xpress Status state
-    const [isSyncingXpress, setIsSyncingXpress] = useState(false)
-    const [xpressSyncCooldown, setXpressSyncCooldown] = useState(false)
-
-    // Sync GhData Status state
-    const [isSyncingGhData, setIsSyncingGhData] = useState(false)
-    const [ghdataSyncCooldown, setGhdataSyncCooldown] = useState(false)
-
-    // Sync AgentPortal Status state
-    const [isSyncingAgentPortal, setIsSyncingAgentPortal] = useState(false)
-    const [agentportalSyncCooldown, setAgentportalSyncCooldown] = useState(false)
-
-    // Sync HendyLinks Status state
-    const [isSyncingHendyLinks, setIsSyncingHendyLinks] = useState(false)
-    const [hendylinksSyncCooldown, setHendylinksSyncCooldown] = useState(false)
-
-    // Sync SPFastIT Status state
-    const [isSyncingSpfastit, setIsSyncingSpfastit] = useState(false)
-    const [spfastitSyncCooldown, setSpfastitSyncCooldown] = useState(false)
-
-    // Individual balance loading states
-    const [isLoadingDKBalance, setIsLoadingDKBalance] = useState(false)
-    const [isLoadingCCBalance, setIsLoadingCCBalance] = useState(false)
-    const [isLoadingXPBalance, setIsLoadingXPBalance] = useState(false)
-    const [isLoadingGHBalance, setIsLoadingGHBalance] = useState(false)
-    const [isLoadingAPBalance, setIsLoadingAPBalance] = useState(false)
-    const [isLoadingBPBalance, setIsLoadingBPBalance] = useState(false)
-    const [isLoadingHLBalance, setIsLoadingHLBalance] = useState(false)
-    const [isLoadingSFBalance, setIsLoadingSFBalance] = useState(false)
+    // How many network↔supplier connections are active right now, across every
+    // registered supplier — drives the "No active supplier" status card above.
+    // Kept in sync with whatever the config panel's Connect/Disconnect buttons do,
+    // since both read from the same `settings` state.
+    const activeSupplierCount = (Object.values(SUPPLIER_NETWORK_SETTING_KEYS) as SupplierSettingKey[])
+        .reduce((count, settingKey) => count + Object.values((settings as any)[settingKey] || {}).filter(Boolean).length, 0)
 
     // Realtime live indicator
     const [isLive, setIsLive] = useState(false)
@@ -245,7 +197,6 @@ export default function FulfillmentPage() {
     useEffect(() => {
         if (dbUser?.role === 'admin') {
             fetchSettings()
-            fetchBalance()
         }
     }, [dbUser])
 
@@ -270,7 +221,6 @@ export default function FulfillmentPage() {
                     'auto_complete_data_threshold_mins',
                     'auto_refulfill_enabled',
                     'auto_refulfill_threshold_mins',
-                    'mtn_express_delivery_enabled',
                     'mtn_codecraft_fallback',
                     'mtn_agentportal_fallback',
                     'mtn_bundleportal_fallback',
@@ -360,9 +310,6 @@ export default function FulfillmentPage() {
             setAutoRefulfillEnabled(autoRefulfillEnabledVal)
             setAutoRefulfillThreshold(autoRefulfillThresholdVal)
             setAutoRefulfillThresholdInput(String(autoRefulfillThresholdVal))
-
-            // MTN Express — absent row defaults to OFF (normal delivery)
-            setMtnExpressEnabled(map.mtn_express_delivery_enabled === 'true' || map.mtn_express_delivery_enabled === true)
         } catch (error) {
             console.error('Failed to fetch settings:', error)
         }
@@ -403,33 +350,6 @@ export default function FulfillmentPage() {
             toast.error('Failed to save settings: ' + error.message)
         } finally {
             setIsSavingSettings(false)
-        }
-    }
-
-    // Flip MTN Express via the audited admin toggle route (admin-only + allowlisted
-    // server-side). Optimistic update, reconcile from the server's canonical value,
-    // revert on error — same contract as the dashboard System Control Center.
-    const toggleMtnExpress = async (next: boolean) => {
-        setIsSavingExpress(true)
-        const prev = mtnExpressEnabled
-        setMtnExpressEnabled(next) // optimistic
-        try {
-            const res = await fetch('/api/admin/settings/toggle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: 'mtn_express_delivery_enabled', value: next }),
-            })
-            const body = await res.json().catch(() => ({}))
-            if (!res.ok) throw new Error(body.error || 'Failed to update')
-            if (body?.value === 'true' || body?.value === 'false') {
-                setMtnExpressEnabled(body.value === 'true')
-            }
-            toast.success(`MTN Express Delivery ${next ? 'enabled' : 'disabled'}`)
-        } catch (e: any) {
-            setMtnExpressEnabled(prev) // revert
-            toast.error(e.message || 'Failed to update setting')
-        } finally {
-            setIsSavingExpress(false)
         }
     }
 
@@ -503,7 +423,7 @@ export default function FulfillmentPage() {
     }
 
     // Writes ONLY auto_fulfillment_enabled via the audited, allowlisted quick-toggle
-    // route (same one toggleMtnExpress uses) — deliberately NOT saveSettings, which
+    // route — deliberately NOT saveSettings, which
     // would also rewrite the whole fulfillment_settings blob from this page's local
     // snapshot and could clobber a concurrent toggleNetwork/RPC write on another page.
     const toggleGlobal = async () => {
@@ -528,167 +448,6 @@ export default function FulfillmentPage() {
         }
     }
 
-    const handleSyncCodecraft = async () => {
-        if (isSyncing || syncCooldown) return
-        setIsSyncing(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-codecraft', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders()
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncing(false)
-            setSyncCooldown(true)
-            setTimeout(() => setSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncDakazina = async () => {
-        if (isSyncingDakazina || dakazinaSyncCooldown) return
-        setIsSyncingDakazina(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-dakazina', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders(true)
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingDakazina(false)
-            setDakazinaSyncCooldown(true)
-            setTimeout(() => setDakazinaSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncXpress = async () => {
-        if (isSyncingXpress || xpressSyncCooldown) return
-        setIsSyncingXpress(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-xpress', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders(true)
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingXpress(false)
-            setXpressSyncCooldown(true)
-            setTimeout(() => setXpressSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncGhData = async () => {
-        if (isSyncingGhData || ghdataSyncCooldown) return
-        setIsSyncingGhData(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-ghdata', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders(true)
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingGhData(false)
-            setGhdataSyncCooldown(true)
-            setTimeout(() => setGhdataSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncAgentPortal = async () => {
-        if (isSyncingAgentPortal || agentportalSyncCooldown) return
-        setIsSyncingAgentPortal(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-agentportal', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} deliveries checked, ${result.updated} resent, ${result.failed} still stuck (admin alerted)`)
-                await fetchOrders(true)
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingAgentPortal(false)
-            setAgentportalSyncCooldown(true)
-            setTimeout(() => setAgentportalSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncHendyLinks = async () => {
-        if (isSyncingHendyLinks || hendylinksSyncCooldown) return
-        setIsSyncingHendyLinks(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-hendylinks', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders()
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingHendyLinks(false)
-            setHendylinksSyncCooldown(true)
-            setTimeout(() => setHendylinksSyncCooldown(false), 30000)
-        }
-    }
-
-    const handleSyncSpfastit = async () => {
-        if (isSyncingSpfastit || spfastitSyncCooldown) return
-        setIsSyncingSpfastit(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/sync-spfastit', {
-                method: 'POST',
-            })
-            const result = await response.json()
-            if (!response.ok) {
-                toast.error('Sync failed: ' + (result.error || 'Unknown error'))
-            } else {
-                toast.success(`${result.checked} checked, ${result.updated} updated, ${result.failed} failed`)
-                await fetchOrders()
-            }
-        } catch (err: any) {
-            toast.error('Sync error: ' + err.message)
-        } finally {
-            setIsSyncingSpfastit(false)
-            setSpfastitSyncCooldown(true)
-            setTimeout(() => setSpfastitSyncCooldown(false), 30000)
-        }
-    }
-
     const fetchOrders = async (isNewFilter = false, silent = false) => {
         if (!silent) setIsLoadingOrders(true)
         try {
@@ -709,140 +468,15 @@ export default function FulfillmentPage() {
             const fetchedOrders = data.orders || []
             setOrders(fetchedOrders)
             setOrdersCount(fetchedOrders.length)
+            if (data.truncated && !silent) {
+                toast.error('More orders match this filter than could be loaded at once — narrow the date range or status to see everything.')
+            }
         } catch (error: any) {
             console.error('Fetch orders error:', error)
             if (!silent) toast.error('Failed to fetch orders: ' + error.message)
         } finally {
             if (!silent) setIsLoadingOrders(false)
         }
-    }
-
-    const fetchBalance = async () => {
-        setIsLoadingBalance(true)
-        try {
-            const response = await fetch('/api/admin/fulfillment/balance')
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.error || 'Failed to fetch balance')
-            }
-
-            const data = await response.json()
-            setBalance({ amount: data.balance, currency: data.currency })
-            if (data.codecraft_currency !== undefined) {
-                setCodecraftBalance({ amount: data.codecraft_balance, currency: data.codecraft_currency })
-            }
-            if (data.xpress_currency !== undefined) {
-                setXpressBalance({ amount: data.xpress_balance, currency: data.xpress_currency })
-            }
-            if (data.ghdata_currency !== undefined) {
-                setGhdataBalance({ amount: data.ghdata_balance, currency: data.ghdata_currency })
-            }
-            if (data.agentportal_currency !== undefined) {
-                setAgentportalBalance({ amount: data.agentportal_balance, currency: data.agentportal_currency })
-            }
-            // Bundle Portal and HendyLinks were added after this handler was written, and each
-            // shipped with its own card + manual refresh button but no branch here — so both
-            // showed "GHS —" on page load until the admin clicked refresh, while the other five
-            // populated automatically. The all-suppliers API response has always included these
-            // two fields (see app/api/admin/fulfillment/balance/route.ts); only the wiring was
-            // missing. Any eighth supplier needs a branch here too.
-            if (data.bundleportal_currency !== undefined) {
-                setBundleportalBalance({ amount: data.bundleportal_balance, currency: data.bundleportal_currency })
-            }
-            if (data.hendylinks_currency !== undefined) {
-                setHendylinksBalance({ amount: data.hendylinks_balance, currency: data.hendylinks_currency })
-            }
-            if (data.spfastit_currency !== undefined) {
-                setSpfastitBalance({ amount: data.spfastit_balance, currency: data.spfastit_currency })
-            }
-        } catch (error: any) {
-            console.error('Balance fetch error:', error)
-            toast.error('Failed to fetch supplier balance')
-        } finally {
-            setIsLoadingBalance(false)
-        }
-    }
-
-    // Individual balance fetches — each refreshes only its own supplier
-    const fetchDKBalance = async () => {
-        setIsLoadingDKBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=datakazina')
-            const data = await res.json()
-            if (res.ok) setBalance({ amount: data.balance, currency: data.currency })
-            else toast.error('DataKazina balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingDKBalance(false) }
-    }
-    const fetchCCBalance = async () => {
-        setIsLoadingCCBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=codecraft')
-            const data = await res.json()
-            if (res.ok) setCodecraftBalance({ amount: data.codecraft_balance, currency: data.codecraft_currency })
-            else toast.error('CodeCraft balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingCCBalance(false) }
-    }
-    const fetchXPBalance = async () => {
-        setIsLoadingXPBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=xpress')
-            const data = await res.json()
-            if (res.ok) setXpressBalance({ amount: data.xpress_balance, currency: data.xpress_currency })
-            else toast.error('Xpress balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingXPBalance(false) }
-    }
-    const fetchGHBalance = async () => {
-        setIsLoadingGHBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=ghdata')
-            const data = await res.json()
-            if (res.ok) setGhdataBalance({ amount: data.ghdata_balance, currency: data.ghdata_currency })
-            else toast.error('GhData balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingGHBalance(false) }
-    }
-    const fetchAPBalance = async () => {
-        setIsLoadingAPBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=agentportal')
-            const data = await res.json()
-            if (res.ok) setAgentportalBalance({ amount: data.agentportal_balance, currency: data.agentportal_currency })
-            else toast.error('AgentPortal balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingAPBalance(false) }
-    }
-    const fetchBundlePortalBalance = async () => {
-        setIsLoadingBPBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=bundleportal')
-            const data = await res.json()
-            if (res.ok) setBundleportalBalance({ amount: data.bundleportal_balance, currency: data.bundleportal_currency })
-            else toast.error('Bundle Portal balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingBPBalance(false) }
-    }
-    const fetchSFBalance = async () => {
-        setIsLoadingSFBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=spfastit')
-            const data = await res.json()
-            if (res.ok) setSpfastitBalance({ amount: data.spfastit_balance, currency: data.spfastit_currency })
-            else toast.error('SPFastIT balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingSFBalance(false) }
-    }
-    const fetchHendyLinksBalance = async () => {
-        setIsLoadingHLBalance(true)
-        try {
-            const res = await fetch('/api/admin/fulfillment/balance?supplier=hendylinks')
-            const data = await res.json()
-            if (res.ok) setHendylinksBalance({ amount: data.hendylinks_balance, currency: data.hendylinks_currency })
-            else toast.error('HendyLinks balance error: ' + (data.error || 'Unknown'))
-        } catch (err: any) { toast.error('Balance error: ' + err.message) }
-        finally { setIsLoadingHLBalance(false) }
     }
 
     // Always-fresh ref so the realtime handler sees latest filters without re-subscribing
@@ -1180,241 +814,35 @@ export default function FulfillmentPage() {
                 </div>
             </div>
 
-            {/* Supplier Cards — 2-col on mobile, 4-col on tablet, 7-col on wide desktop (one row
-                per supplier count). There are SEVEN suppliers now; at md:grid-cols-6 the seventh
-                card wrapped onto a row by itself. Keep the widest column count in step with the
-                number of cards below whenever a supplier is added or removed. */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2 md:gap-4">
-                {/* GhData */}
-                <Card className="bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">GH-DATA</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {ghdataBalance ? `${ghdataBalance.currency} ${ghdataBalance.amount.toFixed(2)}` : (isLoadingGHBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchGHBalance} disabled={isLoadingGHBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingGHBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncGhData} disabled={isSyncingGhData || ghdataSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingGhData ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{ghdataSyncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
+            {/* Supplier status — generic by design. No supplier is wired up for Capozy yet;
+                connecting one (per network, below in "Delivery Automation") is what turns
+                this from "No active supplier" into a live count. The balance/sync actions
+                for a connected supplier live inside that same panel, next to its toggle,
+                instead of a dedicated brand-colored card per supplier up here. */}
+            <Card className={cn('border-l-4', activeSupplierCount > 0 ? 'border-l-emerald-500' : 'border-l-gray-300 dark:border-l-gray-600')}>
+                <CardContent className="p-4 md:p-5 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-lg shrink-0', activeSupplierCount > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted')}>
+                            <Server className={cn('w-4 h-4 md:w-5 md:h-5', activeSupplierCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* CodeCraft */}
-                <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-black border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">CodeCraft</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {codecraftBalance ? `${codecraftBalance.currency} ${codecraftBalance.amount.toFixed(2)}` : (isLoadingCCBalance ? '...' : 'GHS —')}
+                        <div>
+                            <p className="text-sm md:text-base font-bold text-foreground">
+                                {activeSupplierCount > 0
+                                    ? `${activeSupplierCount} supplier connection${activeSupplierCount > 1 ? 's' : ''} active`
+                                    : 'No active supplier'}
                             </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchCCBalance} disabled={isLoadingCCBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingCCBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncCodecraft} disabled={isSyncing || syncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncing ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{syncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* DataKazina */}
-                <Card className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">DaKazina</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {balance ? `${balance.currency} ${balance.amount.toFixed(2)}` : (isLoadingDKBalance ? '...' : 'GHS —')}
+                            <p className="text-xs text-muted-foreground">
+                                {activeSupplierCount > 0
+                                    ? 'Orders on a connected network dispatch automatically.'
+                                    : 'Orders wait for manual fulfillment until a supplier is connected below.'}
                             </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchDKBalance} disabled={isLoadingDKBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingDKBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncDakazina} disabled={isSyncingDakazina || dakazinaSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingDakazina ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{dakazinaSyncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Xpress */}
-                <Card className="bg-gradient-to-br from-violet-600 to-purple-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">Xpress</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {xpressBalance ? `${xpressBalance.currency} ${xpressBalance.amount.toFixed(2)}` : (isLoadingXPBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchXPBalance} disabled={isLoadingXPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingXPBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncXpress} disabled={isSyncingXpress || xpressSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingXpress ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{xpressSyncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* AgentPortal */}
-                <Card className="bg-gradient-to-br from-rose-600 to-rose-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">AgentPortal</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {agentportalBalance ? `${agentportalBalance.currency} ${agentportalBalance.amount.toFixed(2)}` : (isLoadingAPBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchAPBalance} disabled={isLoadingAPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingAPBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncAgentPortal} disabled={isSyncingAgentPortal || agentportalSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingAgentPortal ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{agentportalSyncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Bundle Portal */}
-                <Card className="bg-gradient-to-br from-fuchsia-600 to-fuchsia-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">Bundle Portal</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {bundleportalBalance ? `${bundleportalBalance.currency} ${bundleportalBalance.amount.toFixed(2)}` : (isLoadingBPBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchBundlePortalBalance} disabled={isLoadingBPBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingBPBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* HendyLinks */}
-                <Card className="bg-gradient-to-br from-teal-600 to-teal-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">HendyLinks</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {hendylinksBalance ? `${hendylinksBalance.currency} ${hendylinksBalance.amount.toFixed(2)}` : (isLoadingHLBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchHendyLinksBalance} disabled={isLoadingHLBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingHLBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncHendyLinks} disabled={isSyncingHendyLinks || hendylinksSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingHendyLinks ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>{hendylinksSyncCooldown ? 'Wait' : 'Sync'}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* SPFastIT — admin-triggered sync mirrors the sync-spfastit-status cron route
-                    exactly (per-order lookup by spfastit_reference, same double-filtered
-                    UPDATE), since this supplier has no bulk account-wide sweep endpoint of its
-                    own the way AgentPortal/HendyLinks do — see app/api/admin/fulfillment/sync-spfastit. */}
-                <Card className="bg-gradient-to-br from-orange-600 to-orange-800 text-white border-none shadow-lg">
-                    <CardContent className="p-3 md:p-5">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1.5 md:gap-2">
-                                <div className="bg-card/20 p-1.5 md:p-2.5 rounded-lg shrink-0">
-                                    <Server className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                                </div>
-                                <p className="text-[9px] md:text-xs font-bold uppercase tracking-wider opacity-95 leading-tight">SPFastIT</p>
-                            </div>
-                            <p className="text-base md:text-xl font-semibold leading-none">
-                                {spfastitBalance ? `${spfastitBalance.currency} ${spfastitBalance.amount.toFixed(2)}` : (isLoadingSFBalance ? '...' : 'GHS —')}
-                            </p>
-                            <div className="flex gap-1.5">
-                                <Button onClick={fetchSFBalance} disabled={isLoadingSFBalance} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    <RefreshCw className={`w-3 h-3 mr-1 shrink-0 ${isLoadingSFBalance ? 'animate-spin' : ''}`} />
-                                    <span>Bal</span>
-                                </Button>
-                                <Button onClick={handleSyncSpfastit} disabled={isSyncingSpfastit || spfastitSyncCooldown} variant="secondary" size="sm"
-                                    className="flex-1 bg-card/20 hover:bg-card/30 text-white border-white/30 disabled:opacity-50 h-6 md:h-7 text-[9px] md:text-xs px-1.5">
-                                    {isSyncingSpfastit ? <Loader2 className="w-3 h-3 mr-1 shrink-0 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1 shrink-0" />}
-                                    <span>Sync</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setNetworkConfigOpen(true)}>
+                        Connect a supplier
+                    </Button>
+                </CardContent>
+            </Card>
 
             {/* Cron Jobs */}
             <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -1531,7 +959,7 @@ export default function FulfillmentPage() {
                 >
                     <div className="flex items-center gap-2">
                         <Server className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-bold">Supplier Network Configuration</span>
+                        <span className="text-sm font-bold">Delivery Automation — Connect a Supplier</span>
                         <span className="text-[10px] text-muted-foreground hidden sm:inline">(click to {networkConfigOpen ? 'hide' : 'show'})</span>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${networkConfigOpen ? 'rotate-180' : ''}`} />
@@ -1575,28 +1003,6 @@ export default function FulfillmentPage() {
                             </Card>
                         ))}
                     </div>
-
-                    {/* MTN Express Delivery — DataKazina + MTN only */}
-                    <Card className={`mt-1 border-l-4 transition-colors ${mtnExpressEnabled ? 'border-l-amber-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                        <CardContent className="p-3 md:p-4 flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Activity className={`w-3.5 h-3.5 shrink-0 ${mtnExpressEnabled ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                                    <span className="font-semibold text-xs md:text-sm">MTN Express Delivery</span>
-                                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">DataKazina · MTN only</span>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                    Routes DataKazina MTN data orders via the express product line (network_id 6). Volumes not on the express lane stay pending. Other networks &amp; suppliers are unaffected.
-                                </p>
-                            </div>
-                            <Switch
-                                checked={mtnExpressEnabled}
-                                onCheckedChange={toggleMtnExpress}
-                                disabled={isSavingExpress}
-                                className="shrink-0"
-                            />
-                        </CardContent>
-                    </Card>
                 </div>
 
                 {/* CodeCraft Row */}

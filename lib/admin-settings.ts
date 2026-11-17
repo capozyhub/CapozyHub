@@ -10,7 +10,6 @@
 export const CRITICAL_TOGGLE_KEYS = [
     'auto_fulfillment_enabled',
     'page_access_storefront',
-    'mtn_express_delivery_enabled',
 ] as const
 
 export type ToggleKey = (typeof CRITICAL_TOGGLE_KEYS)[number]
@@ -44,9 +43,5 @@ export const TOGGLE_META: Record<ToggleKey, { label: string; description: string
     page_access_storefront: {
         label: 'Public Storefront',
         description: 'Disabling takes all shops offline',
-    },
-    mtn_express_delivery_enabled: {
-        label: 'MTN Express Delivery',
-        description: 'Route MTN data orders via the DataKazina express product line (network_id 6)',
     },
 }
