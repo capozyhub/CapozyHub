@@ -62,6 +62,7 @@ const draftOf = (p: PlanRow): RowDraft => ({
 export default function RolePlansManager() {
     const [plans, setPlans] = useState<PlanRow[] | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [drafts, setDrafts] = useState<Record<string, RowDraft>>({})
     const [savingId, setSavingId] = useState<string | null>(null)
     const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
@@ -75,6 +76,7 @@ export default function RolePlansManager() {
 
     const load = async () => {
         setIsLoading(true)
+        setLoadError(null)
         try {
             const res = await fetch('/api/admin/role-plans', { cache: 'no-store' })
             const data = await res.json().catch(() => ({}))
@@ -83,8 +85,8 @@ export default function RolePlansManager() {
             setPlans(rows)
             setDrafts(Object.fromEntries(rows.map(p => [p.id, draftOf(p)])))
         } catch (e: any) {
-            toast.error(e.message || 'Failed to load plans')
-            setPlans([])
+            setLoadError(e.message || 'Failed to load plans')
+            setPlans(null)
         } finally {
             setIsLoading(false)
         }
@@ -328,6 +330,16 @@ export default function RolePlansManager() {
         return (
             <div className="flex justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
+    if (loadError || plans === null) {
+        return (
+            <div className="space-y-3 rounded-lg border border-dashed border-border px-4 py-6 text-center">
+                <p className="text-sm font-medium">Couldn't load the upgrade plans.</p>
+                <p className="text-xs text-muted-foreground">{loadError}. If this is a fresh database, the role_upgrade_plans migration (20261122) hasn't been applied yet.</p>
+                <Button size="sm" variant="outline" onClick={load}>Try again</Button>
             </div>
         )
     }

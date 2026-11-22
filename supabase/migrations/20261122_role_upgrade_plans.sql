@@ -68,24 +68,23 @@ WHERE NOT EXISTS (SELECT 1 FROM public.role_upgrade_plans);
 
 -- Pull live admin_settings prices over the defaults above, if any were set.
 UPDATE public.role_upgrade_plans p
-SET price = s.value::numeric
+SET price = (s.value #>> '{}')::numeric
 FROM public.admin_settings s
 WHERE p.slug = replace(replace(s.key, 'agent_upgrade_price_', ''), 'dealer_upgrade_price_', '')
   AND s.key IN (
       'agent_upgrade_price_3d', 'agent_upgrade_price_14d', 'agent_upgrade_price_30d', 'agent_upgrade_price_permanent',
       'dealer_upgrade_price_1m', 'dealer_upgrade_price_3m', 'dealer_upgrade_price_6m'
   )
-  AND s.value ~ '^[0-9]+(\.[0-9]+)?$'
-  AND s.value::numeric > 0;
+  AND (s.value #>> '{}') ~ '^[0-9]+(\.[0-9]+)?$'
+  AND (s.value #>> '{}')::numeric > 0;
 
 UPDATE public.role_upgrade_plans p
-SET old_price = s.value::numeric
+SET old_price = (s.value #>> '{}')::numeric
 FROM public.admin_settings s
 WHERE p.upgrade_type = 'agent'
-  AND p.slug = replace(s.key, 'agent_upgrade_price_', '')
   AND s.key = 'agent_upgrade_price_' || p.slug || '_old'
-  AND s.value ~ '^[0-9]+(\.[0-9]+)?$'
-  AND s.value::numeric > 0;
+  AND (s.value #>> '{}') ~ '^[0-9]+(\.[0-9]+)?$'
+  AND (s.value #>> '{}')::numeric > 0;
 
 -- The audit trail must survive a plan being renamed or deleted (it is a financial
 -- record, same reasoning as the missing FK on user_id below). Drop the old fixed-list
