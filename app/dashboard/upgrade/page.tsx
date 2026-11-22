@@ -4,27 +4,23 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { getCachedPricing, clearPricingCache } from '@/lib/pricing-cache'
+import { getCachedPricing, clearPricingCache, type RolePlanDTO } from '@/lib/pricing-cache'
 import { BrandSwoosh } from '@/components/brand-swoosh'
 import { Check, Crown, Gem, Loader2, Wallet } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import CongratsModal from '@/components/upgrade/CongratsModal'
 import { AGENT_BENEFITS, DEALER_BENEFITS } from '@/components/upgrade/benefits'
 import WalletUpgradeModal from '@/components/upgrade/WalletUpgradeModal'
+import AdminRolePlansManager from '@/components/upgrade/AdminRolePlansManager'
 import { cn } from '@/lib/utils'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
-
-const DEALER_PLAN_META = [
-    { plan: '1m' as const, title: '1 month', note: 'Try it out' },
-    { plan: '3m' as const, title: '3 months', note: 'Most chosen' },
-    { plan: '6m' as const, title: '6 months', note: 'Best value' },
-]
 
 const money = (n: number) => `GH₵ ${(n ?? 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 function UpgradePageInner() {
     const { dbUser, refreshUser } = useAuth()
     const router = useRouter()
+    const isAdmin = dbUser?.role === 'admin'
 
     const [showCongrats, setShowCongrats] = useState(false)
     const [congratsTier, setCongratsTier] = useState<'agent' | 'dealer'>('agent')
@@ -34,21 +30,21 @@ function UpgradePageInner() {
         planLabel: string
         price: number
         upgradeType: 'agent' | 'dealer'
+        isLifetime: boolean
     } | null>(null)
 
     const [walletBalance, setWalletBalance] = useState<number>(0)
     const [walletLoading, setWalletLoading] = useState(false)
 
-    const [dealerPrice, setDealerPrice] = useState(299.99)
-    const [dealerPrice1m, setDealerPrice1m] = useState(99.99)
-    const [dealerPrice3m, setDealerPrice3m] = useState(199.99)
-
-    const [prices, setPrices] = useState({ '3d': 9.99, '14d': 49.99, '30d': 99.99, 'permanent': 149.99 })
-    const [oldPrices, setOldPrices] = useState({ '3d': 0, '14d': 0, '30d': 0, 'permanent': 0 })
-    const [showStrikethrough, setShowStrikethrough] = useState(false)
+    const [agentPlans, setAgentPlans] = useState<RolePlanDTO[]>([])
+    const [dealerPlans, setDealerPlans] = useState<RolePlanDTO[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
+        // Admins manage plans directly (AdminRolePlansManager fetches its own data) —
+        // they never need the customer-facing active-plan list.
+        if (isAdmin) { setIsLoading(false); return }
+
         let retryTimer: ReturnType<typeof setTimeout> | null = null
 
         const fetchPrices = async (isRetry = false) => {
@@ -57,27 +53,13 @@ function UpgradePageInner() {
 
                 const data = await getCachedPricing()
 
-                if (data.prices === null && !isRetry) {
+                if (data.agentPlans === undefined && !isRetry) {
                     retryTimer = setTimeout(() => fetchPrices(true), 1500)
                     return
                 }
 
-                setPrices({
-                    '3d': data.prices?.['3d'] ?? 9.99,
-                    '14d': data.prices?.['14d'] ?? 49.99,
-                    '30d': data.prices?.['30d'] ?? 99.99,
-                    'permanent': data.prices?.['permanent'] ?? 149.99,
-                })
-                setOldPrices({
-                    '3d': data.oldPrices?.['3d'] ?? 0,
-                    '14d': data.oldPrices?.['14d'] ?? 0,
-                    '30d': data.oldPrices?.['30d'] ?? 0,
-                    'permanent': data.oldPrices?.['permanent'] ?? 0,
-                })
-                setShowStrikethrough(data.showStrikethrough || false)
-                if (data.dealerPrice != null) setDealerPrice(data.dealerPrice)
-                if (data.dealerPrice1m != null) setDealerPrice1m(data.dealerPrice1m)
-                if (data.dealerPrice3m != null) setDealerPrice3m(data.dealerPrice3m)
+                setAgentPlans(data.agentPlans ?? [])
+                setDealerPlans(data.dealerPlans ?? [])
                 setIsLoading(false)
             } catch (err) {
                 console.error('Failed to fetch upgrade prices:', err)
@@ -88,7 +70,7 @@ function UpgradePageInner() {
 
         fetchPrices()
         return () => { if (retryTimer) clearTimeout(retryTimer) }
-    }, [])
+    }, [isAdmin])
 
     // Returns false when the balance could not be loaded, so we never show a fake
     // "Insufficient Balance" built from a default of 0.
@@ -115,36 +97,14 @@ function UpgradePageInner() {
         }
     }
 
-    const handleUpgrade = async (plan: string) => {
-        const planLabelMap: Record<string, string> = {
-            '3d': '3 Days Agent Pass',
-            '14d': '14 Days Agent Pass',
-            '30d': '30 Days Agent Pass',
-            'permanent': 'Permanent Agent Pass',
-        }
+    const openPurchase = async (upgradeType: 'agent' | 'dealer', plan: RolePlanDTO) => {
         if (!(await fetchWalletBalance())) return
         setWalletModal({
-            plan,
-            planLabel: planLabelMap[plan] ?? 'Agent Pass',
-            price: prices[plan as keyof typeof prices] ?? 99.99,
-            upgradeType: 'agent',
-        })
-    }
-
-    const dealerPlanConfig = {
-        '1m': { price: dealerPrice1m, label: '1 Month Dealer Pass',  extensionLabel: '1 Month Dealer Extension'  },
-        '3m': { price: dealerPrice3m, label: '3 Months Dealer Pass', extensionLabel: '3 Months Dealer Extension' },
-        '6m': { price: dealerPrice,   label: '6 Months Dealer Pass', extensionLabel: '6 Months Dealer Extension' },
-    }
-
-    const handleDealerUpgrade = async (plan: '1m' | '3m' | '6m') => {
-        if (!(await fetchWalletBalance())) return
-        const config = dealerPlanConfig[plan]
-        setWalletModal({
-            plan,
-            planLabel: isActiveDealer ? config.extensionLabel : config.label,
-            price: config.price,
-            upgradeType: 'dealer',
+            plan: plan.slug,
+            planLabel: plan.label,
+            price: plan.price,
+            upgradeType,
+            isLifetime: plan.days === null,
         })
     }
 
@@ -155,17 +115,27 @@ function UpgradePageInner() {
         await refreshUser()
     }
 
-    const getDiscountPercent = (oldPrice: number, newPrice: number): number => {
-        if (!oldPrice || oldPrice <= newPrice) return 0
-        return Math.round(((oldPrice - newPrice) / oldPrice) * 100)
-    }
+    if (isAdmin) {
+        return (
+            <div className="space-y-6">
+                <section aria-label="Membership" className="neu-night relative overflow-hidden rounded-3xl p-5 text-white sm:p-7">
+                    <BrandSwoosh progress={1} className="pointer-events-none absolute -right-16 bottom-0 w-[28rem] max-w-none opacity-40 sm:-right-8 sm:opacity-50 lg:opacity-30" />
+                    <div className="relative max-w-2xl">
+                        <p className="flex items-center gap-2 text-sm font-medium text-white/60">
+                            <Crown className="h-4 w-4 text-brand-500" />
+                            Membership
+                        </p>
+                        <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">Role Upgrade Plans</h1>
+                        <p className="mt-3 text-sm text-white/70 sm:text-base">
+                            Add, edit or remove the Agent and Dealer plans customers can buy from their wallet.
+                        </p>
+                    </div>
+                </section>
 
-    const tiers = [
-        { id: '3d', name: '3 days', price: prices['3d'], oldPrice: oldPrices['3d'], popular: false },
-        { id: '14d', name: '14 days', price: prices['14d'], oldPrice: oldPrices['14d'], popular: true },
-        { id: '30d', name: '30 days', price: prices['30d'], oldPrice: oldPrices['30d'], popular: false },
-        { id: 'permanent', name: 'Lifetime', price: prices['permanent'], oldPrice: oldPrices['permanent'], popular: false },
-    ]
+                <AdminRolePlansManager />
+            </div>
+        )
+    }
 
     if (isLoading) {
         return (
@@ -184,8 +154,6 @@ function UpgradePageInner() {
     const isPermanentAgent = effRole === 'agent' && dbUser?.agent_expires_at === null
     const isActiveDealer = effRole === 'dealer'
     const isAgentRole = effRole === 'agent'
-    const autoUpgradeEnabled = (dbUser as any)?.auto_upgrade_enabled ?? false
-    const autoUpgradePlan = (dbUser as any)?.auto_upgrade_plan ?? null
 
     const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     const agentExpiry = dbUser?.agent_expires_at as string | null | undefined
@@ -220,37 +188,37 @@ function UpgradePageInner() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {DEALER_PLAN_META.map(({ plan, title, note }) => {
-                    const price = dealerPlanConfig[plan].price
-                    const featured = plan === '3m'
-                    return (
+            {dealerPlans.length === 0 ? (
+                <div className="surface rounded-3xl p-5 text-sm text-muted-foreground">No Dealer plans are available right now.</div>
+            ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {dealerPlans.map(plan => (
                         <div
-                            key={plan}
+                            key={plan.id}
                             className={cn(
                                 'neu-night flex flex-col rounded-3xl p-5 text-white',
-                                featured && 'ring-2 ring-brand-500/70',
+                                plan.popular && 'ring-2 ring-brand-500/70',
                             )}
                         >
-                            <p className="text-xs font-semibold text-white/50">{note}</p>
-                            <p className="mt-1 font-display text-lg font-semibold">{mode === 'extend' ? `+${title}` : title}</p>
+                            <p className="text-xs font-semibold text-white/50">{plan.days ? `${plan.days} days` : ''}</p>
+                            <p className="mt-1 font-display text-lg font-semibold">{mode === 'extend' ? `+${plan.label}` : plan.label}</p>
                             <p className="mt-3 font-display text-3xl font-bold leading-none tracking-tight">
                                 <span className="mr-1 text-lg font-semibold text-brand-500">GH₵</span>
-                                {(price ?? 0).toFixed(2)}
+                                {plan.price.toFixed(2)}
                             </p>
                             <button
                                 type="button"
-                                onClick={() => handleDealerUpgrade(plan)}
+                                onClick={() => openPurchase('dealer', plan)}
                                 disabled={walletLoading}
                                 className="clay-gold mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-2xl text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-60"
                             >
                                 <Gem className="h-4 w-4" />
-                                {mode === 'extend' ? `Add ${title}` : `Choose ${title}`}
+                                {mode === 'extend' ? `Add ${plan.label}` : `Choose ${plan.label}`}
                             </button>
                         </div>
-                    )
-                })}
-            </div>
+                    ))}
+                </div>
+            )}
 
             <div className="surface rounded-3xl p-5">
                 <p className="text-sm font-semibold">Dealer includes</p>
@@ -283,8 +251,9 @@ function UpgradePageInner() {
                     price={walletModal.price}
                     walletBalance={walletBalance}
                     upgradeType={walletModal.upgradeType}
-                    currentAutoUpgrade={autoUpgradeEnabled}
-                    currentAutoUpgradePlan={autoUpgradePlan}
+                    isLifetime={walletModal.isLifetime}
+                    currentAutoUpgrade={(dbUser as any)?.auto_upgrade_enabled ?? false}
+                    currentAutoUpgradePlan={(dbUser as any)?.auto_upgrade_plan ?? null}
                     onClose={() => setWalletModal(null)}
                     onSuccess={handleUpgradeSuccess}
                 />
@@ -299,7 +268,7 @@ function UpgradePageInner() {
                             {isActiveDealer ? <Gem className="h-4 w-4 text-brand-500" /> : <Crown className="h-4 w-4 text-brand-500" />}
                             Membership
                         </p>
-                        <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-5xl">{heroTitle}</h1>
+                        <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">{heroTitle}</h1>
                         <p className="mt-3 text-sm text-white/70 sm:text-base">{heroSub}</p>
 
                         <div className="neu-night-in mt-5 inline-flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm">
@@ -319,51 +288,56 @@ function UpgradePageInner() {
                                 <p className="mt-1 text-sm text-muted-foreground">Same benefits on every plan. Longer plans simply cost less per day.</p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                {tiers.map(tier => {
-                                    const discounted = showStrikethrough && tier.oldPrice > 0 && tier.oldPrice !== tier.price
-                                    return (
-                                        <div
-                                            key={tier.id}
-                                            className={cn(
-                                                'surface relative flex flex-col rounded-3xl p-5',
-                                                tier.popular && 'ring-2 ring-primary',
-                                            )}
-                                        >
-                                            {tier.popular && (
-                                                <span className="clay-gold absolute -top-3 left-5 rounded-full px-3 py-1 text-[11px] font-bold">Most popular</span>
-                                            )}
-                                            <p className="font-display text-lg font-semibold">{tier.name}</p>
-                                            {discounted && (
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    <span className="line-through">{money(tier.oldPrice)}</span>
-                                                    <span className="ml-2 font-semibold text-foreground">Save {getDiscountPercent(tier.oldPrice, tier.price)}%</span>
+                            {agentPlans.length === 0 ? (
+                                <div className="surface rounded-3xl p-5 text-sm text-muted-foreground">No Agent plans are available right now.</div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    {agentPlans.map(plan => {
+                                        const discounted = plan.oldPrice > 0 && plan.oldPrice > plan.price
+                                        const discountPercent = discounted ? Math.round(((plan.oldPrice - plan.price) / plan.oldPrice) * 100) : 0
+                                        return (
+                                            <div
+                                                key={plan.id}
+                                                className={cn(
+                                                    'surface relative flex flex-col rounded-3xl p-5',
+                                                    plan.popular && 'ring-2 ring-primary',
+                                                )}
+                                            >
+                                                {plan.popular && (
+                                                    <span className="clay-gold absolute -top-3 left-5 rounded-full px-3 py-1 text-[11px] font-bold">Most popular</span>
+                                                )}
+                                                <p className="font-display text-lg font-semibold">{plan.days === null ? 'Lifetime' : `${plan.days} days`}</p>
+                                                {discounted && (
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        <span className="line-through">{money(plan.oldPrice)}</span>
+                                                        <span className="ml-2 font-semibold text-foreground">Save {discountPercent}%</span>
+                                                    </p>
+                                                )}
+                                                <p className="mt-3 font-display text-3xl font-bold leading-none tracking-tight">
+                                                    <span className="mr-1 text-lg font-semibold text-muted-foreground">GH₵</span>
+                                                    {plan.price.toFixed(2)}
                                                 </p>
-                                            )}
-                                            <p className="mt-3 font-display text-3xl font-bold leading-none tracking-tight">
-                                                <span className="mr-1 text-lg font-semibold text-muted-foreground">GH₵</span>
-                                                {(tier.price ?? 0).toFixed(2)}
-                                            </p>
-                                            {tier.id === 'permanent' && (
-                                                <p className="mt-3 text-xs text-muted-foreground">One payment, never expires. Unlocks the Dealer upgrade.</p>
-                                            )}
-                                            <div className="mt-auto flex flex-col pt-5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleUpgrade(tier.id)}
-                                                    disabled={walletLoading}
-                                                    className={cn(
-                                                        tier.popular ? 'clay-gold' : 'clay-black',
-                                                        'inline-flex h-11 items-center justify-center rounded-2xl text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60',
-                                                    )}
-                                                >
-                                                    {isAgentRole ? 'Renew / extend' : 'Get this plan'}
-                                                </button>
+                                                {plan.days === null && (
+                                                    <p className="mt-3 text-xs text-muted-foreground">One payment, never expires. Unlocks the Dealer upgrade.</p>
+                                                )}
+                                                <div className="mt-auto flex flex-col pt-5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPurchase('agent', plan)}
+                                                        disabled={walletLoading}
+                                                        className={cn(
+                                                            plan.popular ? 'clay-gold' : 'clay-black',
+                                                            'inline-flex h-11 items-center justify-center rounded-2xl text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60',
+                                                        )}
+                                                    >
+                                                        {isAgentRole ? 'Renew / extend' : 'Get this plan'}
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </section>
 
                         <section aria-label="Agent benefits" className="surface rounded-3xl p-5 sm:p-6">

@@ -13,6 +13,8 @@ interface WalletUpgradeModalProps {
     price: number
     walletBalance: number
     upgradeType: 'agent' | 'dealer'
+    /** Lifetime plans (duration_days === null) have nothing to auto-renew. */
+    isLifetime: boolean
     /** Whether user already has auto-upgrade enabled for this plan */
     currentAutoUpgrade: boolean
     currentAutoUpgradePlan: string | null
@@ -28,6 +30,7 @@ export default function WalletUpgradeModal({
     price,
     walletBalance,
     upgradeType,
+    isLifetime,
     currentAutoUpgrade,
     currentAutoUpgradePlan,
     onClose,
@@ -38,7 +41,7 @@ export default function WalletUpgradeModal({
     const [idempotencyKey] = useState(() => crypto.randomUUID().replace(/-/g, ''))
 
     const isDealer = upgradeType === 'dealer'
-    const isPermanent = plan === 'permanent'
+    const isPermanent = isLifetime
     const UpgradeIcon = isDealer ? Gem : Crown
 
     // Opt-in only: recurring charges must be a deliberate choice. Starts from the saved setting.
