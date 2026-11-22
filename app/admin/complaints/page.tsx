@@ -35,14 +35,13 @@ import {
     Send, Phone, Mail, Lock, Inbox, Archive, Info, Check, CheckCheck,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
-import { resolveSupplier, SUPPLIER_META } from '@/lib/order-supplier'
 import { getMessageTickState } from '@/lib/support-ticks'
 
-function SupplierBadge({ order }: { order: { fulfillment_method?: string | null; status?: string | null; download_batch_id?: string | null } | null | undefined }) {
+// No supplier is wired up for Capozy — every order is fulfilled by hand, so this just
+// shows the order's own status rather than a supplier identity.
+function SupplierBadge({ order }: { order: { status?: string | null } | null | undefined }) {
     if (!order) return <span className="text-muted-foreground text-xs">—</span>
-    const tag = resolveSupplier(null, order.download_batch_id, order.fulfillment_method, order.status)
-    const meta = SUPPLIER_META[tag ?? 'na']
-    return <Badge variant="outline" className={cn('text-[10px] py-0 h-5 font-normal', meta.badgeClass)}>{meta.label}</Badge>
+    return <Badge variant="outline" className="text-[10px] py-0 h-5 font-normal capitalize">{order.status ?? 'pending'}</Badge>
 }
 
 function MessageTick({ state }: { state: 'sent' | 'delivered' | 'read' }) {

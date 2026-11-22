@@ -85,10 +85,9 @@ export async function claimForDispatch(
  * Variant of claimForDispatch keyed by shop_orders.id instead of orders.id — used by
  * lib/shop-order-processor.ts, which is called with shop_orders.id and resolves the
  * underlying orders row via the shop_order_id foreign key. Returns the claimed order's
- * internal orders.id (needed by callers that must dispatch using the real orders.id, not
- * shop_orders.id — see the AgentPortal/BundlePortal/HendyLinks branches in
- * lib/shop-order-processor.ts for why that distinction matters), or null if the claim
- * failed.
+ * internal orders.id (a future supplier dispatch must use the real orders.id, not
+ * shop_orders.id, when reporting back to the supplier — see the design note at the top
+ * of lib/shop-order-processor.ts), or null if the claim failed.
  */
 export async function claimForDispatchByShopOrderId(
     supabase: any,
@@ -210,8 +209,8 @@ export async function reclaimForFallback(
 
 /**
  * Marks a claimed order as ACCEPTED by its supplier: pending -> processing, clears the
- * claim, and stamps whatever reference/bookkeeping columns the caller supplies (e.g.
- * codecraft_reference, dakazina_reference). `updated_at` is always set.
+ * claim, and stamps whatever reference/bookkeeping columns the caller supplies.
+ * `updated_at` is always set.
  *
  * Returns true if the transition happened. Returns false if 0 rows matched — a webhook
  * already resolved the order first. That is a safe no-op, not a failure: every caller

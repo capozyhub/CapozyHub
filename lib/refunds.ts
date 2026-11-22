@@ -26,10 +26,9 @@ export const USER_ELIGIBLE_STATUSES = ['pending', 'queued'] as const
 export const MAX_BULK_REFUND = 50
 /**
  * Hard cap on how many orders a single bulk-RETRY request may process (safety).
- * Lower than MAX_BULK_REFUND: each retry does ~6 sequential Supabase round-trips PLUS a
- * live supplier HTTP call (CodeCraft alone retries up to 3x internally), so 50 sequential
- * retries at 2-4s/order can blow past the Vercel function timeout with no summary returned
- * and no way for the admin to tell which orders were already charged.
+ * Lower than MAX_BULK_REFUND: each retry does ~6 sequential Supabase round-trips, so 50
+ * sequential retries at 2-4s/order can blow past the Vercel function timeout with no
+ * summary returned and no way for the admin to tell which orders were already charged.
  */
 export const MAX_BULK_RETRY = 10
 

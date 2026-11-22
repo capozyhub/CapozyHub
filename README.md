@@ -1,4 +1,4 @@
-# GHData - Mobile Data & Airtime Platform
+# Capozy Hub - Mobile Data & Airtime Platform
 
 A modern e-commerce platform for selling mobile data and airtime in Ghana, built with Next.js 15, Tailwind CSS, and Supabase.
 
@@ -7,7 +7,7 @@ A modern e-commerce platform for selling mobile data and airtime in Ghana, built
 - **User Dashboard**: Buy data, top-up wallet, view history, manage profile.
 - **Admin Panel**: Manage users, orders, packages, complaints, finances, and system settings.
 - **Wallet System**: Integrated wallet with Paystack top-ups and manual fulfillment.
-- **Auto Fulfillment**: Integration with MTN and CodeCraft (Telecel/AT) APIs (simulated/ready for keys).
+- **Fulfillment**: Orders are processed from the admin Fulfillment Center; no data-bundle supplier is wired up yet (see docs/stage-1-5-scope-down.md).
 - **Agent System**: AFA (Authorized Field Agent) application and tracking.
 - **Notifications**: Real-time updates for orders and payments.
 
@@ -34,14 +34,14 @@ You will need keys for:
 
 - Supabase (URL, Anon Key, Service Key)
 - Paystack (Secret/Public Keys)
-- MTN/CodeCraft/Moolre (if using actual APIs)
+
+See `.env.example` for the full list.
 
 ### 2. Database Setup
 
 1. Create a new Supabase project.
-2. Go to the SQL Editor in Supabase.
-3. Copy the content of `supabase/schema.sql` and run it to create tables and policies.
-4. Enable Auth providers (Email/Password) in Supabase Authentication settings.
+2. Apply the migrations in `supabase/migrations/` in order (via the Supabase CLI, or the SQL Editor) — `00000000000000_baseline.sql` first, then every dated migration after it. `supabase/schema.sql` is an old, out-of-date bootstrap script; it is not the current schema and should not be used.
+3. Enable Auth providers (Email/Password) in Supabase Authentication settings.
 
 ### 3. Install Dependencies
 

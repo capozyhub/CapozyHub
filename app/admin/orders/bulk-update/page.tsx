@@ -22,7 +22,6 @@ import {
     Clock,
     RotateCcw,
     RefreshCw,
-    RadioTower,
     Upload,
     FileText,
     AlertTriangle,
@@ -49,8 +48,6 @@ interface LookupOrder {
 
 // Suppliers the selection-sync button knows how to re-check. Anything else (or a mixed
 // selection) disables the button — see syncEligibility below.
-const SYNC_SUPPORTED_SUPPLIERS = new Set(['agentportal', 'hendylinks'])
-
 const NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
 const BROWSE_STATUSES = ['All', 'Pending', 'Queued', 'Processing', 'Completed', 'Failed', 'Refunded']
 type UploadMode = 'paste' | 'file'
@@ -94,7 +91,6 @@ export default function BulkOrderUpdatePage() {
     const [isUpdating, setIsUpdating] = useState(false)
     const [showBulkRefund, setShowBulkRefund] = useState(false)
     const [bulkRefundBusy, setBulkRefundBusy] = useState(false)
-    const [isSyncing, setIsSyncing] = useState(false)
 
     const parsedPasteRows = useMemo(() => parseManualRows(pasteText), [pasteText])
 
@@ -195,38 +191,6 @@ export default function BulkOrderUpdatePage() {
         }
     }
 
-    // Re-checks the selected orders directly against their supplier — a targeted lookup, not
-    // the account-wide "Sync <Supplier>" buttons on the Fulfillment page, which sweep a bounded
-    // recent window and can miss an older order an admin is specifically re-opening.
-    const syncSelection = async () => {
-        const ids = Array.from(selectedIds)
-        if (ids.length === 0) { toast.error('No orders selected'); return }
-        setIsSyncing(true)
-        try {
-            const response = await fetch('/api/admin/orders/sync-selection', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderIds: ids }),
-            })
-            const data = await response.json()
-            if (!response.ok || !data.success) throw new Error(data.error || 'Sync failed')
-            const stillInFlightNote = typeof data.stillInFlight === 'number' && data.stillInFlight > 0 ? ` · ${data.stillInFlight} still in flight` : ''
-            const wipedNote = typeof data.wiped === 'number' && data.wiped > 0 ? ` · ${data.wiped} released to pending (no supplier found)` : ''
-            toast.success(`Checked ${data.checked} · updated ${data.updated}${stillInFlightNote}${wipedNote}`)
-            if (Array.isArray(data.notFoundInDbIds) && data.notFoundInDbIds.length > 0) {
-                toast.error(`${data.notFoundInDbIds.length} selected order(s) no longer exist and were skipped`)
-            }
-            if (Array.isArray(data.errors) && data.errors.length > 0) {
-                toast.error(`${data.errors.length} order(s) had errors — check logs`)
-            }
-            await handleSearch()
-        } catch (error: any) {
-            toast.error('Sync failed: ' + error.message)
-        } finally {
-            setIsSyncing(false)
-        }
-    }
-
     // Two columns, no header row — beneficiary number and bare data size (e.g. "1GB" -> "1"),
     // matching the format suppliers expect when re-uploading a fulfillment sheet.
     const exportSelected = async () => {
@@ -267,18 +231,6 @@ export default function BulkOrderUpdatePage() {
     const selectedOrders = orders.filter(o => selectedIds.has(o.id))
     const refundEligibleCount = selectedOrders.filter(o => isRefundable(o, 'admin').ok).length
     const hasProcessingSelected = selectedOrders.some(o => o.status === 'processing')
-
-    // Sync is only meaningful against ONE supplier's lookup endpoint at a time — a mixed
-    // selection has no single place to check. Mirrors the same-supplier constraint the API
-    // route enforces server-side; this is just the UI's early, friendlier rejection.
-    const selectedSuppliers = new Set(selectedOrders.map(o => o.fulfillment_method).filter(Boolean))
-    const singleSupplier = selectedSuppliers.size === 1 ? Array.from(selectedSuppliers)[0] as string : null
-    const canSync = selectedOrders.length > 0 && singleSupplier !== null && SYNC_SUPPORTED_SUPPLIERS.has(singleSupplier)
-    const syncDisabledReason =
-        selectedOrders.length === 0 ? '' :
-        selectedSuppliers.size > 1 ? 'Select orders from a single supplier to sync' :
-        singleSupplier === null ? 'Selected orders have no supplier recorded' :
-        !SYNC_SUPPORTED_SUPPLIERS.has(singleSupplier) ? `Sync isn't supported yet for ${singleSupplier}` : ''
 
     if (dbUser?.role !== 'admin') {
         return (
@@ -446,11 +398,6 @@ export default function BulkOrderUpdatePage() {
                                 </Button>
                                 <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold" disabled={isUpdating}>
                                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refund
-                                </Button>
-                                <Button size="sm" onClick={syncSelection} className="h-9 text-xs px-3 bg-brand-600 hover:bg-brand-500 text-black font-bold disabled:opacity-50"
-                                    disabled={isSyncing || !canSync} title={syncDisabledReason}>
-                                    {isSyncing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RadioTower className="w-3.5 h-3.5 mr-1.5" />}
-                                    Sync
                                 </Button>
                             </div>
                         </div>

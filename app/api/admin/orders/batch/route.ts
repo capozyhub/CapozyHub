@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         // Generate filename with admin name
         const adminName = userData?.first_name?.trim() || 'Admin'
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('Z', '')
-        const generatedFilename = `ghdata_${adminName}_${timestamp}.xlsx`
+        const generatedFilename = `capozy_${adminName}_${timestamp}.xlsx`
 
         console.log('[BatchCreate] Generating filename:', { adminName, generatedFilename, receivedFilename: filename })
 

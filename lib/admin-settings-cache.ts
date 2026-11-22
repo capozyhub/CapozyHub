@@ -8,9 +8,9 @@
  * app/admin/layout.tsx, app/auth/layout.tsx) that run on EVERY page view in
  * their section.
  *
- * Pattern mirrors the one already accepted for `isMtnExpressEnabled` in
- * lib/fulfillment-service.ts: an in-memory, per-container-instance cache with a
- * bounded TTL. Same tradeoff, made explicit here too — after an admin changes a
+ * Pattern mirrors the in-memory, per-container-instance cache (with a bounded
+ * TTL) used elsewhere for similar admin-toggle reads. Same tradeoff, made
+ * explicit here too — after an admin changes a
  * setting, a warm serverless instance may serve the old value for up to the
  * TTL in effect for that key. A fresh cold start always reads current.
  * Confirmed acceptable for CRITICAL_TOGGLE_KEYS (fulfillment/signup kill
@@ -33,7 +33,7 @@
  * (auto_fulfillment_enabled, fulfillment_settings, mtn_*_gate_enabled,
  * mtn_*_fallback, data_network_stock) — those stay on the 60s default or
  * uncached entirely; see lib/mtn-whitelist-gate.ts for why a blind TTL is
- * the wrong tool for a value AgentPortal itself can flip at any moment.
+ * the wrong tool for a value a supplier can flip at any moment.
  */
 import { createServerClient } from '@/lib/supabase'
 

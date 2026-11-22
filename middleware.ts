@@ -169,7 +169,6 @@ const rateLimiters = REDIS_CONFIGURED ? {
     adminProcessWithdrawal: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:adminProcessWithdrawal' }),
     admin: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:admin' }),
     adminSettings: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:adminSettings' }),
-    supplierBalance: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:supplierBalance' }),
     // ── Orders & Purchases ─────────────────────────────────────
     airtimeCreate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:airtimeCreate' }),
     ordersPurchase: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:ordersPurchase' }),
@@ -914,9 +913,6 @@ export async function middleware(request: NextRequest) {
             identifier = authUser?.id ?? ip
         } else if (pathname === '/api/airtime/history') {
             limiter = rateLimiters.airtimeHistory
-            identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
-        } else if (pathname.startsWith('/api/admin/supplier-balance')) {
-            limiter = rateLimiters.supplierBalance
             identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
         } else if (pathname === '/api/support-chat') {
             limiter = rateLimiters.supportChat

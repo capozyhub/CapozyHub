@@ -274,17 +274,16 @@ export async function retryOrder(admin: any, params: RetryOrderParams): Promise<
   try {
     const { data: finalOrder } = await admin
       .from('orders')
-      .select('status, fulfillment_method, codecraft_reference, dakazina_reference, ghdata_order_id, bundleportal_reference')
+      .select('status, fulfillment_method')
       .eq('id', targetOrderId)
       .maybeSingle()
 
     if (finalOrder) {
       const f = finalOrder as any
       if (f.status === 'processing') {
-        const supplierReference = f.codecraft_reference || f.dakazina_reference || f.ghdata_order_id || f.bundleportal_reference || null
         await admin
           .from('order_retry_attempts')
-          .update({ status: 'dispatched', supplier: f.fulfillment_method ?? null, supplier_reference: supplierReference })
+          .update({ status: 'dispatched', supplier: f.fulfillment_method ?? null, supplier_reference: null })
           .eq('source_order_id', orderId)
           .eq('attempt_no', claimResult.attempt_no)
       } else if (f.status === 'pending') {

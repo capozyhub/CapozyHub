@@ -509,7 +509,7 @@ export async function sendHubtelShopBatchSMS(
  */
 export async function sendMoolreSMS(options: SMSOptions): Promise<SMSResult> {
     const apiKey = process.env.MOOLRE_API_KEY
-    const defaultSender = process.env.MOOLRE_SENDER_ID || 'GHDATA'
+    const defaultSender = process.env.MOOLRE_SENDER_ID || 'CAPOZY'
 
     if (!apiKey) {
         return { success: false, error: 'MOOLRE_API_KEY not configured.', provider: 'moolre' }

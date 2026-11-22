@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getStatusBadgeClass, shouldShowRefundOverlay, REFUND_OVERLAY_BADGE_CLASS, getRetryTag, isRetryEligible, getSelfCompletedTag } from '@/lib/order-status'
-import { SUPPLIER_META, SUPPLIER_FILTERS, type SupplierTag, SUPPLIER_NETWORK_SETTING_KEYS, type SupplierKey, type SupplierSettingKey } from '@/lib/order-supplier'
-import { toggleSupplierNetwork } from '@/lib/fulfillment-supplier-toggle'
 import { computeDateRange, type DateFilterId, DATE_FILTER_PRESETS } from '@/lib/admin-date-range'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
@@ -60,7 +58,6 @@ interface Order {
     retried_by_role?: string | null
     self_completed_at?: string | null
     self_completed_by_role?: string | null
-    supplier?: SupplierTag | null
     users: {
         first_name: string
         last_name: string
@@ -75,49 +72,10 @@ interface Order {
 
 interface FulfillmentSettings {
     is_global_enabled: boolean
-    networks: Record<string, boolean>
-    codecraft_networks: Record<string, boolean>
-    xpress_networks: Record<string, boolean>
-    ghdata_networks: Record<string, boolean>
-    agentportal_networks: Record<string, boolean>
-    bundleportal_networks: Record<string, boolean>
-    hendylinks_networks: Record<string, boolean>
-    atishare_console_networks: Record<string, boolean>
-    spfastit_networks: Record<string, boolean>
-    mtn_codecraft_fallback: 'none' | 'datakazina' | 'xpress' | 'ghdata' | 'agentportal' | 'bundleportal' | 'hendylinks'
-    mtn_agentportal_fallback: 'none' | 'datakazina' | 'codecraft' | 'xpress' | 'ghdata' | 'bundleportal' | 'hendylinks'
-    mtn_bundleportal_fallback: 'none' | 'datakazina' | 'codecraft' | 'xpress' | 'ghdata' | 'agentportal' | 'hendylinks'
-    mtn_hendylinks_fallback: 'none' | 'datakazina' | 'codecraft' | 'xpress' | 'ghdata' | 'agentportal' | 'bundleportal'
 }
 
 const NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime']
-
-// Used only by the Bundle Portal network-toggle row below — mirrors
-// resolveBundlePortalNetwork() in lib/bundleportal-service.ts, the actual source of
-// truth. AT-BigTime is deliberately excluded there (Bundle Portal's docs never confirm
-// it), so its card in that row is rendered disabled rather than toggleable. Declared at
-// module scope (not inline in JSX) because TSX doesn't allow a `const` between elements;
-// this is the closest a scoped, page-local constant can get to "next to the row".
-const BUNDLEPORTAL_SUPPORTED_NETWORKS = ['MTN', 'Telecel', 'AT-iShare']
-
-// Used only by the AT-iShare Console network-toggle row below — this supplier (SPFastIT)
-// serves AT-iShare exclusively; the service layer hard-rejects every other network (see
-// lib/atishare-console-service.ts). Unlike BUNDLEPORTAL_SUPPORTED_NETWORKS above, the row
-// doesn't render disabled cards for the unsupported networks at all — offering a control
-// for MTN/Telecel/AT-BigTime here would present something that can never work, not just
-// something that's off.
-const ATISHARE_CONSOLE_SUPPORTED_NETWORKS = ['AT-iShare']
-
-// This supplier is Telecel only in this codebase (MTN pricing rejected as not
-// competitive) — presenting a toggle for MTN/AT-iShare/AT-BigTime here would offer
-// something that can never work, not just something that's off.
-const SPFASTIT_SUPPORTED_NETWORKS = ['Telecel']
 const PAGE_SIZE = 10
-
-// Suppliers app/api/admin/orders/sync-selection knows how to re-check — see that route.
-// A mixed-supplier selection has no single lookup endpoint to check against, so the "Sync"
-// button below requires every selected order to share one of these.
-const SYNC_SUPPORTED_SUPPLIERS = new Set<SupplierTag>(['agentportal', 'hendylinks', 'spfastit'])
 
 // Order channel (origin) — a clean 3-way partition for the Channel filter buttons.
 // Actual filtering now happens server-side in /api/admin/fulfillment (see the `channel`
@@ -138,13 +96,11 @@ export default function FulfillmentPage() {
     const [isLoadingOrders, setIsLoadingOrders] = useState(true)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isRefulfilling, setIsRefulfilling] = useState(false)
-    const [isSyncingSelection, setIsSyncingSelection] = useState(false)
 
     // Filter State
     const [networkFilter, setNetworkFilter] = useState('All')
     const [statusFilter, setStatusFilter] = useState('All')
     const [channelFilter, setChannelFilter] = useState<'all' | OrderChannel>('all') // server-side (origin) — sent to /api/admin/fulfillment
-    const [supplierFilter, setSupplierFilter] = useState<'all' | SupplierTag | 'na'>('all') // client-side (derived tag)
     const [dateFilter, setDateFilter] = useState<DateFilterId>('today')
     const [customDate, setCustomDate] = useState<string>('') // Changed to string for input date
     const [searchQuery, setSearchQuery] = useState('')
@@ -152,32 +108,9 @@ export default function FulfillmentPage() {
     // Pagination State (Disabled for total load)
     const [ordersCount, setOrdersCount] = useState(0)
 
-    // Settings state — defaults all networks to false until loaded from DB
-    const [settings, setSettings] = useState<FulfillmentSettings>({
-        is_global_enabled: true,
-        networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        codecraft_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        xpress_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        ghdata_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        agentportal_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        bundleportal_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        hendylinks_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        atishare_console_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        spfastit_networks: NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {}),
-        mtn_codecraft_fallback: 'none',
-        mtn_agentportal_fallback: 'none',
-        mtn_bundleportal_fallback: 'none',
-        mtn_hendylinks_fallback: 'none',
-    })
+    // Settings state
+    const [settings, setSettings] = useState<FulfillmentSettings>({ is_global_enabled: true })
     const [isSavingSettings, setIsSavingSettings] = useState(false)
-    const [networkConfigOpen, setNetworkConfigOpen] = useState(false)
-
-    // How many network↔supplier connections are active right now, across every
-    // registered supplier — drives the "No active supplier" status card above.
-    // Kept in sync with whatever the config panel's Connect/Disconnect buttons do,
-    // since both read from the same `settings` state.
-    const activeSupplierCount = (Object.values(SUPPLIER_NETWORK_SETTING_KEYS) as SupplierSettingKey[])
-        .reduce((count, settingKey) => count + Object.values((settings as any)[settingKey] || {}).filter(Boolean).length, 0)
 
     // Realtime live indicator
     const [isLive, setIsLive] = useState(false)
@@ -215,16 +148,11 @@ export default function FulfillmentPage() {
                 .from('admin_settings')
                 .select('key, value')
                 .in('key', [
-                    'auto_fulfillment_enabled', 
-                    'fulfillment_settings', 
-                    'auto_complete_data_enabled', 
+                    'auto_fulfillment_enabled',
+                    'auto_complete_data_enabled',
                     'auto_complete_data_threshold_mins',
                     'auto_refulfill_enabled',
                     'auto_refulfill_threshold_mins',
-                    'mtn_codecraft_fallback',
-                    'mtn_agentportal_fallback',
-                    'mtn_bundleportal_fallback',
-                    'mtn_hendylinks_fallback'
                 ])
 
             const map = (data || []).reduce((acc: any, curr: any) => {
@@ -232,67 +160,7 @@ export default function FulfillmentPage() {
                 return acc
             }, {})
 
-            const dbFulfillmentSettings = typeof map.fulfillment_settings === 'string'
-                ? JSON.parse(map.fulfillment_settings)
-                : map.fulfillment_settings || {}
-
-            const dbNetworks: Record<string, boolean> = dbFulfillmentSettings.networks || {}
-            const dbCodecraftNetworks: Record<string, boolean> = dbFulfillmentSettings.codecraft_networks || {}
-            const dbXpressNetworks: Record<string, boolean> = dbFulfillmentSettings.xpress_networks || {}
-            const dbGhdataNetworks: Record<string, boolean> = dbFulfillmentSettings.ghdata_networks || {}
-            const dbAgentportalNetworks: Record<string, boolean> = dbFulfillmentSettings.agentportal_networks || {}
-            const dbBundleportalNetworks: Record<string, boolean> = dbFulfillmentSettings.bundleportal_networks || {}
-            const dbHendylinksNetworks: Record<string, boolean> = dbFulfillmentSettings.hendylinks_networks || {}
-            const dbAtishareConsoleNetworks: Record<string, boolean> = dbFulfillmentSettings.atishare_console_networks || {}
-            const dbSpfastitNetworks: Record<string, boolean> = dbFulfillmentSettings.spfastit_networks || {}
-
-            setSettings({
-                is_global_enabled: map.auto_fulfillment_enabled !== 'false',
-                networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc,
-                    [n]: dbNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                codecraft_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc,
-                    [n]: dbCodecraftNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                xpress_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc,
-                    [n]: dbXpressNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                ghdata_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc,
-                    [n]: dbGhdataNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                agentportal_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc,
-                    [n]: dbAgentportalNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                bundleportal_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc, [n]: dbBundleportalNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                hendylinks_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc, [n]: dbHendylinksNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                atishare_console_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc, [n]: dbAtishareConsoleNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                spfastit_networks: NETWORKS.reduce((acc, n) => ({
-                    ...acc, [n]: dbSpfastitNetworks[n] === true
-                }), {} as Record<string, boolean>),
-                mtn_codecraft_fallback: (map.mtn_codecraft_fallback === 'datakazina' || map.mtn_codecraft_fallback === 'xpress' || map.mtn_codecraft_fallback === 'ghdata' || map.mtn_codecraft_fallback === 'agentportal' || map.mtn_codecraft_fallback === 'bundleportal' || map.mtn_codecraft_fallback === 'hendylinks')
-                    ? map.mtn_codecraft_fallback
-                    : 'none',
-                mtn_agentportal_fallback: (map.mtn_agentportal_fallback === 'datakazina' || map.mtn_agentportal_fallback === 'codecraft' || map.mtn_agentportal_fallback === 'xpress' || map.mtn_agentportal_fallback === 'ghdata' || map.mtn_agentportal_fallback === 'bundleportal' || map.mtn_agentportal_fallback === 'hendylinks')
-                    ? map.mtn_agentportal_fallback
-                    : 'none',
-                mtn_bundleportal_fallback: (map.mtn_bundleportal_fallback === 'datakazina' || map.mtn_bundleportal_fallback === 'codecraft' || map.mtn_bundleportal_fallback === 'xpress' || map.mtn_bundleportal_fallback === 'ghdata' || map.mtn_bundleportal_fallback === 'agentportal' || map.mtn_bundleportal_fallback === 'hendylinks')
-                    ? map.mtn_bundleportal_fallback
-                    : 'none',
-                mtn_hendylinks_fallback: (map.mtn_hendylinks_fallback === 'datakazina' || map.mtn_hendylinks_fallback === 'codecraft' || map.mtn_hendylinks_fallback === 'xpress' || map.mtn_hendylinks_fallback === 'ghdata' || map.mtn_hendylinks_fallback === 'agentportal' || map.mtn_hendylinks_fallback === 'bundleportal')
-                    ? map.mtn_hendylinks_fallback
-                    : 'none',
-            })
+            setSettings({ is_global_enabled: map.auto_fulfillment_enabled !== 'false' })
 
             // Cron settings
             const cronEnabledVal = map.auto_complete_data_enabled !== 'false' && map.auto_complete_data_enabled !== undefined
@@ -312,44 +180,6 @@ export default function FulfillmentPage() {
             setAutoRefulfillThresholdInput(String(autoRefulfillThresholdVal))
         } catch (error) {
             console.error('Failed to fetch settings:', error)
-        }
-    }
-
-    const saveSettings = async (newSettings: FulfillmentSettings) => {
-        setIsSavingSettings(true)
-        try {
-            const updates = [
-                { key: 'auto_fulfillment_enabled', value: String(newSettings.is_global_enabled) },
-                {
-                    key: 'fulfillment_settings',
-                    // Registry-driven: the written keys are the registry's keys by construction,
-                    // so this can never drift from SUPPLIER_NETWORK_SETTING_KEYS (see lib/order-supplier.ts).
-                    // A hand-listed key set here previously; if it ever fell out of sync with the
-                    // registry, that supplier's per-network map would silently stop being persisted.
-                    value: JSON.stringify(
-                        Object.fromEntries(
-                            Object.values(SUPPLIER_NETWORK_SETTING_KEYS)
-                                .map(k => [k, (newSettings as any)[k] || {}])
-                        )
-                    ),
-                },
-                { key: 'mtn_codecraft_fallback', value: newSettings.mtn_codecraft_fallback },
-                { key: 'mtn_agentportal_fallback', value: newSettings.mtn_agentportal_fallback },
-                { key: 'mtn_bundleportal_fallback', value: newSettings.mtn_bundleportal_fallback },
-                { key: 'mtn_hendylinks_fallback', value: newSettings.mtn_hendylinks_fallback },
-            ]
-
-            const { error } = await (supabase
-                .from('admin_settings') as any)
-                .upsert(updates)
-
-            if (error) throw error
-            setSettings(newSettings)
-            toast.success('Fulfillment settings updated')
-        } catch (error: any) {
-            toast.error('Failed to save settings: ' + error.message)
-        } finally {
-            setIsSavingSettings(false)
         }
     }
 
@@ -393,34 +223,6 @@ export default function FulfillmentPage() {
         }
     }
 
-
-    // Enabling a supplier for a network disables every other supplier for that same
-    // network — one active supplier per network is the system-wide invariant, and the
-    // dispatch-layer conflict guard halts orders if it is ever violated.
-    //
-    // Routed through the toggle_fulfillment_supplier_network RPC (see the 20260822
-    // migration) rather than a client-side read-modify-write of the whole settings
-    // blob — this page is no longer the only page with a Connect/Disconnect control
-    // (app/admin/ishare has one too), so the mutation has to be atomic server-side or
-    // two open tabs/pages can silently clobber each other's change. Local state is
-    // updated from the RPC's own returned (canonical) settings, not from an optimistic
-    // local mutation, so this page can never drift from what was actually persisted.
-    const toggleNetwork = async (network: string, provider: SupplierKey) => {
-        const providerKey = SUPPLIER_NETWORK_SETTING_KEYS[provider]
-        const turningOn = !(settings as any)[providerKey]?.[network]
-
-        setIsSavingSettings(true)
-        const result = await toggleSupplierNetwork(provider, network, turningOn)
-        setIsSavingSettings(false)
-
-        if (!result.success) {
-            toast.error('Failed to update supplier settings: ' + result.error)
-            return
-        }
-
-        setSettings(prev => ({ ...prev, ...result.settings }))
-        toast.success('Fulfillment settings updated')
-    }
 
     // Writes ONLY auto_fulfillment_enabled via the audited, allowlisted quick-toggle
     // route — deliberately NOT saveSettings, which
@@ -686,52 +488,6 @@ export default function FulfillmentPage() {
     const retryEligibleFailedCount = retryEligibleSelected.filter(o => o.status === 'failed').length
     const retryEligibleRefundedCount = retryEligibleSelected.filter(o => o.status === 'refunded').length
 
-    // Sync is only meaningful against ONE supplier's lookup endpoint at a time — mirrors the
-    // same-supplier constraint app/api/admin/orders/sync-selection enforces server-side; this
-    // is just the UI's earlier, friendlier rejection (with a reason for the disabled tooltip).
-    const selectedOrdersList = orders.filter(o => selectedOrders.has(o.id))
-    const selectedSuppliers = new Set(selectedOrdersList.map(o => o.supplier).filter(Boolean))
-    const singleSelectedSupplier = selectedSuppliers.size === 1 ? (Array.from(selectedSuppliers)[0] as SupplierTag) : null
-    const canSyncSelection = selectedOrdersList.length > 0 && singleSelectedSupplier !== null && SYNC_SUPPORTED_SUPPLIERS.has(singleSelectedSupplier)
-    const syncSelectionDisabledReason =
-        selectedOrdersList.length === 0 ? '' :
-        selectedSuppliers.size > 1 ? 'Select orders from a single supplier to sync' :
-        singleSelectedSupplier === null ? 'Selected orders have no supplier recorded' :
-        !SYNC_SUPPORTED_SUPPLIERS.has(singleSelectedSupplier) ? `Sync isn't supported yet for ${singleSelectedSupplier}` : ''
-
-    // Re-checks the selected orders directly against their supplier — a targeted lookup, not
-    // the account-wide "Sync" buttons on the AgentPortal/HendyLinks cards above, which sweep a
-    // bounded recent window and can miss an older order an admin is specifically re-opening.
-    const syncSelection = async () => {
-        const ids = Array.from(selectedOrders)
-        if (ids.length === 0) { toast.error('No orders selected'); return }
-        setIsSyncingSelection(true)
-        try {
-            const response = await fetch('/api/admin/orders/sync-selection', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderIds: ids }),
-            })
-            const data = await response.json()
-            if (!response.ok || !data.success) throw new Error(data.error || 'Sync failed')
-            const stillInFlightNote = typeof data.stillInFlight === 'number' && data.stillInFlight > 0 ? ` · ${data.stillInFlight} still in flight` : ''
-            const wipedNote = typeof data.wiped === 'number' && data.wiped > 0 ? ` · ${data.wiped} released to pending (no supplier found)` : ''
-            toast.success(`Checked ${data.checked} · updated ${data.updated}${stillInFlightNote}${wipedNote}`)
-            if (Array.isArray(data.notFoundInDbIds) && data.notFoundInDbIds.length > 0) {
-                toast.error(`${data.notFoundInDbIds.length} selected order(s) no longer exist and were skipped`)
-            }
-            if (Array.isArray(data.errors) && data.errors.length > 0) {
-                toast.error(`${data.errors.length} order(s) had errors — check logs`)
-            }
-            setSelectedOrders(new Set())
-            await fetchOrders(true)
-        } catch (error: any) {
-            toast.error('Sync failed: ' + error.message)
-        } finally {
-            setIsSyncingSelection(false)
-        }
-    }
-
     const bulkRetry = async () => {
         const ids = retryEligibleSelected.map(o => o.id)
         if (ids.length === 0) { toast.error('No failed/refunded orders selected'); return }
@@ -760,11 +516,8 @@ export default function FulfillmentPage() {
         }
     }
 
-    // Channel filtering happens server-side (see fetchOrders' `channel` param). Supplier
-    // is a derived/joined tag, so it stays a client-side filter over the fetched orders.
-    const visibleOrders = supplierFilter === 'all'
-        ? orders
-        : orders.filter(o => (o.supplier ?? 'na') === supplierFilter)
+    // Channel filtering happens server-side (see fetchOrders' `channel` param).
+    const visibleOrders = orders
 
     if (dbUser?.role !== 'admin') {
         return (
@@ -814,33 +567,17 @@ export default function FulfillmentPage() {
                 </div>
             </div>
 
-            {/* Supplier status — generic by design. No supplier is wired up for Capozy yet;
-                connecting one (per network, below in "Delivery Automation") is what turns
-                this from "No active supplier" into a live count. The balance/sync actions
-                for a connected supplier live inside that same panel, next to its toggle,
-                instead of a dedicated brand-colored card per supplier up here. */}
-            <Card className={cn('border-l-4', activeSupplierCount > 0 ? 'border-l-emerald-500' : 'border-l-gray-300 dark:border-l-gray-600')}>
-                <CardContent className="p-4 md:p-5 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className={cn('p-2 rounded-lg shrink-0', activeSupplierCount > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted')}>
-                            <Server className={cn('w-4 h-4 md:w-5 md:h-5', activeSupplierCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
-                        </div>
-                        <div>
-                            <p className="text-sm md:text-base font-bold text-foreground">
-                                {activeSupplierCount > 0
-                                    ? `${activeSupplierCount} supplier connection${activeSupplierCount > 1 ? 's' : ''} active`
-                                    : 'No active supplier'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                                {activeSupplierCount > 0
-                                    ? 'Orders on a connected network dispatch automatically.'
-                                    : 'Orders wait for manual fulfillment until a supplier is connected below.'}
-                            </p>
-                        </div>
+            {/* No supplier is wired up for Capozy — every order is fulfilled by hand from the
+                list below until one is added at the code level. */}
+            <Card className="border-l-4 border-l-gray-300 dark:border-l-gray-600">
+                <CardContent className="p-4 md:p-5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg shrink-0 bg-muted">
+                        <Server className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setNetworkConfigOpen(true)}>
-                        Connect a supplier
-                    </Button>
+                    <div>
+                        <p className="text-sm md:text-base font-bold text-foreground">No active supplier</p>
+                        <p className="text-xs text-muted-foreground">Orders wait here for manual fulfillment — mark them Processing/Completed below as you deliver them.</p>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -951,489 +688,6 @@ export default function FulfillmentPage() {
                 </Card>
             </div>
 
-            {/* Network Connections — Mutex Toggle System (collapsible) */}
-            <div className="border rounded-xl overflow-hidden shadow-sm">
-                <button
-                    onClick={() => setNetworkConfigOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <Server className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-bold">Delivery Automation — Connect a Supplier</span>
-                        <span className="text-[10px] text-muted-foreground hidden sm:inline">(click to {networkConfigOpen ? 'hide' : 'show'})</span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${networkConfigOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {networkConfigOpen && (
-                <div className="p-4 space-y-3">
-                {/* DataKazina Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">DataKazina Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`datakazina-${net}`} className={`border-l-4 transition-colors ${settings.networks[net] ? 'border-l-emerald-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.networks[net] ? 'text-emerald-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`dk-toggle-${net}`}
-                                            variant={settings.networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.networks[net] ? 'border-emerald-500 text-emerald-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'datakazina')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.networks[net] ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-emerald-600 dark:text-emerald-400">DataKazina</span>
-                                        {settings.networks[net] && <span className="text-emerald-500 font-semibold">· Active</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* CodeCraft Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-brand-700" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-brand-700 dark:text-brand-400">CodeCraft Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`codecraft-${net}`} className={`border-l-4 transition-colors ${settings.codecraft_networks[net] ? 'border-l-blue-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.codecraft_networks[net] ? 'text-brand-700' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`cc-toggle-${net}`}
-                                            variant={settings.codecraft_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.codecraft_networks[net] ? 'border-brand-500 text-brand-700' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'codecraft')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.codecraft_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.codecraft_networks[net] ? 'bg-brand-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-brand-700 dark:text-brand-400">CodeCraft</span>
-                                        {settings.codecraft_networks[net] && <span className="text-brand-700 font-semibold">· Active</span>}
-                                    </div>
-                                    {net === 'MTN' && settings.codecraft_networks['MTN'] && (
-                                        <div className="mt-2 pt-2 border-t border-dashed">
-                                            <p className="text-[10px] text-muted-foreground mb-1">
-                                                Fallback when CodeCraft rejects a number as unverified:
-                                            </p>
-                                            <Select
-                                                value={settings.mtn_codecraft_fallback}
-                                                onValueChange={(value) => {
-                                                    const next = { ...settings, mtn_codecraft_fallback: value as FulfillmentSettings['mtn_codecraft_fallback'] }
-                                                    saveSettings(next)
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-7 text-[11px]" disabled={isSavingSettings}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    <SelectItem value="datakazina">DataKazina</SelectItem>
-                                                    <SelectItem value="xpress">Xpress</SelectItem>
-                                                    <SelectItem value="ghdata">GhData</SelectItem>
-                                                    <SelectItem value="agentportal">AgentPortal</SelectItem>
-                                                    <SelectItem value="bundleportal">Bundle Portal</SelectItem>
-                                                    <SelectItem value="hendylinks">HendyLinks</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Xpress Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-violet-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-400">Xpress Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`xpress-${net}`} className={`border-l-4 transition-colors ${settings.xpress_networks[net] ? 'border-l-violet-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.xpress_networks[net] ? 'text-violet-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`xp-toggle-${net}`}
-                                            variant={settings.xpress_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.xpress_networks[net] ? 'border-violet-500 text-violet-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'xpress')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.xpress_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.xpress_networks[net] ? 'bg-violet-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-violet-600 dark:text-violet-400">Xpress</span>
-                                        {settings.xpress_networks[net] && <span className="text-violet-500 font-semibold">· Active</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* GhData Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-amber-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">GhData Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`ghdata-${net}`} className={`border-l-4 transition-colors ${settings.ghdata_networks[net] ? 'border-l-amber-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.ghdata_networks[net] ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`gh-toggle-${net}`}
-                                            variant={settings.ghdata_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.ghdata_networks[net] ? 'border-amber-500 text-amber-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'ghdata')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.ghdata_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.ghdata_networks[net] ? 'bg-amber-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-amber-600 dark:text-amber-400">GhData</span>
-                                        {settings.ghdata_networks[net] && <span className="text-amber-500 font-semibold">· Active</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* AgentPortal Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-rose-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-rose-700 dark:text-rose-400">AgentPortal Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`agentportal-${net}`} className={`border-l-4 transition-colors ${settings.agentportal_networks[net] ? 'border-l-rose-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.agentportal_networks[net] ? 'text-rose-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`ap-toggle-${net}`}
-                                            variant={settings.agentportal_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.agentportal_networks[net] ? 'border-rose-500 text-rose-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'agentportal')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.agentportal_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.agentportal_networks[net] ? 'bg-rose-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-rose-600 dark:text-rose-400">AgentPortal</span>
-                                        {settings.agentportal_networks[net] && <span className="text-rose-500 font-semibold">· Active</span>}
-                                    </div>
-                                    {net === 'MTN' && settings.agentportal_networks['MTN'] && (
-                                        <div className="mt-2 pt-2 border-t border-dashed">
-                                            <p className="text-[10px] text-muted-foreground mb-1">
-                                                Fallback when a number isn&apos;t whitelisted yet:
-                                            </p>
-                                            <Select
-                                                value={settings.mtn_agentportal_fallback}
-                                                onValueChange={(value) => {
-                                                    const next = { ...settings, mtn_agentportal_fallback: value as FulfillmentSettings['mtn_agentportal_fallback'] }
-                                                    saveSettings(next)
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-7 text-[11px]" disabled={isSavingSettings}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    <SelectItem value="datakazina">DataKazina</SelectItem>
-                                                    <SelectItem value="codecraft">CodeCraft</SelectItem>
-                                                    <SelectItem value="xpress">Xpress</SelectItem>
-                                                    <SelectItem value="ghdata">GhData</SelectItem>
-                                                    <SelectItem value="bundleportal">Bundle Portal</SelectItem>
-                                                    <SelectItem value="hendylinks">HendyLinks</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Bundle Portal Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-fuchsia-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-fuchsia-700 dark:text-fuchsia-400">Bundle Portal Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => {
-                            const bpSupported = BUNDLEPORTAL_SUPPORTED_NETWORKS.includes(net)
-                            const bpEnabled = settings.bundleportal_networks[net]
-                            return (
-                            <Card key={`bundleportal-${net}`} className={`border-l-4 transition-colors ${
-                                !bpSupported
-                                    ? (bpEnabled ? 'border-l-red-500' : 'border-l-gray-200 dark:border-l-gray-700 opacity-60')
-                                    : (bpEnabled ? 'border-l-fuchsia-500' : 'border-l-gray-300 dark:border-l-gray-600')
-                            }`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${!bpSupported ? 'text-muted-foreground' : (bpEnabled ? 'text-fuchsia-500' : 'text-muted-foreground')}`} />
-                                            <span className={`font-semibold text-xs md:text-sm ${!bpSupported ? 'text-muted-foreground' : ''}`}>{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`bp-toggle-${net}`}
-                                            variant={bpEnabled ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${bpEnabled ? 'border-fuchsia-500 text-fuchsia-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'bundleportal')}
-                                            disabled={isSavingSettings || !bpSupported}
-                                        >
-                                            {bpEnabled ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${!bpSupported ? (bpEnabled ? 'bg-red-500' : 'bg-gray-300') : (bpEnabled ? 'bg-fuchsia-500' : 'bg-gray-300')}`} />
-                                        <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400">Bundle Portal</span>
-                                        {bpSupported && bpEnabled && <span className="text-fuchsia-500 font-semibold">· Active</span>}
-                                    </div>
-                                    {!bpSupported && (
-                                        <p className={`text-[10px] mt-1 ${bpEnabled ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}>
-                                            {bpEnabled
-                                                ? 'Not supported by Bundle Portal — stored as active. Switch this network to another supplier to clear it.'
-                                                : 'Not supported by Bundle Portal'}
-                                        </p>
-                                    )}
-                                    {net === 'MTN' && settings.bundleportal_networks['MTN'] && (
-                                        <div className="mt-2 pt-2 border-t border-dashed">
-                                            <p className="text-[10px] text-muted-foreground mb-1">
-                                                Fallback when Bundle Portal rejects a number:
-                                            </p>
-                                            <Select
-                                                value={settings.mtn_bundleportal_fallback}
-                                                onValueChange={(value) => {
-                                                    const next = { ...settings, mtn_bundleportal_fallback: value as FulfillmentSettings['mtn_bundleportal_fallback'] }
-                                                    saveSettings(next)
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-7 text-[11px]" disabled={isSavingSettings}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    <SelectItem value="datakazina">DataKazina</SelectItem>
-                                                    <SelectItem value="codecraft">CodeCraft</SelectItem>
-                                                    <SelectItem value="xpress">Xpress</SelectItem>
-                                                    <SelectItem value="ghdata">GhData</SelectItem>
-                                                    <SelectItem value="agentportal">AgentPortal</SelectItem>
-                                                    <SelectItem value="hendylinks">HendyLinks</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                {/* HendyLinks Row */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-teal-500" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-teal-700 dark:text-teal-400">HendyLinks Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {NETWORKS.map(net => (
-                            <Card key={`hendylinks-${net}`} className={`border-l-4 transition-colors ${settings.hendylinks_networks[net] ? 'border-l-teal-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.hendylinks_networks[net] ? 'text-teal-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`hl-toggle-${net}`}
-                                            variant={settings.hendylinks_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.hendylinks_networks[net] ? 'border-teal-500 text-teal-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'hendylinks')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.hendylinks_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.hendylinks_networks[net] ? 'bg-teal-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-teal-600 dark:text-teal-400">HendyLinks</span>
-                                        {settings.hendylinks_networks[net] && <span className="text-teal-500 font-semibold">· Active</span>}
-                                    </div>
-                                    {net === 'MTN' && settings.hendylinks_networks['MTN'] && (
-                                        <div className="mt-2 pt-2 border-t border-dashed">
-                                            <p className="text-[10px] text-muted-foreground mb-1">
-                                                Fallback when HendyLinks returns &quot;plan not found&quot; (404):
-                                            </p>
-                                            <Select
-                                                value={settings.mtn_hendylinks_fallback}
-                                                onValueChange={(value) => {
-                                                    const next = { ...settings, mtn_hendylinks_fallback: value as FulfillmentSettings['mtn_hendylinks_fallback'] }
-                                                    saveSettings(next)
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-7 text-[11px]" disabled={isSavingSettings}>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    <SelectItem value="datakazina">DataKazina</SelectItem>
-                                                    <SelectItem value="codecraft">CodeCraft</SelectItem>
-                                                    <SelectItem value="xpress">Xpress</SelectItem>
-                                                    <SelectItem value="ghdata">GhData</SelectItem>
-                                                    <SelectItem value="agentportal">AgentPortal</SelectItem>
-                                                    <SelectItem value="bundleportal">Bundle Portal</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* AT-iShare Console Row — AT-iShare only, see ATISHARE_CONSOLE_SUPPORTED_NETWORKS */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Server className="w-3.5 h-3.5 text-brand-700" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-brand-700 dark:text-brand-400">AT-iShare Console Networks</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {ATISHARE_CONSOLE_SUPPORTED_NETWORKS.map(net => (
-                            <Card key={`atishare-console-${net}`} className={`border-l-4 transition-colors ${settings.atishare_console_networks[net] ? 'border-l-indigo-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.atishare_console_networks[net] ? 'text-brand-700' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`ac-toggle-${net}`}
-                                            variant={settings.atishare_console_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.atishare_console_networks[net] ? 'border-brand-500 text-brand-700' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'atishare_console')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.atishare_console_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.atishare_console_networks[net] ? 'bg-brand-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-brand-700 dark:text-brand-400">AT-iShare Console</span>
-                                        {settings.atishare_console_networks[net] && <span className="text-brand-700 font-semibold">· Active</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* SPFastIT Row — Telecel only, see SPFASTIT_SUPPORTED_NETWORKS */}
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-semibold text-muted-foreground">SPFastIT (Telecel)</span>
-                        <span className="text-[10px] text-muted-foreground">(enabling a network here auto-disables others for same network)</span>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        {SPFASTIT_SUPPORTED_NETWORKS.map(net => (
-                            <Card key={`spfastit-${net}`} className={`border-l-4 transition-colors ${settings.spfastit_networks[net] ? 'border-l-orange-500' : 'border-l-gray-300 dark:border-l-gray-600'}`}>
-                                <CardContent className="p-3 md:p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className={`w-3.5 h-3.5 ${settings.spfastit_networks[net] ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                                            <span className="font-semibold text-xs md:text-sm">{net}</span>
-                                        </div>
-                                        <Button
-                                            id={`sf-toggle-${net}`}
-                                            variant={settings.spfastit_networks[net] ? 'outline' : 'default'}
-                                            size="sm"
-                                            className={`h-6 text-[10px] md:text-xs px-2 ${settings.spfastit_networks[net] ? 'border-orange-500 text-orange-600' : ''}`}
-                                            onClick={() => toggleNetwork(net, 'spfastit')}
-                                            disabled={isSavingSettings}
-                                        >
-                                            {settings.spfastit_networks[net] ? 'Disconnect' : 'Connect'}
-                                        </Button>
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${settings.spfastit_networks[net] ? 'bg-orange-500' : 'bg-gray-300'}`} />
-                                        <span className="font-bold text-orange-600 dark:text-orange-400">SPFastIT</span>
-                                        {settings.spfastit_networks[net] && <span className="text-orange-500 font-semibold">· Active</span>}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-                </div>
-                )}
-            </div>
-
             {/* Main Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Left Column: Stats & Filters */}
@@ -1524,24 +778,6 @@ export default function FulfillmentPage() {
                                 </div>
                             </div>
 
-                            {/* Supplier Filter — client-side, derived from mtn_fulfillment_tracking / download_batch_id */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Supplier</label>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {SUPPLIER_FILTERS.map(s => (
-                                        <Button
-                                            key={s.key}
-                                            variant={supplierFilter === s.key ? "default" : "outline"}
-                                            size="sm"
-                                            className="h-7 text-[10px] px-2.5"
-                                            onClick={() => setSupplierFilter(s.key)}
-                                        >
-                                            {s.label}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* Network Filter */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] uppercase font-bold text-muted-foreground">Network</label>
@@ -1609,7 +845,7 @@ export default function FulfillmentPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="px-4 pb-4 text-[10px] leading-relaxed opacity-90">
-                            Check supplier portal manually. Mark orders appropriately to maintain accurate records.
+                            Deliver manually, then mark each order Processing/Completed below to keep records accurate.
                         </CardContent>
                     </Card>
                 </div>
@@ -1662,16 +898,6 @@ export default function FulfillmentPage() {
                                     title={retryEligibleSelected.length === 0 ? 'Select at least one failed/refunded order' : ''}
                                 >
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Retry Selected
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={syncSelection}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm disabled:opacity-50"
-                                    disabled={isUpdating || isRefulfilling || isSyncingSelection || !canSyncSelection}
-                                    title={syncSelectionDisabledReason}
-                                >
-                                    {isSyncingSelection ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RadioTower className="w-3.5 h-3.5 mr-1.5" />}
-                                    Sync
                                 </Button>
                             </div>
                         </div>
@@ -1791,12 +1017,6 @@ export default function FulfillmentPage() {
                                                                             : getStatusBadgeClass(order.status)
                                                                     )}>
                                                                         {isBgQueue ? 'Queued Processing' : order.status}
-                                                                    </span>
-                                                                    <span className={cn(
-                                                                        "inline-flex items-center rounded-md border text-[10px] font-medium tracking-wide h-5 px-2",
-                                                                        (SUPPLIER_META[order.supplier ?? 'na'] ?? SUPPLIER_META.na).badgeClass
-                                                                    )}>
-                                                                        {(SUPPLIER_META[order.supplier ?? 'na'] ?? SUPPLIER_META.na).label}
                                                                     </span>
                                                                     {shouldShowRefundOverlay(order) && (
                                                                         <span className={cn(

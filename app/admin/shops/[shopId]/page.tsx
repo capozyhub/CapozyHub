@@ -684,7 +684,7 @@ export default function AdminShopDetailPage() {
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <p className="text-sm font-medium">Auto Fulfillment</p>
-                            <p className="text-xs text-muted-foreground">Auto-fulfill orders via DataKazina API</p>
+                            <p className="text-xs text-muted-foreground">Auto-fulfill orders via a connected supplier (none configured yet — orders wait for manual fulfillment either way)</p>
                         </div>
                         <Switch
                             checked={fulfillmentMode === 'auto'}

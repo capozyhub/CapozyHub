@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { validateAdminAccess } from '@/lib/auth-utils'
-import { resolveSupplier } from '@/lib/order-supplier'
 import { fetchAllRows } from '@/lib/fetch-all-rows'
 
 // Admin-only. The Fulfillment page itself is already out of reach for sub-admin
@@ -156,7 +155,6 @@ export async function GET(request: NextRequest) {
                 price: adminRevenue,
                 cost_price: adminTrueCost,
                 mtn_fulfillment_tracking: mappedTracking,
-                supplier: resolveSupplier(tracking, order.download_batch_id, order.fulfillment_method, order.status),
             }
         })
 
