@@ -1,10 +1,12 @@
 // lib/shop-afa-order-processor.ts
 //
 // Runs after a successful Paystack payment for a storefront AFA registration.
-// Unlike lib/shop-order-processor.ts there is NO supplier dispatch: AFA
-// registrations are always completed manually by an admin, so this only creates
-// the afa_orders row and alerts admins. Profit is credited HERE, on payment —
-// like every other product — via credit_shop_afa_profit (see step 5a below).
+// Creates the afa_orders row, then attempts Rexamart dispatch (lib/afa-dispatch.ts,
+// gated on admin_settings.rexamart_afa_enabled) — a registration that isn't
+// dispatched, or whose dispatch fails, is left 'pending' for an admin to complete
+// manually, exactly as every AFA registration was handled before Rexamart. Profit
+// is credited HERE, on payment — like every other product — via
+// credit_shop_afa_profit (see step 5a below), independent of dispatch outcome.
 // app/api/admin/afa-orders/[id]/status still calls the same RPC on 'completed'
 // as an idempotent backstop (it also reverses on 'cancelled').
 //
@@ -18,6 +20,7 @@ import { resolveSubAgentAfaCost } from '@/lib/sub-agent-afa-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { AFA_PRICE_KEYS } from '@/lib/afa-pricing'
+import { triggerAfaFulfillment } from '@/lib/afa-dispatch'
 
 // Guards against two callbacks racing inside the same lambda instance. The
 // durable guard is the UNIQUE index on afa_orders.paystack_reference.
@@ -422,6 +425,21 @@ export async function processShopAfaOrder(
                     console.error('[Shop AFA Processor] security_events insert failed:', auditError)
                 }
             }
+        }
+
+        // 5b. Attempt Rexamart dispatch — never blocks the response; a failure (or the
+        // toggle being off) just leaves the registration 'pending' for manual completion,
+        // exactly as every AFA registration was handled before Rexamart.
+        if (newOrder?.id) {
+            waitUntil(
+                triggerAfaFulfillment(db, newOrder.id, {
+                    fullName: formData.full_name,
+                    phone: formData.phone,
+                    region: formData.region,
+                    occupation: formData.occupation || 'N/A',
+                    idNumber: formData.id_number,
+                }).catch((e: any) => console.error('[Shop AFA Processor] triggerAfaFulfillment threw:', e))
+            )
         }
 
         // 6. Alert admins, reusing the same template the dashboard AFA route uses.

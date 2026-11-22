@@ -10,6 +10,8 @@ import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
 import { repairSubAgentEarning } from '@/lib/sub-agent-earning-repair'
 import { resolveMashupShopFee } from '@/lib/shop-checkout'
+import { fulfillOrder as rexamartFulfillOrder, isRexamartConfigured } from '@/lib/rexamart-service'
+import { claimForDispatchByShopOrderId, acceptDispatch, releaseClaim } from '@/lib/dispatch-claim'
 
 /**
  * A customer has PAID but the order cannot be created. Persist a durable security_events
@@ -641,14 +643,91 @@ async function triggerShopFulfillment(
         return
     }
 
-    // No supplier is wired up yet (Capozy — see docs/stage-1-5-scope-down.md, "Suppliers").
-    // Every auto-mode order is left `pending` for manual fulfillment from
-    // /admin/fulfillment, with one admin alert. The claim/dispatch machinery this used
-    // to call, and the per-supplier services it dispatched to, have been removed —
-    // re-adding a real supplier means writing a new dispatch branch here.
-    console.log(`[Shop Order Processor] No active supplier configured — order ${orderId} kept pending for manual fulfillment.`)
-    await sendAdminNewOrderAlert({
-        ...alertDetails,
-        reason: `No active supplier configured for network: ${network}`,
-    }).catch(e => console.error('[Shop Order Processor] Admin Alert Error:', e))
+    // Rexamart is Capozy's one data-bundle supplier. Enabled per network via
+    // admin_settings.fulfillment_settings.rexamart_networks.
+    const { data: settingsData } = await db
+        .from('admin_settings')
+        .select('key, value')
+        .in('key', ['auto_fulfillment_enabled', 'fulfillment_settings'])
+    const settingsMap: Record<string, any> = {}
+    ;(settingsData || []).forEach((r: any) => { settingsMap[r.key] = r.value })
+
+    if (settingsMap.auto_fulfillment_enabled === 'false') {
+        console.log(`[Shop Order Processor] Auto-fulfillment globally disabled`)
+        await sendAdminNewOrderAlert({ ...alertDetails, reason: 'Global auto-fulfillment is disabled' }).catch(e => console.error('[Shop Order Processor] Admin Alert Error:', e))
+        return
+    }
+
+    const fulfillmentSettings = typeof settingsMap.fulfillment_settings === 'string'
+        ? JSON.parse(settingsMap.fulfillment_settings)
+        : (settingsMap.fulfillment_settings || {})
+    const rexamartNetworks: Record<string, boolean> = fulfillmentSettings.rexamart_networks || {}
+    const rexamartEnabled = isRexamartConfigured() && rexamartNetworks[network] === true
+
+    if (!rexamartEnabled) {
+        console.log(`[Shop Order Processor] No active supplier configured — order ${orderId} kept pending for manual fulfillment.`)
+        await sendAdminNewOrderAlert({
+            ...alertDetails,
+            reason: `No active supplier configured for network: ${network}`,
+        }).catch(e => console.error('[Shop Order Processor] Admin Alert Error:', e))
+        return
+    }
+
+    // ── Claim (NOT a status flip — see lib/dispatch-claim.ts) ──────────────
+    // `orderId` here is shop_orders.id; the claim resolves (and returns) the underlying
+    // orders.id, which is what we dispatch with — Rexamart's webhook matches back on
+    // whatever we send as `reference`, and shop_orders.id means nothing to Rexamart.
+    const internalOrderId = await claimForDispatchByShopOrderId(db, orderId, 'rexamart')
+    if (!internalOrderId) {
+        console.log(`[Shop Order Processor] Underlying order for shop order ${orderId} could not be claimed for rexamart (not pending, or already claimed), skipping`)
+        return
+    }
+
+    try {
+        const result = await rexamartFulfillOrder(network, phone, extra.size || '', internalOrderId)
+
+        if (result.success) {
+            const accepted = await acceptDispatch(db, internalOrderId, 'rexamart', {
+                supplier_reference: result.transactionReference || result.rexamartOrderId || null,
+            })
+            if (accepted) {
+                await db.from('shop_orders').update({ status: 'processing', updated_at: new Date().toISOString() })
+                    .eq('id', orderId).neq('status', 'refunded')
+                await db.from('mtn_fulfillment_tracking').insert({
+                    order_id: internalOrderId,
+                    status: 'processing',
+                    api_response: { note: 'Shop order dispatched via rexamart', supplier: 'rexamart', network },
+                })
+            } else {
+                console.log(`[Shop Order Processor] Accept was a no-op for order ${orderId} — a webhook already resolved it`)
+            }
+            console.log(`[Shop Order Processor] ✅ Dispatched order ${orderId} via rexamart. Ref: ${result.transactionReference}`)
+        } else if (result.ambiguous) {
+            console.error(`[Shop Order Processor] AMBIGUOUS dispatch outcome for order ${orderId} via rexamart: ${result.error}. Marking 'processing' for manual reconciliation.`)
+            const ambiguousAccepted = await acceptDispatch(db, internalOrderId, 'rexamart', {})
+            if (ambiguousAccepted) {
+                await db.from('shop_orders').update({ status: 'processing', updated_at: new Date().toISOString() })
+                    .eq('id', orderId).neq('status', 'refunded')
+            }
+            await sendAdminNewOrderAlert({
+                ...alertDetails,
+                referenceCode: `AMBIGUOUS-DISPATCH-${orderId}`,
+                reason: `⚠️ AMBIGUOUS_TRANSPORT_FAILURE: order ${orderId} left in 'processing' — the Rexamart request may have already been accepted/charged (${result.error || 'unknown error'}). Do NOT resubmit without confirming with Rexamart first.`,
+            }).catch((e: any) => console.error(`[Shop Order Processor] Ambiguous-failure alert error for ${orderId}:`, e))
+        } else {
+            console.warn(`[Shop Order Processor] Fulfillment attempt failed for order ${orderId} via rexamart:`, result.error)
+            await releaseClaim(db, internalOrderId)
+            await sendAdminNewOrderAlert({
+                ...alertDetails,
+                reason: `Auto-fulfillment (rexamart) failed: ${result.error || 'Unknown error'}. Order kept pending.`,
+            })
+        }
+    } catch (err) {
+        console.error(`[Shop Order Processor] Supplier exception for order ${orderId}:`, err)
+        await releaseClaim(db, internalOrderId)
+        await sendAdminNewOrderAlert({
+            ...alertDetails,
+            reason: `Supplier exception during fulfillment (rexamart): ${err instanceof Error ? err.message : 'Unknown error'}. Order kept pending.`,
+        }).catch(e => console.error('[Shop Order Processor] Admin Alert Error:', e))
+    }
 }

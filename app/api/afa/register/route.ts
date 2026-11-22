@@ -10,6 +10,7 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentAfaCost, AFA_PRODUCT_REF } from '@/lib/sub-agent-afa-pricing'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { recordPendingSubAgentEarning } from '@/lib/sub-agent-earnings'
+import { triggerAfaFulfillment } from '@/lib/afa-dispatch'
 
 // ============================================================================
 // POST /api/afa/register
@@ -176,6 +177,18 @@ export async function POST(request: NextRequest) {
         if (rpcResult?.order_id) {
             await (supabaseAdmin.from('afa_orders') as any)
                 .update({ source: 'api', api_key_id: apiKeyId }).eq('id', rpcResult.order_id)
+
+            // Attempt Rexamart dispatch — never blocks the response; a failure (or the
+            // toggle being off) just leaves the registration 'pending' for manual completion.
+            waitUntil(
+                triggerAfaFulfillment(supabaseAdmin, rpcResult.order_id, {
+                    fullName: formData.full_name,
+                    phone: formData.phone,
+                    region: formData.region,
+                    occupation: formData.occupation || 'N/A',
+                    idNumber: formData.id_number,
+                }).catch((e: any) => console.error('[API AFA] triggerAfaFulfillment threw:', e))
+            )
         }
 
         // Sub-agent purchase: credit the ONE direct recruiter (spec C3, C4 — a pending row

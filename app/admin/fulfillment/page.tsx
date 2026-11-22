@@ -24,21 +24,20 @@ import {
     Clock,
     Search,
     Calendar as CalendarIcon,
-    ChevronLeft,
-    ChevronRight,
     ChevronDown,
-    MoreHorizontal,
     Loader2,
     Smartphone,
-    RadioTower
+    Wallet,
+    ShieldAlert,
+    Users as UsersIcon,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MAX_BULK_REFUND, MAX_BULK_RETRY } from '@/lib/refunds'
 import { formatCurrency, cn } from '@/lib/utils'
-import { format } from 'date-fns'
 import { MomoDetailsModal } from '@/components/shared/momo-details-modal'
 import { isMomoLookupEligible } from '@/lib/momo-eligibility'
+import { cardSurface, mutedSurface, sectionLabel, accent } from '@/app/admin/_components/dashboard-tokens'
 
 interface Order {
     id: string
@@ -127,9 +126,31 @@ export default function FulfillmentPage() {
     const [autoRefulfillThresholdInput, setAutoRefulfillThresholdInput] = useState('5')
     const [isSavingAutoRefulfill, setIsSavingAutoRefulfill] = useState(false)
 
+    // Rexamart — Capozy's one data-bundle + AFA supplier.
+    const [rexamartNetworks, setRexamartNetworks] = useState<Record<string, boolean>>(
+        NETWORKS.reduce((acc, n) => ({ ...acc, [n]: false }), {})
+    )
+    const [rexamartAfaEnabled, setRexamartAfaEnabled] = useState(false)
+    const [isSavingRexamart, setIsSavingRexamart] = useState(false)
+    const [rexamartBalance, setRexamartBalance] = useState<{ balance: number; currency: string } | null>(null)
+    const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+    const rexamartActiveCount = Object.values(rexamartNetworks).filter(Boolean).length + (rexamartAfaEnabled ? 1 : 0)
+
+    // Beneficiary (MTN number) verification tool
+    const [beneficiaryInput, setBeneficiaryInput] = useState('')
+    const [beneficiaryResults, setBeneficiaryResults] = useState<Array<{ number: string; verified: boolean; status: string; message?: string }> | null>(null)
+    const [isCheckingBeneficiaries, setIsCheckingBeneficiaries] = useState(false)
+
+    // Disputes (Rexamart "not received" reports)
+    const [disputes, setDisputes] = useState<Array<{ reportReference: string; orderId: string; productKind: string; disputeStatus: string; amount?: number; phoneNumber?: string; createdAt: string }>>([])
+    const [isLoadingDisputes, setIsLoadingDisputes] = useState(false)
+    const [disputeStatusFilter, setDisputeStatusFilter] = useState('')
+
     useEffect(() => {
         if (dbUser?.role === 'admin') {
             fetchSettings()
+            fetchRexamartBalance()
+            fetchDisputes()
         }
     }, [dbUser])
 
@@ -153,6 +174,8 @@ export default function FulfillmentPage() {
                     'auto_complete_data_threshold_mins',
                     'auto_refulfill_enabled',
                     'auto_refulfill_threshold_mins',
+                    'fulfillment_settings',
+                    'rexamart_afa_enabled',
                 ])
 
             const map = (data || []).reduce((acc: any, curr: any) => {
@@ -161,6 +184,13 @@ export default function FulfillmentPage() {
             }, {})
 
             setSettings({ is_global_enabled: map.auto_fulfillment_enabled !== 'false' })
+
+            const fulfillmentSettings = typeof map.fulfillment_settings === 'string'
+                ? JSON.parse(map.fulfillment_settings)
+                : (map.fulfillment_settings || {})
+            const dbRexamartNetworks: Record<string, boolean> = fulfillmentSettings.rexamart_networks || {}
+            setRexamartNetworks(NETWORKS.reduce((acc, n) => ({ ...acc, [n]: dbRexamartNetworks[n] === true }), {} as Record<string, boolean>))
+            setRexamartAfaEnabled(map.rexamart_afa_enabled === 'true')
 
             // Cron settings
             const cronEnabledVal = map.auto_complete_data_enabled !== 'false' && map.auto_complete_data_enabled !== undefined
@@ -247,6 +277,97 @@ export default function FulfillmentPage() {
             toast.error(e.message || 'Failed to update setting')
         } finally {
             setIsSavingSettings(false)
+        }
+    }
+
+    // Writes rexamart_networks inside the shared fulfillment_settings blob. Direct
+    // client upsert (same pattern this page already used for cron settings above) —
+    // this is the only page that writes this key now that the per-supplier toggle RPC
+    // (built for nine suppliers racing across two pages) no longer applies to one.
+    const toggleRexamartNetwork = async (network: string) => {
+        const next = { ...rexamartNetworks, [network]: !rexamartNetworks[network] }
+        setIsSavingRexamart(true)
+        setRexamartNetworks(next) // optimistic
+        try {
+            const { error } = await (supabase.from('admin_settings') as any).upsert({
+                key: 'fulfillment_settings',
+                value: JSON.stringify({ rexamart_networks: next }),
+            }, { onConflict: 'key' })
+            if (error) throw error
+            toast.success(`Rexamart ${next[network] ? 'connected for' : 'disconnected from'} ${network}`)
+        } catch (e: any) {
+            setRexamartNetworks(rexamartNetworks) // revert
+            toast.error('Failed to update Rexamart settings: ' + e.message)
+        } finally {
+            setIsSavingRexamart(false)
+        }
+    }
+
+    const toggleRexamartAfa = async (next: boolean) => {
+        setIsSavingRexamart(true)
+        setRexamartAfaEnabled(next) // optimistic
+        try {
+            const { error } = await (supabase.from('admin_settings') as any).upsert({ key: 'rexamart_afa_enabled', value: String(next) }, { onConflict: 'key' })
+            if (error) throw error
+            toast.success(`Rexamart AFA dispatch ${next ? 'enabled' : 'disabled'}`)
+        } catch (e: any) {
+            setRexamartAfaEnabled(!next) // revert
+            toast.error('Failed to update setting: ' + e.message)
+        } finally {
+            setIsSavingRexamart(false)
+        }
+    }
+
+    const fetchRexamartBalance = async () => {
+        setIsLoadingBalance(true)
+        try {
+            const res = await fetch('/api/admin/rexamart/balance')
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch balance')
+            setRexamartBalance({ balance: data.balance, currency: data.currency })
+        } catch (e: any) {
+            // Silent on first load (Rexamart may simply not be configured yet) — the
+            // balance card itself shows "—" and the error only matters on an explicit refresh.
+            setRexamartBalance(null)
+        } finally {
+            setIsLoadingBalance(false)
+        }
+    }
+
+    const checkBeneficiaries = async () => {
+        const numbers = beneficiaryInput.split(/[\s,]+/).map(n => n.trim()).filter(Boolean)
+        if (numbers.length === 0) { toast.error('Paste at least one phone number'); return }
+        if (numbers.length > 40) { toast.error('At most 40 numbers per check'); return }
+        setIsCheckingBeneficiaries(true)
+        setBeneficiaryResults(null)
+        try {
+            const res = await fetch('/api/admin/rexamart/beneficiary-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ numbers }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Check failed')
+            setBeneficiaryResults(data.results || [])
+        } catch (e: any) {
+            toast.error(e.message || 'Beneficiary check failed')
+        } finally {
+            setIsCheckingBeneficiaries(false)
+        }
+    }
+
+    const fetchDisputes = async (status = disputeStatusFilter) => {
+        setIsLoadingDisputes(true)
+        try {
+            const url = status ? `/api/admin/rexamart/disputes?status=${encodeURIComponent(status)}` : '/api/admin/rexamart/disputes'
+            const res = await fetch(url)
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to load disputes')
+            setDisputes(data.disputes || [])
+        } catch (e: any) {
+            setDisputes([])
+        } finally {
+            setIsLoadingDisputes(false)
         }
     }
 
@@ -547,7 +668,7 @@ export default function FulfillmentPage() {
                     <Button
                         onClick={() => refulfillPending(false)}
                         disabled={isRefulfilling || orders.filter(o => o.status === 'pending').length === 0}
-                        className="bg-brand-600 hover:bg-brand-500 text-black font-bold h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
+                        className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold"
                     >
                         {isRefulfilling ? (
                             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -567,37 +688,177 @@ export default function FulfillmentPage() {
                 </div>
             </div>
 
-            {/* No supplier is wired up for Capozy — every order is fulfilled by hand from the
-                list below until one is added at the code level. */}
-            <Card className="border-l-4 border-l-gray-300 dark:border-l-gray-600">
-                <CardContent className="p-4 md:p-5 flex items-center gap-3">
-                    <div className="p-2 rounded-lg shrink-0 bg-muted">
-                        <Server className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+            {/* Supplier status — reflects whatever's actually enabled in the Rexamart panel
+                below, rather than being a separate thing to keep in sync. */}
+            <Card className={cn(cardSurface, 'border-l-4', rexamartActiveCount > 0 ? 'border-l-emerald-500' : 'border-l-zinc-300 dark:border-l-zinc-700')}>
+                <CardContent className="p-4 md:p-5 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-lg shrink-0', rexamartActiveCount > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted')}>
+                            <Server className={cn('w-4 h-4 md:w-5 md:h-5', rexamartActiveCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
+                        </div>
+                        <div>
+                            <p className="text-sm md:text-base font-bold text-foreground">
+                                {rexamartActiveCount > 0 ? `Rexamart active — ${rexamartActiveCount} line${rexamartActiveCount > 1 ? 's' : ''} connected` : 'No active supplier'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {rexamartActiveCount > 0
+                                    ? 'Orders on a connected network/product dispatch automatically.'
+                                    : 'Orders wait here for manual fulfillment — connect Rexamart below, or mark orders Processing/Completed by hand.'}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm md:text-base font-bold text-foreground">No active supplier</p>
-                        <p className="text-xs text-muted-foreground">Orders wait here for manual fulfillment — mark them Processing/Completed below as you deliver them.</p>
+                    <div className={mutedSurface + ' px-3 py-1.5 flex items-center gap-2'}>
+                        <Wallet className="w-3.5 h-3.5" style={{ color: accent.yellow }} />
+                        <span className="text-xs font-bold text-foreground">
+                            {isLoadingBalance ? '…' : rexamartBalance ? `${rexamartBalance.currency} ${rexamartBalance.balance.toFixed(2)}` : '—'}
+                        </span>
+                        <button onClick={fetchRexamartBalance} disabled={isLoadingBalance} className="text-muted-foreground hover:text-foreground">
+                            <RefreshCw className={cn('w-3 h-3', isLoadingBalance && 'animate-spin')} />
+                        </button>
                     </div>
                 </CardContent>
             </Card>
 
+            {/* Rexamart — connect per network + AFA, matching lib/rexamart-service.ts's
+                network map exactly (AT-iShare/AT-BigTime are the names Capozy uses
+                internally; Rexamart's own names are translated inside that file). */}
+            <Card className={cardSurface}>
+                <CardContent className="p-4 md:p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Server className="w-4 h-4" style={{ color: accent.yellow }} />
+                        <p className={sectionLabel}>Rexamart — Delivery Automation</p>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+                        {NETWORKS.map(net => (
+                            <div key={net} className={cn(mutedSurface, 'p-3')}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-semibold text-xs">{net}</span>
+                                    <Button
+                                        variant={rexamartNetworks[net] ? 'outline' : 'default'}
+                                        size="sm"
+                                        className="h-6 text-[10px] px-2"
+                                        onClick={() => toggleRexamartNetwork(net)}
+                                        disabled={isSavingRexamart}
+                                    >
+                                        {rexamartNetworks[net] ? 'Disconnect' : 'Connect'}
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <div className={cn('w-1.5 h-1.5 rounded-full', rexamartNetworks[net] ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600')} />
+                                    {rexamartNetworks[net] ? 'Active' : 'Off'}
+                                </div>
+                            </div>
+                        ))}
+                        <div className={cn(mutedSurface, 'p-3')}>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-xs">AFA (Ghana Card)</span>
+                                <Switch checked={rexamartAfaEnabled} onCheckedChange={toggleRexamartAfa} disabled={isSavingRexamart} className="scale-75" />
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <div className={cn('w-1.5 h-1.5 rounded-full', rexamartAfaEnabled ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600')} />
+                                {rexamartAfaEnabled ? 'Active' : 'Off'}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Rexamart tools: free MTN beneficiary verification, and delivery disputes */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+                <Card className={cardSurface}>
+                    <CardContent className="p-4 md:p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <UsersIcon className="w-4 h-4" style={{ color: accent.blue }} />
+                            <p className={sectionLabel}>Verify MTN Beneficiaries</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mb-2">Free — paste up to 40 numbers (one per line, or comma-separated).</p>
+                        <textarea
+                            value={beneficiaryInput}
+                            onChange={(e) => setBeneficiaryInput(e.target.value)}
+                            placeholder={'0241234567\n0551234567'}
+                            className="w-full h-20 text-xs font-mono rounded-md border border-input bg-background px-2.5 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <Button size="sm" className="mt-2 h-8 text-xs" onClick={checkBeneficiaries} disabled={isCheckingBeneficiaries}>
+                            {isCheckingBeneficiaries ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1.5" />}
+                            Check
+                        </Button>
+                        {beneficiaryResults && (
+                            <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+                                {beneficiaryResults.length === 0 ? (
+                                    <p className="text-[11px] text-muted-foreground">No results</p>
+                                ) : beneficiaryResults.map(r => (
+                                    <div key={r.number} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between')}>
+                                        <span className="font-mono text-xs">{r.number}</span>
+                                        <span className={cn(
+                                            'text-[10px] font-bold uppercase px-1.5 py-0.5 rounded',
+                                            r.verified ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400'
+                                        )}>
+                                            {r.status.replace(/_/g, ' ')}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className={cardSurface}>
+                    <CardContent className="p-4 md:p-5">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <ShieldAlert className="w-4 h-4" style={{ color: accent.rose }} />
+                                <p className={sectionLabel}>Delivery Disputes</p>
+                            </div>
+                            <button onClick={() => fetchDisputes()} disabled={isLoadingDisputes} className="text-muted-foreground hover:text-foreground">
+                                <RefreshCw className={cn('w-3.5 h-3.5', isLoadingDisputes && 'animate-spin')} />
+                            </button>
+                        </div>
+                        <div className="flex gap-1.5 mb-2 flex-wrap">
+                            {['', 'open', 'under_review', 'upheld', 'rejected'].map(s => (
+                                <Button
+                                    key={s || 'all'}
+                                    variant={disputeStatusFilter === s ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-6 text-[10px] px-2"
+                                    onClick={() => { setDisputeStatusFilter(s); fetchDisputes(s) }}
+                                >
+                                    {s === '' ? 'All' : s.replace(/_/g, ' ')}
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {disputes.length === 0 ? (
+                                <p className="text-[11px] text-muted-foreground py-4 text-center">{isLoadingDisputes ? 'Loading…' : 'No disputes'}</p>
+                            ) : disputes.map(d => (
+                                <div key={d.reportReference} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between gap-2')}>
+                                    <span className="font-mono text-[10px] truncate">{d.reportReference}</span>
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                                        {d.disputeStatus}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Cron Jobs */}
             <div className="grid grid-cols-2 gap-3 md:gap-4">
                 {/* Auto-Complete Data Cron Card */}
-                <Card className="border-l-4 border-l-violet-500 shadow-md">
+                <Card className={cn(cardSurface, 'border-l-4 border-l-violet-500')}>
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-start gap-2">
-                                    <div className="bg-violet-100 dark:bg-violet-900/30 p-2 rounded-lg mt-0.5 shrink-0">
-                                        <Clock className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                                    <div className={cn(mutedSurface, 'p-2 mt-0.5 shrink-0')}>
+                                        <Clock className="w-4 h-4" style={{ color: accent.violet }} />
                                     </div>
                                     <div>
                                         <p className="text-xs md:text-sm font-semibold text-foreground leading-tight">Auto-Complete</p>
                                         <p className="text-[10px] text-muted-foreground hidden md:block mt-0.5">Marks processing orders older than threshold as completed.</p>
                                     </div>
                                 </div>
-                                <div className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${cronEnabled ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-muted text-muted-foreground'}`}>
+                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', cronEnabled ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-muted text-muted-foreground')}>
                                     {cronEnabled ? `On·${cronThreshold}m` : 'Off'}
                                 </div>
                             </div>
@@ -616,11 +877,12 @@ export default function FulfillmentPage() {
                                     max={1440}
                                     value={cronThresholdInput}
                                     onChange={(e) => setCronThresholdInput(e.target.value)}
-                                    className="w-14 md:w-20 h-7 text-xs font-medium focus:ring-violet-500"
+                                    className="w-14 md:w-20 h-7 text-xs font-medium"
                                 />
                                 <Button
                                     size="sm"
-                                    className="h-7 text-[10px] md:text-xs bg-violet-600 hover:bg-violet-700 text-white px-2"
+                                    variant="outline"
+                                    className="h-7 text-[10px] md:text-xs px-2"
                                     disabled={isSavingCron}
                                     onClick={() => {
                                         const val = parseInt(cronThresholdInput, 10)
@@ -636,20 +898,20 @@ export default function FulfillmentPage() {
                 </Card>
 
                 {/* Auto-Refulfill Pending Cron Card */}
-                <Card className="border-l-4 border-l-orange-500 shadow-md">
+                <Card className={cn(cardSurface, 'border-l-4 border-l-amber-500')}>
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-start gap-2">
-                                    <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg mt-0.5 shrink-0">
-                                        <RotateCcw className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                    <div className={cn(mutedSurface, 'p-2 mt-0.5 shrink-0')}>
+                                        <RotateCcw className="w-4 h-4" style={{ color: accent.yellow }} />
                                     </div>
                                     <div>
                                         <p className="text-xs md:text-sm font-semibold text-foreground leading-tight">Auto-Refulfill</p>
                                         <p className="text-[10px] text-muted-foreground hidden md:block mt-0.5">Retries pending orders, skips within cooldown.</p>
                                     </div>
                                 </div>
-                                <div className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${autoRefulfillEnabled ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-muted text-muted-foreground'}`}>
+                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', autoRefulfillEnabled ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-muted text-muted-foreground')}>
                                     {autoRefulfillEnabled ? `On·${autoRefulfillThreshold}m` : 'Off'}
                                 </div>
                             </div>
@@ -668,11 +930,12 @@ export default function FulfillmentPage() {
                                     max={1440}
                                     value={autoRefulfillThresholdInput}
                                     onChange={(e) => setAutoRefulfillThresholdInput(e.target.value)}
-                                    className="w-14 md:w-20 h-7 text-xs font-medium focus:ring-orange-500"
+                                    className="w-14 md:w-20 h-7 text-xs font-medium"
                                 />
                                 <Button
                                     size="sm"
-                                    className="h-7 text-[10px] md:text-xs bg-orange-600 hover:bg-orange-700 text-white px-2"
+                                    variant="outline"
+                                    className="h-7 text-[10px] md:text-xs px-2"
                                     disabled={isSavingAutoRefulfill}
                                     onClick={() => {
                                         const val = parseInt(autoRefulfillThresholdInput, 10)
@@ -798,38 +1061,23 @@ export default function FulfillmentPage() {
 
                             <div className="pt-4 border-t">
                                 <div className="grid grid-cols-2 gap-2">
-
-                                    <div className="p-2 md:p-2.5 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/20 italic">
-                                        <p className="text-[9px] md:text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase">Pending</p>
-                                        <p className="text-lg md:text-xl font-bold text-amber-600 dark:text-amber-500">{visibleOrders.filter(o => o.status === 'pending').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-brand-50 dark:bg-brand-900/10 rounded-lg border border-brand-100 dark:border-brand-900/20 italic">
-                                        <p className="text-[9px] md:text-[10px] text-brand-700 dark:text-brand-400 font-bold uppercase">Queued</p>
-                                        <p className="text-lg md:text-xl font-bold text-brand-700 dark:text-brand-500">{visibleOrders.filter(o => o.status === 'queued').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20 italic">
-                                        <p className="text-[9px] md:text-[10px] text-yellow-700 dark:text-yellow-400 font-bold uppercase">Processing</p>
-                                        <p className="text-lg md:text-xl font-bold text-yellow-600 dark:text-yellow-500">{visibleOrders.filter(o => o.status === 'processing').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-green-700 dark:text-green-400 font-bold uppercase">Completed</p>
-                                        <p className="text-lg md:text-xl font-bold text-green-600 dark:text-green-500">{visibleOrders.filter(o => o.status === 'completed').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-red-700 dark:text-red-400 font-bold uppercase">Failed</p>
-                                        <p className="text-lg md:text-xl font-bold text-red-600 dark:text-red-500">{visibleOrders.filter(o => o.status === 'failed').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-100 dark:border-purple-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-purple-700 dark:text-purple-400 font-bold uppercase">Refunded</p>
-                                        <p className="text-lg md:text-xl font-bold text-purple-600 dark:text-purple-500">{visibleOrders.filter(o => o.status === 'refunded').length}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-brand-50 dark:bg-brand-900/10 rounded-lg border border-brand-100 dark:border-brand-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-brand-700 dark:text-brand-400 font-bold uppercase">Selected</p>
-                                        <p className="text-lg md:text-xl font-bold text-brand-700 dark:text-brand-500">{selectedOrders.size}</p>
-                                    </div>
-                                    <div className="p-2 md:p-2.5 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
-                                        <p className="text-[9px] md:text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase">Total Cost</p>
-                                        <p className="text-sm md:text-base font-bold text-emerald-600 dark:text-emerald-500 truncate">
+                                    {[
+                                        { label: 'Pending', value: visibleOrders.filter(o => o.status === 'pending').length, color: accent.yellow },
+                                        { label: 'Queued', value: visibleOrders.filter(o => o.status === 'queued').length, color: accent.blue },
+                                        { label: 'Processing', value: visibleOrders.filter(o => o.status === 'processing').length, color: accent.violet },
+                                        { label: 'Completed', value: visibleOrders.filter(o => o.status === 'completed').length, color: accent.emerald },
+                                        { label: 'Failed', value: visibleOrders.filter(o => o.status === 'failed').length, color: accent.red },
+                                        { label: 'Refunded', value: visibleOrders.filter(o => o.status === 'refunded').length, color: accent.rose },
+                                        { label: 'Selected', value: selectedOrders.size, color: accent.slate },
+                                    ].map(stat => (
+                                        <div key={stat.label} className={cn(mutedSurface, 'p-2 md:p-2.5')}>
+                                            <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase">{stat.label}</p>
+                                            <p className="text-lg md:text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
+                                        </div>
+                                    ))}
+                                    <div className={cn(mutedSurface, 'p-2 md:p-2.5')}>
+                                        <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase">Total Cost</p>
+                                        <p className="text-sm md:text-base font-bold truncate" style={{ color: accent.emerald }}>
                                             GHS {visibleOrders.reduce((acc, curr) => acc + (curr.price || 0), 0).toFixed(2)}
                                         </p>
                                     </div>
@@ -838,13 +1086,13 @@ export default function FulfillmentPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-black border-none shadow-lg">
+                    <Card className={cn(cardSurface, 'border-l-4')} style={{ borderLeftColor: accent.yellow }}>
                         <CardHeader className="pb-2 pt-4 px-4">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <Server className="w-4 h-4" /> Tip
+                                <Server className="w-4 h-4" style={{ color: accent.yellow }} /> Tip
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="px-4 pb-4 text-[10px] leading-relaxed opacity-90">
+                        <CardContent className="px-4 pb-4 text-[11px] leading-relaxed text-muted-foreground">
                             Deliver manually, then mark each order Processing/Completed below to keep records accurate.
                         </CardContent>
                     </Card>
@@ -863,7 +1111,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => refulfillPending(true)}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold"
                                     disabled={isRefulfilling || isUpdating}
                                 >
                                     {isRefulfilling ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />}
@@ -871,29 +1119,30 @@ export default function FulfillmentPage() {
                                 </Button>
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     onClick={() => bulkUpdateStatus('pending')}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-amber-500 hover:bg-amber-600 text-black font-bold shadow-sm disabled:opacity-50"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold"
                                     disabled={isUpdating || isRefulfilling || orders.some(o => selectedOrders.has(o.id) && o.status === 'processing')}
                                     title={orders.some(o => selectedOrders.has(o.id) && o.status === 'processing') ? "Cannot revert processing orders to pending" : ""}
                                 >
                                     <Clock className="w-3.5 h-3.5 mr-1.5" /> Pending
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('processing')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold" disabled={isUpdating || isRefulfilling}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reprocess
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold clay clay-green" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isUpdating || isRefulfilling}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold" disabled={isUpdating || isRefulfilling}>
                                     <XCircle className="w-3.5 h-3.5 mr-1.5" /> Fail
                                 </Button>
-                                <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" variant="outline" onClick={() => setShowBulkRefund(true)} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold" disabled={isUpdating || isRefulfilling}>
                                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refund
                                 </Button>
                                 <Button
                                     size="sm"
                                     onClick={() => setShowBulkRetry(true)}
-                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 bg-brand-600 hover:bg-brand-500 text-black font-bold shadow-sm"
+                                    className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold"
                                     disabled={isUpdating || isRefulfilling || retryEligibleSelected.length === 0}
                                     title={retryEligibleSelected.length === 0 ? 'Select at least one failed/refunded order' : ''}
                                 >
@@ -903,7 +1152,7 @@ export default function FulfillmentPage() {
                         </div>
                     )}
 
-                    <Card className="shadow-md">
+                    <Card className={cn(cardSurface, 'shadow-md')}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                             <CardTitle className="text-lg font-bold">Order History</CardTitle>
                             <div className="flex gap-2">

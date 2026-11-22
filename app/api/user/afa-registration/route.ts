@@ -10,6 +10,7 @@ import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { hasSubAgentPricingConfigured } from '@/lib/sub-agent-pricing'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { waitUntil } from '@vercel/functions'
+import { triggerAfaFulfillment } from '@/lib/afa-dispatch'
 
 // Allowlists, ID format patterns and field length caps now live in
 // lib/afa-validation.ts, shared with app/api/afa/register. They are
@@ -256,6 +257,20 @@ export async function POST(request: NextRequest) {
                 subUserId: userId,
                 amount: recruiterMargin.amount,
             }).catch((e) => console.error('[AFA Registration] recordPendingSubAgentEarning threw:', e))
+        }
+
+        // Attempt Rexamart dispatch — never blocks the response; a failure (or the
+        // toggle being off) just leaves the registration 'pending' for manual completion.
+        if (rpcResult?.order_id) {
+            waitUntil(
+                triggerAfaFulfillment(supabaseAdmin, rpcResult.order_id, {
+                    fullName: formData.full_name,
+                    phone: formData.phone,
+                    region: formData.region,
+                    occupation: formData.occupation || 'N/A',
+                    idNumber: formData.id_number,
+                }).catch((e: any) => console.error('[AFA Registration] triggerAfaFulfillment threw:', e))
+            )
         }
 
         // ── 2F: Send Admin Notification (Asynchronous) ──────────────
