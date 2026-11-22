@@ -14,23 +14,37 @@
 const CACHE_KEY = 'agent_pricing_cache'
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
+/** A single Agent or Dealer plan as served to the client (role_upgrade_plans, active only). */
+export interface RolePlanDTO {
+    id: string
+    slug: string
+    label: string
+    days: number | null
+    price: number
+    oldPrice: number
+    popular: boolean
+}
+
 export interface PricingData {
+    /** @deprecated kept for AutoUpgradeQuickModal / AgentExpiryModal — use agentPlans/dealerPlans */
     prices: {
         '3d': number
         '14d': number
         '30d': number
         'permanent': number
     } | null
+    /** @deprecated kept for AutoUpgradeQuickModal / AgentExpiryModal — use agentPlans/dealerPlans */
     oldPrices: {
         '3d': number
         '14d': number
         '30d': number
         'permanent': number
     } | null
-    showStrikethrough: boolean
     dealerPrice?: number
     dealerPrice1m?: number
     dealerPrice3m?: number
+    agentPlans?: RolePlanDTO[]
+    dealerPlans?: RolePlanDTO[]
     guestStorefrontUrl: string
     whatsappGroupLink: string
     whatsappChannelLink: string
@@ -64,10 +78,11 @@ export async function getCachedPricing(): Promise<PricingData> {
                 return {
                     prices: data.prices,
                     oldPrices: data.oldPrices,
-                    showStrikethrough: data.showStrikethrough,
                     dealerPrice: data.dealerPrice,
                     dealerPrice1m: data.dealerPrice1m,
                     dealerPrice3m: data.dealerPrice3m,
+                    agentPlans: data.agentPlans,
+                    dealerPlans: data.dealerPlans,
                     guestStorefrontUrl: data.guestStorefrontUrl,
                     whatsappGroupLink: data.whatsappGroupLink,
                     whatsappChannelLink: data.whatsappChannelLink,

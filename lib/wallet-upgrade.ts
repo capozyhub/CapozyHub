@@ -11,23 +11,28 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { waitUntil } from '@vercel/functions'
 
 export type UpgradeType = 'agent' | 'dealer'
+/** A plan is now a free-form slug resolved against role_upgrade_plans — see resolveUpgradePrice. */
+export type PlanType = string
+
+/**
+ * Legacy fixed plan codes. Plans are dynamic now (role_upgrade_plans), but the
+ * auto-renew picker (toggle-auto-upgrade, the auto-upgrade cron) and the older
+ * Paystack-based dealer checkout (lib/dealer-payments.ts) still only offer these —
+ * an admin-created plan can be bought once, but not set as an auto-renew target, yet.
+ */
 export type AgentPlan = '3d' | '14d' | '30d' | 'permanent'
 export type DealerPlan = '1m' | '3m' | '6m'
-export type PlanType = AgentPlan | DealerPlan
-
 export const AGENT_PLANS: readonly AgentPlan[] = ['3d', '14d', '30d', 'permanent']
 export const DEALER_PLANS: readonly DealerPlan[] = ['1m', '3m', '6m']
 
 /** Client sent something that is not a purchasable plan / upgrade type. Maps to HTTP 400. */
 export class UpgradeInputError extends Error {}
-/** An admin_settings price is present but unusable. Maps to HTTP 503 — never charge a guess. */
+/** A role_upgrade_plans price is present but unusable. Maps to HTTP 503 — never charge a guess. */
 export class UpgradePricingError extends Error {}
 
+/** Shape check only — real existence/activity is resolved against role_upgrade_plans. */
 export function isValidPlan(upgradeType: UpgradeType, plan: unknown): plan is PlanType {
-    if (typeof plan !== 'string') return false
-    return upgradeType === 'dealer'
-        ? (DEALER_PLANS as readonly string[]).includes(plan)
-        : (AGENT_PLANS as readonly string[]).includes(plan)
+    return typeof plan === 'string' && plan.length > 0 && plan.length <= 64
 }
 
 interface UpgradeParams {
@@ -65,13 +70,6 @@ function buildAdminClient(): SupabaseClient {
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { autoRefreshToken: false, persistSession: false } }
     )
-}
-
-export function planDaysFromType(plan: AgentPlan): number | null {
-    if (plan === 'permanent') return null
-    if (plan === '3d') return 3
-    if (plan === '14d') return 14
-    return 30
 }
 
 export function dealerMonthsFromPlan(plan: DealerPlan): number {
@@ -193,7 +191,9 @@ async function sendUpgradeNotifications(p: NotificationParams): Promise<void> {
     const expiryFormatted = newExpiry
         ? newExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : null
-    const isPermanent = plan === 'permanent'
+    // Dealer plans always carry a duration_days (table CHECK), so a null expiry only ever
+    // means an agent lifetime plan — robust against a renamed/new "permanent"-style slug.
+    const isPermanent = upgradeType === 'agent' && newExpiry === null
     const tierName = upgradeType === 'dealer' ? 'Dealer' : 'Agent'
 
     const notifTitle = isPermanent
@@ -271,66 +271,78 @@ async function sendUpgradeNotifications(p: NotificationParams): Promise<void> {
     }
 }
 
-const PRICE_KEYS = [
-    'agent_upgrade_price_3d',
-    'agent_upgrade_price_14d',
-    'agent_upgrade_price_30d',
-    'agent_upgrade_price_permanent',
-    'dealer_upgrade_price_1m',
-    'dealer_upgrade_price_3m',
-    'dealer_upgrade_price_6m',
-]
-
-const PLAN_CONFIG: Record<PlanType, { key: string; def: number; label: string; days: number | null }> = {
-    '3d':        { key: 'agent_upgrade_price_3d',        def: 9.99,   label: '3 Days Agent Pass',    days: 3 },
-    '14d':       { key: 'agent_upgrade_price_14d',       def: 49.99,  label: '14 Days Agent Pass',   days: 14 },
-    '30d':       { key: 'agent_upgrade_price_30d',       def: 99.99,  label: '30 Days Agent Pass',   days: 30 },
-    'permanent': { key: 'agent_upgrade_price_permanent', def: 149.99, label: 'Permanent Agent Pass', days: null },
-    '1m':        { key: 'dealer_upgrade_price_1m',       def: 99.99,  label: '1 Month Dealer Pass',  days: 30 },
-    '3m':        { key: 'dealer_upgrade_price_3m',       def: 199.99, label: '3 Months Dealer Pass', days: 90 },
-    '6m':        { key: 'dealer_upgrade_price_6m',       def: 299.99, label: '6 Months Dealer Pass', days: 180 },
+/** A row of public.role_upgrade_plans. */
+export interface RoleUpgradePlanRow {
+    id: string
+    upgrade_type: UpgradeType
+    slug: string
+    label: string
+    duration_days: number | null
+    price: number
+    old_price: number | null
+    is_popular: boolean
+    sort_order: number
+    active: boolean
 }
 
 /**
- * Pure price resolution from admin_settings rows. Throws instead of falling back:
- * an unknown plan is the caller's mistake (UpgradeInputError), and a stored price that
- * is not a positive finite number is a configuration fault (UpgradePricingError) —
- * neither may silently turn into a different charge.
+ * Pure price resolution over an already-fetched plan list. Throws instead of falling
+ * back: an unknown or deleted plan is the caller's mistake (UpgradeInputError), and a
+ * stored price that is not a positive finite number is a configuration fault
+ * (UpgradePricingError) — neither may silently turn into a different charge.
  */
 export function resolveUpgradePrice(
     upgradeType: UpgradeType,
     plan: unknown,
-    settings: ReadonlyArray<{ key: string; value: unknown }> | null | undefined
+    plans: ReadonlyArray<Pick<RoleUpgradePlanRow, 'upgrade_type' | 'slug' | 'price' | 'label' | 'duration_days' | 'active'>> | null | undefined
 ): { price: number; planLabel: string; planDays: number | null } {
-    if (!isValidPlan(upgradeType, plan)) {
+    if (typeof plan !== 'string' || !plan) {
         throw new UpgradeInputError('Invalid plan')
     }
-    const entry = PLAN_CONFIG[plan]
-    const row = settings?.find(s => s.key === entry.key)
-    const price = row ? Number(row.value) : entry.def
+    const row = plans?.find(p => p.upgrade_type === upgradeType && p.slug === plan && p.active !== false)
+    if (!row) {
+        throw new UpgradeInputError('This plan is no longer available')
+    }
+    const price = Number(row.price)
     if (!Number.isFinite(price) || price <= 0) {
-        console.error(`[WalletUpgrade] Invalid admin price for ${entry.key}:`, row?.value)
+        console.error(`[WalletUpgrade] Invalid price for plan ${plan}:`, row.price)
         throw new UpgradePricingError('Upgrade pricing is temporarily unavailable')
     }
-    return { price, planLabel: entry.label, planDays: entry.days }
+    return { price, planLabel: row.label, planDays: row.duration_days }
 }
 
-/** Fetch the authoritative upgrade price from admin_settings. */
+/** Fetch the authoritative upgrade price from role_upgrade_plans. */
 export async function fetchUpgradePrice(
     upgradeType: UpgradeType,
     plan: unknown,
     supabase: SupabaseClient
 ): Promise<{ price: number; planLabel: string; planDays: number | null }> {
-    if (!isValidPlan(upgradeType, plan)) {
+    if (typeof plan !== 'string' || !plan) {
         throw new UpgradeInputError('Invalid plan')
     }
-    const { data: settings, error } = await supabase
-        .from('admin_settings')
-        .select('key, value')
-        .in('key', PRICE_KEYS)
+    const { data, error } = await supabase
+        .from('role_upgrade_plans')
+        .select('upgrade_type, slug, price, label, duration_days, active')
+        .eq('upgrade_type', upgradeType)
+        .eq('slug', plan)
     if (error) {
-        console.error('[WalletUpgrade] Failed to load upgrade prices:', error)
+        console.error('[WalletUpgrade] Failed to load upgrade price:', error)
         throw new UpgradePricingError('Upgrade pricing is temporarily unavailable')
     }
-    return resolveUpgradePrice(upgradeType, plan, settings)
+    return resolveUpgradePrice(upgradeType, plan, data as RoleUpgradePlanRow[] | null)
+}
+
+/** All active plans for the purchase page, grouped for the caller to split by upgrade_type. */
+export async function fetchActiveRolePlans(supabase: SupabaseClient): Promise<RoleUpgradePlanRow[]> {
+    const { data, error } = await supabase
+        .from('role_upgrade_plans')
+        .select('*')
+        .eq('active', true)
+        .order('upgrade_type', { ascending: true })
+        .order('sort_order', { ascending: true })
+    if (error) {
+        console.error('[WalletUpgrade] Failed to load role plans:', error)
+        throw new UpgradePricingError('Upgrade pricing is temporarily unavailable')
+    }
+    return (data ?? []) as RoleUpgradePlanRow[]
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { fetchActiveRolePlans, type RoleUpgradePlanRow } from '@/lib/wallet-upgrade'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,21 +15,15 @@ const PUBLIC_KEYS = [
     'whatsapp_community_link',
 ] as const
 
-// Keys that require an authenticated session
-const PRIVATE_KEYS = [
-    'agent_upgrade_price_3d',
-    'agent_upgrade_price_14d',
-    'agent_upgrade_price_30d',
-    'agent_upgrade_price_permanent',
-    'agent_upgrade_price_3d_old',
-    'agent_upgrade_price_14d_old',
-    'agent_upgrade_price_30d_old',
-    'agent_upgrade_price_permanent_old',
-    'show_price_strikethrough',
-    'dealer_upgrade_price_1m',
-    'dealer_upgrade_price_3m',
-    'dealer_upgrade_price_6m',
-] as const
+const toDTO = (p: RoleUpgradePlanRow) => ({
+    id: p.id,
+    slug: p.slug,
+    label: p.label,
+    days: p.duration_days,
+    price: Number(p.price),
+    oldPrice: p.old_price === null ? 0 : Number(p.old_price),
+    popular: p.is_popular,
+})
 
 export async function GET(request: NextRequest) {
     try {
@@ -50,15 +45,10 @@ export async function GET(request: NextRequest) {
             isAuthenticated = false
         }
 
-        // ── Fetch keys based on auth status ───────────────────────
-        const keysToFetch = isAuthenticated
-            ? [...PUBLIC_KEYS, ...PRIVATE_KEYS]
-            : [...PUBLIC_KEYS]
-
         const { data, error } = await supabaseAdmin
             .from('admin_settings')
             .select('key, value')
-            .in('key', keysToFetch)
+            .in('key', PUBLIC_KEYS)
 
         if (error) {
             console.error('[get-prices] DB error:', { code: error.code, message: error.message })
@@ -82,38 +72,47 @@ export async function GET(request: NextRequest) {
                 ...publicPayload,
                 prices: null,
                 oldPrices: null,
-                showStrikethrough: false,
+                agentPlans: [],
+                dealerPlans: [],
             }, {
                 headers: { 'Cache-Control': 'no-store' }
             })
         }
 
-        // ── Private fields (authenticated callers only) ────────────
+        // ── Plans (authenticated callers only) ─────────────────────
+        const plans = await fetchActiveRolePlans(supabaseAdmin)
+        const agentPlanRows = plans.filter(p => p.upgrade_type === 'agent')
+        const dealerPlanRows = plans.filter(p => p.upgrade_type === 'dealer')
+
+        const bySlug = (rows: RoleUpgradePlanRow[], slug: string) => rows.find(p => p.slug === slug)
+
+        // Legacy flat fields — kept for AutoUpgradeQuickModal / AgentExpiryModal, which only
+        // ever show a renewal estimate for these fixed codes (see lib/wallet-upgrade.ts).
         const prices = {
-            '3d': parseFloat(find('agent_upgrade_price_3d') || '9.99'),
-            '14d': parseFloat(find('agent_upgrade_price_14d') || '49.99'),
-            '30d': parseFloat(find('agent_upgrade_price_30d') || '99.99'),
-            'permanent': parseFloat(find('agent_upgrade_price_permanent') || '149.99'),
+            '3d': Number(bySlug(agentPlanRows, '3d')?.price ?? 9.99),
+            '14d': Number(bySlug(agentPlanRows, '14d')?.price ?? 49.99),
+            '30d': Number(bySlug(agentPlanRows, '30d')?.price ?? 99.99),
+            'permanent': Number(bySlug(agentPlanRows, 'permanent')?.price ?? 149.99),
         }
         const oldPrices = {
-            '3d': parseFloat(find('agent_upgrade_price_3d_old') || '0'),
-            '14d': parseFloat(find('agent_upgrade_price_14d_old') || '0'),
-            '30d': parseFloat(find('agent_upgrade_price_30d_old') || '0'),
-            'permanent': parseFloat(find('agent_upgrade_price_permanent_old') || '0'),
+            '3d': Number(bySlug(agentPlanRows, '3d')?.old_price ?? 0),
+            '14d': Number(bySlug(agentPlanRows, '14d')?.old_price ?? 0),
+            '30d': Number(bySlug(agentPlanRows, '30d')?.old_price ?? 0),
+            'permanent': Number(bySlug(agentPlanRows, 'permanent')?.old_price ?? 0),
         }
-        const showStrikethrough = find('show_price_strikethrough') === 'true'
-        const dealerPrice1m = parseFloat(find('dealer_upgrade_price_1m') || '99.99')
-        const dealerPrice3m = parseFloat(find('dealer_upgrade_price_3m') || '199.99')
-        const dealerPrice6m = parseFloat(find('dealer_upgrade_price_6m') || '299.99')
+        const dealerPrice1m = Number(bySlug(dealerPlanRows, '1m')?.price ?? 99.99)
+        const dealerPrice3m = Number(bySlug(dealerPlanRows, '3m')?.price ?? 199.99)
+        const dealerPrice6m = Number(bySlug(dealerPlanRows, '6m')?.price ?? 299.99)
 
         return NextResponse.json({
             ...publicPayload,
             prices,
             oldPrices,
-            showStrikethrough,
             dealerPrice: dealerPrice6m,
             dealerPrice1m,
             dealerPrice3m,
+            agentPlans: agentPlanRows.map(toDTO),
+            dealerPlans: dealerPlanRows.map(toDTO),
         }, {
             headers: { 'Cache-Control': 'private, no-store' }
         })

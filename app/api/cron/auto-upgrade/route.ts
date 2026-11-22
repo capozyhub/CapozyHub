@@ -24,7 +24,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateCronAuth } from '@/lib/cron-utils'
-import { processWalletUpgrade, fetchUpgradePrice, isValidPlan, DEALER_PLANS } from '@/lib/wallet-upgrade'
+import { processWalletUpgrade, fetchUpgradePrice, isValidPlan, DEALER_PLANS, UpgradeInputError } from '@/lib/wallet-upgrade'
 import { sendAutoUpgradeFailedSMS } from '@/lib/sms-service'
 import type { UpgradeType, PlanType } from '@/lib/wallet-upgrade'
 
@@ -126,6 +126,25 @@ export async function GET(request: Request) {
             try {
                 ;({ price, planLabel } = await fetchUpgradePrice(upgradeType, plan, supabaseAdmin))
             } catch (err: any) {
+                if (err instanceof UpgradeInputError) {
+                    // The saved plan was deleted (or never existed) — this will never resolve on
+                    // its own, so turn auto-upgrade off and tell the user, same as the RPC's own
+                    // INVALID_PLAN path below, instead of retrying forever.
+                    console.warn(`[AutoUpgrade] User ${user.id} plan ${plan} no longer exists — disabling auto-upgrade`)
+                    await (supabaseAdmin.from('users') as any)
+                        .update({ auto_upgrade_enabled: false, auto_upgrade_plan: null, updated_at: now.toISOString() })
+                        .eq('id', user.id)
+                        .eq('auto_upgrade_plan', plan)
+                    await (supabaseAdmin.from('notifications') as any).insert({
+                        user_id: user.id,
+                        title: 'Auto-Upgrade Turned Off',
+                        message: 'The plan your auto-renew was set to is no longer available, so it has been turned off. Open the Upgrade page to choose a plan that fits.',
+                        type: 'system',
+                        action_url: '/dashboard/upgrade',
+                    })
+                    results.push({ id: user.id, status: 'disabled', error: 'INVALID_PLAN' })
+                    continue
+                }
                 // Pricing misconfigured — never guess a price. Leave the user untouched; retry next run.
                 results.push({ id: user.id, status: 'failed', error: err?.message ?? 'Pricing unavailable' })
                 continue
