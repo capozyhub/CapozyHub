@@ -1,19 +1,16 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '@/lib/supabase'
-import { clearPricingCache } from '@/lib/pricing-cache'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import {
     Users,
     ShieldCheck,
-    Save,
     Loader2,
     Search,
     RefreshCw,
@@ -29,8 +26,8 @@ import {
     AlertTriangle,
     Crown,
     TrendingUp,
-    Tag,
     Zap,
+    ArrowUpRight,
 } from 'lucide-react'
 import {
     Dialog,
@@ -97,14 +94,6 @@ export default function RoleManagementPage() {
     const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
-    // Pricing
-    const [prices, setPrices] = useState({ '3d': '9.99', '14d': '49.99', '30d': '99.99', 'permanent': '149.99' })
-    const [dealerPrice, setDealerPrice] = useState('299.99')
-    const [dealerPrice1m, setDealerPrice1m] = useState('99.99')
-    const [dealerPrice3m, setDealerPrice3m] = useState('199.99')
-    const [showStrikethrough, setShowStrikethrough] = useState(false)
-    const [isSavingPrices, setIsSavingPrices] = useState(false)
-
     // Promos
 
     // Assign Role
@@ -163,25 +152,10 @@ export default function RoleManagementPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [settingsResult, agentsRes, dealersRes] = await Promise.all([
-                (supabase as any).from('admin_settings').select('*'),
+            const [agentsRes, dealersRes] = await Promise.all([
                 fetch('/api/admin/agents'),
                 fetch('/api/admin/dealers'),
             ])
-
-            if (settingsResult.data) {
-                const s = settingsResult.data as any[]
-                setPrices({
-                    '3d': String(s.find(x => x.key === 'agent_upgrade_price_3d')?.value || '9.99'),
-                    '14d': String(s.find(x => x.key === 'agent_upgrade_price_14d')?.value || '49.99'),
-                    '30d': String(s.find(x => x.key === 'agent_upgrade_price_30d')?.value || '99.99'),
-                    'permanent': String(s.find(x => x.key === 'agent_upgrade_price_permanent')?.value || '149.99'),
-                })
-                setDealerPrice(String(s.find(x => x.key === 'dealer_upgrade_price_6m')?.value || '299.99'))
-                setDealerPrice1m(String(s.find(x => x.key === 'dealer_upgrade_price_1m')?.value || '99.99'))
-                setDealerPrice3m(String(s.find(x => x.key === 'dealer_upgrade_price_3m')?.value || '199.99'))
-                setShowStrikethrough(s.find(x => x.key === 'show_price_strikethrough')?.value === 'true')
-            }
 
             if (agentsRes.ok) setAgents(await agentsRes.json())
             if (dealersRes.ok) setDealers(await dealersRes.json())
@@ -189,26 +163,6 @@ export default function RoleManagementPage() {
             toast.error('Failed to load data')
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleSavePrices = async () => {
-        setIsSavingPrices(true)
-        try {
-            const res = await fetch('/api/admin/update-prices', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prices, dealerPrice, dealerPrice1m, dealerPrice3m, showStrikethrough }),
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to update prices')
-            clearPricingCache()
-            toast.success(data.message || 'Prices updated')
-            await fetchData()
-        } catch (e: any) {
-            toast.error(e.message)
-        } finally {
-            setIsSavingPrices(false)
         }
     }
 
@@ -463,96 +417,23 @@ export default function RoleManagementPage() {
                 {/* ── LEFT PANEL ── */}
                 <div className="space-y-4">
 
-                    {/* Pricing Card */}
+                    {/* Pricing moved to the Role Upgrade page, where plans are managed directly */}
                     <Card className="border-border dark:border-border/60 shadow-sm">
                         <CardHeader className="pb-3 border-b border-border dark:border-border/60 bg-muted/60 dark:bg-muted/30 rounded-t-xl">
                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <Tag className="w-4 h-4 text-muted-foreground" />
+                                <Crown className="w-4 h-4 text-muted-foreground" />
                                 Upgrade Pricing
                             </CardTitle>
-                            <CardDescription className="text-xs">Set costs for each membership tier.</CardDescription>
+                            <CardDescription className="text-xs">Plan prices and durations now live on the Role Upgrade page.</CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-4 space-y-3">
-                            <div className="grid grid-cols-2 gap-2">
-                                {([['3d', '3 Days'], ['14d', '14 Days'], ['30d', '30 Days']] as const).map(([key, label]) => (
-                                    <div key={key} className="space-y-1">
-                                        <Label className="text-[11px] text-muted-foreground">{label} (GHS)</Label>
-                                        <Input
-                                            type="number"
-                                            value={prices[key]}
-                                            onChange={e => setPrices({ ...prices, [key]: e.target.value })}
-                                            className="h-8 text-sm font-medium"
-                                        />
-                                    </div>
-                                ))}
-                                <div className="space-y-1">
-                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                        <ShieldCheck className="w-3 h-3 text-brand-700" /> Permanent (GHS)
-                                    </Label>
-                                    <Input
-                                        type="number"
-                                        value={prices['permanent']}
-                                        onChange={e => setPrices({ ...prices, 'permanent': e.target.value })}
-                                        className="h-8 text-sm font-medium border-brand-200 dark:border-brand-800/50"
-                                    />
-                                </div>
-                            </div>
-                            <div className="pt-1 border-t border-border dark:border-border/60 space-y-2">
-                                <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest">Dealer Plans</p>
-                                <div className="space-y-1">
-                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                        <Gem className="w-3 h-3 text-violet-400" /> Dealer 1-Month (GHS)
-                                    </Label>
-                                    <Input
-                                        type="number"
-                                        value={dealerPrice1m}
-                                        onChange={e => setDealerPrice1m(e.target.value)}
-                                        className="h-8 text-sm font-medium border-violet-200 dark:border-violet-800/50"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                        <Gem className="w-3 h-3 text-violet-500" /> Dealer 3-Month (GHS)
-                                    </Label>
-                                    <Input
-                                        type="number"
-                                        value={dealerPrice3m}
-                                        onChange={e => setDealerPrice3m(e.target.value)}
-                                        className="h-8 text-sm font-medium border-violet-200 dark:border-violet-800/50"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                        <Gem className="w-3 h-3 text-violet-600" /> Dealer 6-Month (GHS)
-                                    </Label>
-                                    <Input
-                                        type="number"
-                                        value={dealerPrice}
-                                        onChange={e => setDealerPrice(e.target.value)}
-                                        className="h-8 text-sm font-medium border-violet-200 dark:border-violet-800/50"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 pt-1">
-                                <Checkbox
-                                    id="strike"
-                                    checked={showStrikethrough}
-                                    onCheckedChange={v => setShowStrikethrough(v as boolean)}
-                                />
-                                <Label htmlFor="strike" className="text-[11px] text-muted-foreground cursor-pointer">
-                                    Show old prices with strikethrough
-                                </Label>
-                            </div>
-                            <Button
-                                className="w-full h-9 text-sm font-medium bg-card hover:bg-muted dark:text-foreground dark:hover:bg-muted"
-                                onClick={handleSavePrices}
-                                disabled={isSavingPrices}
+                        <CardContent className="pt-4">
+                            <Link
+                                href="/dashboard/upgrade"
+                                className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted dark:border-border/60"
                             >
-                                {isSavingPrices
-                                    ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                                    : <Save className="w-3.5 h-3.5 mr-2" />}
-                                Save Prices
-                            </Button>
+                                Manage Agent &amp; Dealer plans
+                                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Link>
                         </CardContent>
                     </Card>
 
