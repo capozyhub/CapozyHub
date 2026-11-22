@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import Link from 'next/link'
+import RolePlansManager from '@/components/admin/RolePlansManager'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +27,6 @@ import {
     Crown,
     TrendingUp,
     Zap,
-    ArrowUpRight,
 } from 'lucide-react'
 import {
     Dialog,
@@ -411,31 +410,25 @@ export default function RoleManagementPage() {
                 ))}
             </div>
 
+            {/* Upgrade Plans — the admin-managed source for what customers see on /dashboard/upgrade */}
+            <Card className="border-border dark:border-border/60 shadow-sm">
+                <CardHeader className="pb-3 border-b border-border dark:border-border/60 bg-muted/60 dark:bg-muted/30 rounded-t-xl">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-muted-foreground" />
+                        Upgrade Plans
+                    </CardTitle>
+                    <CardDescription className="text-xs">Add, edit or remove the Agent and Dealer plans customers can buy from their wallet.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <RolePlansManager />
+                </CardContent>
+            </Card>
+
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
                 {/* ── LEFT PANEL ── */}
                 <div className="space-y-4">
-
-                    {/* Pricing moved to the Role Upgrade page, where plans are managed directly */}
-                    <Card className="border-border dark:border-border/60 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-border dark:border-border/60 bg-muted/60 dark:bg-muted/30 rounded-t-xl">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <Crown className="w-4 h-4 text-muted-foreground" />
-                                Upgrade Pricing
-                            </CardTitle>
-                            <CardDescription className="text-xs">Plan prices and durations now live on the Role Upgrade page.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <Link
-                                href="/dashboard/upgrade"
-                                className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted dark:border-border/60"
-                            >
-                                Manage Agent &amp; Dealer plans
-                                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Link>
-                        </CardContent>
-                    </Card>
 
                     {/* Assign Role Card */}
                     <Card className="border-border dark:border-border/60 shadow-sm">

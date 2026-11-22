@@ -11,7 +11,6 @@ import { toast } from '@/lib/toast'
 import CongratsModal from '@/components/upgrade/CongratsModal'
 import { AGENT_BENEFITS, DEALER_BENEFITS } from '@/components/upgrade/benefits'
 import WalletUpgradeModal from '@/components/upgrade/WalletUpgradeModal'
-import AdminRolePlansManager from '@/components/upgrade/AdminRolePlansManager'
 import { cn } from '@/lib/utils'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 
@@ -20,7 +19,6 @@ const money = (n: number) => `GH₵ ${(n ?? 0).toLocaleString('en-GH', { minimum
 function UpgradePageInner() {
     const { dbUser, refreshUser } = useAuth()
     const router = useRouter()
-    const isAdmin = dbUser?.role === 'admin'
 
     const [showCongrats, setShowCongrats] = useState(false)
     const [congratsTier, setCongratsTier] = useState<'agent' | 'dealer'>('agent')
@@ -41,10 +39,6 @@ function UpgradePageInner() {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        // Admins manage plans directly (AdminRolePlansManager fetches its own data) —
-        // they never need the customer-facing active-plan list.
-        if (isAdmin) { setIsLoading(false); return }
-
         let retryTimer: ReturnType<typeof setTimeout> | null = null
 
         const fetchPrices = async (isRetry = false) => {
@@ -70,7 +64,7 @@ function UpgradePageInner() {
 
         fetchPrices()
         return () => { if (retryTimer) clearTimeout(retryTimer) }
-    }, [isAdmin])
+    }, [])
 
     // Returns false when the balance could not be loaded, so we never show a fake
     // "Insufficient Balance" built from a default of 0.
@@ -113,28 +107,6 @@ function UpgradePageInner() {
         setWalletModal(null)
         setShowCongrats(true)
         await refreshUser()
-    }
-
-    if (isAdmin) {
-        return (
-            <div className="space-y-6">
-                <section aria-label="Membership" className="neu-night relative overflow-hidden rounded-3xl p-5 text-white sm:p-7">
-                    <BrandSwoosh progress={1} className="pointer-events-none absolute -right-16 bottom-0 w-[28rem] max-w-none opacity-40 sm:-right-8 sm:opacity-50 lg:opacity-30" />
-                    <div className="relative max-w-2xl">
-                        <p className="flex items-center gap-2 text-sm font-medium text-white/60">
-                            <Crown className="h-4 w-4 text-brand-500" />
-                            Membership
-                        </p>
-                        <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">Role Upgrade Plans</h1>
-                        <p className="mt-3 text-sm text-white/70 sm:text-base">
-                            Add, edit or remove the Agent and Dealer plans customers can buy from their wallet.
-                        </p>
-                    </div>
-                </section>
-
-                <AdminRolePlansManager />
-            </div>
-        )
     }
 
     if (isLoading) {

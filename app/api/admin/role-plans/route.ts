@@ -97,7 +97,22 @@ export async function GET() {
 
         if (error) throw error
 
-        return NextResponse.json({ plans: data ?? [] })
+        const plans = data ?? []
+
+        // Exact counts (head: true — never truncated by the 1000-row cap), so an admin
+        // can see how many people are relying on auto-renew before deleting a plan.
+        const withCounts = await Promise.all(
+            plans.map(async (p: any) => {
+                const { count } = await supabase
+                    .from('users')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('auto_upgrade_enabled', true)
+                    .eq('auto_upgrade_plan', p.slug)
+                return { ...p, auto_upgrade_count: count ?? 0 }
+            })
+        )
+
+        return NextResponse.json({ plans: withCounts })
     } catch (e) {
         console.error('[RolePlans GET]', e)
         return NextResponse.json({ error: 'Failed to load plans' }, { status: 500 })
