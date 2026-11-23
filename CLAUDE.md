@@ -63,6 +63,8 @@ One key type, `standard`, prefix `cz_live_` (`app/api/user/api-keys`). `validate
 ## Design
 Palette follows the logo (`brand/capozy-logo-source.jpg`): black, gold (`brand-500` `#F6C30F`) and silver/white. Surfaces use the `neu-*` classes, buttons the `clay-*` classes (`clay-gold`, `clay-silver`, `clay-black`), fonts `--font-display` (Bricolage Grotesque) and `--font-body` (Figtree). Regenerate icons with `node scripts/generate-brand-assets.js`.
 
+**The Capozy UI preset** is defined by the landing page and the account pages and written down in `.claude/skills/capozy-page-redesign/PRESET.md`. Every page, public, member and admin, must match it; the old white-card / `slate-*` / `violet-*` / `emerald-*` look is the thing being removed. Check a finished reference page (`app/auth`, `app/dashboard/shop/*`, `app/dashboard/upgrade`) before building a new one.
+
 When redesigning a page: change layout **and** tone (headings, empty states, button labels, toasts, helper text in plain, direct language), not just colours, and audit the page for bugs while you are in it. One reviewable commit per page.
 
 ## Working agreements

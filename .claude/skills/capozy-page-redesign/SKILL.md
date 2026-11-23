@@ -10,7 +10,7 @@ Read `CLAUDE.md` (Design and Working agreements) first. This skill is the checkl
 ## One page, one commit
 1. **Read the page and everything it calls** (components, `/api` routes, libs). Write down what it actually does before changing how it looks.
 2. **List bugs while you are there** (stale fetch races, silent 1000-row caps, raw server errors in toasts, native `confirm()`, unhandled loading/error states). Fix them in the same pass; note them in the commit message.
-3. **Re-lay-out, do not just recolour.** Change the structure and section order so the page does not read as the original. Palette: black, gold (`brand-500` `#F6C30F`), silver/white. Surfaces `neu-*`, buttons `clay-*`, fonts `--font-display` / `--font-body`.
+3. **Match the Capozy UI preset** in `PRESET.md` (next to this file). It comes from the landing page and the account pages, which are the reference; look at one similar finished page (`app/dashboard/shop/*`, `app/dashboard/upgrade`, `app/auth`) before you start. **Re-lay-out, do not just recolour**: change structure and section order so the page does not read as the original. Surfaces `neu-*`, buttons `clay-*`, headings `font-display`, forms from `components/auth/fields.tsx`.
 4. **Rewrite the words.** Headings, empty states, button labels, toasts and helper text in plain, direct language. Delete anything about removed features (SMS credits, utility bills, USSD, Hubtel, Moolre, commission wallet, phone OTP, Google/PIN login) and any named supplier.
 5. **Use `BRAND` from `lib/brand.ts`** for the name, domain and URLs. No literals.
 6. **States and access:** loading, empty, error, success; labelled controls; visible focus; works at 360px; both themes.

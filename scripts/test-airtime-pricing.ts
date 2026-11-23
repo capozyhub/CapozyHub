@@ -119,4 +119,12 @@ const settings: Record<string, string> = {
     assert(whole.ok, 'float noise on a 2-decimal amount (0.1 + 0.2 + 9.7) is not mistaken for extra decimals')
 }
 
+// A mistyped fee setting must never produce free or negative-priced airtime
+{
+    const neg = quoteAirtime({ settings: { airtime_fee_mtn_customer: '-100' }, network: 'MTN', role: 'customer', amount: 10, useExactAmount: true })
+    assert(neg.ok && neg.quote.feeAmount >= 0 && neg.quote.totalPaid >= neg.quote.airtimeAmount, 'negative fee setting falls back to the default, never below face value')
+    const huge = quoteAirtime({ settings: { airtime_fee_mtn_customer: '250' }, network: 'MTN', role: 'customer', amount: 10, useExactAmount: false })
+    assert(huge.ok && huge.quote.feeRate <= 100, 'over-100 fee setting falls back to the default')
+}
+
 console.log('All airtime-pricing tests passed.')

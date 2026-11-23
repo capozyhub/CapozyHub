@@ -151,7 +151,9 @@ export async function validateApiKey(
         fullKey = fullKey.replace(/^Bearer\s+/i, '').trim()
     }
 
-    if (fullKey.length < 20) {
+    // Issued keys are exactly cz_live_ + 32 lowercase hex chars (see app/api/user/api-keys). Middleware
+    // buckets rate limits on that same shape, so a key of any other shape must not authenticate here.
+    if (!/^cz_live_[a-f0-9]{32}$/.test(fullKey)) {
         return apiError(401, 'Invalid API key format')
     }
 
@@ -282,9 +284,9 @@ export async function validateApiKey(
 
     // ── Populate the validated-key cache ───────────────────────────────
     // 60-second TTL set when the cache was created. Subsequent requests
-    // with the same key skip the DB lookup and bcrypt. keyType is carried so
-    // cache hits enforce the commission-key scope guard identically to a
-    // fresh lookup (see the cache-hit branch above).
+    // with the same key skip the DB lookup and bcrypt. Only standard keys reach this point
+    // (unsupportedKeyType ran above). Note: a revoked or regenerated key can therefore keep
+    // working on an instance that has it cached, for up to 60 seconds.
     validatedKeyCache.set(fingerprint, {
         apiKeyId: apiKey.id,
         userId: apiKey.user_id,

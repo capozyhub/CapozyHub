@@ -109,10 +109,11 @@ export function quoteAirtime(params: {
         return { ok: false, reason: 'above_max', message: `Maximum airtime amount is GHS ${maxAmount.toFixed(2)}` }
     }
 
-    const feeRate = num(
-        settings[`${orderType}_fee_${networkKey}_${role}`],
-        FEE_DEFAULTS[role] ?? FEE_DEFAULTS.customer
-    )
+    // A fee setting is a percentage. A mistyped negative or over-100 value must never turn into free
+    // or negative-priced airtime, so anything outside 0..100 falls back to the default.
+    const feeDefault = FEE_DEFAULTS[role] ?? FEE_DEFAULTS.customer
+    const rawFee = num(settings[`${orderType}_fee_${networkKey}_${role}`], feeDefault)
+    const feeRate = rawFee >= 0 && rawFee <= 100 ? rawFee : feeDefault
 
     // Two modes, and the difference is who absorbs the fee:
     //   useExactAmount — the beneficiary receives `amount` exactly and the
@@ -132,7 +133,7 @@ export function quoteAirtime(params: {
         airtimeAmount = parseFloat((amount - feeAmount).toFixed(2))
     }
 
-    if (airtimeAmount <= 0) {
+    if (airtimeAmount <= 0 || totalPaid <= 0 || totalPaid < airtimeAmount) {
         return { ok: false, reason: 'too_low_after_fees', message: 'Airtime amount after fees is too low' }
     }
 

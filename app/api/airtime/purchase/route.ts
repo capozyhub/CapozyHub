@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('[API Airtime Purchase] Exception:', error.message)
-        done(500, error.message)
+        done(500, 'Unhandled error')
         return apiError(500, 'Internal server error')
     }
 }
