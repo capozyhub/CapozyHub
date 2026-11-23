@@ -27,10 +27,11 @@ import { usePageAccess } from '@/hooks/use-page-access'
 import { useAdminCounts } from '@/hooks/use-admin-counts'
 import {
     ADMIN_COUNT_KEYS,
-    adminNavItems,
+    adminNavGroups,
     isNavActive,
     shopMenuItems,
     userNavGroups,
+    type NavGroup,
     type NavItem,
 } from '@/components/dashboard/nav-config'
 import { sidebarWidth } from '@/components/dashboard/shell'
@@ -58,6 +59,8 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
     const [isShopOpen, setIsShopOpen] = useState(false)
     const [isAdminOpen, setIsAdminOpen] = useState(false)
     const [hasShop, setHasShop] = useState<boolean | null>(null)
+    // Which groups have their "More" row expanded. A group opens by itself when the current page is inside it.
+    const [openMore, setOpenMore] = useState<Record<string, boolean>>({})
 
     const role = dbUser?.role
     const canRecruit = isAdmin || role === 'agent' || role === 'dealer'
@@ -93,6 +96,12 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
     useEffect(() => {
         if (pathname?.startsWith('/dashboard/shop')) setIsShopOpen(true)
         if (pathname?.startsWith('/admin')) setIsAdminOpen(true)
+    }, [pathname])
+
+    useEffect(() => {
+        if (!pathname) return
+        const owner = [...userNavGroups, ...adminNavGroups].find(g => g.more?.some(item => isNavActive(pathname, item.href)))
+        if (owner) setOpenMore(prev => (prev[owner.id] ? prev : { ...prev, [owner.id]: true }))
     }, [pathname])
 
     // Whether the member owns a shop only changes when they create one, so it is cached in
@@ -204,9 +213,30 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
         <p className={cn('px-3 pb-1 pt-4 text-xs font-semibold text-muted-foreground/80', hideCollapsed)}>{children}</p>
     )
 
+    const MoreToggle = ({ group, count }: { group: NavGroup; count: number }) => {
+        const open = !!openMore[group.id]
+        return (
+            <button
+                type="button"
+                onClick={() => setOpenMore(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
+                aria-expanded={open}
+                className={cn(
+                    'flex w-full items-center gap-3 rounded-2xl p-1 pr-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground',
+                    FOCUS,
+                    hideCollapsed && 'lg:hidden',
+                )}
+            >
+                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+                    <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+                </span>
+                <span className="flex-1">{open ? 'Show less' : `More (${count})`}</span>
+            </button>
+        )
+    }
+
     const shopActive = !!pathname?.startsWith('/dashboard/shop')
     const adminActive = !!pathname?.startsWith('/admin')
-    const adminItems = adminNavItems.filter(item => isAdmin || (isSubAdmin && item.href === '/admin/orders'))
+    const canSeeAdminItem = (item: NavItem) => isAdmin || (isSubAdmin && item.href === '/admin/orders')
     const adminAttention = Object.values(ADMIN_COUNT_KEYS).reduce((sum, key) => sum + (adminCounts[key] || 0), 0)
 
     return (
@@ -370,6 +400,18 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                                 {items.map(item => (
                                     <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
                                 ))}
+                                {(() => {
+                                    const more = (group.more ?? []).filter(isVisible)
+                                    if (more.length === 0) return null
+                                    return (
+                                        <>
+                                            <MoreToggle group={group} count={more.length} />
+                                            {openMore[group.id] && more.map(item => (
+                                                <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
+                                            ))}
+                                        </>
+                                    )
+                                })()}
                             </div>
                         )
                     })}
@@ -385,22 +427,39 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                                 )}
                             </div>
                             {isAdminOpen && (
-                                <div className="space-y-1">
-                                    {adminItems.map(item => {
-                                        const countKey = ADMIN_COUNT_KEYS[item.href]
+                                <div>
+                                    {adminNavGroups.map(group => {
+                                        const items = group.items.filter(canSeeAdminItem)
+                                        const more = (group.more ?? []).filter(canSeeAdminItem)
+                                        if (items.length === 0 && more.length === 0) return null
                                         return (
-                                            <NavRow
-                                                key={item.href}
-                                                item={item}
-                                                label={item.label}
-                                                active={isNavActive(pathname, item.href)}
-                                                badge={countKey ? adminCounts[countKey] : 0}
-                                            />
+                                            <div key={group.id} className="space-y-0.5">
+                                                {group.label && <GroupLabel>{group.label}</GroupLabel>}
+                                                {items.map(item => {
+                                                    const countKey = ADMIN_COUNT_KEYS[item.href]
+                                                    return (
+                                                        <NavRow
+                                                            key={item.href}
+                                                            item={item}
+                                                            label={item.label}
+                                                            active={isNavActive(pathname, item.href)}
+                                                            badge={countKey ? adminCounts[countKey] : 0}
+                                                        />
+                                                    )
+                                                })}
+                                                {more.length > 0 && (
+                                                    <>
+                                                        <MoreToggle group={group} count={more.length} />
+                                                        {openMore[group.id] && more.map(item => (
+                                                            <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </div>
                                         )
                                     })}
                                 </div>
-                            )}
-                        </div>
+                            )}                        </div>
                     )}
                 </nav>
 

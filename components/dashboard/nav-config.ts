@@ -22,7 +22,6 @@ import {
     Key,
     CreditCard,
     ListChecks,
-    Percent,
     UserPlus,
     type LucideIcon,
 } from 'lucide-react'
@@ -37,7 +36,10 @@ export interface NavGroup {
     id: string
     /** Sentence-case heading. Omitted for the first group so the menu starts clean. */
     label?: string
+    /** Always visible. */
     items: NavItem[]
+    /** Less-used pages, tucked behind a "More" row so the menu stays short. They open automatically when one is the current page. */
+    more?: NavItem[]
 }
 
 /**
@@ -63,9 +65,9 @@ export const userNavGroups: NavGroup[] = [
         id: 'money',
         label: 'Money',
         items: [
-            { href: '/dashboard/wallet', label: 'Top Up Wallet', icon: Wallet },
-            { href: '/dashboard/transactions', label: 'My Activities', icon: Activity },
-            { href: '/dashboard/my-orders', label: 'Order History', icon: ShoppingCart },
+            { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+            { href: '/dashboard/my-orders', label: 'My Orders', icon: ShoppingCart },
+            { href: '/dashboard/transactions', label: 'Activity', icon: Activity },
         ],
     },
     {
@@ -74,61 +76,97 @@ export const userNavGroups: NavGroup[] = [
         items: [
             { href: '/dashboard/recruit', label: 'Sub-Agents', icon: UserPlus },
             { href: '/dashboard/upgrade', label: 'Role Upgrade', icon: Crown },
-            { href: '/dashboard/api', label: 'Developer API', icon: Code2 },
         ],
     },
     {
         id: 'account',
         label: 'Account',
         items: [
-            { href: '/dashboard/complaints', label: 'Support & Complaints', icon: MessageSquare },
+            { href: '/dashboard/complaints', label: 'Support', icon: MessageSquare },
             { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
             { href: '/dashboard/profile', label: 'My Profile', icon: User },
         ],
+        more: [{ href: '/dashboard/api', label: 'Developer API', icon: Code2 }],
     },
 ]
 
-export const userNavItems: NavItem[] = userNavGroups.flatMap(g => g.items)
+export const userNavItems: NavItem[] = userNavGroups.flatMap(g => [...g.items, ...(g.more ?? [])])
 
 /** Storefront pages, shown under "My Store" once the member has a shop. */
 export const shopMenuItems: NavItem[] = [
     { href: '/dashboard/shop', label: 'Overview', icon: LayoutDashboard },
     { href: '/dashboard/shop/orders', label: 'Orders', icon: ShoppingCart },
     { href: '/dashboard/shop/customers', label: 'Customers', icon: Users },
-    { href: '/dashboard/shop/profit-logs', label: 'Profit Logs', icon: Activity },
     { href: '/dashboard/shop/pricing', label: 'Pricing', icon: Tag },
+    { href: '/dashboard/shop/profit-logs', label: 'Earnings', icon: Activity },
     { href: '/dashboard/shop/withdraw', label: 'Withdraw', icon: Banknote },
     { href: '/dashboard/shop/setup', label: 'Shop Profile', icon: Settings },
 ]
 
-export const adminNavItems: NavItem[] = [
-    { href: '/admin', label: 'Admin Dashboard', icon: Shield },
-    { href: '/admin/top-up', label: 'Top-Up', icon: Wallet },
-    { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
-    { href: '/admin/orders/bulk-update', label: 'Bulk Order Update', icon: ListChecks },
-    { href: '/admin/results-checker', label: 'Results Checker', icon: FileText },
-    { href: '/admin/fulfillment', label: 'Fulfillment', icon: Activity },
-    { href: '/admin/airtime', label: 'Airtime & Mashup', icon: Phone },
-    { href: '/admin/shops', label: 'Shops', icon: Store },
-    { href: '/admin/shops/withdrawals', label: 'Shop Withdrawals', icon: Banknote },
-    { href: '/admin/afa-management', label: 'AFA Management', icon: BadgeCheck },
-    { href: '/admin/roles', label: 'Role Management', icon: Users },
-    { href: '/admin/users', label: 'Users', icon: Users },
-    { href: '/admin/packages', label: 'Packages', icon: Package },
-    { href: '/admin/mtn-mashup', label: 'MTN Mashup', icon: Package },
-    { href: '/admin/complaints', label: 'Complaints', icon: MessageSquare },
-    { href: '/admin/website-requests', label: 'Website Requests', icon: Code2 },
-    { href: '/admin/announcements', label: 'Announcements', icon: Bell },
-    { href: '/admin/sms-broadcast', label: 'SMS Broadcast', icon: Send },
-    { href: '/admin/finance', label: 'Finance', icon: Banknote },
-    { href: '/admin/payments', label: 'Payments Center', icon: CreditCard },
-    { href: '/admin/momo-claims', label: 'MoMo Claims', icon: Wallet },
-    { href: '/admin/profits-history', label: 'Profits History', icon: Wallet },
-    { href: '/admin/api-keys', label: 'API Keys', icon: Key },
-    { href: '/admin/terms', label: 'Terms & Policies', icon: FileText },
-    { href: '/admin/settings', label: 'Settings', icon: Settings },
+/**
+ * Admin menu: five groups, the everyday pages up front and the rarely-visited ones under
+ * "More". Every page is still one click away from the menu.
+ */
+export const adminNavGroups: NavGroup[] = [
+    {
+        id: 'admin-home',
+        items: [{ href: '/admin', label: 'Overview', icon: Shield }],
+    },
+    {
+        id: 'admin-orders',
+        label: 'Orders',
+        items: [
+            { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+            { href: '/admin/fulfillment', label: 'Fulfillment', icon: Activity },
+            { href: '/admin/airtime', label: 'Airtime & Mashup', icon: Phone },
+            { href: '/admin/results-checker', label: 'Results Checker', icon: FileText },
+            { href: '/admin/afa-management', label: 'AFA Registration', icon: BadgeCheck },
+        ],
+        more: [{ href: '/admin/orders/bulk-update', label: 'Bulk Order Update', icon: ListChecks }],
+    },
+    {
+        id: 'admin-money',
+        label: 'Money',
+        items: [
+            { href: '/admin/top-up', label: 'Top-Up', icon: Wallet },
+            { href: '/admin/finance', label: 'Finance', icon: Banknote },
+            { href: '/admin/shops/withdrawals', label: 'Shop Withdrawals', icon: Banknote },
+        ],
+        more: [
+            { href: '/admin/payments', label: 'Payments Center', icon: CreditCard },
+            { href: '/admin/momo-claims', label: 'MoMo Claims', icon: Wallet },
+            { href: '/admin/profits-history', label: 'Profits History', icon: Activity },
+        ],
+    },
+    {
+        id: 'admin-people',
+        label: 'People',
+        items: [
+            { href: '/admin/users', label: 'Users', icon: Users },
+            { href: '/admin/shops', label: 'Shops', icon: Store },
+            { href: '/admin/complaints', label: 'Complaints', icon: MessageSquare },
+        ],
+        more: [{ href: '/admin/roles', label: 'Role Management', icon: Crown }],
+    },
+    {
+        id: 'admin-platform',
+        label: 'Platform',
+        items: [
+            { href: '/admin/packages', label: 'Packages', icon: Package },
+            { href: '/admin/announcements', label: 'Announcements', icon: Bell },
+            { href: '/admin/settings', label: 'Settings', icon: Settings },
+        ],
+        more: [
+            { href: '/admin/mtn-mashup', label: 'MTN Mashup', icon: Package },
+            { href: '/admin/sms-broadcast', label: 'SMS Broadcast', icon: Send },
+            { href: '/admin/api-keys', label: 'API Keys', icon: Key },
+            { href: '/admin/website-requests', label: 'Website Requests', icon: Code2 },
+            { href: '/admin/terms', label: 'Terms & Policies', icon: FileText },
+        ],
+    },
 ]
 
+export const adminNavItems: NavItem[] = adminNavGroups.flatMap(g => [...g.items, ...(g.more ?? [])])
 /** Where the live "needs attention" counts show up in the admin menu. */
 export const ADMIN_COUNT_KEYS: Record<string, 'pendingOrders' | 'pendingDebts' | 'pendingFulfillment' | 'pendingShops' | 'pendingWithdrawals' | 'pendingAfa' | 'pendingComplaints'> = {
     '/admin/orders': 'pendingOrders',
