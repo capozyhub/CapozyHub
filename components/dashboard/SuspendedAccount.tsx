@@ -6,10 +6,15 @@ import { Ban, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
+import { normalizeWhatsAppNumber } from '@/lib/utils'
+import { useSupportContacts } from '@/hooks/use-support-contacts'
 
 export function SuspendedAccount() {
+    // The support number comes from Admin > Settings; the button is hidden until one is set.
+    const { contacts } = useSupportContacts()
+    const supportWhatsapp = normalizeWhatsAppNumber(contacts?.whatsapp || '')
     const handleWhatsAppClick = () => {
-        window.open('https://wa.me/233578065809', '_blank')
+        window.open(`https://wa.me/${supportWhatsapp}`, '_blank', 'noopener,noreferrer')
     }
 
     return (
@@ -42,13 +47,15 @@ export function SuspendedAccount() {
                                 Open a Complaint / Appeal
                             </Link>
                         </Button>
-                        <Button
-                            onClick={handleWhatsAppClick}
-                            className="w-full h-12 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
-                        >
-                            <WhatsAppIcon className="w-5 h-5" />
-                            Contact Support (WhatsApp)
-                        </Button>
+                        {supportWhatsapp && (
+                            <Button
+                                onClick={handleWhatsAppClick}
+                                className="w-full h-12 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
+                            >
+                                <WhatsAppIcon className="w-5 h-5" />
+                                Contact Support (WhatsApp)
+                            </Button>
+                        )}
                     </div>
 
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium pt-4 border-t border-border">

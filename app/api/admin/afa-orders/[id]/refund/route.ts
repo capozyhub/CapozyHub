@@ -101,8 +101,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                     const { data: shop } = await (supabase.from('shop_profiles') as any)
                         .select('owner_phone').eq('id', order.shop_id).maybeSingle()
                     if (shop?.owner_phone) {
-                        const smsResult = await import('@/lib/sms-service').then(m =>
-                            m.sendSMS({ recipient: order.guest_phone, message: buildAfaGuestRefundMessage({ ownerPhone: shop.owner_phone }) })
+                        const smsResult = await import('@/lib/sms-service').then(async m =>
+                            m.sendSMS({
+                                recipient: order.guest_phone,
+                                message: buildAfaGuestRefundMessage({ ownerPhone: shop.owner_phone, reportNumber: await m.getAdminReportNumber() }),
+                            })
                         )
                         if (smsResult && smsResult.success === false) {
                             console.error('[Admin AFA Refund] Guest SMS not delivered (non-fatal):', smsResult.error)

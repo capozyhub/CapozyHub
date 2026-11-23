@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, normalizeWhatsAppNumber } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { useSupportContacts } from '@/hooks/use-support-contacts'
 import {
     Key, Copy, Check, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle,
     Eye, EyeOff, ShieldAlert, X, MessageCircle, Sparkles,
@@ -495,7 +496,9 @@ function ApprovalModal({
     keyPrefix: string
     onClose: () => void
 }) {
-    const ADMIN_WHATSAPP = '233578065809'
+    // The admin's WhatsApp number comes from Admin > Settings, so changing it there takes effect here.
+    const { contacts, loading } = useSupportContacts()
+    const adminWhatsapp = normalizeWhatsAppNumber(contacts?.whatsapp || '')
     const message = [
         `Hello Admin, please approve my Developer API key.`,
         ``,
@@ -506,7 +509,7 @@ function ApprovalModal({
         ``,
         `Thank you.`,
     ].join('\n')
-    const waUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`
+    const waUrl = adminWhatsapp ? `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(message)}` : null
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
@@ -531,7 +534,9 @@ function ApprovalModal({
                                 Key Generated — One Step Left
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
-                                Your API key is pending admin approval. Message the admin on WhatsApp to fast-track activation.
+                                {waUrl
+                                    ? 'Your API key is pending admin approval. Message the admin on WhatsApp to fast-track activation.'
+                                    : 'Your API key is pending admin approval. You will get a notification once it is active.'}
                             </p>
                         </div>
                     </div>
@@ -541,27 +546,36 @@ function ApprovalModal({
                 <div className="p-5 sm:p-6 space-y-4">
                     <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-3 sm:p-4">
                         <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                            <strong>Save your key first</strong> — it's shown in the page above and won't appear again. After saving, tap the WhatsApp button to notify the admin for approval.
+                            <strong>Save your key first</strong> — it's shown in the page above and won't appear again.{waUrl ? ' After saving, tap the WhatsApp button to notify the admin for approval.' : ''}
                         </p>
                     </div>
 
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-1.5">
-                        <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Message Preview</p>
-                        <pre className="text-[11px] sm:text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words leading-relaxed">{message}</pre>
-                    </div>
+                    {/* Shown only when an admin WhatsApp number is set in Admin > Settings. */}
+                    {waUrl ? (
+                        <>
+                            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-1.5">
+                                <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Message Preview</p>
+                                <pre className="text-[11px] sm:text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words leading-relaxed">{message}</pre>
+                            </div>
 
-                    <a
-                        href={waUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2.5 w-full h-11 sm:h-12 rounded-xl bg-[#25D366] hover:bg-[#1fb955] text-white font-semibold text-sm sm:text-base shadow-lg shadow-emerald-500/20 transition-colors"
-                    >
-                        <MessageCircle className="w-5 h-5" />
-                        Message Admin on WhatsApp
-                    </a>
+                            <a
+                                href={waUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2.5 w-full h-11 sm:h-12 rounded-xl bg-[#25D366] hover:bg-[#1fb955] text-white font-semibold text-sm sm:text-base shadow-lg shadow-emerald-500/20 transition-colors"
+                            >
+                                <MessageCircle className="w-5 h-5" />
+                                Message Admin on WhatsApp
+                            </a>
+                        </>
+                    ) : loading ? null : (
+                        <p className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-600 dark:text-slate-300">
+                            Admins review pending keys regularly. Keep an eye on your notifications.
+                        </p>
+                    )}
 
                     <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
-                        Or wait — admins review pending keys regularly. You'll get a notification once approved.
+                        {waUrl ? 'Or wait: admins review pending keys regularly. ' : ''}You'll get a notification once it is approved.
                     </p>
                 </div>
 

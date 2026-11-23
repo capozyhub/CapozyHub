@@ -30,15 +30,20 @@ function check(cond: boolean, label: string, extra?: string) {
 // Realistic worst case actually reachable from the orders table: the longest network
 // label, the longest `size` string the shop order processor writes (mashup/airtime
 // render as e.g. "GHS 500.00 Mashup Bundle"), and a phone stored in +233 form.
+// The escalation number is the admin support WhatsApp from Admin > Settings (never hard-coded);
+// 12 digits (233 form) is the longest shape the setting normalizes to.
+const REPORT = '233500000001'
 const WORST = {
     network: 'Telecel',
     size: 'GHS 500.00 Mashup Bundle',
     ownerPhone: '+233241234567',
+    reportNumber: REPORT,
 }
 const TYPICAL = {
     network: 'MTN',
     size: '5GB',
     ownerPhone: '0241234567',
+    reportNumber: REPORT,
 }
 
 for (const [label, details] of [['typical', TYPICAL], ['worst case', WORST]] as const) {
@@ -90,10 +95,25 @@ check(
     sample,
 )
 check(
-    sample.includes('0578065809'),
-    'the 6hr escalation route to support is still present',
+    sample.includes(`Report: WhatsApp ${REPORT}`),
+    'the 6hr escalation route uses the configured admin number',
     sample,
 )
+check(
+    !sample.includes('578065809'),
+    'no hard-coded admin number leaks into the copy',
+    sample,
+)
+{
+    const noNumber = buildShopGuestRefundMessage({ ...TYPICAL, reportNumber: '' })
+    check(
+        !/Report:|6h/.test(noNumber) && noNumber.includes('to receive.'),
+        'with no admin number configured the escalation line is dropped, not left dangling',
+        noNumber,
+    )
+    const afaNoNumber = buildAfaGuestRefundMessage({ ownerPhone: '0241234567' })
+    check(!/Report:|6h/.test(afaNoNumber), 'AFA copy also drops the escalation line when unset', afaNoNumber)
+}
 check(
     /6h/.test(sample) && !/24h/.test(sample),
     'escalation window reads 6h, not the old 24h',
@@ -106,7 +126,7 @@ check(
 )
 
 for (const [label, phone] of [['typical', '0241234567'], ['worst case', '+233241234567']] as const) {
-    const msg = buildAfaGuestRefundMessage({ ownerPhone: phone })
+    const msg = buildAfaGuestRefundMessage({ ownerPhone: phone, reportNumber: REPORT })
     check(
         msg.length <= SMS_SINGLE_SEGMENT_LIMIT,
         `AFA ${label} message fits one SMS segment (${msg.length} chars)`,
@@ -120,7 +140,7 @@ for (const [label, phone] of [['typical', '0241234567'], ['worst case', '+233241
     check(/\(not a call\)/.test(msg), `AFA ${label} message keeps "(not a call)"`, msg)
     check(!/Contact\s/i.test(msg), `AFA ${label} message avoids "Contact"`, msg)
 }
-console.log(`AFA sample: ${buildAfaGuestRefundMessage({ ownerPhone: '0241234567' })}`)
+console.log(`AFA sample: ${buildAfaGuestRefundMessage({ ownerPhone: '0241234567', reportNumber: REPORT })}`)
 
 console.log(`\nSample (${sample.length} chars): ${sample}`)
 console.log(failures === 0 ? '\nAll tests PASSED' : `\n${failures} test(s) FAILED`)

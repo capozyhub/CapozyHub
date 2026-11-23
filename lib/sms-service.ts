@@ -158,15 +158,8 @@ export async function sendWelcomeSMS(
     phoneNumber: string,
     firstName: string
 ) {
-    // DISABLED AS REQUESTED
-    /*
-    const message = `Hello! Welcome to Capozy Hub. All we do here is instant Delivery (PA-TU-PA) start ordering your package now. Chat us on WhatsApp:578065809`
-
-    return sendSMS({
-        recipient: phoneNumber,
-        message
-    })
-    */
+    // The welcome SMS is switched off. If it is ever re-enabled, build the WhatsApp line from
+    // getAdminReportNumber() rather than hard-coding a number.
     return { success: true, messageId: 'disabled', error: undefined }
 }
 /**
@@ -367,8 +360,15 @@ export function buildShopGuestRefundMessage(details: {
     network: string
     size: string
     ownerPhone: string
+    /** Admin support WhatsApp number (Admin > Settings). The escalation line is left out when unset. */
+    reportNumber?: string
 }): string {
-    return `Your ${details.size} wasn't completed; refunded. WhatsApp (not a call) ${details.ownerPhone} to receive. Not resolved in 6h? Report: WhatsApp 0578065809`
+    return `Your ${details.size} wasn't completed; refunded. WhatsApp (not a call) ${details.ownerPhone} to receive.${reportLine(details.reportNumber)}`
+}
+
+function reportLine(reportNumber?: string): string {
+    const n = (reportNumber || '').trim()
+    return n ? ` Not resolved in 6h? Report: WhatsApp ${n}` : ''
 }
 
 /**
@@ -378,8 +378,21 @@ export function buildShopGuestRefundMessage(details: {
  */
 export function buildAfaGuestRefundMessage(details: {
     ownerPhone: string
+    /** Admin support WhatsApp number (Admin > Settings). The escalation line is left out when unset. */
+    reportNumber?: string
 }): string {
-    return `Your AFA registration wasn't completed; refunded. WhatsApp (not a call) ${details.ownerPhone} to receive. Not resolved in 6h? Report: WhatsApp 0578065809`
+    return `Your AFA registration wasn't completed; refunded. WhatsApp (not a call) ${details.ownerPhone} to receive.${reportLine(details.reportNumber)}`
+}
+
+/** The admin support WhatsApp number from Admin > Settings, or '' if none is set. Never throws. */
+export async function getAdminReportNumber(): Promise<string> {
+    try {
+        const { getAdminSetting } = await import('@/lib/admin-settings-cache')
+        const raw = await getAdminSetting('whatsapp_admin_number')
+        return (raw ?? '').replace(/^"|"$/g, '').trim()
+    } catch {
+        return ''
+    }
 }
 
 export async function sendShopGuestRefundSMS(
@@ -388,9 +401,13 @@ export async function sendShopGuestRefundSMS(
         network: string
         size: string
         ownerPhone: string
+        reportNumber?: string
     }
 ) {
-    const message = buildShopGuestRefundMessage(details)
+    const message = buildShopGuestRefundMessage({
+        ...details,
+        reportNumber: details.reportNumber ?? await getAdminReportNumber(),
+    })
 
     return sendSMS({
         recipient: recipientNumber,
