@@ -348,9 +348,8 @@ export default function ShopWithdrawPage() {
         }
     }
 
+    const [removeId, setRemoveId] = useState<string | null>(null)
     const handleDeleteSaved = async (id: string) => {
-        const d = savedDetails.find(s => s.id === id)
-        if (!window.confirm(`Remove ${d ? `${d.account_name} (${d.momo_number})` : 'this account'}? You will need to confirm it again to add it back.`)) return
         const { error } = await (supabase as any).from('shop_payment_details').delete().eq('id', id)
         if (error) { toast.error('Could not remove the account.'); return }
         toast.success('Account removed.')
@@ -608,7 +607,7 @@ export default function ShopWithdrawPage() {
                                 <button type="button" onClick={() => handleSetDefault(d.id)} aria-label={d.is_default ? 'Default account' : `Make ${d.account_name} the default`} className={cn('flex h-9 w-9 items-center justify-center rounded-lg', FOCUS, d.is_default ? 'text-brand-600' : 'text-muted-foreground hover:text-foreground')}>
                                     <Star className="h-4 w-4" fill={d.is_default ? 'currentColor' : 'none'} />
                                 </button>
-                                <button type="button" onClick={() => handleDeleteSaved(d.id)} aria-label={`Remove ${d.account_name}`} className={cn('flex h-9 w-9 items-center justify-center rounded-lg text-red-600 hover:text-red-700', FOCUS)}>
+                                <button type="button" onClick={() => setRemoveId(d.id)} aria-label={`Remove ${d.account_name}`} className={cn('flex h-9 w-9 items-center justify-center rounded-lg text-red-600 hover:text-red-700', FOCUS)}>
                                     <Trash2 className="h-4 w-4" />
                                 </button>
                             </div>
@@ -639,6 +638,17 @@ export default function ShopWithdrawPage() {
                     <DialogFooter><ClayButton type="button" variant="black" onClick={() => setSavedModalOpen(false)}>Done</ClayButton></DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+            <Dialog open={!!removeId} onOpenChange={(o) => { if (!o) setRemoveId(null) }}>
+                <DialogContent className="max-w-sm rounded-[2rem]" aria-describedby={undefined}>
+                    <DialogHeader><DialogTitle className="font-display">Remove this account?</DialogTitle></DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        {(() => { const d = savedDetails.find(s => s.id === removeId); return d ? `${d.account_name} (${d.momo_number})` : 'This account' })()} will be removed. You will need to confirm it again to add it back.
+                    </p>
+                    <DialogFooter className="gap-2">
+                        <button type="button" onClick={() => setRemoveId(null)} className="clay-silver min-h-11 rounded-full px-5 text-sm font-semibold">Keep it</button>
+                        <button type="button" onClick={() => { const id = removeId; setRemoveId(null); if (id) handleDeleteSaved(id) }} className="clay-red min-h-11 rounded-full px-5 text-sm font-semibold">Remove</button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>        </div>
     )
 }

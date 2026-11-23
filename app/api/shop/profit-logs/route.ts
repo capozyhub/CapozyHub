@@ -18,7 +18,7 @@ export async function GET() {
             .maybeSingle()
 
         if (!shopData) {
-            return NextResponse.json({ success: true, data: { wallet: null, orders: [], rcOrders: [], withdrawals: [], smsPurchases: [], smsActs: [], utilityCommissions: [] } })
+            return NextResponse.json({ success: true, data: { wallet: null, orders: [], rcOrders: [], withdrawals: [] } })
         }
 
         const shopId = (shopData as any).id
@@ -37,19 +37,16 @@ export async function GET() {
             fetchAllRows(() => apply((supabase as any).from(table).select(cols)).order('created_at', { ascending: false }).order('id', { ascending: false }))
         const none = Promise.resolve({ rows: [] as any[], truncated: false, failed: false })
 
-        const [ordersRes, rcRes, afaRes, wdRes, smsRes, smsActRes, utilCommRes] = await Promise.allSettled([
+        const [ordersRes, rcRes, afaRes, wdRes] = await Promise.allSettled([
             all('shop_orders', 'id, network, package_size, package_id, guest_phone, profit, status, created_at, source', q => q.eq('shop_id', shopId)),
             all('results_checker_orders', 'id, type_name, quantity, customer_phone, shop_markup, status, created_at, source', q => q.eq('shop_id', shopId).neq('payment_status', 'pending_payment')),
             // AFA rows have no package_id/network shape; select only non-KYC columns (never full_name/ghana_card).
             all('afa_orders', 'id, phone, selling_price, profit, status, created_at, source', q => q.eq('shop_id', shopId)),
             walletId ? all('shop_wallet_transactions', 'id, amount, fee, net_amount, status, account_name, momo_number, created_at', q => q.eq('shop_wallet_id', walletId).eq('type', 'withdrawal')) : none,
-            all('shop_sms_purchases', 'id, credits, price, created_at, shop_sms_bundles(name)', q => q.eq('shop_id', shopId)),
-            all('shop_sms_activations', 'id, amount_paid, created_at', q => q.eq('shop_id', shopId)),
-            walletId ? all('shop_wallet_transactions', 'id, amount, description, created_at', q => q.eq('shop_wallet_id', walletId).eq('type', 'utility_commission')) : none,
         ])
 
         const rowsOf = (r: PromiseSettledResult<{ rows: any[] }>) => (r.status === 'fulfilled' ? r.value.rows : [])
-        const incomplete = [ordersRes, rcRes, afaRes, wdRes, smsRes, smsActRes, utilCommRes].some(
+        const incomplete = [ordersRes, rcRes, afaRes, wdRes].some(
             r => r.status === 'rejected' || r.value.truncated || r.value.failed,
         )
 
@@ -61,9 +58,6 @@ export async function GET() {
                 rcOrders:            rowsOf(rcRes),
                 afaOrders:           rowsOf(afaRes),
                 withdrawals:         rowsOf(wdRes),
-                smsPurchases:        rowsOf(smsRes),
-                smsActs:             rowsOf(smsActRes),
-                utilityCommissions:  rowsOf(utilCommRes),
                 incomplete,
             },
         })    } catch (err) {

@@ -23,7 +23,7 @@ const TYPE_META: Record<string, { label: string; sign: '+' | '-'; tone: string; 
     profit: { label: 'Sale profit', sign: '+', tone: 'text-emerald-600 dark:text-emerald-400', Icon: TrendingUp },
     withdrawal: { label: 'Withdrawal', sign: '-', tone: 'text-foreground', Icon: ArrowDownRight },
     profit_reversal: { label: 'Refund took back profit', sign: '-', tone: 'text-red-600 dark:text-red-400', Icon: RotateCcw },
-    commission_transfer_in: { label: 'Moved from commission', sign: '+', tone: 'text-emerald-600 dark:text-emerald-400', Icon: ArrowRightLeft },
+    commission_transfer_in: { label: 'Transfer in', sign: '+', tone: 'text-emerald-600 dark:text-emerald-400', Icon: ArrowRightLeft },
 }
 
 const FILTERS: { id: Filter; label: string }[] = [

@@ -8,6 +8,7 @@ import { NotifIcon, iconBg } from '@/components/dashboard/notification-visuals'
 import { NotificationMessage } from '@/components/dashboard/notification-message'
 import { categoryForType, CATEGORY_ORDER, CATEGORY_LABEL, type NotificationCategory } from '@/lib/notification-categories'
 import { cn, formatDate } from '@/lib/utils'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Bell, Check, Trash2, Search, Loader2, CheckCircle2 } from 'lucide-react'
 import type { Notification } from '@/types/supabase'
 
@@ -33,6 +34,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
     const [cat, setCat] = useState<CatFilter>('all')
     const [onlyUnread, setOnlyUnread] = useState(false)
     const [query, setQuery] = useState('')
+    const [confirmClear, setConfirmClear] = useState(false)
 
     const filtered = useMemo(() => {
         return notifications.filter(n => {
@@ -100,7 +102,7 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                         </button>
                     )}
                     {notifications.length > 0 && (
-                        <button type="button" onClick={() => { if (confirm("Clear your whole notification history? This can't be undone.")) deleteAll() }}
+                        <button type="button" onClick={() => setConfirmClear(true)}
                             className="neu-raised-sm neu-press flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-red-500 hover:text-red-600">
                             <Trash2 className="w-3.5 h-3.5" /> Clear everything
                         </button>
@@ -170,6 +172,15 @@ export default function NotificationsInbox({ highlightId }: { highlightId?: stri
                     )}
                 </div>
             )}
-        </div>
+            <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
+                <DialogContent className="max-w-sm rounded-[2rem]" aria-describedby={undefined}>
+                    <DialogHeader><DialogTitle className="font-display">Clear all notifications?</DialogTitle></DialogHeader>
+                    <p className="text-sm text-muted-foreground">Your whole notification history will be deleted. This cannot be undone.</p>
+                    <DialogFooter className="gap-2">
+                        <button type="button" onClick={() => setConfirmClear(false)} className="clay-silver min-h-11 rounded-full px-5 text-sm font-semibold">Keep them</button>
+                        <button type="button" onClick={() => { setConfirmClear(false); deleteAll() }} className="clay-red min-h-11 rounded-full px-5 text-sm font-semibold">Clear all</button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>        </div>
     )
 }

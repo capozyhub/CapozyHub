@@ -160,7 +160,7 @@ export default function ShopStatusTracker() {
         setHasSearched(true)
         
         // Caching Logic: Check cache and TTL
-        const cacheKey = `shop_tracker_cache_${cleanPhone}`
+        const cacheKey = `shop_tracker_cache_${shopParam || lastShopSlug || ''}_${cleanPhone}`
         try {
             const cachedData = localStorage.getItem(cacheKey)
             if (cachedData) {

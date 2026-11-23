@@ -91,7 +91,7 @@ export default function ShopProfitLogsPage() {
             const json = await res.json().catch(() => null)
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load profit logs')
 
-            const { wallet: walletRow, orders, rcOrders, afaOrders, withdrawals, smsPurchases, smsActs, utilityCommissions } = json.data
+            const { wallet: walletRow, orders, rcOrders, afaOrders, withdrawals } = json.data
 
             if (walletRow) setWallet(walletRow)
             setIncomplete(!!json.data.incomplete)
@@ -159,36 +159,6 @@ export default function ShopProfitLogsPage() {
                     status: w.status,
                     created_at: w.created_at,
                 })),
-                ...smsPurchases.map((s: any) => ({
-                    id: `sms-${s.id}`,
-                    kind: 'debit' as const,
-                    entryType: 'sms_bundle' as EntryType,
-                    label: s.shop_sms_bundles?.name || 'SMS bundle',
-                    detail: `${s.credits} credits bought`,
-                    amount: s.price || 0,
-                    status: 'completed',
-                    created_at: s.created_at,
-                })),
-                ...smsActs.map((a: any) => ({
-                    id: `smsact-${a.id}`,
-                    kind: 'debit' as const,
-                    entryType: 'sms_activation' as EntryType,
-                    label: 'SMS activation',
-                    detail: 'One-time unlock fee',
-                    amount: a.amount_paid || 0,
-                    status: 'completed',
-                    created_at: a.created_at,
-                })),
-                ...(utilityCommissions || []).map((c: any) => ({
-                    id: `utilcomm-${c.id}`,
-                    kind: 'credit' as const,
-                    entryType: 'utility_commission' as EntryType,
-                    label: 'Utility bill commission',
-                    detail: c.description || '',
-                    amount: c.amount || 0,
-                    status: 'completed',
-                    created_at: c.created_at,
-                })),
                 ...walletMoves
                     .filter((m: any) => (m.amount || 0) > 0)
                     .map((m: any) => m.type === 'profit_reversal'
@@ -206,8 +176,8 @@ export default function ShopProfitLogsPage() {
                             id: `xfer-${m.id}`,
                             kind: 'credit' as const,
                             entryType: 'commission_transfer' as EntryType,
-                            label: 'Moved from commission',
-                            detail: 'Transfer from your commission wallet',
+                            label: 'Transfer in',
+                            detail: 'Moved into your shop wallet',
                             amount: m.amount,
                             status: m.status || 'completed',
                             created_at: m.created_at,
@@ -275,7 +245,7 @@ export default function ShopProfitLogsPage() {
     const periodSmsSpend = counted.filter(isSmsEntry).reduce((s, e) => s + e.amount, 0)
     const periodRefunded = counted.filter(e => e.entryType === 'refund_reversal').reduce((s, e) => s + e.amount, 0)
     const periodNet = periodEarned - periodWithdrawn - periodSmsSpend - periodRefunded
-    const hasSms = allEntries.some(isSmsEntry)
+    const hasSms = false
 
     if (loading) {
         return (
