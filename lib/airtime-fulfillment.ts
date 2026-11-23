@@ -588,11 +588,10 @@ export async function manualCompleteAirtime(
         action_url: '/dashboard/airtime',
     }).then(() => {}).catch((e: any) => console.error('[AirtimeFulfillment] manualCompleteAirtime notification error:', e))
 
-    import('@/lib/sms-service').then(async ({ sendAirtimeCompletedSMS, sendMashupCompletedSMS }) => {
-        const { resolveOwnConfirmationSender } = await import('@/lib/sms-confirmation-sender')
+
+    import('@/lib/sms-service').then(({ sendAirtimeCompletedSMS, sendMashupCompletedSMS }) => {
         const smsFn = order.type === 'mashup' ? sendMashupCompletedSMS : sendAirtimeCompletedSMS
-        const ownSender = await resolveOwnConfirmationSender(supabase, order.user_id).catch(() => null)
-        await smsFn(order.beneficiary_phone, { amount, sender: ownSender ?? undefined })
+        return smsFn(order.beneficiary_phone, { amount })
     }).catch((e: any) => console.error('[AirtimeFulfillment] manualCompleteAirtime SMS error:', e))
 
     // A developer integration only learns the order landed through its webhook.

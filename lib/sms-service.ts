@@ -1,10 +1,10 @@
 /**
- * Multi-Provider SMS Service
+ * SMS service (provider-neutral seam)
  *
- * Supports Hubtel (primary), Moolre, and mNotify.
- * The active primary provider and fallback order are read from
- * admin_settings (keys: sms_primary_provider, sms_fallback_providers)
- * and cached for 5 minutes so the admin panel can switch live.
+ * Capozy Hub has no SMS provider wired yet. Every send goes through `sendSMS`, which returns a
+ * clean "not configured" failure until a transport is registered with `registerSmsTransport`.
+ * Callers already treat a failed send as non-fatal, so nothing breaks while SMS is off.
+ * There is deliberately no provider fallback chain: one transport, registered once.
  */
 
 export interface SMSOptions {
@@ -21,71 +21,46 @@ export interface SMSResult {
     provider?: string
 }
 
-export type SmsProvider = 'hubtel' | 'moolre' | 'mnotify'
+export interface SMSBatchResult {
+    sent: number
+    failed: number
+    errors: string[]
+}
 
-// ─── Provider Endpoints ──────────────────────────────────────────────────────
-const MOOLRE_BASE_URL     = 'https://api.moolre.com'
-const MOOLRE_SMS_ENDPOINT = '/open/sms/send'
-const MNOTIFY_BASE_URL    = 'https://api.mnotify.com/api/sms/quick'
-const HUBTEL_SMS_BASE_URL = 'https://sms.hubtel.com/v1/messages'
+export type SmsTransport = (options: SMSOptions) => Promise<SMSResult>
 
-// ─── In-memory provider routing cache (5 min TTL) ────────────────────────────
-let _routingCache: { primary: SmsProvider; fallbacks: SmsProvider[]; ts: number } | null = null
-const ROUTING_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+let transport: SmsTransport | null = null
 
-export async function getRoutingConfig(): Promise<{ primary: SmsProvider; fallbacks: SmsProvider[] }> {
-    // Return cached config if still fresh
-    if (_routingCache && Date.now() - _routingCache.ts < ROUTING_CACHE_TTL) {
-        return { primary: _routingCache.primary, fallbacks: _routingCache.fallbacks }
-    }
+/** Plug in the one real SMS provider. Call once at startup (e.g. from a provider module). */
+export function registerSmsTransport(next: SmsTransport | null) {
+    transport = next
+}
 
+export function isSmsConfigured(): boolean {
+    return transport !== null
+}
+
+/** Send a single SMS. Never throws; returns `success: false` when no provider is configured. */
+export async function sendSMS(options: SMSOptions): Promise<SMSResult> {
+    if (!transport) return { success: false, error: 'SMS is not configured', provider: 'none' }
     try {
-        // Dynamic import to avoid bundling Supabase in every edge context
-        const { createServerClient } = await import('@/lib/supabase')
-        const supabase = createServerClient()
-        const { data } = await (supabase as any)
-            .from('admin_settings')
-            .select('key, value')
-            .in('key', ['sms_primary_provider', 'sms_fallback_providers'])
-
-        const s: Record<string, string> = {}
-        for (const row of (data || [])) s[row.key] = row.value
-
-        const primary   = (s.sms_primary_provider as SmsProvider)   || 'hubtel'
-        let fallbacks: SmsProvider[] = []
-        try { fallbacks = JSON.parse(s.sms_fallback_providers || '[]') } catch { fallbacks = ['moolre', 'mnotify'] }
-        // Remove primary from fallbacks in case admin misconfigured
-        fallbacks = fallbacks.filter(p => p !== primary)
-
-        _routingCache = { primary, fallbacks, ts: Date.now() }
-        return { primary, fallbacks }
-    } catch {
-        // Fallback to env-based defaults if DB unreachable
-        return { primary: 'hubtel', fallbacks: ['moolre', 'mnotify'] }
+        return await transport(options)
+    } catch (e: any) {
+        return { success: false, error: e?.message || 'SMS send failed' }
     }
 }
 
-/** Invalidate routing cache (call after provider settings are saved) */
-export function invalidateSmsRoutingCache() {
-    _routingCache = null
+/** Send many messages one by one through the registered transport. */
+export async function sendSmsBatch(messages: Array<{ phone: string; message: string }>): Promise<SMSBatchResult> {
+    let sent = 0, failed = 0
+    const errors: string[] = []
+    for (const m of messages) {
+        const res = await sendSMS({ recipient: m.phone, message: m.message })
+        if (res.success) sent++
+        else { failed++; errors.push(`${m.phone}: ${res.error}`) }
+    }
+    return { sent, failed, errors }
 }
-
-/**
- * Validate SMS configuration on module load
- */
-function validateSMSConfig() {
-    if (!process.env.HUBTEL_CLIENT_ID)    console.warn('[SMS Config] WARNING: HUBTEL_CLIENT_ID not set.')
-    if (!process.env.HUBTEL_CLIENT_SECRET) console.warn('[SMS Config] WARNING: HUBTEL_CLIENT_SECRET not set.')
-    if (!process.env.MOOLRE_API_KEY)       console.warn('[SMS Config] WARNING: MOOLRE_API_KEY not set.')
-    if (!process.env.MNOTIFY_API_KEY)      console.warn('[SMS Config] WARNING: MNOTIFY_API_KEY not set.')
-}
-
-// Run validation when module loads
-validateSMSConfig()
-
-// ──────────────────────────────────────────────────────────────────────────────
-// PHONE NORMALIZER
-// ──────────────────────────────────────────────────────────────────────────────
 
 /**
  * Normalize a Ghanaian phone number to international format: 233XXXXXXXXX
@@ -96,568 +71,6 @@ export function normalizeGhanaPhone(raw: string): string | null {
     if (n.startsWith('0') && n.length === 10)  n = '233' + n.slice(1)
     if (n.startsWith('233') && n.length === 12) return n
     return null
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// HUBTEL PROVIDER
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Send a single SMS via Hubtel (POST JSON + Basic Auth)
- */
-export async function sendHubtelSMS(options: SMSOptions): Promise<SMSResult> {
-    const clientId     = process.env.HUBTEL_CLIENT_ID
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
-
-    if (!clientId || !clientSecret) {
-        return { success: false, error: 'HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET not configured.' }
-    }
-
-    const normalizedPhone = normalizeGhanaPhone(options.recipient)
-    if (!normalizedPhone) {
-        return { success: false, error: `Invalid phone number: ${options.recipient}` }
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-    try {
-        const response = await fetch(`${HUBTEL_SMS_BASE_URL}/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type':  'application/json',
-                'Accept':        'application/json',
-                'Authorization': `Basic ${basicAuth}`,
-            },
-            body: JSON.stringify({
-                From:    options.sender || defaultSender,
-                To:      normalizedPhone,
-                Content: options.message,
-            }),
-        })
-
-        const data: any = await response.json().catch(() => ({}))
-
-        if ((response.status === 200 || response.status === 201) && (data.status === 0 || data.statusDescription?.toLowerCase().includes('success'))) {
-            return { success: true, messageId: data.messageId, provider: 'hubtel' }
-        }
-
-        const err = data.statusDescription || `Hubtel error ${response.status}`
-        console.error('[Hubtel SMS] ❌', err, data)
-        return { success: false, error: err, provider: 'hubtel' }
-    } catch (e: any) {
-        console.error('[Hubtel SMS] ❌ Exception:', e.message)
-        return { success: false, error: `Hubtel exception: ${e.message}`, provider: 'hubtel' }
-    }
-}
-
-// Hubtel recommends ≤1,000 recipients per batch call
-const HUBTEL_BATCH_CHUNK_SIZE = 1000
-
-/**
- * Batch-send personalized SMS via Hubtel.
- * Each recipient can have a different message body (supports [FirstName] etc.)
- * Uses Hubtel's /batch/personalized/send endpoint.
- * Automatically chunks recipients into batches of 1,000 to stay within limits.
- */
-export async function sendHubtelBatchSMS(
-    recipients: Array<{ phone: string; message: string }>,
-    senderOverride?: string
-): Promise<{ batchId?: string; batchIds: string[]; sent: number; failed: number; errors: string[] }> {
-    const clientId     = process.env.HUBTEL_CLIENT_ID
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
-    const From = (senderOverride || defaultSender).substring(0, 11)
-
-    if (!clientId || !clientSecret) {
-        return { sent: 0, failed: recipients.length, batchIds: [], errors: ['Hubtel credentials not configured'] }
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-    // Normalize and filter all recipients upfront
-    const valid: Array<{ To: string; Content: string }> = []
-    const errors: string[] = []
-
-    for (const r of recipients) {
-        const phone = normalizeGhanaPhone(r.phone)
-        if (!phone) { errors.push(`Invalid phone: ${r.phone}`); continue }
-        valid.push({ To: phone, Content: r.message })
-    }
-
-    if (valid.length === 0) {
-        return { sent: 0, failed: recipients.length, batchIds: [], errors }
-    }
-
-    // Chunk into groups of HUBTEL_BATCH_CHUNK_SIZE
-    let totalSent = 0
-    const batchIds: string[] = []
-
-    for (let i = 0; i < valid.length; i += HUBTEL_BATCH_CHUNK_SIZE) {
-        const chunk = valid.slice(i, i + HUBTEL_BATCH_CHUNK_SIZE)
-        try {
-            const response = await fetch(`${HUBTEL_SMS_BASE_URL}/batch/personalized/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Accept':        'application/json',
-                    'Authorization': `Basic ${basicAuth}`,
-                },
-                body: JSON.stringify({ From, personalizedRecipients: chunk }),
-            })
-
-            const data: any = await response.json().catch(() => ({}))
-
-            if ((response.status === 200 || response.status === 201) && data.status === 0) {
-                if (data.batchId) batchIds.push(data.batchId)
-                totalSent += (data.data || []).length
-            } else {
-                const errMsg = data.statusDescription || `Hubtel batch error ${response.status} (chunk ${Math.floor(i / HUBTEL_BATCH_CHUNK_SIZE) + 1})`
-                errors.push(errMsg)
-                console.error('[Hubtel Batch SMS] ❌ chunk failed:', errMsg)
-            }
-        } catch (e: any) {
-            errors.push(`Hubtel chunk exception: ${e.message}`)
-            console.error('[Hubtel Batch SMS] ❌ chunk exception:', e.message)
-        }
-    }
-
-    return {
-        batchId:  batchIds[0],
-        batchIds,
-        sent:     totalSent,
-        failed:   (valid.length - totalSent) + errors.filter(e => e.startsWith('Invalid')).length,
-        errors,
-    }
-}
-
-/**
- * Batch-send an identical SMS to many recipients via Hubtel's simple batch endpoint.
- * Use this when the message body is the same for all recipients (no [FirstName] etc.)
- * Uses Hubtel's /batch/simple/send endpoint — more efficient than personalized.
- * Automatically chunks recipients into batches of 1,000.
- */
-export async function sendHubtelSimpleBatchSMS(
-    phones: string[],
-    content: string,
-    senderOverride?: string
-): Promise<{ batchId?: string; batchIds: string[]; sent: number; failed: number; errors: string[] }> {
-    const clientId     = process.env.HUBTEL_CLIENT_ID
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-    const defaultSender = (process.env.HUBTEL_SENDER_ID || 'CAPOZYHUB').substring(0, 11)
-    const From = (senderOverride || defaultSender).substring(0, 11)
-
-    if (!clientId || !clientSecret) {
-        return { sent: 0, failed: phones.length, batchIds: [], errors: ['Hubtel credentials not configured'] }
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-    // Normalize and filter all phones upfront
-    const valid: string[] = []
-    const errors: string[] = []
-
-    for (const p of phones) {
-        const phone = normalizeGhanaPhone(p)
-        if (!phone) { errors.push(`Invalid phone: ${p}`); continue }
-        valid.push(phone)
-    }
-
-    if (valid.length === 0) {
-        return { sent: 0, failed: phones.length, batchIds: [], errors }
-    }
-
-    let totalSent = 0
-    const batchIds: string[] = []
-
-    for (let i = 0; i < valid.length; i += HUBTEL_BATCH_CHUNK_SIZE) {
-        const chunk = valid.slice(i, i + HUBTEL_BATCH_CHUNK_SIZE)
-        try {
-            const response = await fetch(`${HUBTEL_SMS_BASE_URL}/batch/simple/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Accept':        'application/json',
-                    'Authorization': `Basic ${basicAuth}`,
-                },
-                body: JSON.stringify({ From, Recipients: chunk, Content: content }),
-            })
-
-            const data: any = await response.json().catch(() => ({}))
-
-            if ((response.status === 200 || response.status === 201) && data.status === 0) {
-                if (data.batchId) batchIds.push(data.batchId)
-                totalSent += (data.data || []).length
-            } else {
-                const errMsg = data.statusDescription || `Hubtel simple batch error ${response.status} (chunk ${Math.floor(i / HUBTEL_BATCH_CHUNK_SIZE) + 1})`
-                errors.push(errMsg)
-                console.error('[Hubtel Simple Batch SMS] ❌ chunk failed:', errMsg)
-            }
-        } catch (e: any) {
-            errors.push(`Hubtel simple batch chunk exception: ${e.message}`)
-            console.error('[Hubtel Simple Batch SMS] ❌ chunk exception:', e.message)
-        }
-    }
-
-    return {
-        batchId:  batchIds[0],
-        batchIds,
-        sent:     totalSent,
-        failed:   (valid.length - totalSent) + errors.filter(e => e.startsWith('Invalid')).length,
-        errors,
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// USER SMS PLATFORM — CAMPAIGN CHUNK SENDER (Hubtel-pinned)
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface CampaignRecipientResult {
-    to: string
-    messageId?: string
-    networkId?: string
-    rate?: number
-}
-
-export interface CampaignChunkResult {
-    ok: boolean
-    error?: string
-    batchId?: string
-    /** Per-recipient provider results (normalized 233… keys). May be sparse if
-     *  Hubtel's response omits entries — the reconcile cron backstops those. */
-    results: CampaignRecipientResult[]
-}
-
-/**
- * Send ONE campaign chunk (≤1,000 recipients, identical content) via Hubtel's
- * simple batch endpoint with RegisteredDelivery=true so delivery reports fire.
- *
- * Contract differences vs the admin-broadcast batch helpers above:
- *  - `sender` is REQUIRED. Campaign traffic must NEVER inherit the platform
- *    env default (a business-mode campaign falling back to CAPOZYHUB would
- *    ship relaxed-filter content under the platform brand).
- *  - `phones` must already be normalized (233XXXXXXXXX) — the campaign
- *    pipeline normalizes once and persists sms_messages rows first.
- *  - Returns per-recipient MessageId/NetworkId/Rate for delivery tracking.
- *    (Field names parsed defensively pending Hubtel doc confirmation — G1.)
- *  - NO provider fallback: user-platform sends are Hubtel-pinned; Moolre/
- *    mNotify cannot resolve Hubtel sender IDs or delivery reports.
- */
-export async function sendHubtelCampaignChunk(
-    phones: string[],
-    content: string,
-    sender: string
-): Promise<CampaignChunkResult> {
-    const clientId     = process.env.HUBTEL_CLIENT_ID
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-
-    if (!sender || !sender.trim()) {
-        return { ok: false, error: 'SENDER_REQUIRED: campaign sends must carry an explicit sender ID', results: [] }
-    }
-    if (!clientId || !clientSecret) {
-        return { ok: false, error: 'Hubtel credentials not configured', results: [] }
-    }
-    if (phones.length === 0) {
-        return { ok: true, results: [] }
-    }
-    if (phones.length > HUBTEL_BATCH_CHUNK_SIZE) {
-        return { ok: false, error: `Chunk exceeds ${HUBTEL_BATCH_CHUNK_SIZE} recipients`, results: [] }
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-    try {
-        const response = await fetch(`${HUBTEL_SMS_BASE_URL}/batch/simple/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type':  'application/json',
-                'Accept':        'application/json',
-                'Authorization': `Basic ${basicAuth}`,
-            },
-            body: JSON.stringify({
-                From: sender.trim().substring(0, 11),
-                Recipients: phones,
-                Content: content,
-                RegisteredDelivery: true,
-            }),
-        })
-
-        const data: any = await response.json().catch(() => ({}))
-
-        if ((response.status === 200 || response.status === 201) && data.status === 0) {
-            const entries: any[] = Array.isArray(data.data) ? data.data : []
-            const results: CampaignRecipientResult[] = entries.map((e: any) => ({
-                to: String(e.to ?? e.To ?? e.recipient ?? e.Recipient ?? ''),
-                messageId: e.messageId ?? e.MessageId ?? e.id ?? undefined,
-                networkId: e.networkId != null ? String(e.networkId) : (e.NetworkId != null ? String(e.NetworkId) : undefined),
-                rate: typeof e.rate === 'number' ? e.rate : (typeof e.Rate === 'number' ? e.Rate : undefined),
-            })).filter(r => r.to)
-            return { ok: true, batchId: data.batchId, results }
-        }
-
-        const err = data.statusDescription || `Hubtel batch error ${response.status}`
-        console.error('[SMS Campaign Chunk] ❌', err)
-        return { ok: false, error: err, results: [] }
-    } catch (e: any) {
-        console.error('[SMS Campaign Chunk] ❌ Exception:', e.message)
-        return { ok: false, error: `Hubtel exception: ${e.message}`, results: [] }
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// SHOP SMS — BATCH SENDER WITH DELIVERY TRACKING
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface ShopBatchRecipientResult {
-    to: string
-    messageId?: string
-}
-
-export interface ShopBatchResult {
-    ok: boolean
-    error?: string
-    batchId?: string
-    results: ShopBatchRecipientResult[]
-}
-
-/**
- * Pure response-parser, extracted so it's unit-testable without a network
- * call (see scripts/test-shop-sms-batch-response.ts). Mirrors the parsing
- * half of sendHubtelCampaignChunk.
- */
-export function parseShopBatchResponse(data: any): ShopBatchResult {
-    if (data?.status !== 0) {
-        return { ok: false, error: data?.statusDescription || 'Hubtel batch error', results: [] }
-    }
-    const entries: any[] = Array.isArray(data.data) ? data.data : []
-    const results: ShopBatchRecipientResult[] = entries
-        .map((e: any) => ({
-            to: String(e.to ?? e.To ?? e.recipient ?? e.Recipient ?? ''),
-            messageId: e.messageId ?? e.MessageId ?? e.id ?? undefined,
-        }))
-        .filter(r => r.to)
-    return { ok: true, batchId: data.batchId, results }
-}
-
-/**
- * Send ONE shop-SMS batch (≤1,000 recipients, identical content) via
- * Hubtel's simple batch endpoint with RegisteredDelivery=true, so delivery
- * reports fire and can be captured (see the DLR webhook and reconcile cron
- * generalization in Tasks 4-5).
- *
- * Hubtel-pinned by design — shop SMS gives up the Moolre/mNotify fallback
- * `sendSMS()` provides, in exchange for reliable delivery tracking (see
- * docs/superpowers/specs/2026-08-22-shop-sms-delivery-tracking-design.md §5,
- * §8). `sender` is REQUIRED — shop sends must never inherit the platform
- * env default.
- */
-export async function sendHubtelShopBatchSMS(
-    phones: string[],
-    content: string,
-    sender: string
-): Promise<ShopBatchResult> {
-    const clientId     = process.env.HUBTEL_CLIENT_ID
-    const clientSecret = process.env.HUBTEL_CLIENT_SECRET
-
-    if (!sender || !sender.trim()) {
-        return { ok: false, error: 'SENDER_REQUIRED: shop sends must carry an explicit sender ID', results: [] }
-    }
-    if (!clientId || !clientSecret) {
-        return { ok: false, error: 'Hubtel credentials not configured', results: [] }
-    }
-    if (phones.length === 0) {
-        return { ok: true, results: [] }
-    }
-    if (phones.length > HUBTEL_BATCH_CHUNK_SIZE) {
-        return { ok: false, error: `Chunk exceeds ${HUBTEL_BATCH_CHUNK_SIZE} recipients`, results: [] }
-    }
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-    try {
-        const response = await fetch(`${HUBTEL_SMS_BASE_URL}/batch/simple/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type':  'application/json',
-                'Accept':        'application/json',
-                'Authorization': `Basic ${basicAuth}`,
-            },
-            body: JSON.stringify({
-                From: sender.trim().substring(0, 11),
-                Recipients: phones,
-                Content: content,
-                RegisteredDelivery: true,
-            }),
-        })
-
-        const data: any = await response.json().catch(() => ({}))
-        const parsed = parseShopBatchResponse(data)
-        if (!parsed.ok) console.error('[Shop SMS Batch] ❌', parsed.error)
-        return parsed
-    } catch (e: any) {
-        console.error('[Shop SMS Batch] ❌ Exception:', e.message)
-        return { ok: false, error: `Hubtel exception: ${e.message}`, results: [] }
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// MOOLRE PROVIDER
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Send a single SMS via Moolre
- */
-export async function sendMoolreSMS(options: SMSOptions): Promise<SMSResult> {
-    const apiKey = process.env.MOOLRE_API_KEY
-    const defaultSender = process.env.MOOLRE_SENDER_ID || 'CAPOZY'
-
-    if (!apiKey) {
-        return { success: false, error: 'MOOLRE_API_KEY not configured.', provider: 'moolre' }
-    }
-
-    const normalizedPhone = normalizeGhanaPhone(options.recipient)
-    if (!normalizedPhone) {
-        return { success: false, error: `Invalid phone: ${options.recipient}`, provider: 'moolre' }
-    }
-
-    const reference = `SMS-${Date.now()}-${Math.random().toString(36).substring(7)}`
-    const url = MOOLRE_BASE_URL + MOOLRE_SMS_ENDPOINT
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept':       'application/json',
-                'X-API-KEY':    apiKey,
-                'X-API-VASKEY': apiKey,
-            },
-            body: JSON.stringify({
-                type:     1,
-                senderid: options.sender || defaultSender,
-                messages: [{ recipient: normalizedPhone, message: options.message, ref: reference }],
-            }),
-        })
-
-        const responseText = await response.text()
-        let data: any
-        try { data = JSON.parse(responseText) } catch {
-            if (responseText.toLowerCase().includes('<html')) {
-                return { success: false, error: 'Moolre: received HTML (bad endpoint?)', provider: 'moolre' }
-            }
-            return { success: false, error: `Moolre: bad JSON: ${responseText.substring(0, 80)}`, provider: 'moolre' }
-        }
-
-        const isSuccess =
-            data.success === true ||
-            data.status === 'success' ||
-            data.status === 'sent' ||
-            (response.status >= 200 && response.status < 300 && !data.error)
-
-        if (isSuccess) return { success: true, messageId: data.message_id || data.id || 'sent', provider: 'moolre' }
-
-        const errorMessage = data.message || data.error || data.msg || `Moolre error (${response.status})`
-        console.error('[Moolre SMS] ❌', errorMessage)
-        return { success: false, error: errorMessage, provider: 'moolre' }
-    } catch (e: any) {
-        console.error('[Moolre SMS] ❌ Exception:', e.message)
-        return { success: false, error: `Moolre exception: ${e.message}`, provider: 'moolre' }
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// PRIMARY DISPATCHER (with auto-fallback)
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Send a single SMS using the configured primary provider.
- * If the primary fails, it automatically retries each fallback in order.
- */
-export async function sendSMS(options: SMSOptions): Promise<SMSResult> {
-    let routing: { primary: SmsProvider; fallbacks: SmsProvider[] }
-    try {
-        routing = await getRoutingConfig()
-    } catch {
-        routing = { primary: 'hubtel', fallbacks: ['moolre', 'mnotify'] }
-    }
-
-    const order: SmsProvider[] = [routing.primary, ...routing.fallbacks]
-
-    for (const provider of order) {
-        let result: SMSResult
-        if (provider === 'hubtel')  result = await sendHubtelSMS(options)
-        else if (provider === 'moolre')  result = await sendMoolreSMS(options)
-        else result = await sendMnotifySMS(options)
-
-        if (result.success) return result
-
-        console.warn(`[SMS Router] ${provider} failed: ${result.error} — trying next provider…`)
-    }
-
-    return { success: false, error: 'All SMS providers failed to deliver the message.' }
-}
-
-/**
- * Send a quick SMS via mNotify
- */
-export async function sendMnotifySMS(options: SMSOptions): Promise<SMSResult> {
-    const apiKey = process.env.MNOTIFY_API_KEY
-    const defaultSender = process.env.MNOTIFY_SENDER_ID || 'CAPOZYHUB'
-
-    if (!apiKey) {
-        const error = 'MNOTIFY_API_KEY not configured in environment variables.'
-        console.error('[SMS Service] ERROR:', error)
-        return { success: false, error }
-    }
-
-    try {
-        let normalizedPhone = options.recipient
-            .replace(/\s+/g, '')
-            .replace(/-/g, '')
-            .replace(/\+/g, '')
-
-        if (normalizedPhone.startsWith('233')) {
-            normalizedPhone = '0' + normalizedPhone.slice(3)
-        }
-
-        const url = `${MNOTIFY_BASE_URL}?key=${apiKey}`
-        
-        const payload = {
-            recipient: [normalizedPhone],
-            sender: options.sender || defaultSender,
-            message: options.message,
-            is_schedule: false,
-            schedule_date: ''
-        }
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-
-        const responseText = await response.text()
-        let data: any
-        try {
-            data = JSON.parse(responseText)
-        } catch (e) {
-            console.error('[SMS Service] mNotify JSON parse error:', responseText)
-            return { success: false, error: 'Invalid mNotify response' }
-        }
-
-        if (data.status === "success" || data.code === "2000") {
-            return { success: true, messageId: data.summary?._id || 'mNotify_sent' }
-        } else {
-            console.error('[SMS Service] mNotify API Error:', data.message || data.error || responseText)
-            return { success: false, error: data.message || data.error || 'mNotify API Error' }
-        }
-    } catch (error: any) {
-        console.error('[SMS Service] mNotify Exception:', error.message)
-        return { success: false, error: `System error: ${error.message}` }
-    }
 }
 
 // ==========================================
@@ -1277,17 +690,5 @@ export async function sendAutoUpgradeFailedSMS(
 
     const message = `Hi ${firstName}, auto-renewal for your ${planLabel} failed. Capozy Wallet: GHS ${currentBalance.toFixed(2)}, needed GHS ${requiredAmount.toFixed(2)}. Top up to continue: capozygh.com`
 
-    return sendSMS({ recipient: phoneNumber, message })
-}
-
-/**
- * Send a 6-digit OTP to a phone number for signup phone verification.
- * Called by /api/auth/verify-phone before account creation.
- */
-export async function sendPhoneOTPSms(
-    phoneNumber: string,
-    otpCode: string
-): Promise<SMSResult> {
-    const message = `Your verification code is ${otpCode}. It is valid for 10 minutes. Please do not share this code with anyone.`
     return sendSMS({ recipient: phoneNumber, message })
 }

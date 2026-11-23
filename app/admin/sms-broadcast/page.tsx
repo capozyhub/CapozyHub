@@ -49,16 +49,6 @@ interface SmsTemplate {
     created_at: string; updated_at: string
 }
 
-type SmsProvider = 'hubtel' | 'moolre' | 'mnotify'
-
-const PROVIDER_META: Record<SmsProvider, { label: string; color: string; description: string }> = {
-    hubtel:  { label: 'Hubtel',  color: 'bg-emerald-500', description: 'Direct Telco connections — highest delivery rate' },
-    moolre:  { label: 'Moolre',  color: 'bg-brand-500',    description: 'Reliable Ghanaian SMS gateway' },
-    mnotify: { label: 'mNotify', color: 'bg-violet-500',  description: 'Fast delivery across all networks' },
-}
-
-const ALL_PROVIDERS: SmsProvider[] = ['hubtel', 'moolre', 'mnotify']
-
 const VARIABLES = [
     { label: '[FirstName]', desc: "Recipient's first name" },
     { label: '[LastName]',  desc: "Recipient's last name" },
@@ -294,15 +284,8 @@ export default function AdminSMSBroadcastPage() {
     const [tplBody, setTplBody]           = useState('')
     const [savingTpl, setSavingTpl]       = useState(false)
 
-    // ── Tab 4: Provider Settings ──────────────────────────────────────────────
-    const [primary, setPrimary]         = useState<SmsProvider>('hubtel')
-    const [fallbacks, setFallbacks]     = useState<SmsProvider[]>(['moolre', 'mnotify'])
-    const [savingSettings, setSavingSettings] = useState(false)
-    const [settingsLoading, setSettingsLoading] = useState(true)
-
     // ── Initial loads ─────────────────────────────────────────────────────────
     useEffect(() => { fetchTemplates() }, [])
-    useEffect(() => { fetchProviderSettings() }, [])
     useEffect(() => { if (activeTab === 'broadcast' && audience === 'users') fetchAppUsers() }, [activeTab, audience])
     useEffect(() => { if (activeTab === 'broadcast' && audience === 'group') fetchGroups() }, [activeTab, audience])
     useEffect(() => { if (activeTab === 'contacts') fetchCgGroups() }, [activeTab])
@@ -394,18 +377,6 @@ export default function AdminSMSBroadcastPage() {
             setCgContacts(data.contacts || [])
         } catch (e: any) { toast.error('Failed to load contacts: ' + e.message) }
         finally { setCgContactsLoading(false) }
-    }
-
-    const fetchProviderSettings = async () => {
-        setSettingsLoading(true)
-        try {
-            const res  = await fetch('/api/admin/sms-settings')
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
-            setPrimary(data.primary || 'hubtel')
-            setFallbacks(data.fallbacks || [])
-        } catch { /* use defaults */ }
-        finally { setSettingsLoading(false) }
     }
 
     // ─── Broadcast Send ───────────────────────────────────────────────────────
@@ -622,28 +593,6 @@ export default function AdminSMSBroadcastPage() {
         } catch (e: any) { toast.error(e.message) }
     }
 
-    // ─── Provider Settings ────────────────────────────────────────────────────
-    const handleSaveProviderSettings = async () => {
-        setSavingSettings(true)
-        try {
-            const res = await fetch('/api/admin/sms-settings', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ primary, fallbacks }),
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
-            setFallbacks(data.fallbacks)
-            toast.success('Provider settings saved — changes take effect immediately')
-        } catch (e: any) { toast.error(e.message) }
-        finally { setSavingSettings(false) }
-    }
-
-    const toggleFallback = (p: SmsProvider) => {
-        if (p === primary) return
-        setFallbacks(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
-    }
-
     // ─── Recipient count for broadcast summary ────────────────────────────────
     const recipientCount = audience === 'users' ? selectedUsers.size : groupContacts.length
 
@@ -660,7 +609,7 @@ export default function AdminSMSBroadcastPage() {
                 </div>
                 <div>
                     <h1 className="text-xl font-black tracking-tight">SMS Centre</h1>
-                    <p className="text-sm text-muted-foreground">Broadcast messages, manage contacts & configure providers</p>
+                    <p className="text-sm text-muted-foreground">Broadcast messages and manage contacts</p>
                 </div>
             </div>
 
@@ -674,9 +623,6 @@ export default function AdminSMSBroadcastPage() {
                     </TabsTrigger>
                     <TabsTrigger value="templates" className="gap-1.5 text-xs">
                         <BookTemplate className="w-3.5 h-3.5" /> Templates
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="gap-1.5 text-xs">
-                        <Settings2 className="w-3.5 h-3.5" /> Providers
                     </TabsTrigger>
                 </TabsList>
 
@@ -746,7 +692,7 @@ export default function AdminSMSBroadcastPage() {
                                         disabled={sending || recipientCount === 0 || !message.trim()}
                                     >
                                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                        {sending ? 'Sending via Hubtel Batch…' : `Send to ${recipientCount} Recipient${recipientCount !== 1 ? 's' : ''}`}
+                                        {sending ? 'Sending…' : `Send to ${recipientCount} Recipient${recipientCount !== 1 ? 's' : ''}`}
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -1176,125 +1122,6 @@ export default function AdminSMSBroadcastPage() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        )}
-                    </div>
-                </TabsContent>
-
-                {/* ═══════════════════════════════════════════════════════════ */}
-                {/* TAB 4: PROVIDER SETTINGS                                   */}
-                {/* ═══════════════════════════════════════════════════════════ */}
-                <TabsContent value="settings" className="mt-4 max-w-2xl">
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="font-bold">SMS Provider Routing</h3>
-                            <p className="text-xs text-muted-foreground">Changes take effect immediately across the platform (5-min cache).</p>
-                        </div>
-
-                        {settingsLoading ? (
-                            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>
-                        ) : (
-                            <div className="space-y-4">
-                                {/* Primary provider */}
-                                <div className="rounded-2xl border bg-card p-4 space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <p className="text-sm font-bold">Active Primary Provider</p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">All SMS will be sent through this provider first.</p>
-                                    <div className="grid gap-2">
-                                        {ALL_PROVIDERS.map(p => {
-                                            const meta = PROVIDER_META[p]
-                                            return (
-                                                <label key={p} className={cn(
-                                                    'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                                                    primary === p
-                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
-                                                        : 'border-border hover:border-border'
-                                                )}>
-                                                    <input
-                                                        type="radio"
-                                                        name="primary"
-                                                        value={p}
-                                                        checked={primary === p}
-                                                        onChange={() => setPrimary(p)}
-                                                        className="accent-emerald-600"
-                                                    />
-                                                    <div className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', meta.color)} />
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold">{meta.label}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{meta.description}</p>
-                                                    </div>
-                                                    {primary === p && (
-                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Active</span>
-                                                    )}
-                                                </label>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Fallback providers */}
-                                <div className="rounded-2xl border bg-card p-4 space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                        <p className="text-sm font-bold">Fallback Providers</p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        If the primary provider fails or has insufficient credits, the system will retry using these providers in order.
-                                        The primary provider is automatically excluded.
-                                    </p>
-                                    <div className="space-y-2">
-                                        {ALL_PROVIDERS.filter(p => p !== primary).map(p => {
-                                            const meta    = PROVIDER_META[p]
-                                            const enabled = fallbacks.includes(p)
-                                            return (
-                                                <div key={p} className={cn(
-                                                    'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                                                    enabled
-                                                        ? 'border-amber-300 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/5'
-                                                        : 'border-border'
-                                                )}>
-                                                    <div className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', meta.color)} />
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold">{meta.label}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{meta.description}</p>
-                                                    </div>
-                                                    <Switch
-                                                        checked={enabled}
-                                                        onCheckedChange={() => toggleFallback(p)}
-                                                        className="data-[state=checked]:bg-amber-500"
-                                                    />
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-
-                                    {/* Fallback order indicator */}
-                                    {fallbacks.length > 0 && (
-                                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Retry order:</span>
-                                            <div className={cn('w-2 h-2 rounded-full', PROVIDER_META[primary].color)} />
-                                            <span className="text-[10px] font-semibold">{PROVIDER_META[primary].label}</span>
-                                            {fallbacks.map(f => (
-                                                <span key={f} className="flex items-center gap-1">
-                                                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                                                    <div className={cn('w-2 h-2 rounded-full', PROVIDER_META[f].color)} />
-                                                    <span className="text-[10px] font-semibold">{PROVIDER_META[f].label}</span>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <Button
-                                    onClick={handleSaveProviderSettings}
-                                    disabled={savingSettings}
-                                    className="gap-2 font-bold"
-                                >
-                                    {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
-                                    Save Provider Settings
-                                </Button>
                             </div>
                         )}
                     </div>

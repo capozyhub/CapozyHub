@@ -1,7 +1,6 @@
 import { waitUntil } from '@vercel/functions'
 import { createServerClient } from './supabase'
 import { creditShopProfit, creditShopOrderProfits } from './shop-service'
-import { sendShopConfirmationSMS, resolveShopSenderFromRow } from './sms-confirmation-sender'
 import { getAdminOOSNetworks, mergeOOS, isNetworkOOS } from '@/lib/network-stock'
 import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
@@ -110,7 +109,7 @@ export async function processShopOrder(
         // A1 — Added airtime_fee_mtn, airtime_fee_telecel, airtime_fee_at to select
         const { data: shopProfile } = await db
             .from('shop_profiles')
-            .select('owner_id, shop_name, paystack_fee_percent, fulfillment_mode, airtime_fee_mtn, airtime_fee_telecel, airtime_fee_at, mashup_fee_percent, sms_order_confirmation_enabled, sms_sender_id, sms_sender_status')
+            .select('owner_id, shop_name, paystack_fee_percent, fulfillment_mode, airtime_fee_mtn, airtime_fee_telecel, airtime_fee_at, mashup_fee_percent')
             .eq('id', metadata.shop_id)
             .single()
 
@@ -489,23 +488,6 @@ export async function processShopOrder(
         }
 
         // 4. Process Valid Order — SMS, Profit Credit, Fulfillment
-        // Customer confirmation SMS is opt-out per shop (defaults to enabled).
-        // Task F3: suppress-until-sender + credit-metered — a shop with no
-        // APPROVED sms_sender_id sends NOTHING (no free platform-sender
-        // fallback); an approved shop pays 1 SMS credit/confirmation via
-        // debit_sms_credits (with atomic refund-on-send-failure). The sender
-        // is pre-resolved from the shopProfile row already SELECTed above so
-        // sendShopConfirmationSMS doesn't re-query shop_profiles.
-        if (metadata.guest_phone && (shopProfile as any)?.sms_order_confirmation_enabled !== false) {
-            waitUntil(sendShopConfirmationSMS(db, metadata.shop_id, metadata.guest_phone, {
-                network: metadata.network,
-                size: metadata.package_size || `${metadata.airtime_amount} Airtime`,
-                price: verifiedSellingPrice,
-            }, {
-                sender: resolveShopSenderFromRow(shopProfile as any),
-            }).catch((err: Error) => console.error('[Shop Order Processor] Confirmation SMS error:', err)))
-        }
-
         // 4.2 Credit Profit — under the new single-recruiter engine every shop order,
         // sub-agent or not, is a single-party sale for crediting purposes: `verifiedParentShopId`
         // is always null now (Finding 1 fix), so this always takes the `creditShopProfit` path.

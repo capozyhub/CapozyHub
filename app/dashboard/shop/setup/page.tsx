@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { cn, normalizeWhatsAppNumber } from '@/lib/utils'
 import { toast } from '@/lib/toast'
-import { SenderIdExplainer } from '@/components/sms/sender-id-explainer'
 import { BrandSwoosh } from '@/components/brand-swoosh'
 import { ClayButton, Notice } from '@/components/auth/fields'
 import { FOCUS } from '@/components/auth/auth-shell'
@@ -91,7 +90,6 @@ const STEPS = [
     { key: 'contact', label: 'Contact', heading: 'How customers reach you', lead: 'Shown on your storefront so buyers can ask questions before they pay.' },
     { key: 'community', label: 'Community', heading: 'Bring your people along', lead: 'Point customers to the group where you post offers and updates.' },
     { key: 'branding', label: 'Branding', heading: 'Make it look like yours', lead: 'A logo and one colour. The Capozy look does the rest.' },
-    { key: 'sms', label: 'SMS', heading: 'Keep customers in the loop', lead: 'Text buyers when their order goes through. Optional, any time.' },
 ] as const
 
 const SETUP_PROGRESS_LS_KEY = 'shop-setup-progress'
@@ -124,12 +122,6 @@ export default function ShopSetupPage() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [createSuccessOpen, setCreateSuccessOpen] = useState(false)
     const [successLinkCopied, setSuccessLinkCopied] = useState(false)
-    const [smsStatus, setSmsStatus] = useState<{ enabled: boolean; activationFee: number; activated: boolean; mainBalance: number; profitBalance: number } | null>(null)
-    const [smsLoading, setSmsLoading] = useState(false)
-    const [smsPaySource, setSmsPaySource] = useState<'wallet' | 'profit'>('wallet')
-    // The paid SMS activation needs a synchronous lock: button state only updates after a
-    // re-render, so two quick taps could otherwise both send a request.
-    const smsActivatingRef = useRef(false)
 
     const [form, setForm] = useState<ShopForm>({
         shop_name: '',
@@ -156,14 +148,6 @@ export default function ShopSetupPage() {
         if (dbUser) fetchExistingShop()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dbUser])
-
-    // The SMS endpoint 404s until the shop exists, so only ask once it does.
-    useEffect(() => {
-        if (STEPS[activeStep]?.key !== 'sms' || !existingShopId) return
-        fetch('/api/shop/sms/status').then(r => r.json()).then(res => {
-            if (res.success) setSmsStatus(res.data)
-        }).catch(() => { /* the step shows its loading state; nothing else to do */ })
-    }, [activeStep, existingShopId])
 
     const fetchExistingShop = async () => {
         const { data } = await ((supabase as any)
@@ -394,7 +378,7 @@ export default function ShopSetupPage() {
         }
     }
 
-    // What each step writes when you press Continue. SMS has its own endpoints.
+    // What each step writes when you press Continue. Each step saves only its own fields.
     const STEP_SAVE_FIELDS: Partial<Record<string, () => Record<string, unknown>>> = {
         details: () => ({ description: form.description.trim() }),
         contact: () => ({
@@ -564,28 +548,6 @@ export default function ShopSetupPage() {
             toast.error(err.message || 'Failed to save shop')
         } finally {
             setSaving(false)
-        }
-    }
-
-    const handleEnableSms = async () => {
-        if (smsActivatingRef.current) return
-        smsActivatingRef.current = true
-        setSmsLoading(true)
-        try {
-            const res = await fetch('/api/shop/sms/activate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paidFrom: smsPaySource }),
-            })
-            const data = await res.json()
-            if (!data.success) { toast.error(data.error || 'Could not activate SMS.'); return }
-            toast.success('SMS activated')
-            setSmsStatus(prev => prev ? { ...prev, activated: true } : prev)
-        } catch {
-            toast.error('Could not activate SMS. Please try again.')
-        } finally {
-            smsActivatingRef.current = false
-            setSmsLoading(false)
         }
     }
 
@@ -902,37 +864,6 @@ export default function ShopSetupPage() {
                                 <div className="lg:hidden">{preview}</div>
                             </>
                         )}
-
-                        {/* Step 5 */}
-                        {activeStep === 4 && (
-                            <div className="space-y-4">
-                                {!smsStatus ? (
-                                    <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status"><Loader2 className="h-4 w-4 animate-spin" /> Loading</p>
-                                ) : !smsStatus.enabled ? (
-                                    <Notice tone="info">SMS is not available on the platform right now. Check back from your dashboard later.</Notice>
-                                ) : smsStatus.activated ? (
-                                    <Notice tone="info"><span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> SMS is active for your shop.</span></Notice>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <p className="text-sm">One-time activation fee: <strong>GHS {smsStatus.activationFee.toFixed(2)}</strong></p>
-                                        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Pay with">
-                                            {([['wallet', 'Wallet', smsStatus.mainBalance], ['profit', 'Profit', smsStatus.profitBalance]] as const).map(([key, label, bal]) => (
-                                                <button key={key} type="button" role="radio" aria-checked={smsPaySource === key} onClick={() => setSmsPaySource(key)}
-                                                    className={cn('rounded-2xl px-4 py-3 text-left', smsPaySource === key ? 'neu-inset' : 'neu-raised-sm neu-press', FOCUS)}>
-                                                    <span className="block text-sm font-semibold">{label}</span>
-                                                    <span className="block text-xs text-muted-foreground">GHS {bal.toFixed(2)}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <ClayButton type="button" onClick={handleEnableSms} loading={smsLoading}>Enable SMS</ClayButton>
-                                    </div>
-                                )}
-                                <a href="/dashboard/shop/sms" target="_blank" rel="noopener noreferrer"
-                                    className={cn('inline-block rounded text-sm font-semibold text-brand-800 underline underline-offset-2 dark:text-brand-400', FOCUS)}>
-                                    Set up templates and sender ID
-                                </a>
-                            </div>
-                        )}
                     </motion.section>
                 </AnimatePresence>
 
@@ -967,16 +898,6 @@ export default function ShopSetupPage() {
                                 </Button>
                             </div>
                         )}
-                        <div className="neu-raised-sm space-y-2 rounded-2xl p-3.5">
-                            <p className="flex items-center justify-between text-xs font-semibold">
-                                Order texts from your own brand
-                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Optional</span>
-                            </p>
-                            <SenderIdExplainer variant="compact" />
-                            <Link href="/dashboard/shop/sms" className={cn('inline-flex rounded text-xs font-semibold text-brand-800 underline underline-offset-2 dark:text-brand-400', FOCUS)}>
-                                Request a sender ID
-                            </Link>
-                        </div>
                     </div>
                     <DialogFooter>
                         <ClayButton type="button" onClick={goToPricing}><Save className="h-4 w-4" /> Set my prices</ClayButton>

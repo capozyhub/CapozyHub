@@ -10,13 +10,12 @@ import {
     Store, TrendingUp, ShoppingCart, ArrowRight,
     Settings, Share2, Tag, Banknote, Clock, CheckCircle2, XCircle,
     AlertCircle, ExternalLink, Copy, Check, RefreshCcw, Crown,
-    MessageCircle, Loader2, Gem, Users, FileText, MessageSquare, Receipt, Inbox
+    MessageCircle, Loader2, Gem, Users, FileText, Inbox
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Switch } from '@/components/ui/switch'
 import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { ShopInsights } from '@/components/shop/shop-insights'
-import { ConfirmationStatusBanner } from '@/components/shop/confirmation-status-banner'
 import { PromoCarousel } from '@/components/promo-carousel/PromoCarousel'
 import { buildShopDashboardSlides } from '@/lib/promo-carousel/shop-dashboard-slides'
 
@@ -94,19 +93,6 @@ export default function ShopDashboardPage() {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [copied, setCopied] = useState(false)
 
-    // Customer order-confirmation SMS toggle (per shop, defaults enabled)
-    const [smsConfirmEnabled, setSmsConfirmEnabled] = useState(true)
-    const [savingSmsToggle, setSavingSmsToggle]     = useState(false)
-
-    // Utility bills storefront toggle (per shop, defaults OFF — opt-in)
-    const [utilitiesEnabled, setUtilitiesEnabled]   = useState(false)
-    const [savingUtilityToggle, setSavingUtilityToggle] = useState(false)
-
-    // Utility-bill completion SMS toggle — separate from the general customer-order SMS
-    // toggle above (defaults enabled, same convention).
-    const [utilitySmsEnabled, setUtilitySmsEnabled] = useState(true)
-    const [savingUtilitySmsToggle, setSavingUtilitySmsToggle] = useState(false)
-
     // Announcement state
     const [shopAnnouncement, setShopAnnouncement] = useState<{ id: string; message: string; is_active: boolean } | null>(null)
     const [annMsg, setAnnMsg] = useState('')
@@ -155,9 +141,6 @@ export default function ShopDashboardPage() {
 
             if (seq !== fetchSeq.current) return
             setShop(shopData)
-            setSmsConfirmEnabled(shopData?.sms_order_confirmation_enabled !== false)
-            setUtilitiesEnabled(shopData?.utilities_enabled === true)
-            setUtilitySmsEnabled(shopData?.utility_sms_confirmation_enabled !== false)
         }
 
         // --- Stage 2: Fetch secondary data (wallet, orders) with allSettled ---
@@ -339,97 +322,6 @@ export default function ShopDashboardPage() {
         }
     }
 
-    // Toggle whether customers get an SMS confirmation on each order. Optimistic
-    // update; revert on failure so the switch never lies about the saved state.
-    const handleToggleSmsConfirm = async (next: boolean) => {
-        const prev = smsConfirmEnabled
-        setSmsConfirmEnabled(next)
-        setSavingSmsToggle(true)
-        try {
-            const res = await fetch('/api/shop/sms-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: next }),
-            })
-            const data = await res.json()
-            if (res.ok && data.success) {
-                toast.success(next ? 'Customers will get order SMS' : 'Order SMS to customers turned off')
-            } else {
-                setSmsConfirmEnabled(prev)
-                toast.error(data.error || 'Could not update SMS setting')
-            }
-        } catch {
-            setSmsConfirmEnabled(prev)
-            toast.error('Could not update SMS setting')
-        } finally {
-            setSavingSmsToggle(false)
-        }
-    }
-
-    // Toggle whether a completion SMS is sent (from THIS shop's own sender, deducted from
-    // its own SMS credits) when one of its utility-bill orders finishes. Separate from
-    // handleToggleSmsConfirm — a shop owner may want one on and the other off. Optimistic
-    // update; revert on failure — same shape as every other toggle on this page.
-    const handleToggleUtilitySms = async (next: boolean) => {
-        const prev = utilitySmsEnabled
-        setUtilitySmsEnabled(next)
-        setSavingUtilitySmsToggle(true)
-        try {
-            const res = await fetch('/api/shop/utility-sms-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: next }),
-            })
-            const data = await res.json()
-            if (res.ok && data.success) {
-                toast.success(next
-                    ? 'Utility bill completion SMS turned on'
-                    : 'Utility bill completion SMS turned off')
-            } else {
-                setUtilitySmsEnabled(prev)
-                toast.error(data.error || 'Could not update utility SMS setting')
-            }
-        } catch {
-            setUtilitySmsEnabled(prev)
-            toast.error('Could not update utility SMS setting')
-        } finally {
-            setSavingUtilitySmsToggle(false)
-        }
-    }
-
-    // Toggle whether utility bill payments (ECG/Ghana Water/DSTV/GOtv/StarTimes) appear on
-    // this shop's storefront. Optimistic update; revert on failure so the switch never lies
-    // about the saved state — same shape as handleToggleSmsConfirm.
-    const handleToggleUtilities = async (next: boolean) => {
-        const prev = utilitiesEnabled
-        setUtilitiesEnabled(next)
-        setSavingUtilityToggle(true)
-        try {
-            const res = await fetch('/api/shop/utility-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: next }),
-            })
-            const data = await res.json()
-            if (res.ok && data.success) {
-                toast.success(next
-                    ? "Utility bills are now on your storefront — you'll earn commission on every sale, added to your shop profit."
-                    : 'Utility bills removed from your storefront')
-            } else {
-                setUtilitiesEnabled(prev)
-                if (res.status === 403 && data.error === 'upgrade_required') {
-                    toast.error('Upgrade to Agent or Dealer to sell utility bills on your storefront.')
-                } else {
-                    toast.error(data.error || 'Could not update utility bills setting')
-                }
-            }
-        } catch {
-            setUtilitiesEnabled(prev)
-            toast.error('Could not update utility bills setting')
-        } finally {
-            setSavingUtilityToggle(false)
-        }
-    }
 
     if (loading) {
         return (
@@ -480,7 +372,6 @@ export default function ShopDashboardPage() {
         { href: '/dashboard/shop/withdraw', label: 'Withdraw', hint: 'Cash out profit', icon: Banknote },
         { href: '/dashboard/shop/customers', label: 'Customers', hint: 'Who buys from you', icon: Users },
         { href: '/dashboard/shop/profit-logs', label: 'Profit logs', hint: 'Full ledger', icon: FileText },
-        { href: '/dashboard/shop/sms', label: 'SMS', hint: 'Sender & credits', icon: MessageSquare },
         { href: '/dashboard/shop/setup', label: 'Settings', hint: 'Shop & branding', icon: Settings },
         ...(shopIsLive ? [{ href: shopUrl, label: 'Storefront', hint: 'View it live', icon: ExternalLink, external: true }] : []),
     ]
@@ -488,7 +379,6 @@ export default function ShopDashboardPage() {
     const checklist = [
         { label: 'Shop approved', done: shop.approval_status === 'approved', href: '/dashboard/shop/setup' },
         { label: 'Prices approved', done: shop.pricing_status === 'approved', href: '/dashboard/shop/pricing' },
-        { label: 'Customer SMS switched on', done: smsConfirmEnabled, href: '/dashboard/shop/sms' },
         { label: 'Storefront notice written', done: !!shopAnnouncement?.message, href: '#storefront-notice' },
         { label: 'First sale made', done: (wallet?.total_earned || 0) > 0, href: shopUrl || '/dashboard/shop' },
     ]
@@ -591,16 +481,10 @@ export default function ShopDashboardPage() {
                 )}
             </section>
 
-            {/* ── Confirmation-status warning (only renders when something needs the owner's attention) ── */}
-            <ConfirmationStatusBanner />
-
             {/* ── Promo Carousel ── */}
             <PromoCarousel
                 slides={buildShopDashboardSlides({
                     shopIsLive,
-                    smsConfirmEnabled,
-                    utilitiesEnabled,
-                    ownerRole: dbUser?.role,
                     brandColor: /^#([A-Fa-f0-9]{3}){1,4}$/.test(shop.brand_color) ? shop.brand_color : '#F6C30F',
                 })}
             />
@@ -724,64 +608,6 @@ export default function ShopDashboardPage() {
                         >
                             {isSavingAnn ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save notice'}
                         </button>
-                    </div>
-
-                    {/* Customer SMS confirmation toggle */}
-                    <div id="sms-confirm-toggle" className="neu-raised-sm scroll-mt-24 rounded-3xl p-4">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-display text-sm font-semibold">
-                                    <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Customer order SMS
-                                </div>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    Text customers a confirmation each time they order from your shop.
-                                </p>
-                            </div>
-                            <Switch
-                                checked={smsConfirmEnabled}
-                                onCheckedChange={handleToggleSmsConfirm}
-                                disabled={savingSmsToggle}
-                                aria-label="Send order confirmation SMS to customers"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Utility bills storefront toggle */}
-                    <div id="bill-pay-toggle" className="neu-raised-sm scroll-mt-24 rounded-3xl p-4">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-display text-sm font-semibold">
-                                    <Receipt className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Utility bills on my storefront
-                                </div>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    Let customers pay ECG, Ghana Water, DSTV, GOtv and StarTimes bills from your shop.
-                                </p>
-                            </div>
-                            <Switch
-                                checked={utilitiesEnabled}
-                                onCheckedChange={handleToggleUtilities}
-                                disabled={savingUtilityToggle}
-                                aria-label="Sell utility bill payments on my storefront"
-                            />
-                        </div>
-                        {utilitiesEnabled && (
-                            <div className="mt-3 flex items-start justify-between gap-3 border-t border-white/5 pt-3">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 font-display text-sm font-semibold">
-                                        <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Utility bill completion SMS
-                                    </div>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        Text the customer when their bill payment completes, from your own sender — uses your SMS credits.
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={utilitySmsEnabled}
-                                    onCheckedChange={handleToggleUtilitySms}
-                                    disabled={savingUtilitySmsToggle}
-                                    aria-label="Send utility bill completion SMS to customers"
-                                />
-                            </div>
-                        )}
                     </div>
                 </div>
 

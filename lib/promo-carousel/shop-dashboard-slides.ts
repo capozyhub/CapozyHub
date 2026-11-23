@@ -1,14 +1,11 @@
 // lib/promo-carousel/shop-dashboard-slides.ts
 import {
-    Tag, MessageSquare, Receipt, FileText, Settings, Banknote, Share2,
+    Tag, FileText, Settings, Banknote, Share2,
 } from 'lucide-react'
 import type { PromoSlide } from './types'
 
 export interface ShopDashboardSlideContext {
     shopIsLive: boolean
-    smsConfirmEnabled: boolean
-    utilitiesEnabled: boolean
-    ownerRole: string | null | undefined
     brandColor: string
 }
 
@@ -26,36 +23,6 @@ export function buildShopDashboardSlides(ctx: ShopDashboardSlideContext): PromoS
             body: 'Submit your pricing for approval and your storefront link goes live for customers.',
             icon: Tag,
             cta: { label: 'Set Up Pricing', href: '/dashboard/shop/pricing' },
-            accentColor,
-        })
-    }
-
-    slides.push({
-        id: 'sms-status',
-        theme: 'blue',
-        eyebrowIcon: MessageSquare,
-        eyebrow: 'SMS',
-        title: ctx.smsConfirmEnabled ? 'SMS confirmations are on' : 'Turn on SMS confirmations',
-        body: ctx.smsConfirmEnabled
-            ? 'Your customers get an SMS the moment their order is confirmed — builds trust automatically.'
-            : 'Send customers an automatic SMS when their order is confirmed to build trust.',
-        icon: MessageSquare,
-        cta: { label: ctx.smsConfirmEnabled ? 'Manage' : 'Turn On', href: '/dashboard/shop#sms-confirm-toggle' },
-        accentColor,
-    })
-
-    if (ctx.ownerRole === 'agent' || ctx.ownerRole === 'dealer') {
-        slides.push({
-            id: 'bill-pay-status',
-            theme: 'emerald',
-            eyebrowIcon: Receipt,
-            eyebrow: 'BILL PAY',
-            title: ctx.utilitiesEnabled ? 'Bill Pay is live on your shop' : 'Enable Bill Pay',
-            body: ctx.utilitiesEnabled
-                ? 'Customers can pay ECG, Ghana Water and more right from your storefront.'
-                : 'Let customers pay ECG, Ghana Water and other bills from your storefront.',
-            icon: Receipt,
-            cta: { label: ctx.utilitiesEnabled ? 'Manage' : 'Enable', href: '/dashboard/shop#bill-pay-toggle' },
             accentColor,
         })
     }
@@ -140,17 +107,6 @@ export function buildShopDashboardSlides(ctx: ShopDashboardSlideContext): PromoS
             eyebrow: 'GROW',
             title: 'Reward returning customers',
             body: 'Reward returning customers with a small discount on bulk orders.',
-            icon: Share2,
-            cta: { label: 'Grow My Shop', href: '/dashboard/shop/customers' },
-            accentColor,
-        },
-        {
-            id: 'tip-sms-broadcast',
-            theme: 'blue',
-            eyebrowIcon: Share2,
-            eyebrow: 'GROW',
-            title: 'Broadcast your promos',
-            body: 'Use SMS broadcasts to announce promos to your customer list.',
             icon: Share2,
             cta: { label: 'Grow My Shop', href: '/dashboard/shop/customers' },
             accentColor,

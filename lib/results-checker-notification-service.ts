@@ -9,7 +9,6 @@
 import { createServerClient } from './supabase'
 import { sendResultsCheckerDeliverySMS } from './sms-service'
 import { sendResultsCheckerDeliveryEmail } from './email-service'
-import { resolveOwnConfirmationSender, resolveShopConfirmationSender } from './sms-confirmation-sender'
 import type { RCOrder, RCVoucher } from './results-checker-service'
 
 /**
@@ -31,19 +30,6 @@ export async function deliverVouchers(
     const db = supabase as any
     const deliveredVia: string[] = []
 
-    // KFT SMS v2 (feature-wave5, Task 2): the RC PIN SMS is the PRODUCT itself,
-    // not an order confirmation — it is NEVER metered and NEVER suppressed here,
-    // only re-branded when a sender is available. Resolution order:
-    //   1. shop's approved sender wins for shop orders (resolveShopConfirmationSender)
-    //   2. else the order OWNER's own approved sender (guest orders carry no
-    //      user_id — skip resolution entirely, they fall back to the platform sender)
-    //   3. else undefined → sendResultsCheckerDeliverySMS uses the platform sender.
-    // Neither resolver ever throws — a DB error degrades to platform sender.
-    const [shopSender, ownSender] = await Promise.all([
-        order.shop_id ? resolveShopConfirmationSender(db, order.shop_id) : Promise.resolve(null),
-        order.user_id ? resolveOwnConfirmationSender(supabase, order.user_id) : Promise.resolve(null),
-    ])
-
     // ── SMS Delivery ───────────────────────────────────────────────────────
     if (order.customer_phone) {
         try {
@@ -52,7 +38,6 @@ export async function deliverVouchers(
                 quantity:      order.quantity,
                 vouchers,
                 referenceCode: order.reference_code,
-                sender:        shopSender ?? ownSender ?? undefined,
             })
             if (result.success) {
                 deliveredVia.push('sms')

@@ -392,22 +392,6 @@ export default function ShopCustomersPage() {
                 {truncated && <p className="mt-3 text-center text-xs text-muted-foreground">Showing your 10,000 most recent customers.</p>}
             </section>
 
-            {/* SMS shortcut */}
-            {customers.length > 0 && (
-                <Link href="/dashboard/shop/sms" className={cn('neu-raised-sm neu-press group flex items-center justify-between gap-3 rounded-3xl p-4', FOCUS)}>
-                    <div className="flex items-center gap-3">
-                        <span className="neu-inset flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-brand-700 dark:text-brand-500">
-                            <MessageSquare className="h-5 w-5" />
-                        </span>
-                        <div>
-                            <p className="text-sm font-semibold">Message your customers</p>
-                            <p className="text-xs text-muted-foreground">Send promos and updates by SMS to your whole list.</p>
-                        </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </Link>
-            )}
-
             {/* Edit modal */}
             <Dialog open={!!editing} onOpenChange={(open) => { if (!open && !savingEdit) setEditing(null) }}>
                 <DialogContent className="max-w-md">

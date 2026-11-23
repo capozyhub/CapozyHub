@@ -7,11 +7,10 @@ import Link from 'next/link'
 import {
     Copy, Check,
     Lock, Zap, List, Globe, AlertCircle, Code2, ArrowRight,
-    Menu, X, ExternalLink, MessageSquare, Percent, AlertTriangle,
+    Menu, X, ExternalLink, AlertTriangle,
     UserCheck, Smartphone, GraduationCap, BadgeCheck, Lightbulb,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SMS_API_ENDPOINTS, SMS_BUSINESS_MODE_NOTICE } from '@/content/sms-api-docs'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Method = 'GET' | 'POST'
@@ -28,8 +27,6 @@ const TOC = [
     { id: 'airtime', label: 'Airtime', icon: Smartphone },
     { id: 'resultschecker', label: 'Results Checker', icon: GraduationCap },
     { id: 'afa', label: 'AFA Registration', icon: BadgeCheck },
-    { id: 'sms', label: 'SMS API', icon: MessageSquare },
-    { id: 'utilities', label: 'Utility Bills', icon: Percent },
     { id: 'tips', label: 'Tips & Recommendations', icon: Lightbulb },
     { id: 'networks', label: 'Networks', icon: Globe },
     { id: 'errors', label: 'Error Codes', icon: AlertCircle },
@@ -428,143 +425,6 @@ echo curl_exec($ch); curl_close($ch);`,
 ref = 'your_reference_here'
 r = requests.get(f'${BASE}/orders/{ref}',
   headers={'Authorization': '${KEY}'})
-print(r.json())`,
-}
-
-// ─── Utility Bills (Commission) code samples ─────────────────────────────────
-const UTIL_BILLERS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${BASE}/utilities/billers \\
-  -H "Authorization: ${CS_KEY}"`,
-    'Node.js': `const res = await fetch('${BASE}/utilities/billers', {
-  headers: { 'Authorization': '${CS_KEY}' },
-});
-console.log(await res.json());`,
-    'PHP': `<?php
-$ch = curl_init('${BASE}/utilities/billers');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
-]);
-echo curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests
-r = requests.get('${BASE}/utilities/billers',
-  headers={'Authorization': '${CS_KEY}'})
-print(r.json())`,
-}
-
-const UTIL_LOOKUP_SAMPLES: Record<LangTab, string> = {
-    'cURL': `# DSTV — query by smartcard number
-curl -X GET "${BASE}/utilities/lookup?biller=dstv&account=7041234567" \\
-  -H "Authorization: ${CS_KEY}"
-
-# ECG — query by phone (account is still required; pass the same number)
-curl -X GET "${BASE}/utilities/lookup?biller=ecg&phone=0551617309&account=0551617309" \\
-  -H "Authorization: ${CS_KEY}"`,
-    'Node.js': `const params = new URLSearchParams({ biller: 'dstv', account: '7041234567' });
-const res = await fetch(\`${BASE}/utilities/lookup?\${params}\`, {
-  headers: { 'Authorization': '${CS_KEY}' },
-});
-console.log(await res.json());`,
-    'PHP': `<?php
-$qs = http_build_query(['biller' => 'dstv', 'account' => '7041234567']);
-$ch = curl_init("${BASE}/utilities/lookup?$qs");
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
-]);
-echo curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests
-r = requests.get('${BASE}/utilities/lookup',
-  headers={'Authorization': '${CS_KEY}'},
-  params={'biller': 'dstv', 'account': '7041234567'})
-print(r.json())`,
-}
-
-const UTIL_PAY_SAMPLES: Record<LangTab, string> = {
-    'cURL': `# DSTV — account-only biller
-curl -X POST ${BASE}/utilities/pay \\
-  -H "Authorization: ${CS_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "biller": "dstv",
-    "account": "7041234567",
-    "amount": 65.00,
-    "reference": "bill_dstv_7041234567_01"
-  }'
-
-# ECG — account is the METER (from lookup meters[]), phone is required too
-curl -X POST ${BASE}/utilities/pay \\
-  -H "Authorization: ${CS_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "biller": "ecg",
-    "account": "3701234567",
-    "phone": "0551617309",
-    "amount": 50.00,
-    "reference": "bill_ecg_3701234567_01"
-  }'`,
-    'Node.js': `const res = await fetch('${BASE}/utilities/pay', {
-  method: 'POST',
-  headers: {
-    'Authorization': '${CS_KEY}',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    biller: 'dstv',
-    account: '7041234567',
-    amount: 65.00,
-    reference: 'bill_dstv_7041234567_01',
-  }),
-});
-console.log(await res.json());`,
-    'PHP': `<?php
-$ch = curl_init('${BASE}/utilities/pay');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_POST => true,
-  CURLOPT_HTTPHEADER => [
-    'Authorization: ${CS_KEY}',
-    'Content-Type: application/json',
-  ],
-  CURLOPT_POSTFIELDS => json_encode([
-    'biller' => 'dstv', 'account' => '7041234567',
-    'amount' => 65.00, 'reference' => 'bill_dstv_7041234567_01',
-  ]),
-]);
-echo curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests
-
-r = requests.post(
-  '${BASE}/utilities/pay',
-  headers={'Authorization': '${CS_KEY}'},
-  json={
-    'biller': 'dstv', 'account': '7041234567',
-    'amount': 65.00, 'reference': 'bill_dstv_7041234567_01',
-  }
-)
-print(r.json())`,
-}
-
-const UTIL_STATUS_SAMPLES: Record<LangTab, string> = {
-    'cURL': `curl -X GET ${BASE}/utilities/orders/UTIL-DSTV-3f9a2b1c4d5e6f70 \\
-  -H "Authorization: ${CS_KEY}"`,
-    'Node.js': `const ref = 'UTIL-DSTV-3f9a2b1c4d5e6f70'; // the reference from the /pay response
-const res = await fetch(\`${BASE}/utilities/orders/\${ref}\`, {
-  headers: { 'Authorization': '${CS_KEY}' },
-});
-console.log(await res.json());`,
-    'PHP': `<?php
-$ref = 'UTIL-DSTV-3f9a2b1c4d5e6f70';
-$ch = curl_init("${BASE}/utilities/orders/$ref");
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
-]);
-echo curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests
-ref = 'UTIL-DSTV-3f9a2b1c4d5e6f70'
-r = requests.get(f'${BASE}/utilities/orders/{ref}',
-  headers={'Authorization': '${CS_KEY}'})
 print(r.json())`,
 }
 
@@ -1001,7 +861,7 @@ export default function DevelopersPage() {
                         Capozy Hub<br /><span className="text-violet-300">Developer API</span>
                     </h1>
                     <p className="text-sm sm:text-lg text-white/75 max-w-xl mb-8">
-                        One API for Ghana digital services: data bundles, airtime, bulk SMS, WAEC/BECE results checkers, MTN AFA registration and utility bills. Integrate using your wallet balance and agent pricing.
+                        One API for Ghana digital services: data bundles, airtime, WAEC/BECE results checkers and MTN AFA registration. Integrate using your wallet balance and agent pricing.
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex flex-wrap items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm rounded-xl px-4 py-2.5 overflow-x-auto">
@@ -1361,181 +1221,13 @@ export default function DevelopersPage() {
                             </div>
                         </section>
 
-                        {/* 8. SMS API */}
-                        <section id="sms" className="space-y-5">
-                            <SectionHeading id="sms" num={8} label="SMS API" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Send bulk and transactional SMS from your own systems — OTPs, order updates,
-                                campaigns — with per-recipient delivery tracking.
-                            </p>
-                            <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/15 p-4 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                                {SMS_BUSINESS_MODE_NOTICE}{' '}
-                                <Link href="/dashboard/sms/business" className="underline font-semibold">SMS dashboard</Link>
-                                {' · '}
-                                <Link href="/dashboard/sms/credits" className="underline font-semibold">Credits page</Link>
-                            </div>
-                            <div className="space-y-6">
-
-                                {SMS_API_ENDPOINTS.map(ep => (
-                                    <EndpointSection
-                                        key={ep.path}
-                                        method={ep.method}
-                                        path={ep.path}
-                                        description={ep.description}
-                                        queryParams={ep.queryParams}
-                                        requestBody={ep.requestBody}
-                                        responseBody={ep.responseBody}
-                                        notes={ep.notes}
-                                        codeSamples={ep.codeSamples}
-                                    />
-                                ))}
-
-                            </div>
-                        </section>
-
-                        {/* 9. Utility Bills (Commission) */}
-                        <section id="utilities" className="space-y-5">
-                            <SectionHeading id="utilities" num={9} label="Utility Bills (Commission)" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Pay ECG, Ghana Water, DSTV, GOtv, or StarTimes bills at face value on behalf of your customers — and earn a
-                                share of Capozy Hub&apos;s provider commission on every payment.
-                            </p>
-                            <div className="rounded-xl border border-violet-200 dark:border-violet-800/50 bg-violet-50 dark:bg-violet-900/15 p-4 text-xs text-violet-800 dark:text-violet-300 leading-relaxed space-y-2">
-                                <p>
-                                    <strong>Separate key required.</strong> These four endpoints only accept a{' '}
-                                    <strong>Commission Services key</strong> (prefix <IC>kf_cs_live_...</IC>) — a standard key is rejected with{' '}
-                                    <IC>403</IC>. The reverse is also true: a Commission Services key is rejected with <IC>403</IC> on every
-                                    other <IC>/api/*</IC> endpoint (packages, data purchases, wallet, SMS, etc.).
-                                </p>
-                                <p>
-                                    Generate one from <Link href="/dashboard/api" className="underline font-semibold">Dashboard → Developer API</Link> — no shop
-                                    required. Your commission is paid into a dedicated <strong>Commission Wallet</strong>, separate from shop earnings. Like
-                                    the standard key, it starts <IC>pending</IC> and needs admin approval before it works.
-                                </p>
-                                <p>
-                                    <strong>How the money moves:</strong> the bill&apos;s face value is debited from your <strong>main wallet</strong> when
-                                    you call <IC>POST /pay</IC>. Once the order reaches <IC>completed</IC>, your <IC>commission_share_percent</IC> cut
-                                    of the platform&apos;s commission is credited automatically to your <strong>Commission Wallet</strong> — transfer it
-                                    instantly to your main or shop wallet, or withdraw it via Paystack Mobile Money.
-                                </p>
-                            </div>
-                            <div className="space-y-6">
-
-                                <EndpointSection
-                                    method="GET" path="/api/utilities/billers"
-                                    description="Full biller catalog for utility bill payments — including currently disabled billers, so you can build your UI without hardcoding which ones are live."
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "billers": [\n      {\n        "key": "ecg",\n        "label": "ECG Prepaid & Postpaid",\n        "enabled": true,\n        "account_label": "Meter number",\n        "requires_phone": true,\n        "lookup_by": "phone",\n        "links_phone_to_account": true,\n        "has_amount_due": true\n      },\n      {\n        "key": "dstv",\n        "label": "DSTV",\n        "enabled": true,\n        "account_label": "Smartcard number",\n        "requires_phone": false,\n        "lookup_by": "account",\n        "links_phone_to_account": false,\n        "has_amount_due": true\n      }\n    ],\n    "min_amount": 1,\n    "max_amount": 1000,\n    "currency": "GHS"\n  }\n}`}
-                                    notes={[
-                                        'key values are: ecg, ghana_water, dstv, gotv, startimes — pass this exact string as biller on /lookup and /pay.',
-                                        'enabled is false for a biller currently switched off by an admin — still listed so your UI can grey it out instead of guessing.',
-                                        'lookup_by tells you which field ecg needs on /lookup ("phone") vs every other biller ("account").',
-                                        'requires_phone — whether /pay requires a customer phone for this biller (ecg, ghana_water). Note: /lookup accepts account alone for ecg (phone optional there).',
-                                        'links_phone_to_account is true only for ecg — one phone can be linked to more than one meter, so always let the customer pick from the meters array /lookup returns.',
-                                        'min_amount / max_amount are the live, admin-configurable limits enforced by /pay — read them from here instead of hardcoding GHS 1–1000.',
-                                    ]}
-                                    codeSamples={UTIL_BILLERS_SAMPLES}
-                                />
-
-                                <EndpointSection
-                                    method="GET" path="/api/utilities/lookup"
-                                    description="Verify an account before paying. Always show your customer the returned name (or, for ECG, the linked meters) and get their confirmation before calling /pay."
-                                    queryParams={[
-                                        { name: 'biller', type: 'string', required: true, desc: 'One of: ecg, ghana_water, dstv, gotv, startimes' },
-                                        { name: 'account', type: 'string', required: true, desc: 'Meter/smartcard/account number, max 30 chars. Required for every biller, including ecg — for ecg pass the phone number here too if you have no separate meter number, since the query actually runs on phone.' },
-                                        { name: 'phone', type: 'string', required: false, desc: 'Customer phone, max 30 chars. Required for ghana_water. For ecg, this is what the lookup actually queries by — supply it, not just account.' },
-                                    ]}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "account_name": "KWAME MENSAH",\n    "account_number": "7041234567",\n    "amount_due": 245.80,\n    "bouquet": null,\n    "meters": []\n  }\n}`}
-                                    notes={[
-                                        'ECG\'s shape differs from every other biller: account_name, account_number, amount_due and bouquet are always null — the real result is meters: [{ "name": "KWAME MENSAH", "meterNumber": "3701234567", "outstanding": 245.8 }, ...]. One phone can list several meters; let the customer choose the right one.',
-                                        'amount_due can be negative — that means the customer has a credit balance, not a bill due.',
-                                        '404 = account/meter/smartcard not found (bad number). 502 = the billing provider is temporarily unreachable — retry shortly, do not treat as "not found".',
-                                    ]}
-                                    codeSamples={UTIL_LOOKUP_SAMPLES}
-                                />
-
-                                <div className="flex items-start gap-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4">
-                                    <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                                        <strong>reference on /pay is a pure idempotency key, not a distinct-payment key.</strong> Reusing the same
-                                        reference — even with a different biller, account, or amount — returns the details of the <strong>ORIGINAL</strong> order
-                                        and never charges you again; it does not re-validate against the new values you sent. Use a unique reference
-                                        for every distinct bill. Reuse the same reference ONLY to safely retry the exact same payment (e.g. after a
-                                        network timeout).
-                                    </p>
-                                </div>
-
-                                <EndpointSection
-                                    method="POST" path="/api/utilities/pay"
-                                    description="Pay a bill at face value from your wallet. Auto-dispatches to the biller in the background — poll GET /orders/{reference} for the final status."
-                                    requestBody={`{\n  "biller": "dstv",\n  "account": "7041234567",\n  "amount": 65.00,\n  "reference": "bill_dstv_7041234567_01"\n}`}
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "order_id": "uuid-...",\n    "status": "pending",\n    "biller": "dstv",\n    "account": "7041234567",\n    "amount": 65.00,\n    "commission_share_percent": 40,\n    "new_balance": 435.00\n  }\n}`}
-                                    notes={[
-                                        'reference is a pure idempotency key — see the callout above. It is optional, 1–64 chars of letters, numbers, dot, underscore or hyphen.',
-                                        'Save the reference from the RESPONSE, not the one you sent — it is our own generated code (UTIL-<BILLER>-<random>) and is what GET /orders/{reference} expects.',
-                                        'On an idempotent replay (reused reference), the response is smaller: { reference, order_id, status, already_processed: true } — no biller/account/amount/commission_share_percent/new_balance, since nothing new happened.',
-                                        'phone is required for ecg and ghana_water (omit for dstv/gotv/startimes). For ecg, account is the specific meter number from the /lookup meters array — not the phone.',
-                                        'amount must be within the live min_amount/max_amount from GET /billers (defaults GHS 1.00–1000.00).',
-                                        'Without a reference, sending the same biller + account + amount twice within 30 seconds is rejected with 409. If your first request timed out, reuse that request\'s original reference — you\'ll get the original order back via idempotent replay. A new reference does not bypass the 30-second window; genuinely distinct same-amount payments to the same account must wait it out.',
-                                        'commission_share_percent is your cut of the platform commission (admin-configurable) — it is credited to your Commission Wallet once the order completes, not at response time.',
-                                    ]}
-                                    codeSamples={UTIL_PAY_SAMPLES}
-                                />
-
-                                <EndpointSection
-                                    method="GET" path="/api/utilities/orders/{reference}"
-                                    description="Poll the fulfillment status of a utility bill order using the reference from the /pay response. Only returns orders that belong to your own account."
-                                    responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "status": "refunded",\n    "payment_status": "paid",\n    "biller": "dstv",\n    "account_number": "7041234567",\n    "account_name": "KWAME MENSAH",\n    "amount": 65.00,\n    "commission_earned": null,\n    "reason": "The transaction could not be completed by the payment provider.",\n    "created_at": "2026-...",\n    "updated_at": "2026-..."\n  }\n}`}
-                                    notes={[
-                                        'Status flow: pending → processing → completed | failed | refunded.',
-                                        'The account field here is called account_number — not account as in the /pay request body. Same value, different key name across endpoints.',
-                                        'commission_earned is null until the order reaches completed — it is your realized share of the commission, credited to your Commission Wallet at that point.',
-                                        'A definitive provider failure auto-refunds your wallet — status becomes "refunded" and reason is present with a short, fixed explanation (never raw provider text).',
-                                        'Poll every few seconds after /pay until status leaves pending / processing.',
-                                    ]}
-                                    codeSamples={UTIL_STATUS_SAMPLES}
-                                />
-
-                            </div>
-
-                            <div>
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Rate Limits (per key)</p>
-                                <DocTable
-                                    head={['Endpoint', 'Limit']}
-                                    rows={[
-                                        [<code key="rl1" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /billers</code>, '30 / min'],
-                                        [<code key="rl2" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /lookup</code>, '10 / min'],
-                                        [<code key="rl3" className="font-mono text-violet-600 dark:text-violet-400 text-xs">POST /pay</code>, '6 / min'],
-                                        [<code key="rl4" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /orders/{'{reference}'}</code>, '30 / min'],
-                                    ]}
-                                />
-                            </div>
-
-                            <div>
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Error Codes (this section)</p>
-                                <DocTable
-                                    head={['Code', 'When it occurs']}
-                                    rows={[
-                                        [<span key="u400" className="font-mono font-bold text-red-500">400</span>, 'Invalid biller/account/phone/amount/reference, or insufficient wallet balance'],
-                                        [<span key="u401" className="font-mono font-bold text-red-500">401</span>, 'Missing or invalid API key'],
-                                        [<span key="u403" className="font-mono font-bold text-red-500">403</span>, 'Wrong key type (commission key required here; standard key required everywhere else), key pending/revoked, or account suspended'],
-                                        [<span key="u404" className="font-mono font-bold text-red-500">404</span>, 'Account/meter/smartcard not found (lookup), or order not found (status)'],
-                                        [<span key="u409" className="font-mono font-bold text-amber-500">409</span>, 'Duplicate order — same biller + account + amount resent within 30s without a reference'],
-                                        [<span key="u429" className="font-mono font-bold text-amber-500">429</span>, 'Rate limit exceeded — see limits above'],
-                                        [<span key="u502" className="font-mono font-bold text-slate-500">502</span>, 'Billing provider temporarily unreachable — retry shortly (lookup only)'],
-                                        [<span key="u503" className="font-mono font-bold text-slate-500">503</span>, 'Utility bills, or this specific biller, currently disabled by an admin'],
-                                    ]}
-                                />
-                            </div>
-                        </section>
-
                         {/* 10. Tips & Recommendations */}
                         <section id="tips" className="space-y-6">
-                            <SectionHeading id="tips" num={10} label="Tips & Recommendations" />
+                            <SectionHeading id="tips" num={8} label="Tips & Recommendations" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 One key type, one purpose — a <IC>standard</IC> key covers data, results checker and
-                                AFA; a <IC>Commission Services</IC> key covers utilities and airtime; an <IC>SMS</IC> key covers SMS. A key
-                                is confined to its own section — a standard key cannot call <IC>/utilities/*</IC>, <IC>/airtime/*</IC>, or{' '}
-                                <IC>/sms/*</IC>, and vice versa.
+                                AFA; a <IC>Commission Services</IC> key covers airtime. A key
+                                is confined to its own section — a standard key cannot call <IC>/airtime/*</IC>, and vice versa.
                             </p>
 
                             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
@@ -1551,19 +1243,9 @@ export default function DevelopersPage() {
                             </div>
 
                             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Commission Services key — utilities, airtime</p>
+                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Commission Services key — airtime</p>
                                 <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Call <IC>GET /utilities/billers</IC> and <IC>GET /utilities/lookup</IC> before <IC>POST /utilities/pay</IC> — the payment call validates against what lookup returns, so skipping it just produces avoidable 400s.</span></li>
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>This key type is scoped to <IC>/utilities/*</IC> and <IC>/airtime/*</IC> only — it cannot reach data, results checker, AFA, or SMS endpoints.</span></li>
-                                </ul>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">SMS key</p>
-                                <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Check <IC>GET /sms/senders</IC> for your approved sender IDs before sending — an unapproved sender ID is rejected outright.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Check <IC>GET /sms/balance</IC> before a large campaign so you don&apos;t hit a funding failure mid-send.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Campaign and message list endpoints are capped at 30 records per page — page with <IC>?page=</IC> rather than assuming one call covers a whole campaign.</span></li>
                                 </ul>
                             </div>
 
@@ -1598,7 +1280,7 @@ export default function DevelopersPage() {
 
                         {/* 11. Networks */}
                         <section id="networks" className="space-y-5">
-                            <SectionHeading id="networks" num={11} label="Supported Networks" />
+                            <SectionHeading id="networks" num={9} label="Supported Networks" />
                             <DocTable
                                 head={['Network Value', 'Provider', 'Notes']}
                                 rows={[
@@ -1619,7 +1301,7 @@ export default function DevelopersPage() {
 
                         {/* 12. Error Codes */}
                         <section id="errors" className="space-y-5">
-                            <SectionHeading id="errors" num={12} label="Error Codes" />
+                            <SectionHeading id="errors" num={10} label="Error Codes" />
                             <DocTable
                                 head={['Code', 'When it occurs']}
                                 rows={[
@@ -1637,7 +1319,7 @@ export default function DevelopersPage() {
 
                         {/* 13. Code Examples */}
                         <section id="examples" className="space-y-5">
-                            <SectionHeading id="examples" num={13} label="Full Examples" />
+                            <SectionHeading id="examples" num={11} label="Full Examples" />
                             <p className="text-sm text-slate-600 dark:text-slate-300">Complete runnable data purchase example. Select your language.</p>
                             <div className="flex flex-wrap gap-1 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl w-fit">
                                 {LANG_TABS.map(l => (

@@ -46,7 +46,6 @@ const PAGE_ROUTE_MAP: Record<string, keyof PageAccessSettings> = {
     '/dashboard/afa-orders': 'afaOrders',
     '/dashboard/recruit': 'recruit',
     '/dashboard/commission': 'commission',
-    '/dashboard/sms': 'sms',
     '/dashboard/api': 'developerApi',
 }
 
