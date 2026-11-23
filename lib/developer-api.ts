@@ -25,8 +25,6 @@ const DEV_API_PATTERNS: RegExp[] = [
     new RegExp(`^/api/afa/(register|orders|orders/${SEG})$`),
     new RegExp(`^/api/airtime/(purchase|orders|orders/${SEG})$`),
     new RegExp(`^/api/resultschecker/(purchase|types|orders|orders/${SEG})$`),
-    new RegExp(`^/api/sms/(balance|campaigns|send|senders|messages/${SEG})$`),
-    new RegExp(`^/api/utilities/(billers|lookup|pay|orders/${SEG})$`),
 ]
 
 export function isDevApiPath(pathname: string): boolean {

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
@@ -21,11 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ product: 
     if (!p) return {}
     const url = `${SITE}/developers/${p.slug}`
     return {
-        title: `${p.title} | KiNG FLEXY GH`,
+        title: `${p.title} | ${BRAND.name}`,
         description: p.description,
         keywords: p.keywords,
         alternates: { canonical: url },
-        openGraph: { title: p.title, description: p.description, url, type: 'article', siteName: 'KiNG FLEXY GH' },
+        openGraph: { title: p.title, description: p.description, url, type: 'article', siteName: BRAND.name },
         twitter: { card: 'summary_large_image', title: p.title, description: p.description },
     }
 }
@@ -46,7 +47,7 @@ export default async function DeveloperProductPage({ params }: { params: Promise
         url: `${SITE}/developers/${p.slug}`,
         inLanguage: 'en-GH',
         about: p.name,
-        publisher: { '@type': 'Organization', name: 'KiNG FLEXY TECHNOLOGIES LTD', url: SITE },
+        publisher: { '@type': 'Organization', name: BRAND.name, url: SITE },
     }
 
     return (
@@ -54,7 +55,7 @@ export default async function DeveloperProductPage({ params }: { params: Promise
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-10">
                 <nav className="text-sm text-slate-500">
-                    <Link href="/" className="hover:underline">KiNG FLEXY GH</Link>
+                    <Link href="/" className="hover:underline">{BRAND.name}</Link>
                     {' / '}
                     <Link href="/developers" className="hover:underline">Developer API</Link>
                     {' / '}
@@ -118,7 +119,7 @@ export default async function DeveloperProductPage({ params }: { params: Promise
                 </section>
 
                 <section className="space-y-3">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">More from KiNG FLEXY GH</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">More from {BRAND.name}</h2>
                     <ul className="flex flex-wrap gap-2">
                         {others.map(o => (
                             <li key={o.slug}>

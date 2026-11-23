@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp, requireKeyType } from '@/lib/api-auth'
+import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 import { REASON_MESSAGES } from '@/lib/api-order-failure'
 
@@ -11,7 +11,7 @@ import { REASON_MESSAGES } from '@/lib/api-order-failure'
 // reach this public v2 response verbatim. Found in security review, 2026-09-08.
 const KNOWN_REASON_MESSAGES = new Set<string>(Object.values(REASON_MESSAGES))
 
-const ENDPOINT = '/api/v2/airtime/orders/:reference'
+const ENDPOINT = '/api/airtime/orders/:reference'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ reference: string }> }) {
     const startTime = Date.now()
@@ -27,11 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const done = (statusCode: number, errorMessage?: string) =>
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'GET', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
-    const keyTypeError = requireKeyType(auth, 'commission')
-    if (keyTypeError) return keyTypeError
-
     try {
-        const rl = consumeRateLimit(`v2-airtime-status:${apiKeyId}`, 30, 60_000)
+        const rl = consumeRateLimit(`api-airtime-status:${apiKeyId}`, 30, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (30/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

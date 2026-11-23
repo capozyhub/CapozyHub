@@ -11,17 +11,11 @@ import {
 } from 'lucide-react'
 
 // ── Webhook Configuration Card ──────────────────────────────────────────────
-// One instance per key_type ('standard' | 'commission') that has a key. Talks
-// to GET/PUT/DELETE /api/user/api-keys/webhook (see that route for the SSRF
+// Talks to GET/PUT/DELETE /api/user/api-keys/webhook (see that route for the SSRF
 // validation, secret rotation, and cache-invalidation contract this UI relies
-// on). Rendered only when the caller already has a key of this type — a
-// webhook without a key to attach it to isn't a state this UI needs to model.
-//
-// This is a DIFFERENT feature from the SMS webhook config at
-// /dashboard/sms/api (which targets sms_accounts.webhook_url for inbound SMS
-// delivery reports). This one fires order.completed/order.failed events for
-// Data API and Utility Bills orders — see app/developers's Webhooks section.
-export function WebhookConfigCard({ keyType }: { keyType: 'standard' | 'commission' }) {
+// on). Rendered only when the caller already has a key. This fires
+// order.completed/order.failed events for developer-API orders.
+export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
     const [loading, setLoading] = useState(true)
     const [webhookUrl, setWebhookUrl] = useState('')
     const [savedUrl, setSavedUrl] = useState<string | null>(null)
@@ -129,7 +123,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' | 'commissi
             <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
                 <Webhook className="w-5 h-5 text-slate-500" />
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {keyType === 'standard' ? 'Data API' : 'Commission Services'} Webhook
+                    Developer API Webhook
                 </h2>
                 {savedUrl && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">

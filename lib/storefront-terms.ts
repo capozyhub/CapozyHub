@@ -4,7 +4,7 @@ import { needsReacceptance } from './terms'
 // We store the accepted VERSION string (not a boolean) so a version bump re-prompts
 // automatically, reusing the same compareVersions logic as the logged-in gate.
 // Global key: localStorage is per-origin, and the terms are platform-wide identical.
-export const STOREFRONT_TERMS_KEY = 'kfg_storefront_terms_accepted'
+export const STOREFRONT_TERMS_KEY = 'czh_storefront_terms_accepted'
 
 function store(): Storage | null {
   try {

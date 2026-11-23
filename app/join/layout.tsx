@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 
 // De-branded metadata for the sub-agent onboarding surface (audit finding #4).
 // The /join pages are the one place explicitly meant to hide the Capozy Hub
-// identity, but as client components they inherit the root layout's KFG title,
+// identity, but as client components they inherit the root layout's platform title,
 // favicon and OpenGraph card — leaking the brand in browser tabs and WhatsApp/
 // Facebook link unfurls. This server layout overrides that metadata for /join
 // and /join/[code] with a neutral partner identity and an inline SVG favicon
-// (no KFG asset referenced). Invitation-only, so also noindex.
+// (no platform asset referenced). Invitation-only, so also noindex.
 //
 // Residual: the root layout injects an Organization JSON-LD block into <body>
 // that a nested layout cannot remove; crawlers reading raw HTML can still see it.

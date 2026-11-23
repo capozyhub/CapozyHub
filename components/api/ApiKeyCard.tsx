@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import {
     Key, Copy, Check, RefreshCw, AlertTriangle, Clock, CheckCircle2, XCircle,
-    Eye, EyeOff, Percent, ShieldAlert, X, MessageCircle, Sparkles,
+    Eye, EyeOff, ShieldAlert, X, MessageCircle, Sparkles,
 } from 'lucide-react'
 
 export interface ApiKeyMeta {
@@ -14,7 +14,7 @@ export interface ApiKeyMeta {
     prefix: string
     name: string
     status: 'pending' | 'active' | 'revoked'
-    key_type: 'standard' | 'commission' | 'sms'
+    key_type: 'standard'
     last_used_at: string | null
     created_at: string
 }
@@ -27,7 +27,7 @@ interface NewKeyResponse {
         prefix: string
         name: string
         status: string
-        key_type: 'standard' | 'commission' | 'sms'
+        key_type: 'standard'
         created_at: string
     }
     warning?: string
@@ -60,30 +60,20 @@ const STATUS_CONFIG = {
     },
 }
 
-const KEY_TYPE_LABEL: Record<'standard' | 'commission' | 'sms', string> = {
+const KEY_TYPE_LABEL: Record<'standard', string> = {
     standard: 'Standard API Key',
-    commission: 'Commission Services Key',
-    sms: 'SMS API Key',
 }
-const KEY_TYPE_DEFAULT_NAME: Record<'standard' | 'commission' | 'sms', string> = {
+const KEY_TYPE_DEFAULT_NAME: Record<'standard', string> = {
     standard: 'My API Key',
-    commission: 'Commission Services Key',
-    sms: 'SMS API Key',
 }
-const KEY_TYPE_ICON: Record<'standard' | 'commission' | 'sms', any> = {
+const KEY_TYPE_ICON: Record<'standard', any> = {
     standard: Key,
-    commission: Percent,
-    sms: MessageCircle,
 }
-const KEY_TYPE_BADGE: Record<'standard' | 'commission' | 'sms', string | null> = {
+const KEY_TYPE_BADGE: Record<'standard', string | null> = {
     standard: null,
-    commission: 'Utilities',
-    sms: 'Business',
 }
-const KEY_TYPE_EMPTY_COPY: Record<'standard' | 'commission' | 'sms', string> = {
+const KEY_TYPE_EMPTY_COPY: Record<'standard', string> = {
     standard: 'Generate your first API key to start building integrations. Keys require admin approval before use.',
-    commission: 'Generate a commission key to start earning on utility bill endpoints. No shop required — earnings go to your Commission Wallet.',
-    sms: 'Generate your SMS API key to start sending programmatically. Active immediately — your business is already approved.',
 }
 
 function CopyButton({ text, className }: { text: string; className?: string }) {
@@ -115,25 +105,19 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
 }
 
 // ── API Key Card ─────────────────────────────────────────────────────────────
-// One instance per key_type ('standard' | 'commission' | 'sms'). Each card owns
-// its own generate/regenerate + one-time plaintext reveal flow independently —
-// generating one key type never touches another (mirrors the per-type delete
-// in POST /api/user/api-keys). SMS keys are auto-active (no admin approval —
-// see POST /api/user/api-keys), so the post-generation WhatsApp-approval-
-// request modal is skipped for that type: there's nothing for an admin to
-// approve, and showing it would be actively misleading.
+// Owns the generate/regenerate + one-time plaintext reveal flow for the user's API key.
+// New keys need admin approval before use (see POST /api/user/api-keys).
 export function ApiKeyCard({
     keyType, apiKey, userName, userEmail, userPhone, onGenerated,
 }: {
-    keyType: 'standard' | 'commission' | 'sms'
+    keyType: 'standard'
     apiKey: ApiKeyMeta | null
     userName: string
     userEmail: string
     userPhone: string
     onGenerated: () => void
 }) {
-    const requiresApproval = keyType !== 'sms'
-    const [isGenerating, setIsGenerating] = useState(false)
+        const [isGenerating, setIsGenerating] = useState(false)
     const [newKey, setNewKey] = useState<string | null>(null)
     const [showKey, setShowKey] = useState(false)
     const [copiedKey, setCopiedKey] = useState(false)
@@ -166,11 +150,7 @@ export function ApiKeyCard({
             setShowKey(true)
             setShowConfirmDialog(false)
             setShowWarningModal(false)
-            if (requiresApproval) {
-                setShowApprovalModal(true)
-            } else {
-                toast.success('SMS API key generated and active — copy it now, it will not be shown again.')
-            }
+            setShowApprovalModal(true)
             onGenerated()
         } catch (err: any) {
             setError(err.message || 'Failed to generate API key')
@@ -208,17 +188,6 @@ export function ApiKeyCard({
             </div>
 
             <div className="p-5 space-y-4">
-                {keyType === 'commission' && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        For utility bill endpoints. You earn a share of the transaction commission, paid into your shop wallet.
-                    </p>
-                )}
-                {keyType === 'sms' && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        For the SMS API (/api/sms/*). Active immediately — no admin approval needed since your business is already approved.
-                    </p>
-                )}
-
                 {/* New Key Banner */}
                 {newKey && (
                     <div className="rounded-2xl border-2 border-emerald-400/40 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20 overflow-hidden">
@@ -372,7 +341,7 @@ export function ApiKeyCard({
                             className="bg-gradient-to-r from-violet-500 to-brand-600 hover:from-violet-600 hover:to-brand-700 text-white font-semibold gap-2 shadow-lg shadow-violet-500/20 h-10 px-6"
                         >
                             {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-                            {isGenerating ? 'Generating…' : `Generate ${keyType === 'sms' ? 'SMS' : keyType === 'commission' ? 'Commission' : 'API'} Key`}
+                            {isGenerating ? 'Generating…' : 'Generate API Key'}
                         </Button>
                     </div>
                 )}
@@ -395,8 +364,8 @@ export function ApiKeyCard({
                 />
             )}
 
-            {/* Post-generation Approval Modal — standard/commission only, sms is auto-active */}
-            {showApprovalModal && newKey && requiresApproval && (
+            {/* Post-generation approval modal: new keys need admin approval */}
+            {showApprovalModal && newKey && (
                 <ApprovalModal
                     userName={userName}
                     userEmail={userEmail}

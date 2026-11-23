@@ -109,7 +109,7 @@ export function PWAInstallPrompt() {
         }
 
         try {
-            const dismissed = localStorage.getItem('kfg_pwa_banner_dismissed')
+            const dismissed = localStorage.getItem('czh_pwa_banner_dismissed')
             if (dismissed) {
                 const dismissedAt = parseInt(dismissed, 10)
                 if (Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return
@@ -140,7 +140,7 @@ export function PWAInstallPrompt() {
             setDeferredPrompt(prompt)
             // Only show banner now that we KNOW the native prompt is available
             try {
-                const dismissed = localStorage.getItem('kfg_pwa_banner_dismissed')
+                const dismissed = localStorage.getItem('czh_pwa_banner_dismissed')
                 if (dismissed) {
                     const dismissedAt = parseInt(dismissed, 10)
                     if (Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return
@@ -188,7 +188,7 @@ export function PWAInstallPrompt() {
     const handleDismiss = useCallback(() => {
         setShowBanner(false)
         try {
-            localStorage.setItem('kfg_pwa_banner_dismissed', Date.now().toString())
+            localStorage.setItem('czh_pwa_banner_dismissed', Date.now().toString())
         } catch {}
     }, [])
 

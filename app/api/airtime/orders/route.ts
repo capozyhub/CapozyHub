@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp, requireKeyType } from '@/lib/api-auth'
+import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 // ============================================================================
@@ -26,11 +26,8 @@ export async function GET(request: NextRequest) {
     const done = (statusCode: number, errorMessage?: string) =>
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'GET', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
-    const keyTypeError = requireKeyType(auth, 'commission')
-    if (keyTypeError) return keyTypeError
-
     try {
-        const rl = consumeRateLimit(`v2-airtime-list:${apiKeyId}`, 30, 60_000)
+        const rl = consumeRateLimit(`api-airtime-list:${apiKeyId}`, 30, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (30/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

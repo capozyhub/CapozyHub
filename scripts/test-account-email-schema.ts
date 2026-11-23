@@ -26,7 +26,7 @@ function assert(cond: boolean, msg: string) {
 assert(!accountEmailSchema.safeParse('petabenney@8').success, 'rejects "petabenney@8" (no real domain)')
 assert(!accountEmailSchema.safeParse('foo@bar').success, 'rejects a domain with no dot at all')
 assert(!accountEmailSchema.safeParse('foo@bar.xyz').success, 'rejects a syntactically-valid but unrecognized domain')
-assert(!accountEmailSchema.safeParse('foo@kingflexygh-fake.com').success, 'rejects a plausible-looking but non-allowlisted domain')
+assert(!accountEmailSchema.safeParse('foo@example-fake.com').success, 'rejects a plausible-looking but non-allowlisted domain')
 
 // ── Accepts real, common consumer providers ──
 for (const addr of [

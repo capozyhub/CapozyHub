@@ -43,7 +43,7 @@ export function categorizeFailure(trigger: 'permanent_failure' | 'failed' | 'sta
 export async function autoRefundApiOrderOnFailure(
     supabase: any,
     params: {
-        product: 'airtime' | 'utilities'
+        product: 'airtime'
         orderId: string
         source: string | null | undefined
         reasonCode: ReasonCode
@@ -52,8 +52,8 @@ export async function autoRefundApiOrderOnFailure(
 ): Promise<{ refunded: boolean; amount?: number; newBalance?: number }> {
     if (params.source !== 'api') return { refunded: false }
 
-    const rpcName = params.product === 'airtime' ? 'refund_airtime_wallet' : 'refund_utility_wallet'
-    const idParamName = params.product === 'airtime' ? 'p_order_id' : 'p_utility_order_id'
+    const rpcName = 'refund_airtime_wallet'
+    const idParamName = 'p_order_id'
 
     try {
         const { data, error } = await (supabase as any).rpc(rpcName, {

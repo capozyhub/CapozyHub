@@ -12,8 +12,7 @@ function assertEqual<T>(actual: T, expected: T, label: string) {
 // Public developer-API paths
 for (const p of [
     '/api/packages', '/api/account/role', '/api/wallet/balance', '/api/wallet/topup',
-    '/api/data/purchase', '/api/data/bulk', '/api/orders/KFT123', '/api/sms/campaigns',
-    '/api/sms/messages/abc', '/api/utilities/orders/ref1', '/api/airtime/orders/ref1',
+    '/api/data/purchase', '/api/data/bulk', '/api/orders/ORD123', '/api/airtime/orders/ref1',
     '/api/afa/register', '/api/resultschecker/types',
 ]) assertEqual(isDevApiPath(p), true, `public: ${p}`)
 
@@ -21,9 +20,9 @@ for (const p of [
 // public paths get open CORS and skip session handling.
 for (const p of [
     '/api/orders/purchase', '/api/orders/bulk-purchase', '/api/orders/confirm-received', '/api/orders/retry',
-    '/api/sms/my-campaigns', '/api/sms/my-campaigns/abc', '/api/sms/account', '/api/utilities/verify',
-    '/api/utilities/create', '/api/airtime/create', '/api/wallet/claim-momo', '/api/admin/orders',
-    '/api/webhooks/paystack', '/api/v2/packages', '/api/packages/extra', '/api/packages/', '/api',
+    '/api/sms/campaigns', '/api/sms/send', '/api/utilities/pay', '/api/utilities/orders/ref1',
+    '/api/airtime/create', '/api/wallet/claim-momo', '/api/admin/orders',
+    '/api/webhooks/paystack', '/api/v2/packages', '/api/v1/packages', '/api/packages/extra', '/api/packages/', '/api',
     '/api/orders/', '/api/orders/a/b', '/x/api/packages',
 ]) assertEqual(isDevApiPath(p), false, `internal: ${p}`)
 

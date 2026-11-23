@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'GET', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
     try {
-        const rl = consumeRateLimit(`v2-rc-types:${apiKeyId}`, 30, 60_000)
+        const rl = consumeRateLimit(`api-rc-types:${apiKeyId}`, 30, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (30/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

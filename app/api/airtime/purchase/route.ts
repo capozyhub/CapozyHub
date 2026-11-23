@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
-import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp, requireKeyType } from '@/lib/api-auth'
+import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getClientIp } from '@/lib/api-auth'
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
-import { quoteAirtimeCommission } from '@/lib/airtime-pricing'
+import { quoteAirtime } from '@/lib/airtime-pricing'
 import { toCanonicalPhone } from '@/lib/data-orders/phone'
 import { findBlacklistedPhones, loadBuyer } from '@/lib/data-orders/guards'
 import { placeAirtimeOrder } from '@/lib/data-orders/place-airtime'
@@ -33,26 +33,17 @@ export async function POST(request: NextRequest) {
     const done = (statusCode: number, errorMessage?: string) =>
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'POST', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
-    const keyTypeError = requireKeyType(auth, 'commission')
-    if (keyTypeError) {
-        done(403, 'Wrong key type')
-        return keyTypeError
-    }
-
     try {
-        // Sub-agent eligibility (spec §11 lift, 2026-09-17): unlike data/AFA/results-checker,
-        // airtime/mashup carry no sub-agent markup by design (platform decision: no earnings
-        // split for parent on airtime/mashup) AND this route is commission-key zero-fee for
-        // EVERY role already (quoteAirtimeCommission below) — so there is no pricing wiring
-        // needed here, only the eligibility gate (pending/suspended sub, or one whose
-        // recruiter is currently ineligible, still cannot transact).
+        // Sub-agent eligibility: airtime/mashup carry no sub-agent markup by design (no earnings
+        // split for the parent), so there is no pricing wiring here, only the eligibility gate
+        // (a pending/suspended sub, or one whose recruiter is currently ineligible, cannot transact).
         const subCtx = await resolveSubAgentContext(supabase, userId)
         if (subCtx.isSub && !subCtx.effectiveActive) {
             done(403, 'Sub-agent inactive')
             return apiError(403, subCtx.inactiveReason || 'Your account is not currently active')
         }
 
-        const rl = consumeRateLimit(`v2-airtime-purchase:${apiKeyId}`, 10, 60_000)
+        const rl = consumeRateLimit(`api-airtime-purchase:${apiKeyId}`, 10, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (10/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)
@@ -111,6 +102,7 @@ export async function POST(request: NextRequest) {
             `airtime_enabled_${NETWORK_KEY_MAP[network]}`,
             `airtime_min_amount_customer`, `airtime_min_amount_agent`, `airtime_min_amount_dealer`,
             `airtime_max_amount_customer`, `airtime_max_amount_agent`, `airtime_max_amount_dealer`,
+            `airtime_fee_${NETWORK_KEY_MAP[network]}_${userRole}`,
         ])
         if (settingsError) {
             console.error('[API Airtime Purchase] settings lookup failed:', settingsError.message)
@@ -130,11 +122,13 @@ export async function POST(request: NextRequest) {
         // the dashboard route. This block used to be a line-for-line copy of the
         // dashboard's (review finding I6) — two fee tables that had to be changed
         // in lockstep forever, with the fallback constants the dangerous half.
-        const quoted = quoteAirtimeCommission({
+        // The beneficiary receives exactly mount; the fee is added on top of what the buyer pays.
+        const quoted = quoteAirtime({
             settings: settingsMap,
             network,
             role: userRole,
             amount: parsedAmount,
+            useExactAmount: true,
         })
         if (!quoted.ok) {
             done(400, quoted.reason)
@@ -152,7 +146,7 @@ export async function POST(request: NextRequest) {
             fee_rate: feeRate,
             fee_amount: feeAmount,
             total_paid: totalPaid,
-            use_exact_amount: false,
+            use_exact_amount: true,
             user_role: userRole,
             source: 'api',
             api_key_id: apiKeyId,

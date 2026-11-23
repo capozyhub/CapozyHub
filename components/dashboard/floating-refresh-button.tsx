@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 const SIZE = 56          // h-14 w-14
 const EDGE = 12          // min gap from any viewport edge
 const DRAG_THRESHOLD = 5 // px of movement before it counts as a drag (not a tap)
-const STORAGE_KEY = 'kfg_refresh_fab_pos'
+const STORAGE_KEY = 'czh_refresh_fab_pos'
 
 type Pos = { x: number; y: number }
 

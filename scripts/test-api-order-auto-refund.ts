@@ -1,8 +1,7 @@
 // scripts/test-api-order-auto-refund.ts
 //
 // Live-DB coverage of autoRefundApiOrderOnFailure (lib/api-order-failure.ts,
-// Task 2 of the 2026-09-08 api-auto-refund-on-failure plan) across BOTH
-// airtime_orders and utility_orders:
+// Task 2 of the 2026-09-08 api-auto-refund-on-failure plan) for airtime_orders:
 //   1. API-sourced, eligible order -> refunded:true, order flips to
 //      status='refunded' with the passed reasonMessage persisted as
 //      refund_reason, and the wallet is credited by exactly the order's
@@ -19,12 +18,10 @@
 // scripts/test-airtime-commission-eligibility.ts. This script creates and
 // cleans up its own throwaway auth users, public.users rows (via the
 // on_auth_user_created trigger), wallets rows, wallet_transactions rows, and
-// airtime_orders/utility_orders rows rather than touching real data.
+// airtime_orders rows rather than touching real data.
 //
 // airtime_orders has NO payment_status column at all (refund_airtime_wallet
-// gates only on status/user_id/shop_id); utility_orders DOES have
-// payment_status and refund_utility_wallet additionally requires
-// payment_status='paid' and payment_method IN ('wallet','ussd_wallet','ussd_momo').
+// gates only on status/user_id/shop_id).
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 import { autoRefundApiOrderOnFailure, REASON_MESSAGES } from '@/lib/api-order-failure'
@@ -45,7 +42,6 @@ function assertOk(condition: boolean, label: string) {
 
 const STARTING_BALANCE = 50
 const AIRTIME_AMOUNT = 10
-const UTILITY_AMOUNT = 15
 const REASON_MESSAGE = REASON_MESSAGES.provider_rejected
 
 async function createFixtureUser(tag: string): Promise<string> {
@@ -95,30 +91,9 @@ async function createFixtureAirtimeOrder(userId: string, status: string, source:
     return orderId
 }
 
-async function createFixtureUtilityOrder(userId: string, status: string, source: string, tag: string): Promise<string> {
-    const orderId = randomUUID()
-    const { error } = await supabase.from('utility_orders').insert({
-        id: orderId,
-        user_id: userId,
-        biller: 'ecg',
-        account_number: '1234567890',
-        amount: UTILITY_AMOUNT,
-        payment_method: 'wallet',
-        payment_status: 'paid',
-        status,
-        source,
-        shop_id: null,
-        reference_code: `TEST-AUTOREFUND-UTIL-${tag}-${orderId.slice(0, 8)}`,
-    })
-    if (error) {
-        throw new Error(`could not create fixture utility_orders row (${tag}): ${error.message}`)
-    }
-    return orderId
-}
-
 type ProductConfig = {
-    product: 'airtime' | 'utilities'
-    table: 'airtime_orders' | 'utility_orders'
+    product: 'airtime'
+    table: 'airtime_orders'
     amount: number
     createOrder: (userId: string, status: string, source: string, tag: string) => Promise<string>
 }
@@ -203,19 +178,12 @@ async function main() {
             userIds,
             orderIds
         )
-        await runProductCases(
-            { product: 'utilities', table: 'utility_orders', amount: UTILITY_AMOUNT, createOrder: createFixtureUtilityOrder },
-            userIds,
-            orderIds,
-            'dashboard'
-        )
     } finally {
         if (userIds.length) {
             await supabase.from('wallet_transactions').delete().in('user_id', userIds)
         }
         if (orderIds.length) {
             await supabase.from('airtime_orders').delete().in('id', orderIds)
-            await supabase.from('utility_orders').delete().in('id', orderIds)
         }
         if (userIds.length) {
             await supabase.from('wallets').delete().in('user_id', userIds)

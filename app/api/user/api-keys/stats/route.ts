@@ -32,12 +32,8 @@ export async function GET() {
         const userId = authUser.id
 
         // ── Find the user's STANDARD API key id (so we can count api_logs) ─
-        // Scoped to key_type='standard': this endpoint aggregates the
-        // `orders` table (source='api'), which only standard keys create.
-        // Commission keys are utilities-only and write to `utility_orders`
-        // instead, so they have no rows here to aggregate. Without this
-        // scope, a user holding BOTH key types would make this query return
-        // 2 rows and .maybeSingle() would error.
+        // Scoped to key_type='standard': the only key type that exists, and the
+        // one that creates the `orders` rows (source='api') aggregated here.
         const { data: keyRow } = await (supabase.from('api_keys') as any)
             .select('id, last_used_at')
             .eq('user_id', userId)

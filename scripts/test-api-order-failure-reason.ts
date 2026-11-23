@@ -22,7 +22,7 @@ async function main() {
     assert(resultWeb.refunded === false, 'source=web never calls rpc, returns refunded:false')
 
     const resultShop = await autoRefundApiOrderOnFailure(throwingSupabase as any, {
-        product: 'utilities', orderId: 'fake-id', source: 'shop', reasonCode: 'provider_rejected', reasonMessage: 'x',
+        product: 'airtime', orderId: 'fake-id', source: 'shop', reasonCode: 'provider_rejected', reasonMessage: 'x',
     })
     assert(resultShop.refunded === false, 'source=shop never calls rpc, returns refunded:false')
 

@@ -246,8 +246,7 @@ function DocTable({ head, rows }: { head: string[]; rows: (string | React.ReactN
 // API surface; every sample below inherits the flip automatically since they
 // all interpolate ${BASE} rather than hardcoding a version.
 const BASE = 'https://api.capozygh.com/api'
-const KEY = 'kf_live_your_api_key_here'
-const CS_KEY = 'kf_cs_live_your_commission_key_here'
+const KEY = 'cz_live_your_api_key_here'
 
 const PACKAGES_SAMPLES: Record<LangTab, string> = {
     'cURL': `# All packages
@@ -460,7 +459,7 @@ print(r.json())`,
 
 const AIRTIME_PURCHASE_SAMPLES: Record<LangTab, string> = {
     'cURL': `curl -X POST ${API_BASE}/airtime/purchase \\
-  -H "Authorization: ${CS_KEY}" \\
+  -H "Authorization: ${KEY}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "network": "MTN",
@@ -470,7 +469,7 @@ const AIRTIME_PURCHASE_SAMPLES: Record<LangTab, string> = {
   }'`,
     'Node.js': `const res = await fetch('${API_BASE}/airtime/purchase', {
   method: 'POST',
-  headers: { 'Authorization': '${CS_KEY}', 'Content-Type': 'application/json' },
+  headers: { 'Authorization': '${KEY}', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     network: 'MTN', beneficiary_phone: '0551617309',
     amount: 10, reference: 'air_001',
@@ -483,7 +482,7 @@ curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_POST => true,
   CURLOPT_HTTPHEADER => [
-    'Authorization: ${CS_KEY}',
+    'Authorization: ${KEY}',
     'Content-Type: application/json',
   ],
   CURLOPT_POSTFIELDS => json_encode([
@@ -496,7 +495,7 @@ echo curl_exec($ch); curl_close($ch);`,
 
 r = requests.post(
   '${API_BASE}/airtime/purchase',
-  headers={'Authorization': '${CS_KEY}'},
+  headers={'Authorization': '${KEY}'},
   json={
     'network': 'MTN', 'beneficiary_phone': '0551617309',
     'amount': 10, 'reference': 'air_001',
@@ -507,43 +506,43 @@ print(r.json())`,
 
 const AIRTIME_ORDERS_SAMPLES: Record<LangTab, string> = {
     'cURL': `curl -X GET ${API_BASE}/airtime/orders \\
-  -H "Authorization: ${CS_KEY}"`,
+  -H "Authorization: ${KEY}"`,
     'Node.js': `const res = await fetch('${API_BASE}/airtime/orders', {
-  headers: { 'Authorization': '${CS_KEY}' },
+  headers: { 'Authorization': '${KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
 $ch = curl_init('${API_BASE}/airtime/orders');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 
 r = requests.get('${API_BASE}/airtime/orders',
-  headers={'Authorization': '${CS_KEY}'})
+  headers={'Authorization': '${KEY}'})
 print(r.json())`,
 }
 
 const AIRTIME_STATUS_SAMPLES: Record<LangTab, string> = {
     'cURL': `curl -X GET ${API_BASE}/airtime/orders/air_001 \\
-  -H "Authorization: ${CS_KEY}"`,
+  -H "Authorization: ${KEY}"`,
     'Node.js': `const res = await fetch('${API_BASE}/airtime/orders/air_001', {
-  headers: { 'Authorization': '${CS_KEY}' },
+  headers: { 'Authorization': '${KEY}' },
 });
 console.log(await res.json());`,
     'PHP': `<?php
 $ch = curl_init('${API_BASE}/airtime/orders/air_001');
 curl_setopt_array($ch, [
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ['Authorization: ${CS_KEY}'],
+  CURLOPT_HTTPHEADER => ['Authorization: ${KEY}'],
 ]);
 echo curl_exec($ch); curl_close($ch);`,
     'Python': `import requests
 ref = 'air_001'
 r = requests.get(f'${API_BASE}/airtime/orders/{ref}',
-  headers={'Authorization': '${CS_KEY}'})
+  headers={'Authorization': '${KEY}'})
 print(r.json())`,
 }
 
@@ -786,9 +785,9 @@ function TocNav({ activeSection, onSelect }: { activeSection: string; onSelect: 
                         Get API Key <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                 </Link>
-                <a href="https://documenter.getpostman.com/view/55615613/2sBYAuTBhF" target="_blank" rel="noopener noreferrer" className="block">
+                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer" className="block">
                     <Button size="sm" variant="outline" className="w-full text-xs font-bold gap-1.5 h-9">
-                        Postman Collection <ExternalLink className="w-3 h-3" />
+                        OpenAPI Spec <ExternalLink className="w-3 h-3" />
                     </Button>
                 </a>
             </div>
@@ -1095,20 +1094,18 @@ export default function DevelopersPage() {
                         <section id="airtime" className="space-y-5">
                             <SectionHeading id="airtime" num={5} label="Airtime" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Send MTN, Telecel, or AT airtime to a beneficiary at face value — no fee — on behalf of your customers,
-                                and earn a share of Capozy Hub&apos;s provider commission on every top-up. This endpoint only accepts a{' '}
-                                <IC>Commission Services</IC> key (prefix <IC>kf_cs_live_...</IC>); a <IC>standard</IC> key is rejected with{' '}
-                                <IC>403</IC>.
+                                Send MTN, Telecel, or AT airtime to a beneficiary from your wallet. The beneficiary receives exactly the amount you send;
+                                the platform fee is added on top. Orders start as <IC>pending</IC> and are fulfilled by our team: poll the status endpoint or use a webhook.
                             </p>
                             <div className="space-y-6">
                                 <EndpointSection
                                     method="POST" path="/api/airtime/purchase"
-                                    description="Send airtime to a beneficiary at face value from your wallet. Auto-dispatches in the background — poll GET /airtime/orders/{reference} for the final status."
+                                    description="Send airtime to a beneficiary from your wallet. The order is fulfilled by our team — poll GET /airtime/orders/{reference} for the final status."
                                     requestBody={`{\n  "network": "MTN",\n  "beneficiary_phone": "0551617309",\n  "amount": 10,\n  "reference": "air_001"\n}`}
                                     responseBody={`{\n  "success": true,\n  "data": {\n    "order_id": "uuid-...",\n    "reference": "air_001",\n    "status": "pending",\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "airtime_amount": 10,\n    "fee_amount": 0,\n    "total_paid": 10,\n    "new_balance": 90\n  }\n}`}
                                     notes={[
                                         'reference is your idempotency key (3–100 chars) — a repeat with the SAME reference and body returns the existing order instead of charging again; a reused reference against a DIFFERENT order returns 409 and your wallet is not charged.',
-                                        'fee_amount is always 0 — the beneficiary receives the full amount at face value; your earnings come from a share of Capozy Hub\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
+                                        'fee_amount is the platform fee added on top: the beneficiary receives exactly amount, and total_paid = amount + fee_amount.',
                                         'Rate limit: 10/min.',
                                     ]}
                                     codeSamples={AIRTIME_PURCHASE_SAMPLES}
@@ -1225,13 +1222,11 @@ export default function DevelopersPage() {
                         <section id="tips" className="space-y-6">
                             <SectionHeading id="tips" num={8} label="Tips & Recommendations" />
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                                One key type, one purpose — a <IC>standard</IC> key covers data, results checker and
-                                AFA; a <IC>Commission Services</IC> key covers airtime. A key
-                                is confined to its own section — a standard key cannot call <IC>/airtime/*</IC>, and vice versa.
+                                One key covers the whole API: data, airtime, results checker, AFA, wallet and orders.
                             </p>
 
                             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Standard key — data, results checker, AFA</p>
+                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Your API key</p>
                                 <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Always send a unique <IC>reference</IC> per order — it becomes your idempotency key. A retry with the SAME reference and body safely returns the existing order instead of charging twice; reusing a reference for a genuinely DIFFERENT order returns <IC>409</IC> instead of a silent duplicate charge.</span></li>
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Poll <IC>GET .../orders/&#123;reference&#125;</IC> after placing an order rather than assuming success from the initial <IC>pending</IC> status.</span></li>
@@ -1239,13 +1234,6 @@ export default function DevelopersPage() {
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Validate the AFA Ghana Card format and region client-side before calling the API — it avoids a wasted request on an obvious input mistake.</span></li>
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>If you serve dealer/agent accounts, check <IC>GET /account/role</IC> — pricing is expiry-aware everywhere, so a lapsed reseller is automatically billed as a customer the moment their tier expires.</span></li>
                                     <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Every list endpoint returns at most 30 records. Design your integration to look up by reference or page through results, not to fetch everything in one call.</span></li>
-                                </ul>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Commission Services key — airtime</p>
-                                <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>This key type is scoped to <IC>/utilities/*</IC> and <IC>/airtime/*</IC> only — it cannot reach data, results checker, AFA, or SMS endpoints.</span></li>
                                 </ul>
                             </div>
 
@@ -1345,9 +1333,9 @@ export default function DevelopersPage() {
                                         Get Your API Key <ArrowRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
-                                <a href="https://documenter.getpostman.com/view/55615613/2sBYAuTBhF" target="_blank" rel="noopener noreferrer">
+                                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer">
                                     <Button variant="outline" className="font-bold gap-2 px-6">
-                                        Postman Collection <ExternalLink className="w-4 h-4" />
+                                        OpenAPI Spec <ExternalLink className="w-4 h-4" />
                                     </Button>
                                 </a>
                             </div>

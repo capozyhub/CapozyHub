@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             return apiError(403, subCtx.inactiveReason || 'Your account is not currently active')
         }
 
-        const rl = consumeRateLimit(`v2-afa-register:${apiKeyId}`, 10, 60_000)
+        const rl = consumeRateLimit(`api-afa-register:${apiKeyId}`, 10, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (10/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

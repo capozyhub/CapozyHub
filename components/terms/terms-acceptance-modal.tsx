@@ -97,7 +97,7 @@ export function TermsAcceptanceModal({
         <div
           ref={bodyRef}
           onScroll={check}
-          className="overflow-y-auto max-h-[46vh] px-6 py-5 overscroll-contain scroll-smooth kfg-scrollbar"
+          className="overflow-y-auto max-h-[46vh] px-6 py-5 overscroll-contain scroll-smooth czh-scrollbar"
         >
           {rows.map((s, i) => (
             <div key={s.id} className="mb-5">
@@ -176,8 +176,8 @@ export function TermsAcceptanceModal({
         </div>
 
         <style jsx global>{`
-          .kfg-scrollbar::-webkit-scrollbar { width: 5px; }
-          .kfg-scrollbar::-webkit-scrollbar-thumb { background: rgba(156,163,175,.35); border-radius: 10px; }
+          .czh-scrollbar::-webkit-scrollbar { width: 5px; }
+          .czh-scrollbar::-webkit-scrollbar-thumb { background: rgba(156,163,175,.35); border-radius: 10px; }
         `}</style>
       </DialogContent>
     </Dialog>

@@ -15,7 +15,7 @@ import { loadBuyer } from '@/lib/data-orders/guards'
 // POST /api/resultschecker/purchase
 // Vouchers are ALWAYS returned in the response body — recipientPhone/Email
 // are optional with NO fallback to the caller's own account details (unlike
-// the dashboard route). Omit them and KFT sends nothing; the developer owns
+// the dashboard route). Omit them and Capozy Hub sends nothing; the developer owns
 // delivery. Out-of-stock is rejected upfront via a pre-check, before any
 // wallet debit. See
 // docs/superpowers/specs/2026-08-24-api-v2-new-products-design.md §3.
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
             return apiError(403, subCtx.inactiveReason || 'Your account is not currently active')
         }
 
-        const rl = consumeRateLimit(`v2-rc-purchase:${apiKeyId}`, 10, 60_000)
+        const rl = consumeRateLimit(`api-rc-purchase:${apiKeyId}`, 10, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (10/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

@@ -58,8 +58,6 @@ interface ApiKeyData {
     user_role: string
     api_keys: {
         standard: ApiKeyMeta | null
-        commission: ApiKeyMeta | null
-        sms: ApiKeyMeta | null
     }
 }
 
@@ -303,7 +301,6 @@ export default function ApiDashboardPage() {
     }
 
     const standardKey = data.api_keys.standard
-    const commissionKey = data.api_keys.commission
     const userName = `${(dbUser as any)?.first_name || ''} ${(dbUser as any)?.last_name || ''}`.trim() || 'User'
     const userEmail = (dbUser as any)?.email || ''
     const userPhone = (dbUser as any)?.phone_number || ''
@@ -330,21 +327,18 @@ export default function ApiDashboardPage() {
                         <span className="hidden xs:inline">API Docs</span>
                         <span className="xs:hidden">Docs</span>
                     </a>
-                    <a href="https://documenter.getpostman.com/view/55615613/2sBYAuTBhF" target="_blank" rel="noopener noreferrer"
+                    <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-200 dark:border-orange-700/50 bg-orange-50 dark:bg-orange-900/20 text-xs font-semibold text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
                     >
                         <Package className="w-3.5 h-3.5" />
-                        <span className="hidden xs:inline">Postman</span>
-                        <span className="xs:hidden">PM</span>
+                        <span className="hidden xs:inline">OpenAPI</span>
+                        <span className="xs:hidden">Spec</span>
                     </a>
                 </div>
             </div>
 
             {/* ── Usage Stats Grid ─────────────────────────────────────────── */}
-            {/* Scoped to the standard key — /api/user/api-keys/stats aggregates
-                the `orders` table (source='api'), which only standard keys
-                populate. Commission keys are utilities-only and write to
-                utility_orders instead (see lib/api-auth.ts's central guard). */}
+            {/* Scoped to the standard key: /api/user/api-keys/stats aggregates the orders table (source='api'). */}
             {standardKey && stats && (
                 <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -415,19 +409,11 @@ export default function ApiDashboardPage() {
                 </div>
             )}
 
-            {/* ── API Key Cards — one per key_type ─────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* ── API key ──────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 gap-5">
                 <ApiKeyCard
                     keyType="standard"
                     apiKey={standardKey}
-                    userName={userName}
-                    userEmail={userEmail}
-                    userPhone={userPhone}
-                    onGenerated={fetchKeyData}
-                />
-                <ApiKeyCard
-                    keyType="commission"
-                    apiKey={commissionKey}
                     userName={userName}
                     userEmail={userEmail}
                     userPhone={userPhone}
@@ -489,7 +475,7 @@ export default function ApiDashboardPage() {
             </div>
 
             {/* ── API Reference ───────────────────────────────────────────── */}
-            <ApiReferenceSection standardKey={standardKey} commissionKey={commissionKey} />
+            <ApiReferenceSection standardKey={standardKey} />
         </div>
     )
 }
@@ -499,8 +485,7 @@ export default function ApiDashboardPage() {
 // is now the only live base URL. Every sample below interpolates ${API_BASE}
 // rather than a hardcoded version, so the flip propagates automatically.
 const API_BASE = 'https://api.capozygh.com/api'
-const API_KEY_PLACEHOLDER = 'kf_live_your_api_key_here'
-const COMMISSION_KEY_PLACEHOLDER = 'kf_cs_live_your_commission_key_here'
+const API_KEY_PLACEHOLDER = 'cz_live_your_api_key_here'
 
 function ApiRefTable({ head, rows }: { head: string[]; rows: (string | React.ReactNode)[][] }) {
     return (
@@ -561,68 +546,39 @@ const STATUS_API_SAMPLES: Record<ApiLangTab, string> = {
     'Python': `import requests\nref = 'your_reference_here'\nr = requests.get(f'${API_BASE}/orders/{ref}',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'})\nprint(r.json())`,
 }
 
-// ── Utility Bills (Commission) samples ────────────────────────────────────────
-const UTIL_BILLERS_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `curl -X GET ${API_BASE}/utilities/billers \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"`,
-    'Node.js': `const res = await fetch('${API_BASE}/utilities/billers', {\n  headers: { 'Authorization': '${COMMISSION_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ch = curl_init('${API_BASE}/utilities/billers');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nr = requests.get('${API_BASE}/utilities/billers',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'})\nprint(r.json())`,
-}
-
-const UTIL_LOOKUP_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `# DSTV — query by smartcard number\ncurl -X GET "${API_BASE}/utilities/lookup?biller=dstv&account=7041234567" \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"\n\n# ECG — query by phone (account still required; pass the same number)\ncurl -X GET "${API_BASE}/utilities/lookup?biller=ecg&phone=0551617309&account=0551617309" \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"`,
-    'Node.js': `const params = new URLSearchParams({ biller: 'dstv', account: '7041234567' });\nconst res = await fetch(\`${API_BASE}/utilities/lookup?\${params}\`, {\n  headers: { 'Authorization': '${COMMISSION_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$qs = http_build_query(['biller' => 'dstv', 'account' => '7041234567']);\n$ch = curl_init("${API_BASE}/utilities/lookup?$qs");\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nr = requests.get('${API_BASE}/utilities/lookup',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'},\n  params={'biller': 'dstv', 'account': '7041234567'})\nprint(r.json())`,
-}
-
-const UTIL_PAY_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `# DSTV — account-only biller\ncurl -X POST ${API_BASE}/utilities/pay \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "biller": "dstv",\n    "account": "7041234567",\n    "amount": 65.00,\n    "reference": "bill_dstv_7041234567_01"\n  }'\n\n# ECG — account is the METER (from lookup meters[]), phone is required too\ncurl -X POST ${API_BASE}/utilities/pay \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "biller": "ecg",\n    "account": "3701234567",\n    "phone": "0551617309",\n    "amount": 50.00,\n    "reference": "bill_ecg_3701234567_01"\n  }'`,
-    'Node.js': `const res = await fetch('${API_BASE}/utilities/pay', {\n  method: 'POST',\n  headers: {\n    'Authorization': '${COMMISSION_KEY_PLACEHOLDER}',\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify({\n    biller: 'dstv',\n    account: '7041234567',\n    amount: 65.00,\n    reference: 'bill_dstv_7041234567_01',\n  }),\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ch = curl_init('${API_BASE}/utilities/pay');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}', 'Content-Type: application/json'],\n  CURLOPT_POSTFIELDS => json_encode([\n    'biller' => 'dstv', 'account' => '7041234567',\n    'amount' => 65.00, 'reference' => 'bill_dstv_7041234567_01',\n  ]),\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nr = requests.post('${API_BASE}/utilities/pay',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'},\n  json={\n    'biller': 'dstv', 'account': '7041234567',\n    'amount': 65.00, 'reference': 'bill_dstv_7041234567_01',\n  }\n)\nprint(r.json())`,
-}
-
-const UTIL_STATUS_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `curl -X GET ${API_BASE}/utilities/orders/UTIL-DSTV-3f9a2b1c4d5e6f70 \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"`,
-    'Node.js': `const ref = 'UTIL-DSTV-3f9a2b1c4d5e6f70'; // the reference from the /pay response\nconst res = await fetch(\`${API_BASE}/utilities/orders/\${ref}\`, {\n  headers: { 'Authorization': '${COMMISSION_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ref = 'UTIL-DSTV-3f9a2b1c4d5e6f70';\n$ch = curl_init("${API_BASE}/utilities/orders/$ref");\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nref = 'UTIL-DSTV-3f9a2b1c4d5e6f70'\nr = requests.get(f'${API_BASE}/utilities/orders/{ref}',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'})\nprint(r.json())`,
-}
-
-// ── Airtime (Commission) samples ──────────────────────────────────────────────
+// ── Airtime samples ──────────────────────────────────────────────
 const AIRTIME_PURCHASE_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `curl -X POST ${API_BASE}/airtime/purchase \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "amount": 20.00,\n    "reference": "airtime_001"\n  }'`,
-    'Node.js': `const res = await fetch('${API_BASE}/airtime/purchase', {\n  method: 'POST',\n  headers: {\n    'Authorization': '${COMMISSION_KEY_PLACEHOLDER}',\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify({\n    network: 'MTN',\n    beneficiary_phone: '0551617309',\n    amount: 20.00,\n    reference: 'airtime_001',\n  }),\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ch = curl_init('${API_BASE}/airtime/purchase');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}', 'Content-Type: application/json'],\n  CURLOPT_POSTFIELDS => json_encode([\n    'network' => 'MTN', 'beneficiary_phone' => '0551617309',\n    'amount' => 20.00, 'reference' => 'airtime_001',\n  ]),\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nr = requests.post('${API_BASE}/airtime/purchase',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'},\n  json={\n    'network': 'MTN', 'beneficiary_phone': '0551617309',\n    'amount': 20.00, 'reference': 'airtime_001',\n  }\n)\nprint(r.json())`,
+    'cURL': `curl -X POST ${API_BASE}/airtime/purchase \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "network": "MTN",\n    "beneficiary_phone": "0551617309",\n    "amount": 20.00,\n    "reference": "airtime_001"\n  }'`,
+    'Node.js': `const res = await fetch('${API_BASE}/airtime/purchase', {\n  method: 'POST',\n  headers: {\n    'Authorization': '${API_KEY_PLACEHOLDER}',\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify({\n    network: 'MTN',\n    beneficiary_phone: '0551617309',\n    amount: 20.00,\n    reference: 'airtime_001',\n  }),\n});\nconsole.log(await res.json());`,
+    'PHP': `<?php\n$ch = curl_init('${API_BASE}/airtime/purchase');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY_PLACEHOLDER}', 'Content-Type: application/json'],\n  CURLOPT_POSTFIELDS => json_encode([\n    'network' => 'MTN', 'beneficiary_phone' => '0551617309',\n    'amount' => 20.00, 'reference' => 'airtime_001',\n  ]),\n]);\necho curl_exec($ch); curl_close($ch);`,
+    'Python': `import requests\nr = requests.post('${API_BASE}/airtime/purchase',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'},\n  json={\n    'network': 'MTN', 'beneficiary_phone': '0551617309',\n    'amount': 20.00, 'reference': 'airtime_001',\n  }\n)\nprint(r.json())`,
 }
 
 const AIRTIME_ORDERS_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `# All recent orders\ncurl -X GET ${API_BASE}/airtime/orders \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"\n\n# Filter by status\ncurl -X GET "${API_BASE}/airtime/orders?status=completed" \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"`,
-    'Node.js': `const res = await fetch('${API_BASE}/airtime/orders?status=completed', {\n  headers: { 'Authorization': '${COMMISSION_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ch = curl_init('${API_BASE}/airtime/orders?status=completed');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nr = requests.get('${API_BASE}/airtime/orders',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'},\n  params={'status': 'completed'})\nprint(r.json())`,
+    'cURL': `# All recent orders\ncurl -X GET ${API_BASE}/airtime/orders \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}"\n\n# Filter by status\ncurl -X GET "${API_BASE}/airtime/orders?status=completed" \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}"`,
+    'Node.js': `const res = await fetch('${API_BASE}/airtime/orders?status=completed', {\n  headers: { 'Authorization': '${API_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
+    'PHP': `<?php\n$ch = curl_init('${API_BASE}/airtime/orders?status=completed');\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
+    'Python': `import requests\nr = requests.get('${API_BASE}/airtime/orders',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'},\n  params={'status': 'completed'})\nprint(r.json())`,
 }
 
 const AIRTIME_STATUS_SAMPLES: Record<ApiLangTab, string> = {
-    'cURL': `curl -X GET ${API_BASE}/airtime/orders/airtime_001 \\\n  -H "Authorization: ${COMMISSION_KEY_PLACEHOLDER}"`,
-    'Node.js': `const ref = 'airtime_001';\nconst res = await fetch(\`${API_BASE}/airtime/orders/\${ref}\`, {\n  headers: { 'Authorization': '${COMMISSION_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
-    'PHP': `<?php\n$ref = 'airtime_001';\n$ch = curl_init("${API_BASE}/airtime/orders/$ref");\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${COMMISSION_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
-    'Python': `import requests\nref = 'airtime_001'\nr = requests.get(f'${API_BASE}/airtime/orders/{ref}',\n  headers={'Authorization': '${COMMISSION_KEY_PLACEHOLDER}'})\nprint(r.json())`,
+    'cURL': `curl -X GET ${API_BASE}/airtime/orders/airtime_001 \\\n  -H "Authorization: ${API_KEY_PLACEHOLDER}"`,
+    'Node.js': `const ref = 'airtime_001';\nconst res = await fetch(\`${API_BASE}/airtime/orders/\${ref}\`, {\n  headers: { 'Authorization': '${API_KEY_PLACEHOLDER}' },\n});\nconsole.log(await res.json());`,
+    'PHP': `<?php\n$ref = 'airtime_001';\n$ch = curl_init("${API_BASE}/airtime/orders/$ref");\ncurl_setopt_array($ch, [\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => ['Authorization: ${API_KEY_PLACEHOLDER}'],\n]);\necho curl_exec($ch); curl_close($ch);`,
+    'Python': `import requests\nref = 'airtime_001'\nr = requests.get(f'${API_BASE}/airtime/orders/{ref}',\n  headers={'Authorization': '${API_KEY_PLACEHOLDER}'})\nprint(r.json())`,
 }
 
-// ── Reference tabs, one per key type (+ Webhooks) ───────────────────────────
+// ── Reference tabs (Data API, Airtime, Webhooks) ───────────────────────────
 // Each tab carries its own table of contents as an internal sidebar: pinned
 // beside the content on desktop (lg+), collapsed behind a toggle button on
 // mobile. Rebuilt this way (rather than one long scroll) because the page
 // had grown to cover 9 endpoints across two products plus webhook config —
 // exactly the point where a flat list stops being navigable.
-type RefTabKey = 'standard' | 'commission' | 'webhooks'
+type RefTabKey = 'standard' | 'airtime' | 'webhooks'
 
 const REF_TABS: { key: RefTabKey; label: string; icon: any }[] = [
     { key: 'standard', label: 'Standard API', icon: Key },
-    { key: 'commission', label: 'Commission API', icon: Percent },
+    { key: 'airtime', label: 'Airtime API', icon: Wifi },
     { key: 'webhooks', label: 'Webhooks', icon: Webhook },
 ]
 
@@ -636,12 +592,8 @@ const REF_TOC: Record<RefTabKey, { id: string; label: string }[]> = {
         { id: 'ref-std-status', label: 'GET /orders/:reference' },
         { id: 'ref-std-meta', label: 'Networks & Errors' },
     ],
-    commission: [
+    airtime: [
         { id: 'ref-com-intro', label: 'Overview' },
-        { id: 'ref-com-billers', label: 'GET /utilities/billers' },
-        { id: 'ref-com-lookup', label: 'GET /utilities/lookup' },
-        { id: 'ref-com-pay', label: 'POST /utilities/pay' },
-        { id: 'ref-com-status', label: 'GET /utilities/orders/:reference' },
         { id: 'ref-com-airtime-purchase', label: 'POST /airtime/purchase' },
         { id: 'ref-com-airtime-orders', label: 'GET /airtime/orders' },
         { id: 'ref-com-airtime-status', label: 'GET /airtime/orders/:reference' },
@@ -667,7 +619,7 @@ const SIGNATURE_VERIFY_SAMPLES: Record<ApiLangTab, string> = {
     'Python': `import hmac, hashlib\n\ndef is_valid_signature(raw_body: bytes, signature_header: str, secret: str) -> bool:\n    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, signature_header)\n\n# Flask example\n@app.route('/webhooks/capozy', methods=['POST'])\ndef webhook():\n    raw_body = request.get_data()\n    signature = request.headers.get('X-Capozy-Signature', '')\n    if not is_valid_signature(raw_body, signature, os.environ['CAPOZY_WEBHOOK_SECRET']):\n        return 'invalid signature', 401\n    event = request.get_json()\n    # ... handle event['event'] / event['product'] / event['reference'] / event['status']\n    return '', 200`,
 }
 
-function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiKeyMeta | null; commissionKey: ApiKeyMeta | null }) {
+function ApiReferenceSection({ standardKey }: { standardKey: ApiKeyMeta | null }) {
     const [activeTab, setActiveTab] = useState<RefTabKey>('standard')
     const [mobileTocOpen, setMobileTocOpen] = useState(false)
 
@@ -683,7 +635,7 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
                 <div className="flex-1 h-px bg-muted" />
             </div>
 
-            {/* Tab bar — one tab per key type, plus Webhooks */}
+            {/* Tab bar */}
             <div className="flex flex-wrap items-center justify-center gap-1 p-1 bg-muted rounded-2xl w-fit mx-auto">
                 {REF_TABS.map(tab => (
                     <button
@@ -741,8 +693,8 @@ function ApiReferenceSection({ standardKey, commissionKey }: { standardKey: ApiK
 
                 <div className="space-y-6 min-w-0">
                     {activeTab === 'standard' && <StandardApiTab />}
-                    {activeTab === 'commission' && <CommissionApiTab />}
-                    {activeTab === 'webhooks' && <WebhooksTab standardKey={standardKey} commissionKey={commissionKey} />}
+                    {activeTab === 'airtime' && <AirtimeApiTab />}
+                    {activeTab === 'webhooks' && <WebhooksTab standardKey={standardKey} />}
                 </div>
             </div>
         </div>
@@ -753,7 +705,7 @@ function StandardApiTab() {
     return (
         <>
             <p className="text-sm text-muted-foreground">
-                5 endpoints for buying data bundles. Replace <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">kf_live_your_api_key_here</code> with your actual standard key.
+                5 endpoints for buying data bundles. Replace <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">cz_live_your_api_key_here</code> with your actual standard key.
             </p>
 
             {/* Base URL strip */}
@@ -878,140 +830,15 @@ function StandardApiTab() {
     )
 }
 
-function CommissionApiTab() {
+function AirtimeApiTab() {
     return (
         <>
-            <div id="ref-com-intro" className="scroll-mt-6 space-y-4">
-            <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-muted" />
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700/40">
-                    <Percent className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-bold text-violet-700 dark:text-violet-300">Utility Bills (Commission)</span>
-                </div>
-                <div className="flex-1 h-px bg-muted" />
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+            <div id="ref-com-intro" className="scroll-mt-6">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Pay ECG, Ghana Water, DSTV, GOtv, or StarTimes bills — or send MTN, Telecel, or AT airtime — at face value on
-                    behalf of your customers, and earn a share of Capozy Hub's provider commission on every transaction. This is a
-                    separate product from the Data API above: the endpoints below only accept a{' '}
-                    <strong className="text-foreground">Commission Services key</strong> (prefix{' '}
-                    <code className="font-mono text-violet-600 dark:text-violet-400 text-xs">kf_cs_live_...</code>), and reject a standard key
-                    with <code className="font-mono text-muted-foreground text-xs">403</code>. The reverse is also true — a Commission Services key is
-                    rejected with <code className="font-mono text-muted-foreground text-xs">403</code> on every other <code className="font-mono text-muted-foreground text-xs">/api/*</code> endpoint (packages, data purchases, wallet, SMS, etc.).
+                    Send MTN, Telecel or AT airtime to a beneficiary from your wallet. These endpoints use the same API key as the
+                    Data API. Orders start as <code className="font-mono text-xs">pending</code> and are fulfilled by our team: poll the
+                    status endpoint or configure a webhook to hear when an order reaches a final state.
                 </p>
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="rounded-xl bg-muted/50 p-4">
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Getting a Commission Services key</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Generate one from the Commission Services Key card above — no shop required. Your commission is paid into a
-                            dedicated <strong>Commission Wallet</strong> (separate from shop earnings), viewable and withdrawable from{' '}
-                            <a href="/dashboard/commission" className="underline">Dashboard → Commission</a>. Like the standard key, a new
-                            commission key starts <code className="font-mono text-[11px]">pending</code> and needs admin approval before it works.
-                        </p>
-                    </div>
-                    <div className="rounded-xl bg-muted/50 p-4">
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">How the money moves</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            The bill's face value is debited from your <strong>main wallet</strong> when you call <code className="font-mono text-[11px]">POST /pay</code>.
-                            Once the order reaches <code className="font-mono text-[11px]">completed</code>, your{' '}
-                            <code className="font-mono text-[11px]">commission_share_percent</code> cut of the platform's commission is credited
-                            automatically to your <strong>Commission Wallet</strong> — transfer it instantly to your main or shop wallet, or withdraw it via Paystack Mobile Money.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            </div>
-
-            <div id="ref-com-billers" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="GET" path="/api/utilities/billers"
-                description="Full biller catalog for utility bill payments — including currently disabled billers, so you can build your UI without hardcoding which ones are live."
-                responseBody={`{\n  "success": true,\n  "data": {\n    "billers": [\n      {\n        "key": "ecg",\n        "label": "ECG Prepaid & Postpaid",\n        "enabled": true,\n        "account_label": "Meter number",\n        "requires_phone": true,\n        "lookup_by": "phone",\n        "links_phone_to_account": true,\n        "has_amount_due": true\n      },\n      {\n        "key": "dstv",\n        "label": "DSTV",\n        "enabled": true,\n        "account_label": "Smartcard number",\n        "requires_phone": false,\n        "lookup_by": "account",\n        "links_phone_to_account": false,\n        "has_amount_due": true\n      }\n    ],\n    "min_amount": 1,\n    "max_amount": 1000,\n    "currency": "GHS"\n  }\n}`}
-                notes={[
-                    'key values are: ecg, ghana_water, dstv, gotv, startimes — pass this exact string as biller on /lookup and /pay.',
-                    'enabled is false for a biller currently switched off by an admin — still listed so your UI can grey it out instead of guessing.',
-                    'lookup_by tells you which field ecg needs on /lookup ("phone") vs every other biller ("account").',
-                    'requires_phone — whether /pay requires a customer phone for this biller (ecg, ghana_water). Note: /lookup accepts account alone for ecg (phone optional there).',
-                    'links_phone_to_account is true only for ecg — one phone can be linked to more than one meter, so always let the customer pick from the meters array /lookup returns.',
-                    'min_amount / max_amount are the live, admin-configurable limits enforced by /pay — read them from here instead of hardcoding GHS 1–1000.',
-                ]}
-                samples={UTIL_BILLERS_SAMPLES}
-            />
-            </div>
-
-            <div id="ref-com-lookup" className="scroll-mt-6 space-y-6">
-            <ApiEndpointBlock
-                method="GET" path="/api/utilities/lookup"
-                description="Verify an account before paying. Always show your customer the returned name (or, for ECG, the linked meters) and get their confirmation before calling /pay."
-                queryParams={[
-                    { name: 'biller', type: 'string', required: true, desc: 'One of: ecg, ghana_water, dstv, gotv, startimes' },
-                    { name: 'account', type: 'string', required: true, desc: 'Meter/smartcard/account number, max 30 chars. Required for every biller, including ecg — for ecg pass the phone number here too if you have no separate meter number, since the query actually runs on phone.' },
-                    { name: 'phone', type: 'string', required: false, desc: 'Customer phone, max 30 chars. Required for ghana_water. For ecg, this is what the lookup actually queries by — supply it, not just account.' },
-                ]}
-                responseBody={`{\n  "success": true,\n  "data": {\n    "account_name": "KWAME MENSAH",\n    "account_number": "7041234567",\n    "amount_due": 245.80,\n    "bouquet": null,\n    "meters": []\n  }\n}`}
-                notes={[
-                    'ECG\'s shape differs from every other biller: account_name, account_number, amount_due and bouquet are always null — the real result is meters: [{ "name": "KWAME MENSAH", "meterNumber": "3701234567", "outstanding": 245.8 }, ...]. One phone can list several meters; let the customer choose the right one.',
-                    'amount_due can be negative — that means the customer has a credit balance, not a bill due.',
-                    '404 = account/meter/smartcard not found (bad number). 502 = the billing provider is temporarily unreachable — retry shortly, do not treat as "not found".',
-                ]}
-                samples={UTIL_LOOKUP_SAMPLES}
-            />
-
-            <div className="flex items-start gap-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                    <strong>reference on /pay is a pure idempotency key, not a distinct-payment key.</strong> Reusing the same reference — even with
-                    a different biller, account, or amount — returns the details of the <strong>ORIGINAL</strong> order and never charges you again;
-                    it does not re-validate against the new values you sent. Use a unique reference for every distinct bill. Reuse the same reference
-                    ONLY to safely retry the exact same payment (e.g. after a network timeout).
-                </p>
-            </div>
-            </div>
-
-            <div id="ref-com-pay" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="POST" path="/api/utilities/pay"
-                description="Pay a bill at face value from your wallet. Auto-dispatches to the biller in the background — poll GET /orders/{reference} for the final status."
-                requestBody={`{\n  "biller": "dstv",\n  "account": "7041234567",\n  "amount": 65.00,\n  "reference": "bill_dstv_7041234567_01"\n}`}
-                responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "order_id": "uuid-...",\n    "status": "pending",\n    "biller": "dstv",\n    "account": "7041234567",\n    "amount": 65.00,\n    "commission_share_percent": 40,\n    "new_balance": 435.00\n  }\n}`}
-                notes={[
-                    'reference is a pure idempotency key — see the callout above. It is optional, 1–64 chars of letters, numbers, dot, underscore or hyphen.',
-                    'Save the reference from the RESPONSE, not the one you sent — it is our own generated code (UTIL-<BILLER>-<random>) and is what GET /orders/{reference} expects.',
-                    'On an idempotent replay (reused reference), the response is smaller: { reference, order_id, status, already_processed: true } — no biller/account/amount/commission_share_percent/new_balance, since nothing new happened.',
-                    'phone is required for ecg and ghana_water (omit for dstv/gotv/startimes). For ecg, account is the specific meter number from the /lookup meters array — not the phone.',
-                    'amount must be within the live min_amount/max_amount from GET /billers (defaults GHS 1.00–1000.00).',
-                    'Without a reference, sending the same biller + account + amount twice within 30 seconds is rejected with 409. If your first request timed out, reuse that request\'s original reference — you\'ll get the original order back via idempotent replay. A new reference does not bypass the 30-second window; genuinely distinct same-amount payments to the same account must wait it out.',
-                    'commission_share_percent is your cut of the platform commission (admin-configurable) — it is credited to your shop wallet once the order completes, not at response time.',
-                ]}
-                samples={UTIL_PAY_SAMPLES}
-            />
-            </div>
-
-            <div id="ref-com-status" className="scroll-mt-6">
-            <ApiEndpointBlock
-                method="GET" path="/api/utilities/orders/{reference}"
-                description="Poll the fulfillment status of a utility bill order using the reference from the /pay response. Only returns orders that belong to your own account."
-                responseBody={`{\n  "success": true,\n  "data": {\n    "reference": "UTIL-DSTV-3f9a2b1c4d5e6f70",\n    "status": "refunded",\n    "payment_status": "paid",\n    "biller": "dstv",\n    "account_number": "7041234567",\n    "account_name": "KWAME MENSAH",\n    "amount": 65.00,\n    "commission_earned": null,\n    "reason": "The transaction could not be completed by the payment provider.",\n    "created_at": "2026-...",\n    "updated_at": "2026-..."\n  }\n}`}
-                notes={[
-                    'Status flow: pending → processing → completed | failed | refunded.',
-                    'The account field here is called account_number — not account as in the /pay request body. Same value, different key name across endpoints.',
-                    'commission_earned is null until the order reaches completed — it is your realized share of the commission, credited to your shop wallet at that point.',
-                    'reason is present only on an auto-refunded order (status "refunded") — a short human-readable sentence explaining why the provider\'s failure was treated as definitive. status is "refunded" instead of "failed" whenever we already auto-refunded your wallet for that order.',
-                    'Poll every few seconds after /pay until status leaves pending / processing.',
-                ]}
-                samples={UTIL_STATUS_SAMPLES}
-            />
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-                <div className="flex-1 h-px bg-muted" />
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700/40">
-                    <Wifi className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-bold text-violet-700 dark:text-violet-300">Airtime (Commission)</span>
-                </div>
-                <div className="flex-1 h-px bg-muted" />
             </div>
 
             <div id="ref-com-airtime-purchase" className="scroll-mt-6">
@@ -1024,7 +851,7 @@ function CommissionApiTab() {
                     'reference is your idempotency key — sending the same reference twice returns the existing order without charging (is_duplicate: true).',
                     'network is one of MTN, Telecel, AT — a different value set from the Data API\'s network codes (which distinguish AT-iShare / AT-BigTime); airtime has no such distinction.',
                     'beneficiary_phone must be 0XXXXXXXXX (10 digits, starts with 0).',
-                    'fee_amount is always 0 on the Commission Services key — the beneficiary receives the full amount at face value; your earnings come from a share of Capozy Hub\'s own provider commission, credited to your Commission Wallet once the order completes, not deducted from this transaction.',
+                    'fee_amount is the platform fee added on top: the beneficiary receives exactly amount, and total_paid = amount + fee_amount.',
                     'amount must fall within the live per-role min/max limits configured by an admin.',
                 ]}
                 samples={AIRTIME_PURCHASE_SAMPLES}
@@ -1063,10 +890,6 @@ function CommissionApiTab() {
                     <ApiRefTable
                         head={['Endpoint', 'Limit']}
                         rows={[
-                            [<code key="rl1" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /utilities/billers</code>, '30 / min'],
-                            [<code key="rl2" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /utilities/lookup</code>, '10 / min'],
-                            [<code key="rl3" className="font-mono text-violet-600 dark:text-violet-400 text-xs">POST /utilities/pay</code>, '6 / min'],
-                            [<code key="rl4" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /utilities/orders/{'{reference}'}</code>, '30 / min'],
                             [<code key="rl5" className="font-mono text-violet-600 dark:text-violet-400 text-xs">POST /airtime/purchase</code>, '10 / min'],
                             [<code key="rl6" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /airtime/orders</code>, '30 / min'],
                             [<code key="rl7" className="font-mono text-violet-600 dark:text-violet-400 text-xs">GET /airtime/orders/{'{reference}'}</code>, '30 / min'],
@@ -1080,14 +903,13 @@ function CommissionApiTab() {
                     <ApiRefTable
                         head={['Code', 'Meaning']}
                         rows={[
-                            [<span key="u400" className="font-mono font-bold text-red-500 text-xs">400</span>, 'Invalid biller/account/phone/amount/reference (utilities) or network/beneficiary_phone/amount/reference (airtime), insufficient wallet balance, or — for airtime only — the requested network is currently disabled by an admin'],
-                            [<span key="u401" className="font-mono font-bold text-red-500 text-xs">401</span>, 'Missing or invalid API key'],
-                            [<span key="u403" className="font-mono font-bold text-red-500 text-xs">403</span>, 'Wrong key type (commission key required here; standard key required everywhere else), key pending/revoked, or account suspended'],
-                            [<span key="u404" className="font-mono font-bold text-red-500 text-xs">404</span>, 'Account/meter/smartcard not found (lookup), or order not found (status)'],
-                            [<span key="u409" className="font-mono font-bold text-amber-500 text-xs">409</span>, 'Duplicate order — same biller + account + amount resent within 30s without a reference (utilities), or reference already in use (airtime)'],
-                            [<span key="u429" className="font-mono font-bold text-amber-500 text-xs">429</span>, 'Rate limit exceeded — see limits above'],
-                            [<span key="u502" className="font-mono font-bold text-muted-foreground text-xs">502</span>, 'Billing provider temporarily unreachable — retry shortly (lookup only)'],
-                            [<span key="u503" className="font-mono font-bold text-muted-foreground text-xs">503</span>, 'Utility bills, or this specific biller, currently disabled by an admin — for a disabled airtime network see 400 above'],
+                            [<span key="a400" className="font-mono font-bold text-red-500 text-xs">400</span>, 'Invalid network, phone, amount or reference, or insufficient wallet balance'],
+                            [<span key="a401" className="font-mono font-bold text-red-500 text-xs">401</span>, 'Missing or invalid API key'],
+                            [<span key="a403" className="font-mono font-bold text-red-500 text-xs">403</span>, 'Key pending / revoked, role not allowed, or this number cannot receive orders'],
+                            [<span key="a404" className="font-mono font-bold text-red-500 text-xs">404</span>, 'Order or wallet not found'],
+                            [<span key="a409" className="font-mono font-bold text-amber-500 text-xs">409</span>, 'Duplicate order or reference already in use'],
+                            [<span key="a429" className="font-mono font-bold text-amber-500 text-xs">429</span>, 'Rate limit exceeded — see limits above'],
+                            [<span key="a503" className="font-mono font-bold text-muted-foreground text-xs">503</span>, 'Airtime or this network is currently unavailable'],
                         ]}
                     />
                 </div>
@@ -1097,15 +919,14 @@ function CommissionApiTab() {
 }
 
 // ── Webhooks tab ─────────────────────────────────────────────────────────────
-const WEBHOOK_PRODUCTS: { key: string; label: string; via: 'standard' | 'commission' }[] = [
-    { key: 'data', label: 'Data bundle orders', via: 'standard' },
-    { key: 'resultschecker', label: 'Result checker vouchers', via: 'standard' },
-    { key: 'afa', label: 'AFA (MTN Authorized Field Agent) registrations', via: 'standard' },
-    { key: 'airtime', label: 'Airtime purchases', via: 'commission' },
-    { key: 'utilities', label: 'Utility bill payments', via: 'commission' },
+const WEBHOOK_PRODUCTS: { key: string; label: string }[] = [
+    { key: 'data', label: 'Data bundle orders' },
+    { key: 'resultschecker', label: 'Result checker vouchers' },
+    { key: 'afa', label: 'AFA (MTN Authorized Field Agent) registrations' },
+    { key: 'airtime', label: 'Airtime purchases' },
 ]
 
-function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta | null; commissionKey: ApiKeyMeta | null }) {
+function WebhooksTab({ standardKey }: { standardKey: ApiKeyMeta | null }) {
     return (
         <>
             <div id="ref-wh-intro" className="scroll-mt-6 space-y-3">
@@ -1118,8 +939,8 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
                 <div className="flex items-start gap-3 rounded-xl bg-muted/50 border border-border p-4">
                     <Webhook className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Webhooks are configured <strong>per key</strong>, not per product — the Standard key's webhook covers data,
-                        result checker and AFA orders together; the Commission key's webhook covers both utility bill payments and airtime purchases.
+                        Webhooks are configured <strong>per key</strong>, not per product — your key's webhook covers data,
+                        result checker, AFA and airtime orders together.
                         Delivery is fire-and-forget with one automatic retry; if both attempts fail, keep polling the status endpoint
                         as a fallback — we do not queue or replay missed deliveries.
                     </p>
@@ -1136,24 +957,16 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
                             Generate a Standard API key above to configure its webhook.
                         </div>
                     )}
-                    {commissionKey ? (
-                        <WebhookConfigCard keyType="commission" />
-                    ) : (
-                        <div className="rounded-2xl border border-dashed border-border p-5 text-xs text-muted-foreground flex items-center justify-center text-center">
-                            Generate a Commission Services key above to configure its webhook.
-                        </div>
-                    )}
                 </div>
             </div>
 
             <div id="ref-wh-events" className="scroll-mt-6 space-y-3">
                 <h3 className="text-sm font-bold text-foreground">Event types</h3>
                 <ApiRefTable
-                    head={['product', 'Fires for', 'Key used']}
+                    head={['product', 'Fires for']}
                     rows={WEBHOOK_PRODUCTS.map(p => [
                         <code key={p.key} className="font-mono text-violet-600 dark:text-violet-400 text-xs">"{p.key}"</code>,
                         p.label,
-                        p.via === 'standard' ? 'Standard' : 'Commission',
                     ])}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -1175,7 +988,7 @@ function WebhooksTab({ standardKey, commissionKey }: { standardKey: ApiKeyMeta |
                     ambiguous.
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                    For <strong>airtime</strong> and <strong>utility bills</strong> specifically, an{' '}
+                    For <strong>airtime</strong> specifically, an{' '}
                     <code className="font-mono">"order.failed"</code> event's <code className="font-mono">detail</code> can also
                     include <code className="font-mono">reason_code</code> (one of{' '}
                     <code className="font-mono text-violet-600 dark:text-violet-400">"invalid_request"</code> |{' '}

@@ -1,4 +1,4 @@
-﻿import { BRAND } from '@/lib/brand'
+import { BRAND } from '@/lib/brand'
 
 // Styles live in globals.css (.cz-loader*), so there is nothing to inject per instance.
 
@@ -64,7 +64,7 @@ export function BrandLoader({ fullScreen = true, size, className = '' }: BrandLo
     // fullScreen=false: returns the mark only; the caller is responsible for positioning.
     if (fullScreen) {
         return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background animate-[kfg-fade-in_0.2s_ease]">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background animate-[czh-fade-in_0.2s_ease]">
                 {mark}
             </div>
         )

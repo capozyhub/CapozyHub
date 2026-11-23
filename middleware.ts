@@ -10,8 +10,8 @@ import { isDevApiPath, DEV_API_HOST } from '@/lib/developer-api'
 // Without this, the public key_prefix alone would be enough to address — and
 // exhaust — another user's bucket from outside.
 const API_RATE_LIMIT_SALT = process.env.API_RATE_LIMIT_SALT || ''
-// Exact shape of a valid issued key: kf_live_ + 32 lowercase hex chars
-const API_KEY_SHAPE = /^kf_live_[a-f0-9]{32}$/
+// Exact shape of a valid issued key: cz_live_ + 32 lowercase hex chars
+const API_KEY_SHAPE = /^cz_live_[a-f0-9]{32}$/
 
 // Write endpoints that must NOT serve traffic when the rate limiter is down.
 // Stored as VERSION-AGNOSTIC suffixes (matched against the normalised apiSuffix,
@@ -23,16 +23,6 @@ const API_FAIL_CLOSED_SUFFIXES: ReadonlySet<string> = new Set([
     '/airtime/purchase',
     '/resultschecker/purchase',
     '/afa/register',
-    // Pre-existing gap, closed per explicit owner decision (2026-08-24): this
-    // endpoint moves money and previously had no fail-closed protection at all.
-    '/utilities/pay',
-    // Added per explicit owner decision (2026-08-27). SMS credits are PREPAID —
-    // the developer has already paid cash for them — so spending them is a money
-    // path under the owner's "all money endpoints fail closed" rule, even though
-    // it debits sms_wallets rather than the main wallet. Without this entry a
-    // Redis outage left the only endpoint that can burn a balance at 10k
-    // recipients per call completely unmetered at the edge.
-    '/sms/send',
 ])
 
 // ============================================================
@@ -100,10 +90,6 @@ const fallbackCriticalLimits: Record<string, InMemoryLimitConfig> = {
     '/api/airtime/create': { maxRequests: 5, windowMs: 60 * 1000 },
     // Shop payout request — real money out. 3/hour matches the primary limiter.
     '/api/shop/withdraw': { maxRequests: 3, windowMs: 60 * 60 * 1000 },
-    // KFG SMS: send debits credits + hits Hubtel; purchase debits the main
-    // wallet. Keep a per-Lambda backstop if Redis is down (audit L-4).
-    '/api/sms/my-campaigns': { maxRequests: 5, windowMs: 60 * 1000 },
-    '/api/sms/purchase': { maxRequests: 5, windowMs: 60 * 1000 },
     // Sub-agent creation mints a real Supabase Auth account (final-review C1)
     // — a Redis outage must not silently drop this to a fully unmetered
     // fail-open. This exact-path lookup applies to both GET (listing) and
@@ -144,7 +130,7 @@ const redis = REDIS_CONFIGURED
 // developer-API catch-all was given its own `api-unrouted:` identifier
 // namespace — all 65 shared Upstash's default and collided: 12 requests to
 // /api/ping (general, 100/min) drove /api/v1/packages (10/min) to a false
-// 429. The convention for limiters IN THIS FILE is `kfg:<propertyName>`. Limiters
+// 429. The convention for limiters IN THIS FILE is `czh:<propertyName>`. Limiters
 // defined in lib/ use their own bare, distinct prefixes (e.g. 'rc-retrieve').
 // What matters globally is that no two limiters anywhere share a prefix —
 // scripts/test-ratelimit-prefixes.ts enforces both rules.
@@ -153,58 +139,58 @@ const rateLimiters = REDIS_CONFIGURED ? {
     // 5 attempts / 60s per IP (owner decision 2026-09-29, was 5 / 10 min). Shared by
     // the main-platform AND sub-agent login pages — both post to /api/auth/login.
     // Keep in sync with fallbackCriticalLimits['/api/auth/login'].
-    login: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:login' }),
-    signup: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:signup' }),
-    forgotPassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:forgotPassword' }),
-    subAgentSelfServiceReset: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:subAgentSelfServiceReset' }),
-    resendConfirmation: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:resendConfirmation' }),
-    changePassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'kfg:changePassword' }),
-    checkAvailability: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:checkAvailability' }),
+    login: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:login' }),
+    signup: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'czh:signup' }),
+    forgotPassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'czh:forgotPassword' }),
+    subAgentSelfServiceReset: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'czh:subAgentSelfServiceReset' }),
+    resendConfirmation: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'czh:resendConfirmation' }),
+    changePassword: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'czh:changePassword' }),
+    checkAvailability: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'czh:checkAvailability' }),
     // A successful sign-in is exactly ONE callback, but a whole CGNAT/shared-NAT
     // (common on Ghanaian mobile) shares one IP here, so keep the budget generous
     // to avoid throttling honest concurrent sign-ins. Junk hits fail fast in
     // exchangeCodeForSession anyway, so this is a cost/DoS guard, not an auth control.
-    oauthCallback: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(40, '10 m'), prefix: 'kfg:oauthCallback' }),
+    oauthCallback: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(40, '10 m'), prefix: 'czh:oauthCallback' }),
     // ── Admin routes (broad) ───────────────────────────────────
-    adminProcessWithdrawal: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:adminProcessWithdrawal' }),
-    admin: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:admin' }),
-    adminSettings: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:adminSettings' }),
+    adminProcessWithdrawal: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:adminProcessWithdrawal' }),
+    admin: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'czh:admin' }),
+    adminSettings: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:adminSettings' }),
     // ── Orders & Purchases ─────────────────────────────────────
-    airtimeCreate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:airtimeCreate' }),
-    ordersPurchase: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:ordersPurchase' }),
-    ordersBulk: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 m'), prefix: 'kfg:ordersBulk' }),
+    airtimeCreate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:airtimeCreate' }),
+    ordersPurchase: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:ordersPurchase' }),
+    ordersBulk: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 m'), prefix: 'czh:ordersBulk' }),
     // ── Payments ──────────────────────────────────────────────
-    paymentsInitialize: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:paymentsInitialize' }),
-    paymentsVerify: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:paymentsVerify' }),
+    paymentsInitialize: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:paymentsInitialize' }),
+    paymentsVerify: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'czh:paymentsVerify' }),
     // Charge API (server-side MoMo direct debit). Each call triggers a real
     // MoMo prompt to the supplied phone + burns Paystack quota, so it is
     // throttled hard and keyed per-user (not just per-IP) to stop prompt spam.
-    paymentsCharge: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:paymentsCharge' }),
+    paymentsCharge: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:paymentsCharge' }),
     // OTP submission for an in-flight charge — slightly higher to allow retypes.
-    paymentsChargeOtp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, '1 m'), prefix: 'kfg:paymentsChargeOtp' }),
+    paymentsChargeOtp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, '1 m'), prefix: 'czh:paymentsChargeOtp' }),
     // Status polling — legit clients poll ~6×/min; cap generously above that.
-    paymentsChargePoll: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:paymentsChargePoll' }),
+    paymentsChargePoll: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:paymentsChargePoll' }),
     // ── Shop ──────────────────────────────────────────────────
-    shopValidateAccount: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:shopValidateAccount' }),
-    shopInitialize: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopInitialize' }),
-    shopVerifyOrder: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:shopVerifyOrder' }),
-    shopPricing: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:shopPricing' }),
-    shopWithdraw: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'kfg:shopWithdraw' }),
-    shopAnnouncements: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:shopAnnouncements' }),
-    shopAlerts: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:shopAlerts' }),
-    shopLookupOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:shopLookupOrders' }),
-    shopMyOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:shopMyOrders' }),
-    shopDomainSearch: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopDomainSearch' }),
+    shopValidateAccount: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:shopValidateAccount' }),
+    shopInitialize: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopInitialize' }),
+    shopVerifyOrder: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:shopVerifyOrder' }),
+    shopPricing: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:shopPricing' }),
+    shopWithdraw: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'czh:shopWithdraw' }),
+    shopAnnouncements: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:shopAnnouncements' }),
+    shopAlerts: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:shopAlerts' }),
+    shopLookupOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:shopLookupOrders' }),
+    shopMyOrders: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'czh:shopMyOrders' }),
+    shopDomainSearch: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopDomainSearch' }),
     // Logo upload now decodes + resizes + re-encodes server-side, so each call
     // costs real CPU/memory. It previously fell through to `general` (100/min,
     // IP-keyed) — too loose for the new cost, and IP-keying lets one account
     // spread load across addresses. Keyed per-user; changing a logo is rare.
-    shopUpload: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopUpload' }),
+    shopUpload: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopUpload' }),
     // ── Sub-agents ────────────────────────────────────────────
-    shopInvites: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopInvites' }),
-    shopSubAgents: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:shopSubAgents' }),
-    shopSubWithdrawals: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:shopSubWithdrawals' }),
-    joinRedeem: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:joinRedeem' }),
+    shopInvites: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopInvites' }),
+    shopSubAgents: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'czh:shopSubAgents' }),
+    shopSubWithdrawals: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:shopSubWithdrawals' }),
+    joinRedeem: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'czh:joinRedeem' }),
     // Direct-recruit sub-agent creation (final-review C1, 2026-09-14) — mints
     // a REAL Supabase Auth account with an arbitrary caller-supplied
     // email/phone, so this must not fall through to the loose IP-keyed
@@ -213,49 +199,43 @@ const rateLimiters = REDIS_CONFIGURED ? {
     // default cap) rather than signup's 3/hr — a legit recruiter may create
     // several subs back-to-back. Keyed per-user (an authenticated session is
     // required to reach this route at all).
-    subAgentCreate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 h'), prefix: 'kfg:subAgentCreate' }),
+    subAgentCreate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 h'), prefix: 'czh:subAgentCreate' }),
     // Regenerate never mints a new account, but it does deliver a real
     // credential via SMS/email to on-file contact info — throttle harder than
     // general but looser than creation, since a recruiter recovering a sub's
     // access legitimately may need a few tries.
-    subAgentRegenerate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 h'), prefix: 'kfg:subAgentRegenerate' }),
+    subAgentRegenerate: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 h'), prefix: 'czh:subAgentRegenerate' }),
     // Storefront native MoMo charge — GUEST, keyed per-IP. /charge + submit-otp fire real
     // MoMo prompts (prompt-spam + Paystack-quota risk), so throttle hard; status is a poll.
-    shopCharge: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopCharge' }),
-    shopChargeOtp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:shopChargeOtp' }),
-    shopChargePoll: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:shopChargePoll' }),
+    shopCharge: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopCharge' }),
+    shopChargeOtp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:shopChargeOtp' }),
+    shopChargePoll: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'czh:shopChargePoll' }),
     // ── Webhooks ──────────────────────────────────────────────
-    webhook: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:webhook' }),
+    webhook: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:webhook' }),
     // ── User actions ──────────────────────────────────────────
-    user: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:user' }),
-    userUpgrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'kfg:userUpgrade' }),
-    afaRegistration: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'kfg:afaRegistration' }),
-    agentDowngrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'kfg:agentDowngrade' }),
-    updateProfile: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'kfg:updateProfile' }),
+    user: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'czh:user' }),
+    userUpgrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 m'), prefix: 'czh:userUpgrade' }),
+    afaRegistration: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'czh:afaRegistration' }),
+    agentDowngrade: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, '1 h'), prefix: 'czh:agentDowngrade' }),
+    updateProfile: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '10 m'), prefix: 'czh:updateProfile' }),
     // 5/15m (not 1/24h): the limiter runs BEFORE the handler verifies the
     // password, so a single typo used to burn a whole 24h window. Still hard-caps
     // brute-force of the delete-password. Kept in sync with fallbackCriticalLimits.
-    deleteAccount: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'kfg:deleteAccount' }),
-    airtimeHistory: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:airtimeHistory' }),
-    afaPrice: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:afaPrice' }),
-    pageAccess: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:pageAccess' }),
+    deleteAccount: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'czh:deleteAccount' }),
+    airtimeHistory: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'czh:airtimeHistory' }),
+    afaPrice: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:afaPrice' }),
+    pageAccess: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'czh:pageAccess' }),
     // ── Support & Cron ────────────────────────────────────────
-    supportChat: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:supportChat' }),
-    cron: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:cron' }),
+    supportChat: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:supportChat' }),
+    cron: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:cron' }),
     // ── Developer API ──────────────────────────────────────
-    apiPackages: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:apiPackages' }),
-    apiBalance: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'kfg:apiBalance' }),
-    apiStatus: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:apiStatus' }),
-    apiPurchase: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'kfg:apiPurchase' }),
-    apiBulk: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:apiBulk' }),
-    apiSms: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 m'), prefix: 'kfg:apiSms' }),
-    // ── User SMS platform (KFG SMS) ───────────────────────────
-    // Sends debit credits + hit Hubtel — throttled hard per user; the route
-    // adds DB-backed hourly/daily counters on top (fail-closed).
-    smsSend: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'kfg:smsSend' }),
-    smsGeneral: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'kfg:smsGeneral' }),
+    apiPackages: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:apiPackages' }),
+    apiBalance: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'czh:apiBalance' }),
+    apiStatus: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:apiStatus' }),
+    apiPurchase: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, '1 m'), prefix: 'czh:apiPurchase' }),
+    apiBulk: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 m'), prefix: 'czh:apiBulk' }),
     // ── General catch-all ─────────────────────────────────────
-    general: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(100, '1 m'), prefix: 'kfg:general' }),
+    general: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(100, '1 m'), prefix: 'czh:general' }),
 } : null
 
 // Helper to add cache-prevention headers
@@ -585,11 +565,9 @@ export async function middleware(request: NextRequest) {
                 apiLimiter = rateLimiters.apiPurchase
             } else if (apiSuffix === '/data/bulk') {
                 apiLimiter = rateLimiters.apiBulk
-            } else if (apiSuffix.startsWith('/sms')) {
-                apiLimiter = rateLimiters.apiSms
             } else {
                 // Catch-all floor for any developer-API path that matched no branch
-                // above: the utilities routes, and the product routes (account/role,
+                // above: the product routes (account/role,
                 // airtime/*, resultschecker/*, afa/*), which carry their own per-key
                 // consumeRateLimit inside the handler.
                 //
@@ -600,10 +578,10 @@ export async function middleware(request: NextRequest) {
                 //
                 // The distinct bucket namespace is still required, though no longer
                 // because of the old shared-prefix bug (fixed: every limiter now declares
-                // prefix 'kfg:<name>'). rateLimiters.general is used by
+                // prefix 'czh:<name>'). rateLimiters.general is used by
                 // this arm, /api/admin/get-prices, and the main non-developer-API chain further
                 // down — so all three share the
-                // 'kfg:general' prefix; the identifier is what keeps unrouted developer-API
+                // 'czh:general' prefix; the identifier is what keeps unrouted developer-API
                 // traffic from sharing a window with ordinary /api traffic. Keep them
                 // distinct.
                 apiLimiter = rateLimiters.general
@@ -740,7 +718,7 @@ export async function middleware(request: NextRequest) {
         authUser = null
     }
 
-    // NOTE: the one-time cookie-domain migration (kfg_cd1) used to live here.
+    // NOTE: the one-time cookie-domain migration (czh_cd1) used to live here.
     // It now runs immediately before the final fallthrough `return`, below —
     // see that block for the full rationale and the placement note.
 
@@ -756,8 +734,6 @@ export async function middleware(request: NextRequest) {
 
         if (!rateLimiters) {
             // Redis not configured — skip all rate limiting, fail open
-        } else if (pathname === '/api/cron/sync-moolre-withdrawals') {
-            limiter = null // Excluded entirely; protected by CRON_SECRET only
         } else if (pathname === '/api/shop/validate-account') {
             limiter = rateLimiters.shopValidateAccount
             identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
@@ -799,12 +775,6 @@ export async function middleware(request: NextRequest) {
             identifier = authUser?.id ? `${authUser.id}-${ip}` : ip
         } else if (pathname.startsWith('/api/admin')) {
             limiter = rateLimiters.admin
-            identifier = authUser?.id ?? ip
-        } else if (pathname === '/api/sms/my-campaigns' && request.method === 'POST') {
-            limiter = rateLimiters.smsSend
-            identifier = authUser?.id ?? ip
-        } else if (pathname.startsWith('/api/sms')) {
-            limiter = rateLimiters.smsGeneral
             identifier = authUser?.id ?? ip
         } else if (pathname === '/api/shop/initialize') {
             limiter = rateLimiters.shopInitialize
@@ -1089,7 +1059,7 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    // ── One-time cookie-domain migration (kfg_cd1) ──────────────────────────
+    // ── One-time cookie-domain migration (czh_cd1) ──────────────────────────
     // Pre-existing sessions have host-scoped sb-* cookies. Once cookieOptions
     // adds Domain=.capozygh.com, a token refresh would create a SECOND
     // cookie with the same name; browsers send the older host-scoped one first,
@@ -1104,7 +1074,7 @@ export async function middleware(request: NextRequest) {
     // `setAll` → `res.cookies.set()`, and ResponseCookies.set() wipes and
     // re-serializes the ENTIRE Set-Cookie header from its internal map on
     // every call. That would destroy this block's raw-appended deletion
-    // headers while the map-resident kfg_cd1 marker survives — leaving
+    // headers while the map-resident czh_cd1 marker survives — leaving
     // permanent duplicate host+domain cookies. At this final return, no
     // further `.cookies.set()` can run after this block.
     const migrationDomain = getAuthCookieDomain()
@@ -1116,7 +1086,7 @@ export async function middleware(request: NextRequest) {
     const bareCookieDomain = migrationDomain?.startsWith('.') ? migrationDomain.slice(1) : migrationDomain
     const hostOnCookieDomain = !!bareCookieDomain &&
         (hostname === bareCookieDomain || hostname.endsWith('.' + bareCookieDomain))
-    if (migrationDomain && hostOnCookieDomain && !request.cookies.get('kfg_cd1')) {
+    if (migrationDomain && hostOnCookieDomain && !request.cookies.get('czh_cd1')) {
         // Narrowed to the auth token (+ its .0/.1 chunks + code-verifier) —
         // NOT every sb-* cookie — so an attacker-planted sb-* cookie can't be
         // promoted to a year-long domain-scoped cookie. Mirrors the predicate
@@ -1137,7 +1107,7 @@ export async function middleware(request: NextRequest) {
                 httpOnly: false,
             })
         }
-        res.cookies.set('kfg_cd1', '1', {
+        res.cookies.set('czh_cd1', '1', {
             path: '/',
             maxAge: 60 * 60 * 24 * 180,
             sameSite: 'lax',

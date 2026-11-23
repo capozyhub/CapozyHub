@@ -7,16 +7,12 @@ import { randomBytes } from 'crypto'
 
 // ============================================================================
 // API Key Management — User Endpoints (cookie-based auth, NOT API key auth)
-// GET  — View current keys (prefix + status only, never the full key) — a
-//        user may hold up to THREE keys, one per key_type ('standard' |
-//        'commission' | 'sms'), returned as api_keys.standard /
-//        api_keys.commission / api_keys.sms.
-// POST — Generate a new key of the requested type (deletes the OLD key of
-//        that SAME type only — the other type's key, if any, is untouched —
-//        and returns the full key ONCE)
+// GET  — View the current key (prefix + status only, never the full key),
+//        returned as api_keys.standard.
+// POST — Generate a new key (deletes the OLD key and returns the full key ONCE)
 // ============================================================================
 
-// ── GET: View current API keys (standard + commission + sms) ─────────────
+// ── GET: View the current API key ─────────────────────────────────────────
 
 export async function GET() {
     try {
@@ -49,8 +45,7 @@ export async function GET() {
 
         const isEligible = allowedRoles.includes(userRole)
 
-        // Get user's current API keys — up to three rows now (one per key_type),
-        // so this is a plain array select rather than .single()/.maybeSingle().
+        // Get the user's current API key rows.
         const { data: apiKeys, error: keyError } = await (supabase
             .from('api_keys') as any)
             .select('id, key_prefix, name, status, key_type, last_used_at, created_at, updated_at')
@@ -72,8 +67,6 @@ export async function GET() {
         } : null
 
         const standardKey = (apiKeys || []).find((k: any) => k.key_type === 'standard') || null
-        const commissionKey = (apiKeys || []).find((k: any) => k.key_type === 'commission') || null
-        const smsKey = (apiKeys || []).find((k: any) => k.key_type === 'sms') || null
 
         // Check if API feature is enabled
         const { data: featureSetting } = await (supabase
@@ -91,8 +84,6 @@ export async function GET() {
             user_role: userRole,
             api_keys: {
                 standard: mapKey(standardKey),
-                commission: mapKey(commissionKey),
-                sms: mapKey(smsKey),
             },
         })
     } catch (error: any) {
@@ -102,10 +93,8 @@ export async function GET() {
 }
 
 // ── POST: Generate a new API key ──────────────────────────────────────────
-// If the user already has a key of the SAME key_type, only that key is
-// deleted (revoked permanently) — the other type's key, if any, is left
-// completely untouched. The new full key is returned ONCE in this response —
-// never stored in plaintext.
+// An existing key is deleted (revoked permanently). The new full key is returned
+// ONCE in this response — never stored in plaintext.
 
 export async function POST(request: NextRequest) {
     try {
@@ -152,82 +141,39 @@ export async function POST(request: NextRequest) {
             }, { status: 403 })
         }
 
-        // ── Parse optional key name + key_type from body ──────────────────
+        // ── Parse optional key name from body ─────────────────────────────
+        // There is exactly one key type ('standard'); anything else is rejected.
         let keyName = 'My API Key'
-        let keyType: 'standard' | 'commission' | 'sms' = 'standard'
         try {
             const body = await request.json()
             if (body?.name && typeof body.name === 'string' && body.name.trim().length > 0) {
                 keyName = body.name.trim().substring(0, 50) // Max 50 chars
             }
-            if (body?.key_type !== undefined && body.key_type !== null) {
-                if (body.key_type === 'commission') {
-                    keyType = 'commission'
-                    if (keyName === 'My API Key') keyName = 'Commission Services Key'
-                } else if (body.key_type === 'sms') {
-                    keyType = 'sms'
-                    if (keyName === 'My API Key') keyName = 'SMS API Key'
-                } else if (body.key_type !== 'standard') {
-                    return NextResponse.json({ error: "key_type must be 'standard', 'commission', or 'sms'" }, { status: 400 })
-                }
+            if (body?.key_type !== undefined && body.key_type !== null && body.key_type !== 'standard') {
+                return NextResponse.json({ error: "key_type must be 'standard'" }, { status: 400 })
             }
         } catch {
             // No body or invalid JSON — use defaults
         }
 
-        // Commission keys no longer require an active shop — commission is now
-        // credited to a dedicated commission_wallets row (see lib/commission-wallet.ts
-        // and supabase/migrations/20260901b_commission_wallet_rpcs.sql), independent
-        // of shop_wallets. Eligibility is the same allowedRoles check already applied
-        // to every key type above.
-
-        // ── SMS keys require an APPROVED business-mode SMS account ─────────
-        // Business mode already required a manual admin KYC review (Ghana
-        // Card + business docs, see app/api/sms/business/route.ts), so this
-        // is the sole gate — no separate approval step for the key itself.
-        if (keyType === 'sms') {
-            const { data: smsAccount } = await (supabase
-                .from('sms_accounts') as any)
-                .select('mode')
-                .eq('user_id', authUser.id)
-                .maybeSingle()
-
-            if (!smsAccount || smsAccount.mode !== 'business') {
-                return NextResponse.json({
-                    error: 'SMS API keys require business mode. Register your business on the SMS dashboard and wait for approval.',
-                }, { status: 403 })
-            }
-        }
-
-        // ── Delete existing key of the SAME type only ──────────────────────
-        // This permanently revokes the old same-type key. The user was warned
-        // in the UI. The other key_type's key (if any) is untouched.
+        // ── Delete the user's existing key ────────────────────────────────
+        // This permanently revokes the old key. The user was warned in the UI.
         await (supabase.from('api_keys') as any)
             .delete()
             .eq('user_id', authUser.id)
-            .eq('key_type', keyType)
+            .eq('key_type', 'standard')
 
         // ── Generate new key ──────────────────────────────────────────────
-        // Standard: kf_live_ + 32 hex = 40 chars. Commission: kf_cs_live_ +
-        // 32 hex = 43 chars. SMS: kf_sms_live_ + 32 hex = 44 chars. Prefix is
-        // ALWAYS the first 16 chars (must match lib/api-auth.ts's lookup).
+        // cz_live_ + 32 hex = 40 chars. The prefix is ALWAYS the first 16 chars
+        // (must match lib/api-auth.ts's lookup).
         const randomPart = randomBytes(16).toString('hex') // 32 hex chars
-        const fullKey = keyType === 'commission'
-            ? `kf_cs_live_${randomPart}`
-            : keyType === 'sms'
-                ? `kf_sms_live_${randomPart}`
-                : `kf_live_${randomPart}`
+        const fullKey = `cz_live_${randomPart}`
         const keyPrefix = fullKey.substring(0, 16)
 
-        // Hash for storage (bcrypt, 10 salt rounds) — same cost for all types
+        // Hash for storage (bcrypt, 10 salt rounds)
         const keyHash = await bcrypt.hash(fullKey, 10)
 
-        // SMS keys are auto-active: business mode already passed manual KYC
-        // review, so a second manual key-approval step is pure friction.
-        // standard/commission keys keep the existing pending-approval flow.
-        const initialStatus = keyType === 'sms' ? 'active' : 'pending'
-
-        // ── Insert new key ──────────────────────────────────────────────
+        // ── Insert new key (pending until an admin approves it) ───────────
         const { data: newKey, error: insertError } = await (supabase
             .from('api_keys') as any)
             .insert({
@@ -235,8 +181,8 @@ export async function POST(request: NextRequest) {
                 key_hash: keyHash,
                 key_prefix: keyPrefix,
                 name: keyName,
-                key_type: keyType,
-                status: initialStatus,
+                key_type: 'standard',
+                status: 'pending',
             })
             .select('id, key_prefix, name, status, key_type, created_at')
             .single()
@@ -251,9 +197,7 @@ export async function POST(request: NextRequest) {
         // After this response, only the hash exists in the database.
         return NextResponse.json({
             success: true,
-            message: keyType === 'sms'
-                ? 'SMS API key generated and active. Save this key now — it will NOT be shown again.'
-                : 'API key generated successfully. Save this key now — it will NOT be shown again.',
+            message: 'API key generated successfully. Save this key now — it will NOT be shown again.',
             api_key: {
                 key: fullKey, // ← Shown ONCE, then never again
                 prefix: newKey.key_prefix,
@@ -262,11 +206,8 @@ export async function POST(request: NextRequest) {
                 key_type: newKey.key_type,
                 created_at: newKey.created_at,
             },
-            warning: keyType === 'sms'
-                ? undefined
-                : 'Your API key requires admin approval before it can be used. Status: pending.',
+            warning: 'Your API key requires admin approval before it can be used. Status: pending.',
         })
-
     } catch (error: any) {
         console.error('[API Keys POST] Exception:', error.message)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

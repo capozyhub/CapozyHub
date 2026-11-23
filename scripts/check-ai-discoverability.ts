@@ -1,4 +1,4 @@
-﻿// Run: npx tsx scripts/check-ai-discoverability.ts
+// Run: npx tsx scripts/check-ai-discoverability.ts
 import { readFileSync } from 'node:fs'
 import { DEVELOPER_PRODUCTS, SITE, llmsTxt } from '../lib/developer-products'
 
@@ -9,10 +9,8 @@ function check(name: string, ok: boolean, detail = '') {
 }
 
 const norm = (s: string) => s.replace(/\r\n/g, '\n')
-const spec = norm(readFileSync('postman/specs/openapi.yaml', 'utf8'))
-const publicSpec = norm(readFileSync('public/openapi.yaml', 'utf8'))
-
-check('public/openapi.yaml matches postman/specs/openapi.yaml', spec === publicSpec, 're-copy the spec into public/')
+const spec = norm(readFileSync('public/openapi.yaml', 'utf8'))
+const publicSpec = spec
 
 const specPaths = new Set(
     [...spec.matchAll(/^  (\/[^\s:]*):\s*$/gm)].map(m => m[1]),
@@ -32,7 +30,7 @@ for (const p of DEVELOPER_PRODUCTS) {
 }
 check('llms.txt links the OpenAPI spec', txt.includes(`${SITE}/openapi.yaml`))
 
-const banned = /datakazina|hubtel|spfastit|bundleportal|agentportal|ghdata|supabase|paystack/i
+const banned = /datakazina|hubtel|moolre|spfastit|bundleportal|agentportal|ghdata|supabase|paystack|kingflexy|king flexy|kft|kf_/i
 check('no supplier or infra names in public copy', !banned.test(txt + JSON.stringify(DEVELOPER_PRODUCTS)))
 check('public spec has no supplier or infra names', !banned.test(publicSpec))
 

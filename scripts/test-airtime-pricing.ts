@@ -4,7 +4,7 @@
 // dashboard (app/api/airtime/create) and the developer API
 // (app/api/airtime/purchase). It decides what a customer is charged, so the
 // two fee modes and the fallback constants are pinned here.
-import { quoteAirtime, quoteAirtimeCommission } from '@/lib/airtime-pricing'
+import { quoteAirtime } from '@/lib/airtime-pricing'
 
 function assertClose(actual: number, expected: number, label: string) {
     if (Math.abs(actual - expected) > 0.005) {
@@ -109,27 +109,6 @@ const settings: Record<string, string> = {
     assert(!r.ok && r.reason === 'too_low_after_fees', 'rejects when the fee leaves nothing for the beneficiary')
 }
 
-// quoteAirtimeCommission — zero-fee API path
-{
-    const r = quoteAirtimeCommission({ settings: {}, network: 'MTN', role: 'agent', amount: 50 })
-    assert(r.ok === true, 'quoteAirtimeCommission: GHS 50 for agent should be ok')
-    if (r.ok) {
-        assert(r.quote.feeAmount === 0, 'quoteAirtimeCommission: feeAmount must be 0')
-        assert(r.quote.feeRate === 0, 'quoteAirtimeCommission: feeRate must be 0')
-        assert(r.quote.airtimeAmount === 50, 'quoteAirtimeCommission: airtimeAmount must equal amount')
-        assert(r.quote.totalPaid === 50, 'quoteAirtimeCommission: totalPaid must equal amount')
-    }
-}
-{
-    // min/max still enforced -- default customer max is 500
-    const r = quoteAirtimeCommission({ settings: {}, network: 'MTN', role: 'customer', amount: 501 })
-    assert(r.ok === false && r.reason === 'above_max', 'quoteAirtimeCommission: must still enforce max limit')
-}
-{
-    const r = quoteAirtimeCommission({ settings: {}, network: 'MTN', role: 'customer', amount: 0.5 })
-    assert(r.ok === false && r.reason === 'below_min', 'quoteAirtimeCommission: must still enforce min limit')
-}
-
 // ── Money has at most 2 decimals: a 3-decimal amount must not reach the database ──
 {
     const r = quoteAirtime({ settings, network: 'MTN', role: 'customer', amount: 10.005, useExactAmount: false })
@@ -138,8 +117,6 @@ const settings: Record<string, string> = {
     assert(ok.ok, 'accepts a 2-decimal amount')
     const whole = quoteAirtime({ settings, network: 'MTN', role: 'customer', amount: 0.1 + 0.2 + 9.7, useExactAmount: false })
     assert(whole.ok, 'float noise on a 2-decimal amount (0.1 + 0.2 + 9.7) is not mistaken for extra decimals')
-    const api = quoteAirtimeCommission({ settings: {}, network: 'MTN', role: 'customer', amount: 5.001 })
-    assert(!api.ok && api.reason === 'too_many_decimals', 'commission quote rejects a 3-decimal amount too')
 }
 
 console.log('All airtime-pricing tests passed.')

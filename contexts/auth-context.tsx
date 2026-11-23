@@ -58,12 +58,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // real sign-out time.
 const INACTIVITY_TIMEOUT  = 6 * 60 * 60 * 1000  // 6 hours — hard logout
 const INACTIVITY_WARN     = INACTIVITY_TIMEOUT - 60 * 60 * 1000  // 60-min countdown to logout
-const CLOSE_EXPIRY_KEY    = 'kfg_close_time'
+const CLOSE_EXPIRY_KEY    = 'czh_close_time'
 // sessionStorage key — survives same-tab reloads (F5) but is cleared on true tab
 // close. Used to distinguish a reload (keep session) from a fresh tab after close
 // (sign out). localStorage cannot make this distinction — both events fire the same
 // visibilitychange(hidden) / pagehide, so CLOSE_EXPIRY_KEY alone is ambiguous.
-const SESSION_ALIVE_KEY   = 'kfg_session_alive'
+const SESSION_ALIVE_KEY   = 'czh_session_alive'
 // Cross-tab coordination keys (shared localStorage).
 // LAST_SEEN — a liveness heartbeat any live tab writes every ~10s. A fresh tab
 //   uses it to tell "the app was truly closed" from "a second tab was opened
@@ -72,8 +72,8 @@ const SESSION_ALIVE_KEY   = 'kfg_session_alive'
 // LAST_ACTIVITY — the last real user interaction, shared across tabs so an idle
 //   background tab does not fire the inactivity sign-out while the user is
 //   actively working in a sibling tab.
-const LAST_SEEN_KEY          = 'kfg_last_seen'
-const LAST_ACTIVITY_KEY      = 'kfg_last_activity'
+const LAST_SEEN_KEY          = 'czh_last_seen'
+const LAST_ACTIVITY_KEY      = 'czh_last_activity'
 const SIBLING_ALIVE_WINDOW_MS = 90 * 1000   // a heartbeat newer than this ⇒ another tab is alive
 const ACTIVITY_SHARE_THROTTLE_MS = 10 * 1000 // min gap between shared-activity writes
 

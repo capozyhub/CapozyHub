@@ -30,16 +30,9 @@ import { consumeRateLimit } from '@/lib/simple-rate-limit'
 // one is the security boundary that survives a future bug in this route.
 // ============================================================================
 
-// SMS deliberately excluded: its webhook feature lives entirely on
-// sms_accounts.webhook_url via the separate /api/sms/webhook-config route
-// (a different trigger shape — campaign-reconcile, not order-completion; see
-// lib/api-webhook.ts's header comment). Accepting keyType:'sms' here would
-// silently write to a column dispatchApiWebhook never reads for that key
-// type — a confusing no-op, not a security issue, but worth closing off.
-// WebhookConfigCard (the only UI that calls this route) never renders for
-// 'sms' either, so this also matches what's actually reachable.
-type KeyType = 'standard' | 'commission'
-const VALID_KEY_TYPES: readonly KeyType[] = ['standard', 'commission']
+// One key type exists ('standard'); the webhook belongs to that key.
+type KeyType = 'standard'
+const VALID_KEY_TYPES: readonly KeyType[] = ['standard']
 
 export async function GET() {
     try {

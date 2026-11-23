@@ -6,7 +6,7 @@
 // silently share one sliding window, each judging that shared counter against
 // its own threshold. EVERY instance must declare an explicit `prefix`; no two
 // may share one. Limiters in middleware.ts additionally must be named
-// `kfg:<propertyName>`.
+// `czh:<propertyName>`.
 //
 // PART 2 — in-memory (`consumeRateLimit`, lib/simple-rate-limit.ts): keys the
 // WHOLE interpolated string as one Map entry, so a shared literal PREFIX only
@@ -61,7 +61,7 @@ function countCalls(src: string): number {
     return (src.match(RATELIMIT_CALL) || []).length
 }
 
-// ── middleware.ts: named entries, must be kfg:<propertyName> ────────────────
+// ── middleware.ts: named entries, must be czh:<propertyName> ────────────────
 const mwSource = readFileSync(join(root, 'middleware.ts'), 'utf8')
 const mwTotal = countCalls(mwSource)
 if (mwTotal === 0) {
@@ -76,7 +76,7 @@ while ((m = NAMED_ENTRY.exec(mwSource)) !== null) {
     const [, name, args] = m
     const owner = `middleware.ts:${name}`
     const prefix = readPrefix(args, owner)
-    const expected = `kfg:${name}`
+    const expected = `czh:${name}`
     if (prefix !== expected) {
         throw new Error(`${owner} has prefix '${prefix}', expected '${expected}'.`)
     }
@@ -119,15 +119,13 @@ for (const file of readdirSync(join(root, 'lib')).filter(f => f.endsWith('.ts'))
 
 console.log(
     `All ${mwMatched + libMatched} Ratelimit instances have explicit, globally-unique prefixes ` +
-    `(${mwMatched} in middleware.ts as kfg:<name>, ${libMatched} in lib/).`
+    `(${mwMatched} in middleware.ts as czh:<name>, ${libMatched} in lib/).`
 )
 
 // ── consumeRateLimit: every literal prefix must be unique repo-wide ─────────
 // Pre-existing sharing found when this guard was added (2026-09-29), not yet fixed. Each entry
 // names every owner so a THIRD call site reusing the prefix still fails loudly.
 const KNOWN_SHARED_PREFIXES: Record<string, string> = {
-    'util-lookup': 'lib/api-handlers/utilities-lookup.ts (apiKeyId) + app/api/utilities/verify/route.ts (authUser.id) — different identifier spaces, no live collision.',
-    'sms-send': 'lib/api-handlers/sms-send.ts (apiKeyId) + app/api/shop/sms/send/route.ts (sid) — different identifier spaces, no live collision.',
     'announce-write': 'app/api/admin/announcements/route.ts + app/api/admin/announcements/[id]/route.ts — appears to be a deliberate combined create/update/delete quota per admin, not an accident.',
 }
 

@@ -11,7 +11,7 @@ import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 // This is the API-key equivalent of createRouteClient().
 // Used by all /api/ routes instead of cookie-based session auth.
 // Never uses cookies — all auth is via API key in the Authorization header
-// (accepts both "kf_live_xxx" and "Bearer kf_live_xxx" formats).
+// (accepts both "cz_live_xxx" and "Bearer cz_live_xxx" formats).
 // ============================================================================
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ export interface ApiAuthResult {
      */
     effectiveRole: string
     keyPrefix: string
-    keyType: 'standard' | 'commission' | 'sms'
+    keyType: 'standard'
     rateLimits: ResolvedRateLimits
     supabase: ReturnType<typeof createServerClient>
 }
@@ -50,7 +50,7 @@ interface ApiKeyRow {
     key_prefix: string
     name: string
     status: 'pending' | 'active' | 'revoked'
-    key_type: 'standard' | 'commission' | 'sms'
+    key_type: 'standard'
     rate_limits: Record<string, number> | null
     last_used_at: string | null
     created_at: string
@@ -88,7 +88,7 @@ interface CachedAuth {
     // userRole, rateLimits and the suspended-account check.
     effectiveRole: string
     keyPrefix: string
-    keyType: 'standard' | 'commission' | 'sms'
+    keyType: 'standard'
     rateLimits: ResolvedRateLimits
 }
 
@@ -106,53 +106,14 @@ function fingerprintKey(fullKey: string): string {
 // Generated once at module load; cost matches the production hash cost (10).
 const DUMMY_HASH = bcrypt.hashSync('___not_a_real_api_key___', 10)
 
-// ─── Key-type scope guard (CENTRAL enforcement) ─────────────────────────
+// ─── Key type ───────────────────────────────────────────────────────────────
 //
-// Keys with no entry here (standard) are unrestricted EXCEPT on sections owned
-// by a restricted type — that exclusion list is derived from RESTRICTED_SCOPES
-// itself so it can't drift out of sync.
-//
-// Each restricted key type is confined to one API section. These prefixes must
-// track the public developer-API paths in lib/developer-api.ts: a mismatch fails
-// OPEN (a standard key reaches /api/utilities/*) or closed (a commission key is
-// 403'd on its own endpoint). See .claude/skills/capozy-developer-api/SKILL.md.
-const RESTRICTED_SCOPES: Record<'commission' | 'sms', RegExp> = {
-    commission: /^\/api\/(?:utilities|airtime)(?:\/|$)/,
-    sms: /^\/api\/sms(?:\/|$)/,
-}
+// There is exactly one key type: 'standard'. A key row of any other type (a legacy or
+// unknown value) is refused outright. It is never treated as standard.
 
-function matchesPrefix(pathname: string, pattern: RegExp): boolean {
-    return pattern.test(pathname)
+export function unsupportedKeyType(keyType: string): NextResponse | null {
+    return keyType === 'standard' ? null : apiError(403, 'This API key type is not supported')
 }
-
-export function keyTypeScopeGuard(
-    keyType: 'standard' | 'commission' | 'sms',
-    pathname: string
-): NextResponse | null {
-    if (keyType === 'commission' || keyType === 'sms') {
-        if (!matchesPrefix(pathname, RESTRICTED_SCOPES[keyType])) {
-            // NOTE: this branch fires when a commission/sms key is used
-            // OUTSIDE its own scope. The path it landed on may itself
-            // belong to another restricted type (e.g. an sms key calling
-            // /api/utilities/pay) or to no restricted type at all (a
-            // plain standard-only path). Report the type that actually
-            // owns the path it hit when known, falling back to "standard"
-            // otherwise, so the error is never misleading.
-            const owner = (Object.entries(RESTRICTED_SCOPES) as [string, RegExp][])
-                .find(([, pattern]) => matchesPrefix(pathname, pattern))?.[0]
-            return apiError(403, `This endpoint requires a ${owner ?? 'standard'} API key`)
-        }
-        return null
-    }
-    // standard: blocked on any OTHER type's exclusive prefix.
-    for (const [restrictedType, pattern] of Object.entries(RESTRICTED_SCOPES)) {
-        if (matchesPrefix(pathname, pattern)) {
-            return apiError(403, `This endpoint requires a ${restrictedType} API key`)
-        }
-    }
-    return null
-}
-
 // ─── API Key Validation ─────────────────────────────────────────────────────
 
 /**
@@ -177,8 +138,8 @@ export async function validateApiKey(
 
     // ── Step 1: Extract API key from Authorization header ───────────────
     // Accept both formats for caller convenience:
-    //   Authorization: kf_live_xxx           (direct — what our docs show)
-    //   Authorization: Bearer kf_live_xxx    (standard HTTP convention — what
+    //   Authorization: cz_live_xxx           (direct — what our docs show)
+    //   Authorization: Bearer cz_live_xxx    (standard HTTP convention — what
     //                                         Postman/Insomnia/many SDKs default to)
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.trim()) {
@@ -199,12 +160,6 @@ export async function validateApiKey(
     const fingerprint = fingerprintKey(fullKey)
     const cached = validatedKeyCache.get(fingerprint)
     if (cached) {
-        // Re-run the central commission-key path guard on every cache hit too —
-        // the cache stores the validated identity, not a permission verdict, so
-        // scope enforcement must not be skippable by hitting the 60s cache.
-        const scopeError = keyTypeScopeGuard(cached.keyType, request.nextUrl.pathname)
-        if (scopeError) return scopeError
-
         return {
             userId: cached.userId,
             apiKeyId: cached.apiKeyId,
@@ -252,6 +207,10 @@ export async function validateApiKey(
     if (!isValid) {
         return apiError(401, 'Invalid API key')
     }
+
+    // Only standard keys exist; refuse any other type before it can be cached.
+    const typeError = unsupportedKeyType(apiKey.key_type)
+    if (typeError) return typeError
 
     // ── Step 5: Check feature toggle and role allowlist ──────────────────
     const { data: settingsRows } = await (supabase
@@ -343,14 +302,6 @@ export async function validateApiKey(
         .then(() => {})
         .catch((e: any) => console.error('[API Auth] last_used_at update error:', e.message))
 
-    // ── Central key-type scope guard ─────────────────────────────────────
-    // See keyTypeScopeGuard's doc comment for the full asymmetry this
-    // implements. Runs after the cache is populated so the NEXT request with
-    // this same key hits the (cheaper) cache-hit guard above instead of
-    // repeating the full DB + bcrypt path.
-    const scopeError = keyTypeScopeGuard(apiKey.key_type, request.nextUrl.pathname)
-    if (scopeError) return scopeError
-
     // ── Step 8: Return authenticated context ────────────────────────────
     return {
         userId: apiKey.user_id,
@@ -383,28 +334,6 @@ export function resolveRateLimits(
         status:   keyLimits?.status   ?? globalLimits?.status   ?? FALLBACK_RATE_LIMITS.status,
         sms:      keyLimits?.sms      ?? globalLimits?.sms      ?? FALLBACK_RATE_LIMITS.sms,
     }
-}
-
-// ─── Key-Type Guard (opt-in, per-route) ─────────────────────────────────────
-
-/**
- * Route-level guard: rejects the request unless the authenticated key matches
- * the required type. This is the OPT-IN half of key-type enforcement — the
- * /api/utilities/* routes call `requireKeyType(auth, 'commission')`
- * as their first line to reject standard keys (the mirror image of the
- * central `keyTypeScopeGuard` inside validateApiKey, which already
- * rejects commission/sms keys on every OTHER route). Existing standard-only
- * routes need no change — they simply never call this helper, so their
- * behavior is untouched.
- */
-export function requireKeyType(
-    auth: ApiAuthResult,
-    type: 'standard' | 'commission' | 'sms'
-): NextResponse | null {
-    if (auth.keyType !== type) {
-        return apiError(403, `This endpoint requires a ${type} API key`)
-    }
-    return null
 }
 
 // ─── Response Helpers ───────────────────────────────────────────────────────

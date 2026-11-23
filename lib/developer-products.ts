@@ -1,6 +1,6 @@
 // Single source of truth for the public developer-facing product pages
 // (/developers/<slug>), /llms.txt and the sitemap. Facts here mirror
-// postman/specs/openapi.yaml — change the spec first, then this file.
+// public/openapi.yaml — change the spec first, then this file.
 
 import { BRAND } from '@/lib/brand'
 
@@ -8,12 +8,10 @@ import { BRAND } from '@/lib/brand'
 export const API_BASE = 'https://api.capozygh.com/api'
 export const SITE = BRAND.siteUrl
 
-export type KeyType = 'standard' | 'commission' | 'sms'
+export type KeyType = 'standard'
 
 export const KEY_INFO: Record<KeyType, { label: string; prefix: string }> = {
-    standard: { label: 'Standard API key', prefix: 'kf_live_' },
-    commission: { label: 'Commission Services API key', prefix: 'kf_cs_live_' },
-    sms: { label: 'SMS API key', prefix: 'kf_sms_live_' },
+    standard: { label: 'API key', prefix: 'cz_live_' },
 }
 
 export interface ProductEndpoint {
@@ -62,7 +60,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/orders/{reference}', summary: 'Check a data order\'s fulfillment status' },
             { method: 'GET', path: '/wallet/balance', summary: 'Get your wallet balance' },
         ],
-        curl: curlPost('/data/purchase', 'kf_live_your_api_key_here', {
+        curl: curlPost('/data/purchase', 'cz_live_your_api_key_here', {
             network: 'MTN',
             volume_gb: 5,
             recipient: '0551617309',
@@ -75,16 +73,16 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
         name: 'Airtime API',
         title: 'Airtime API Ghana — MTN, Telecel & AirtelTigo Top-up',
         description:
-            'Top up MTN, Telecel and AirtelTigo airtime at face value through a REST API in Ghana, with commission for lifetime agents and dealers.',
+            'Top up MTN, Telecel and AirtelTigo airtime through a REST API in Ghana. Orders are fulfilled by our team and you poll for the final status.',
         intro:
-            'Top up airtime at face value with no fee. Lifetime agents and dealers earn a share of the provider commission into a dedicated Commission Wallet. Orders dispatch in the background and you poll for the final status.',
-        keyType: 'commission',
+            'Top up airtime from your wallet. The beneficiary receives exactly the amount you send and the platform fee is added on top. Orders start pending and you poll for the final status.',
+        keyType: 'standard',
         endpoints: [
             { method: 'POST', path: '/airtime/purchase', summary: 'Top up airtime' },
             { method: 'GET', path: '/airtime/orders', summary: 'List your recent airtime orders' },
             { method: 'GET', path: '/airtime/orders/{reference}', summary: 'Check one airtime order\'s status' },
         ],
-        curl: curlPost('/airtime/purchase', 'kf_cs_live_your_commission_key_here', {
+        curl: curlPost('/airtime/purchase', 'cz_live_your_api_key_here', {
             network: 'MTN',
             beneficiary_phone: '0551617309',
             amount: 10,
@@ -107,7 +105,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/resultschecker/orders', summary: 'List your recent results checker orders' },
             { method: 'GET', path: '/resultschecker/orders/{reference}', summary: 'Look up one order, including its vouchers again' },
         ],
-        curl: curlPost('/resultschecker/purchase', 'kf_live_your_api_key_here', {
+        curl: curlPost('/resultschecker/purchase', 'cz_live_your_api_key_here', {
             typeId: 'voucher-type-uuid-from-/resultschecker/types',
             quantity: 1,
             reference: 'rc-1001',
@@ -128,7 +126,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/afa/orders', summary: 'List your recent AFA registrations' },
             { method: 'GET', path: '/afa/orders/{reference}', summary: 'Check one AFA registration\'s status' },
         ],
-        curl: curlPost('/afa/register', 'kf_live_your_api_key_here', {
+        curl: curlPost('/afa/register', 'cz_live_your_api_key_here', {
             reference: 'afa-1001',
             full_name: 'Ama Mensah',
             phone: '0241234567',
@@ -158,7 +156,7 @@ export function llmsTxt(): string {
     lines.push('')
     lines.push(`- Base URL: ${API_BASE}`)
     lines.push('- Auth: send your API key RAW in the Authorization header (no "Bearer" prefix).')
-    lines.push('- Key types: standard (kf_live_...) for data, results checker, AFA, wallet and orders; commission (kf_cs_live_...) for airtime and utility bills; SMS (kf_sms_live_...) for SMS.')
+    lines.push('- Keys start with cz_live_ and cover data, airtime, results checker, AFA, wallet and orders.')
     lines.push('- Money-moving endpoints take a unique `reference` as an idempotency key.')
     lines.push(`- [Full API documentation](${SITE}/developers)`)
     lines.push(`- [OpenAPI 3 specification](${SITE}/openapi.yaml)`)

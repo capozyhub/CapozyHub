@@ -141,11 +141,8 @@ export async function GET(request: NextRequest) {
                     .eq('api_key_id', apiKeyId)
                     .gte('created_at', since24h)
                     .limit(5000),
-                // Scoped by the SPECIFIC key's id (not just user_id) — a user can
-                // now hold up to two keys (standard + commission), so filtering by
-                // user_id alone would return >1 row and .maybeSingle() would error.
-                // The caller (UserActivityPanel) always passes the exact key's id
-                // it's drilling into.
+                // Scoped by the SPECIFIC key's id, which the caller (UserActivityPanel)
+                // always passes for the key it's drilling into.
                 (supabase.from('api_keys') as any)
                     .select('id, last_used_at, created_at')
                     .eq('id', apiKeyId)

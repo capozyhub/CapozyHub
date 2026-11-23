@@ -28,7 +28,7 @@ interface ApiKeyItem {
     prefix: string
     name: string
     status: 'pending' | 'active' | 'revoked'
-    key_type: 'standard' | 'commission'
+    key_type: 'standard'
     rate_limits: RateLimits | null
     last_used_at: string | null
     created_at: string
@@ -58,22 +58,21 @@ interface ApiLogItem {
     user?: { name: string; email: string } | null
 }
 
-// Version-agnostic suffixes (no leading /api/v1 or /api) — v1 is retired
-// for NEW traffic but historical api_logs rows still carry /api/v1/* from
-// before the port, and this log viewer reads both eras. Matching on the
-// version-stripped suffix, the same trick middleware.ts uses for its
-// fail-closed set, means a developer-API request gets its friendly label too instead of
-// silently falling back to generic "API Request".
+// Matched on the path suffix (the same trick middleware.ts uses for its fail-closed set) so a
+// developer-API request gets its friendly label instead of generic "API Request".
 const ENDPOINT_LABELS: Record<string, string> = {
     '/data/purchase':  'Data Purchase',
     '/data/bulk':      'Bulk Purchase',
     '/wallet/balance': 'Balance Fetch',
     '/wallet/topup':   'Wallet Top-Up',
     '/orders':         'Order Status',
+    '/airtime':        'Airtime',
+    '/afa':            'AFA',
+    '/resultschecker': 'Results Checker',
 }
 
 function getFriendlyLabel(endpoint: string): string {
-    const suffix = endpoint.replace(/^\/api\/v\d+/, '')
+    const suffix = endpoint.replace(/^\/api/, '')
     for (const [key, label] of Object.entries(ENDPOINT_LABELS)) {
         if (suffix.startsWith(key)) return label
     }
@@ -359,14 +358,8 @@ function KeyRow({ item, onAction }: {
                             <code className="text-[10px] font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                                 {item.prefix}••••••••
                             </code>
-                            <span className={cn(
-                                'inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border',
-                                item.key_type === 'commission'
-                                    ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/30 text-violet-600 dark:text-violet-400'
-                                    : 'bg-muted border-border text-muted-foreground'
-                            )}>
-                                {item.key_type === 'commission' ? <Percent className="w-2.5 h-2.5" /> : <Key className="w-2.5 h-2.5" />}
-                                {item.key_type === 'commission' ? 'Commission · Utilities' : 'Standard'}
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-muted border-border text-muted-foreground">
+                                <Key className="w-2.5 h-2.5" /> Standard
                             </span>
                             {item.has_webhook && (
                                 <span

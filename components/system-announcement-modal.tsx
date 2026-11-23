@@ -128,7 +128,7 @@ export function SystemAnnouncementModal() {
                 </div>
 
                 {/* Scrollable message body */}
-                <div className="overflow-y-auto max-h-[38vh] sm:max-h-[45vh] px-6 py-5 text-center kfg-scrollbar">
+                <div className="overflow-y-auto max-h-[38vh] sm:max-h-[45vh] px-6 py-5 text-center czh-scrollbar">
                     <p className="text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-normal text-left">
                         {announcement.message}
                     </p>
@@ -164,9 +164,9 @@ export function SystemAnnouncementModal() {
             </div>
 
             <style jsx global>{`
-                .kfg-scrollbar::-webkit-scrollbar { width: 5px; }
-                .kfg-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .kfg-scrollbar::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.3); border-radius: 10px; }
+                .czh-scrollbar::-webkit-scrollbar { width: 5px; }
+                .czh-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .czh-scrollbar::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.3); border-radius: 10px; }
             `}</style>
         </div>
     )

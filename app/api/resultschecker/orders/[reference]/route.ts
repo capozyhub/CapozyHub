@@ -3,13 +3,13 @@ import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getCli
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 // ============================================================================
-// GET /api/v2/resultschecker/orders/:reference
+// GET /api/resultschecker/orders/:reference
 // Re-returns vouchers for a completed order so a developer can re-fetch them
 // (e.g. after losing the original purchase response). See
 // docs/superpowers/specs/2026-08-24-api-v2-new-products-design.md §8.
 // ============================================================================
 
-const ENDPOINT = '/api/v2/resultschecker/orders/:reference'
+const ENDPOINT = '/api/resultschecker/orders/:reference'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ reference: string }> }) {
     const startTime = Date.now()
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'GET', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
     try {
-        const rl = consumeRateLimit(`v2-rc-status:${apiKeyId}`, 30, 60_000)
+        const rl = consumeRateLimit(`api-rc-status:${apiKeyId}`, 30, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (30/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

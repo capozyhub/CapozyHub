@@ -1,18 +1,12 @@
 // lib/api-webhook.ts
-// Generalized fire-and-forget order-webhook dispatcher for the developer API
-// v2 — same mechanics as lib/sms-webhook.ts's dispatchCampaignWebhook, but
-// keyed on api_keys.webhook_url/webhook_secret (one pair per key row, so
-// standard and commission keys are independently configurable) instead of
-// sms_accounts. SMS itself is NOT migrated to this — its existing webhook
-// stays on sms_accounts, a different trigger shape (campaign-reconcile cron,
-// not order-completion). See
-// docs/superpowers/specs/2026-08-24-api-v2-new-products-design.md §7.
+// Fire-and-forget order-webhook dispatcher for the developer API. Keyed on
+// api_keys.webhook_url/webhook_secret (one pair per key row).
 //
 // Call this from INSIDE each product's own terminal-state-setting code
-// (dispatchAirtimeFulfillment, purchaseWithWallet, the AFA status-update
-// path, dispatchUtilityCore) — not only from the new developer-API route handlers —
-// so a webhook fires no matter which trigger finalized the order (the
-// initial API call, a retry cron, or an admin action).
+// (airtime manual complete/fail, purchaseWithWallet, the AFA status-update
+// path), not only from the developer-API route handlers, so a webhook fires
+// no matter which trigger finalized the order (the initial API call, a retry
+// cron, or an admin action).
 import { createHmac } from 'crypto'
 import { LRUCache } from 'lru-cache'
 
@@ -59,7 +53,7 @@ export function invalidateWebhookConfig(apiKeyId: string): void {
 export interface ApiWebhookParams {
     apiKeyId: string
     event: string
-    product: 'data' | 'airtime' | 'resultschecker' | 'afa' | 'utilities'
+    product: 'data' | 'airtime' | 'resultschecker' | 'afa'
     reference: string
     status: string
     detail?: Record<string, any>

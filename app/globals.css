@@ -445,7 +445,7 @@
      gracefully rather than breaking. */
   .cz-loader-word { display: inline-flex; }
   .cz-loader-letter { display: inline-block; opacity: 0; }
-  @keyframes kfg-fade-in {
+  @keyframes czh-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
   }

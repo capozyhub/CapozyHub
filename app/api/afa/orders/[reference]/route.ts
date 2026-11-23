@@ -3,14 +3,14 @@ import { validateApiKey, isApiError, apiSuccess, apiError, logApiRequest, getCli
 import { consumeRateLimit } from '@/lib/simple-rate-limit'
 
 // ============================================================================
-// GET /api/v2/afa/orders/[reference]
+// GET /api/afa/orders/[reference]
 // PII GUARD: afa_orders also holds id_number, date_of_birth and location —
 // NEVER select or return those here. Only full_name, region, status,
 // reference, payment_amount, timestamps. See
 // docs/superpowers/specs/2026-08-24-api-v2-new-products-design.md §2.
 // ============================================================================
 
-const ENDPOINT = '/api/v2/afa/orders/:reference'
+const ENDPOINT = '/api/afa/orders/:reference'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ reference: string }> }) {
     const startTime = Date.now()
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         logApiRequest({ apiKeyId, userId, endpoint: ENDPOINT, method: 'GET', statusCode, responseTimeMs: Date.now() - startTime, ip, errorMessage })
 
     try {
-        const rl = consumeRateLimit(`v2-afa-status:${apiKeyId}`, 30, 60_000)
+        const rl = consumeRateLimit(`api-afa-status:${apiKeyId}`, 30, 60_000)
         if (!rl.allowed) {
             done(429, 'Rate limited')
             return apiError(429, `Rate limit exceeded (30/min). Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`)

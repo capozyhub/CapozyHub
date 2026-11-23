@@ -17,14 +17,14 @@ function assertBlocked(url: string, label: string) {
 }
 
 // ── Allowed ─────────────────────────────────────────────────────────────────
-assertAllowed('https://hooks.example.com/kft')
-assertAllowed('https://api.customer.com.gh/webhooks/kingflexy?src=kft')
+assertAllowed('https://hooks.example.com/capozy')
+assertAllowed('https://api.customer.com.gh/webhooks/capozy?src=hub')
 // A non-default port is fine — plenty of legitimate endpoints use one, and the
 // port tells us nothing about whether the host is internal.
-assertAllowed('https://hooks.example.com:8443/kft')
+assertAllowed('https://hooks.example.com:8443/capozy')
 
 // ── Blocked: scheme ─────────────────────────────────────────────────────────
-assertBlocked('http://hooks.example.com/kft', 'plaintext http')
+assertBlocked('http://hooks.example.com/capozy', 'plaintext http')
 assertBlocked('file:///etc/passwd', 'file scheme')
 assertBlocked('gopher://hooks.example.com/x', 'gopher scheme')
 assertBlocked('data:text/plain,hello', 'data scheme')

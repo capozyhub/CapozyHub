@@ -24,7 +24,7 @@ export function isRexamartConfigured(): boolean {
 
 /**
  * Capozy's internal network names → Rexamart's. Capozy has no "MTN Express"
- * product distinction (that was the prior operator's DataKazina express
+ * product distinction (that was a prior operator's express
  * line, deliberately not carried forward) — only the four networks Capozy
  * actually sells are mapped.
  */
