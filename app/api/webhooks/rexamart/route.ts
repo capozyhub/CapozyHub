@@ -91,6 +91,10 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ received: true })
     } catch (error) {
+        if (error instanceof RetryLater) {
+            console.warn(`[RexamartWebhook] ${error.message} — returning 503 so Rexamart redelivers`)
+            return NextResponse.json({ error: 'Order not ready, retry later' }, { status: 503 })
+        }
         console.error('[RexamartWebhook] Unexpected error:', error)
         // Acknowledge anyway — Rexamart retries on non-2xx, and a transient DB error
         // here would otherwise trigger repeated retries for an event we may have
@@ -99,6 +103,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true, warning: 'Processing error, logged' })
     }
 }
+
+class RetryLater extends Error {}
 
 async function resolveIsAfa(supabase: any, reference: string): Promise<boolean> {
     const { data } = await supabase.from('afa_orders').select('id').eq('id', reference).maybeSingle()
@@ -122,13 +128,14 @@ async function handleDataOrderEvent(supabase: any, event: string, reference: str
     }
     if (nextStatus === null) return
 
-    // Guarded on status IN ('pending','processing') so a webhook can never resurrect
-    // an order an admin already resolved a different way (e.g. manually refunded).
+    // Guarded on status = 'processing' only: a webhook may only advance an order that
+    // our dispatch already marked as accepted by Rexamart, so it can never resurrect or
+    // overwrite an order an admin resolved another way (e.g. manually refunded).
     const { data: updated, error } = await supabase
         .from('orders')
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq('id', reference)
-        .in('status', ['pending', 'processing'])
+        .eq('status', 'processing')
         .select('id, shop_order_id')
         .maybeSingle()
 
@@ -137,7 +144,12 @@ async function handleDataOrderEvent(supabase: any, event: string, reference: str
         return
     }
     if (!updated) {
-        console.log(`[RexamartWebhook] Order ${reference} not found or already in a terminal state — ${event} is a no-op`)
+        const { data: current } = await supabase.from('orders').select('status').eq('id', reference).maybeSingle()
+        if (current?.status === 'pending') {
+            // Webhook beat our own pending -> processing write. Ask Rexamart to redeliver.
+            throw new RetryLater(`order ${reference} still pending when ${event} arrived`)
+        }
+        console.log(`[RexamartWebhook] Order ${reference} not found or not in 'processing' — ${event} is a no-op`)
         return
     }
 
@@ -174,7 +186,7 @@ async function handleAfaEvent(supabase: any, event: string, reference: string, d
         .from('afa_orders')
         .update({ status: nextStatus, dispatch_claimed_at: null, updated_at: new Date().toISOString() })
         .eq('id', reference)
-        .in('status', ['pending', 'processing'])
+        .eq('status', 'processing')
         .select('id, shop_id')
         .maybeSingle()
 
@@ -183,7 +195,11 @@ async function handleAfaEvent(supabase: any, event: string, reference: string, d
         return
     }
     if (!updated) {
-        console.log(`[RexamartWebhook] AFA order ${reference} not found or already in a terminal state — ${event} is a no-op`)
+        const { data: current } = await supabase.from('afa_orders').select('status').eq('id', reference).maybeSingle()
+        if (current?.status === 'pending') {
+            throw new RetryLater(`afa_order ${reference} still pending when ${event} arrived`)
+        }
+        console.log(`[RexamartWebhook] AFA order ${reference} not found or not in 'processing' — ${event} is a no-op`)
         return
     }
 

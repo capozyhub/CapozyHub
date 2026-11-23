@@ -134,6 +134,7 @@ export default function FulfillmentPage() {
     const [isSavingRexamart, setIsSavingRexamart] = useState(false)
     const [rexamartBalance, setRexamartBalance] = useState<{ balance: number; currency: string } | null>(null)
     const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+    const [balanceError, setBalanceError] = useState<string | null>(null)
     const rexamartActiveCount = Object.values(rexamartNetworks).filter(Boolean).length + (rexamartAfaEnabled ? 1 : 0)
 
     // Beneficiary (MTN number) verification tool
@@ -320,15 +321,17 @@ export default function FulfillmentPage() {
 
     const fetchRexamartBalance = async () => {
         setIsLoadingBalance(true)
+        setBalanceError(null)
         try {
             const res = await fetch('/api/admin/rexamart/balance')
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to fetch balance')
-            setRexamartBalance({ balance: data.balance, currency: data.currency })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error || `Balance request failed (${res.status})`)
+            setRexamartBalance({ balance: Number(data.balance) || 0, currency: data.currency || 'GHS' })
         } catch (e: any) {
-            // Silent on first load (Rexamart may simply not be configured yet) — the
-            // balance card itself shows "—" and the error only matters on an explicit refresh.
+            // Shown on the balance card itself so a missing key / bad key / network
+            // problem is visible instead of a silent "—".
             setRexamartBalance(null)
+            setBalanceError(e?.message || 'Could not load balance')
         } finally {
             setIsLoadingBalance(false)
         }
@@ -707,15 +710,45 @@ export default function FulfillmentPage() {
                             </p>
                         </div>
                     </div>
-                    <div className={mutedSurface + ' px-3 py-1.5 flex items-center gap-2'}>
-                        <Wallet className="w-3.5 h-3.5" style={{ color: accent.yellow }} />
-                        <span className="text-xs font-bold text-foreground">
-                            {isLoadingBalance ? '…' : rexamartBalance ? `${rexamartBalance.currency} ${rexamartBalance.balance.toFixed(2)}` : '—'}
-                        </span>
-                        <button onClick={fetchRexamartBalance} disabled={isLoadingBalance} className="text-muted-foreground hover:text-foreground">
-                            <RefreshCw className={cn('w-3 h-3', isLoadingBalance && 'animate-spin')} />
-                        </button>
+                </CardContent>
+            </Card>
+
+            {/* Rexamart wallet balance — the number that decides whether orders can dispatch,
+                so it is deliberately the largest thing on the page. */}
+            <Card className={cn(cardSurface, 'overflow-hidden')}>
+                <CardContent className="p-6 md:p-8">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="w-5 h-5" style={{ color: accent.yellow }} />
+                            <p className={sectionLabel}>Rexamart wallet balance</p>
+                        </div>
+                        <Button onClick={fetchRexamartBalance} disabled={isLoadingBalance} variant="outline" size="sm" className="h-8 text-xs">
+                            <RefreshCw className={cn('w-3.5 h-3.5 mr-1.5', isLoadingBalance && 'animate-spin')} />
+                            Refresh
+                        </Button>
                     </div>
+                    {rexamartBalance ? (
+                        <>
+                            <p className="font-extrabold tracking-tight text-foreground leading-none text-5xl sm:text-6xl md:text-7xl break-all">
+                                <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-muted-foreground mr-3">{rexamartBalance.currency}</span>
+                                {rexamartBalance.balance.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            <p className={cn('mt-3 text-sm font-medium', rexamartBalance.balance < 20 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}>
+                                {rexamartBalance.balance < 20
+                                    ? 'Low balance — top up on Rexamart or orders will fail to dispatch.'
+                                    : 'Available to fund automatic deliveries.'}
+                            </p>
+                        </>
+                    ) : isLoadingBalance ? (
+                        <p className="font-extrabold text-5xl md:text-7xl text-muted-foreground/40 leading-none">…</p>
+                    ) : (
+                        <div>
+                            <p className="font-extrabold text-5xl md:text-7xl text-muted-foreground/40 leading-none">—</p>
+                            <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
+                                {balanceError || 'Balance not loaded yet.'}
+                            </p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

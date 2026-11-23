@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -43,29 +43,6 @@ export type Database = {
           target_user_id?: string
         }
         Relationships: []
-      }
-      admin_presence: {
-        Row: {
-          admin_id: string
-          last_seen_at: string
-        }
-        Insert: {
-          admin_id: string
-          last_seen_at?: string
-        }
-        Update: {
-          admin_id?: string
-          last_seen_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_presence_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       admin_custom_list_users: {
         Row: {
@@ -160,6 +137,29 @@ export type Database = {
             foreignKeyName: "admin_payment_actions_admin_id_fkey"
             columns: ["admin_id"]
             isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_presence: {
+        Row: {
+          admin_id: string
+          last_seen_at: string
+        }
+        Insert: {
+          admin_id: string
+          last_seen_at?: string
+        }
+        Update: {
+          admin_id?: string
+          last_seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_presence_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -275,6 +275,8 @@ export type Database = {
           cost_price: number | null
           created_at: string | null
           date_of_birth: string | null
+          dispatch_claimed_at: string | null
+          fulfillment_method: string | null
           full_name: string
           ghana_card: string
           guest_phone: string | null
@@ -301,6 +303,7 @@ export type Database = {
           shop_id: string | null
           source: string
           status: string | null
+          supplier_reference: string | null
           transaction_id: string | null
           updated_at: string | null
           user_id: string | null
@@ -310,6 +313,8 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           date_of_birth?: string | null
+          dispatch_claimed_at?: string | null
+          fulfillment_method?: string | null
           full_name: string
           ghana_card: string
           guest_phone?: string | null
@@ -336,6 +341,7 @@ export type Database = {
           shop_id?: string | null
           source?: string
           status?: string | null
+          supplier_reference?: string | null
           transaction_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -345,6 +351,8 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           date_of_birth?: string | null
+          dispatch_claimed_at?: string | null
+          fulfillment_method?: string | null
           full_name?: string
           ghana_card?: string
           guest_phone?: string | null
@@ -371,6 +379,7 @@ export type Database = {
           shop_id?: string | null
           source?: string
           status?: string | null
+          supplier_reference?: string | null
           transaction_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -391,25 +400,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "afa_orders_parent_shop_id_fkey"
-            columns: ["parent_shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "afa_orders_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "afa_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
           {
             foreignKeyName: "afa_orders_transaction_id_fkey"
@@ -615,13 +610,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "airtime_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "airtime_orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -769,50 +757,6 @@ export type Database = {
           wallet_id?: string | null
         }
         Relationships: []
-      }
-      atishare_console_manual_sends: {
-        Row: {
-          admin_id: string
-          bundle_mb: number
-          client_reference: string
-          created_at: string
-          id: string
-          phone: string
-          response: Json | null
-          status: string
-          transaction_id: string | null
-        }
-        Insert: {
-          admin_id: string
-          bundle_mb: number
-          client_reference: string
-          created_at?: string
-          id?: string
-          phone: string
-          response?: Json | null
-          status?: string
-          transaction_id?: string | null
-        }
-        Update: {
-          admin_id?: string
-          bundle_mb?: number
-          client_reference?: string
-          created_at?: string
-          id?: string
-          phone?: string
-          response?: Json | null
-          status?: string
-          transaction_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atishare_console_manual_sends_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       commission_wallet_transactions: {
         Row: {
@@ -1247,13 +1191,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "guest_push_subscriptions_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       hubtel_receive_charges: {
@@ -1310,10 +1247,65 @@ export type Database = {
         }
         Relationships: []
       }
+      membership_upgrades: {
+        Row: {
+          balance_after: number | null
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          is_auto: boolean
+          new_expiry: string | null
+          new_role: string
+          plan: string
+          previous_expiry: string | null
+          previous_role: string
+          price: number
+          reprice_failed: boolean
+          upgrade_type: string
+          user_id: string
+          was_extension: boolean
+        }
+        Insert: {
+          balance_after?: number | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          is_auto?: boolean
+          new_expiry?: string | null
+          new_role: string
+          plan: string
+          previous_expiry?: string | null
+          previous_role: string
+          price: number
+          reprice_failed?: boolean
+          upgrade_type: string
+          user_id: string
+          was_extension?: boolean
+        }
+        Update: {
+          balance_after?: number | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          is_auto?: boolean
+          new_expiry?: string | null
+          new_role?: string
+          plan?: string
+          previous_expiry?: string | null
+          previous_role?: string
+          price?: number
+          reprice_failed?: boolean
+          upgrade_type?: string
+          user_id?: string
+          was_extension?: boolean
+        }
+        Relationships: []
+      }
       momo_claim_attempts: {
         Row: {
           created_at: string | null
           id: string
+          ip: string | null
           result: string
           transaction_id_input: string
           user_id: string
@@ -1321,6 +1313,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          ip?: string | null
           result: string
           transaction_id_input: string
           user_id: string
@@ -1328,6 +1321,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          ip?: string | null
           result?: string
           transaction_id_input?: string
           user_id?: string
@@ -1335,6 +1329,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "momo_claim_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      momo_claim_sessions: {
+        Row: {
+          created_at: string
+          expected_amount: number
+          expires_at: string
+          id: string
+          momo_transaction_id: string | null
+          reference_code: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_amount: number
+          expires_at: string
+          id?: string
+          momo_transaction_id?: string | null
+          reference_code: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number
+          expires_at?: string
+          id?: string
+          momo_transaction_id?: string | null
+          reference_code?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "momo_claim_sessions_momo_transaction_id_fkey"
+            columns: ["momo_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "momo_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "momo_claim_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1448,6 +1493,27 @@ export type Database = {
             referencedColumns: ["mirror_order_id"]
           },
         ]
+      }
+      mtn_whitelist_server_status: {
+        Row: {
+          checked_at: string
+          phone_number: string
+          server: number
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          phone_number: string
+          server: number
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          phone_number?: string
+          server?: number
+          status?: string
+        }
+        Relationships: []
       }
       mtn_whitelist_status: {
         Row: {
@@ -1688,22 +1754,14 @@ export type Database = {
       orders: {
         Row: {
           api_key_id: string | null
-          atishare_console_reference: string | null
-          atishare_console_transaction_id: string | null
-          bundleportal_reference: string | null
           category: string
-          codecraft_reference: string | null
           cost_price_at_time: number | null
           created_at: string | null
-          dakazina_order_code: string | null
-          dakazina_reference: string | null
           dispatch_claimed_at: string | null
           download_batch_id: string | null
           error_message: string | null
           fulfillment_method: string | null
           fulfillment_note: string | null
-          ghdata_order_id: string | null
-          hendylinks_order_id: string | null
           id: string
           last_retry_at: string | null
           network: string
@@ -1728,29 +1786,21 @@ export type Database = {
           shop_order_id: string | null
           size: string
           source: string
-          spfastit_reference: string | null
           status: string | null
+          supplier_reference: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           api_key_id?: string | null
-          atishare_console_reference?: string | null
-          atishare_console_transaction_id?: string | null
-          bundleportal_reference?: string | null
           category?: string
-          codecraft_reference?: string | null
           cost_price_at_time?: number | null
           created_at?: string | null
-          dakazina_order_code?: string | null
-          dakazina_reference?: string | null
           dispatch_claimed_at?: string | null
           download_batch_id?: string | null
           error_message?: string | null
           fulfillment_method?: string | null
           fulfillment_note?: string | null
-          ghdata_order_id?: string | null
-          hendylinks_order_id?: string | null
           id?: string
           last_retry_at?: string | null
           network: string
@@ -1775,29 +1825,21 @@ export type Database = {
           shop_order_id?: string | null
           size: string
           source?: string
-          spfastit_reference?: string | null
           status?: string | null
+          supplier_reference?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           api_key_id?: string | null
-          atishare_console_reference?: string | null
-          atishare_console_transaction_id?: string | null
-          bundleportal_reference?: string | null
           category?: string
-          codecraft_reference?: string | null
           cost_price_at_time?: number | null
           created_at?: string | null
-          dakazina_order_code?: string | null
-          dakazina_reference?: string | null
           dispatch_claimed_at?: string | null
           download_batch_id?: string | null
           error_message?: string | null
           fulfillment_method?: string | null
           fulfillment_note?: string | null
-          ghdata_order_id?: string | null
-          hendylinks_order_id?: string | null
           id?: string
           last_retry_at?: string | null
           network?: string
@@ -1822,8 +1864,8 @@ export type Database = {
           shop_order_id?: string | null
           size?: string
           source?: string
-          spfastit_reference?: string | null
           status?: string | null
+          supplier_reference?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2079,6 +2121,41 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_recovery_attempts: {
+        Row: {
+          attempt_count: number
+          hard_locked: boolean
+          locked_until: string | null
+          updated_at: string
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          hard_locked?: boolean
+          locked_until?: string | null
+          updated_at?: string
+          user_id: string
+          window_started_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          hard_locked?: boolean
+          locked_until?: string | null
+          updated_at?: string
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_recovery_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -2160,13 +2237,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "results_checker_complaints_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
           {
             foreignKeyName: "results_checker_complaints_user_id_fkey"
@@ -2347,13 +2417,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "results_checker_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "results_checker_orders_type_id_fkey"
             columns: ["type_id"]
             isOneToOne: false
@@ -2414,6 +2477,51 @@ export type Database = {
         }
         Relationships: []
       }
+      role_upgrade_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_days: number | null
+          id: string
+          is_popular: boolean
+          label: string
+          old_price: number | null
+          price: number
+          slug: string
+          sort_order: number
+          updated_at: string
+          upgrade_type: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number | null
+          id?: string
+          is_popular?: boolean
+          label: string
+          old_price?: number | null
+          price: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          upgrade_type: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number | null
+          id?: string
+          is_popular?: boolean
+          label?: string
+          old_price?: number | null
+          price?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          upgrade_type?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
@@ -2461,13 +2569,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "security_events_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -2525,13 +2626,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_afa_pending_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_announcements: {
@@ -2563,13 +2657,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_announcements_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -2623,13 +2710,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_customers_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -2690,13 +2770,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_invites_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_order_splits: {
@@ -2733,13 +2806,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shop_order_splits_beneficiary_shop_id_fkey"
-            columns: ["beneficiary_shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "shop_order_splits_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -2758,12 +2824,9 @@ export type Database = {
       shop_orders: {
         Row: {
           admin_cost_at_time: number | null
-          codecraft_reference_id: string | null
           cost_price: number
           created_at: string | null
-          dakazina_reference: string | null
           error_message: string | null
-          fulfilled_by: string | null
           fulfillment_reference: string | null
           guest_phone: string
           id: string
@@ -2791,12 +2854,9 @@ export type Database = {
         }
         Insert: {
           admin_cost_at_time?: number | null
-          codecraft_reference_id?: string | null
           cost_price: number
           created_at?: string | null
-          dakazina_reference?: string | null
           error_message?: string | null
-          fulfilled_by?: string | null
           fulfillment_reference?: string | null
           guest_phone: string
           id?: string
@@ -2824,12 +2884,9 @@ export type Database = {
         }
         Update: {
           admin_cost_at_time?: number | null
-          codecraft_reference_id?: string | null
           cost_price?: number
           created_at?: string | null
-          dakazina_reference?: string | null
           error_message?: string | null
-          fulfilled_by?: string | null
           fulfillment_reference?: string | null
           guest_phone?: string
           id?: string
@@ -2871,25 +2928,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shop_orders_parent_shop_id_fkey"
-            columns: ["parent_shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "shop_orders_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -2986,13 +3029,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_pricing_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_pricing_logs: {
@@ -3041,13 +3077,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_pricing_logs_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_pricing_pending: {
@@ -3086,13 +3115,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_pricing_pending_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -3338,13 +3360,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_rc_markups_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_sender_ids: {
@@ -3388,13 +3403,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_sender_ids_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -3446,13 +3454,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_sms_activations_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: true
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -3527,6 +3528,80 @@ export type Database = {
           },
         ]
       }
+      shop_sms_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          name: string | null
+          phone: string
+          shop_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          name?: string | null
+          phone: string
+          shop_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string | null
+          phone?: string
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_sms_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "shop_sms_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_sms_group_members_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_sms_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_sms_groups_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_sms_logs: {
         Row: {
           created_at: string
@@ -3587,13 +3662,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_sms_logs_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_sms_purchases: {
@@ -3649,13 +3717,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_sms_purchases_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_sms_refund_failures: {
@@ -3691,13 +3752,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_sms_refund_failures_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_sms_send_claims: {
@@ -3726,13 +3780,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_sms_send_claims_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -3769,13 +3816,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_sms_templates_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       shop_sms_wallets: {
@@ -3807,13 +3847,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_sms_wallets_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: true
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
         ]
       }
@@ -4861,6 +4894,7 @@ export type Database = {
           joined_via_invite: string | null
           markup_ceiling: number | null
           may_recruit: boolean
+          must_change_password: boolean
           pending_key_expires_at: string | null
           pending_key_hash: string | null
           status: string
@@ -4877,6 +4911,7 @@ export type Database = {
           joined_via_invite?: string | null
           markup_ceiling?: number | null
           may_recruit?: boolean
+          must_change_password?: boolean
           pending_key_expires_at?: string | null
           pending_key_hash?: string | null
           status?: string
@@ -4893,6 +4928,7 @@ export type Database = {
           joined_via_invite?: string | null
           markup_ceiling?: number | null
           may_recruit?: boolean
+          must_change_password?: boolean
           pending_key_expires_at?: string | null
           pending_key_hash?: string | null
           status?: string
@@ -4922,13 +4958,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sub_agents_upline_shop_id_fkey"
-            columns: ["upline_shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
           {
             foreignKeyName: "sub_agents_upline_user_id_fkey"
@@ -5462,13 +5491,6 @@ export type Database = {
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ussd_pending_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
         ]
       }
       ussd_refund_queue: {
@@ -5710,13 +5732,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "utility_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "utility_orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -5788,13 +5803,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "utility_refund_queue_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
           },
           {
             foreignKeyName: "utility_refund_queue_user_id_fkey"
@@ -5886,7 +5894,9 @@ export type Database = {
           created_at: string | null
           fee: number | null
           id: string
+          last_checked_at: string | null
           metadata: Json | null
+          otp_attempts: number
           provider: string | null
           provider_reference: string | null
           reference: string
@@ -5901,7 +5911,9 @@ export type Database = {
           created_at?: string | null
           fee?: number | null
           id?: string
+          last_checked_at?: string | null
           metadata?: Json | null
+          otp_attempts?: number
           provider?: string | null
           provider_reference?: string | null
           reference: string
@@ -5916,7 +5928,9 @@ export type Database = {
           created_at?: string | null
           fee?: number | null
           id?: string
+          last_checked_at?: string | null
           metadata?: Json | null
+          otp_attempts?: number
           provider?: string | null
           provider_reference?: string | null
           reference?: string
@@ -6114,7 +6128,6 @@ export type Database = {
       shop_orders_effective: {
         Row: {
           admin_cost_at_time: number | null
-          codecraft_reference_id: string | null
           cost_price: number | null
           created_at: string | null
           current_order_id: string | null
@@ -6125,10 +6138,8 @@ export type Database = {
           current_retry_of_order_id: string | null
           current_self_completed_at: string | null
           current_self_completed_by_role: string | null
-          dakazina_reference: string | null
           effective_status: string | null
           error_message: string | null
-          fulfilled_by: string | null
           fulfillment_reference: string | null
           guest_phone: string | null
           id: string | null
@@ -6190,84 +6201,47 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shop_orders_parent_shop_id_fkey"
-            columns: ["parent_shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-          {
             foreignKeyName: "shop_orders_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shop_profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "shop_orders_shop_id_fkey"
-            columns: ["shop_id"]
-            isOneToOne: false
-            referencedRelation: "v_shop_profit_credit_reconciliation"
-            referencedColumns: ["shop_id"]
-          },
-        ]
-      }
-      v_shop_profit_credit_reconciliation: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          credit_source: string | null
-          expected_amount: number | null
-          guest_phone: string | null
-          id: string | null
-          network: string | null
-          order_ref: string | null
-          order_status: string | null
-          owner_email: string | null
-          owner_id: string | null
-          owner_name: string | null
-          owner_phone: string | null
-          package_size: string | null
-          risk_reasons: string[] | null
-          risk_status: string | null
-          shop_id: string | null
-          shop_name: string | null
-          shop_order_id: string | null
-          shop_wallet_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shop_wallet_transactions_shop_order_id_fkey"
-            columns: ["shop_order_id"]
-            isOneToOne: false
-            referencedRelation: "shop_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_wallet_transactions_shop_order_id_fkey"
-            columns: ["shop_order_id"]
-            isOneToOne: false
-            referencedRelation: "shop_orders_effective"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_wallet_transactions_shop_wallet_id_fkey"
-            columns: ["shop_wallet_id"]
-            isOneToOne: false
-            referencedRelation: "shop_wallets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shop_wallets_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Functions: {
+      _profit_daily_rows_v2: {
+        Args: {
+          p_end_date: string
+          p_network: string
+          p_product_types: string[]
+          p_start_date: string
+        }
+        Returns: {
+          cost: number
+          day: string
+          revenue: number
+        }[]
+      }
+      _profit_totals_v2: {
+        Args: {
+          p_end_date: string
+          p_network: string
+          p_product_types: string[]
+          p_start_date: string
+        }
+        Returns: {
+          cost: number
+          excluded: number
+          orders: number
+          partner_payout: number
+          product: string
+          profit: number
+          recruiter_payout: number
+          revenue: number
+        }[]
+      }
       activate_shop_sms: {
         Args: { p_owner_id: string; p_paid_from: string }
         Returns: Json
@@ -6311,33 +6285,62 @@ export type Database = {
         Returns: Json
       }
       admin_payment_stats: { Args: { from_ts: string }; Returns: Json }
-      admin_search_users: {
-        Args: {
-          p_limit?: number
-          p_offset?: number
-          p_role?: string
-          p_status?: string
-          p_term?: string
-        }
-        Returns: {
-          agent_expires_at: string
-          created_at: string
-          dealer_expires_at: string
-          email: string
-          first_name: string
-          id: string
-          last_name: string
-          phone_number: string
-          phone_verified: boolean
-          role: string
-          status: string
-          suspended_until: string
-          suspension_reason: string
-          total_count: number
-          updated_at: string
-          wallet_balance: number
-        }[]
-      }
+      admin_search_users:
+        | {
+            Args: {
+              p_limit?: number
+              p_offset?: number
+              p_role?: string
+              p_status?: string
+              p_term?: string
+            }
+            Returns: {
+              agent_expires_at: string
+              created_at: string
+              dealer_expires_at: string
+              email: string
+              first_name: string
+              id: string
+              last_name: string
+              phone_number: string
+              phone_verified: boolean
+              role: string
+              status: string
+              suspended_until: string
+              suspension_reason: string
+              total_count: number
+              updated_at: string
+              wallet_balance: number
+            }[]
+          }
+        | {
+            Args: {
+              p_limit?: number
+              p_offset?: number
+              p_phone_verified?: string
+              p_role?: string
+              p_status?: string
+              p_term?: string
+            }
+            Returns: {
+              agent_expires_at: string
+              created_at: string
+              dealer_expires_at: string
+              email: string
+              first_name: string
+              id: string
+              last_name: string
+              phone_number: string
+              phone_verified: boolean
+              role: string
+              status: string
+              suspended_until: string
+              suspension_reason: string
+              total_count: number
+              updated_at: string
+              wallet_balance: number
+            }[]
+          }
       admin_update_subagent_contact: {
         Args: { p_new_email: string; p_new_phone: string; p_user_id: string }
         Returns: undefined
@@ -6470,6 +6473,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      complete_wallet_topup: {
+        Args: { p_provider_metadata?: Json; p_reference: string }
+        Returns: Json
+      }
+      consume_wallet_payment_otp_attempt: {
+        Args: { p_max?: number; p_reference: string; p_user_id: string }
+        Returns: boolean
       }
       create_sms_campaign: {
         Args: {
@@ -6629,8 +6640,28 @@ export type Database = {
         }
         Returns: Json
       }
+      get_profit_summary_v2: {
+        Args: {
+          p_end_date: string
+          p_network?: string
+          p_prev_end_date: string
+          p_prev_start_date: string
+          p_product_types?: string[]
+          p_start_date: string
+        }
+        Returns: Json
+      }
       get_profit_timeseries: {
         Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      get_profit_timeseries_v2: {
+        Args: {
+          p_end_date: string
+          p_network?: string
+          p_product_types?: string[]
+          p_start_date: string
+        }
         Returns: Json
       }
       get_shop_credit_rollups: { Args: { p_owner_id?: string }; Returns: Json }
@@ -6733,6 +6764,7 @@ export type Database = {
         }[]
       }
       get_wallet_overview: { Args: never; Returns: Json }
+      get_wallet_overview_v2: { Args: never; Returns: Json }
       get_wallet_stats: {
         Args: { role_filter?: string }
         Returns: {
@@ -6766,6 +6798,22 @@ export type Database = {
         Returns: Json
       }
       normalize_gh_phone: { Args: { p_phone: string }; Returns: string }
+      order_has_payment_evidence: {
+        Args: { p_order: Database["public"]["Tables"]["orders"]["Row"] }
+        Returns: boolean
+      }
+      place_airtime_order: {
+        Args: { p_dedupe_seconds?: number; p_order: Json; p_user_id: string }
+        Returns: Json
+      }
+      place_data_orders: {
+        Args: { p_orders: Json; p_user_id: string }
+        Returns: Json
+      }
+      place_results_checker_order: {
+        Args: { p_dedupe_seconds?: number; p_order: Json; p_user_id: string }
+        Returns: Json
+      }
       process_afa_order: {
         Args: {
           p_amount: number
@@ -6823,6 +6871,19 @@ export type Database = {
           wallet_id: string
         }[]
       }
+      process_wallet_upgrade: {
+        Args: {
+          p_due_before?: string
+          p_idempotency_key?: string
+          p_is_auto?: boolean
+          p_plan: string
+          p_plan_label: string
+          p_price: number
+          p_upgrade_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       publish_terms_version: {
         Args: {
           p_changelog: Json
@@ -6853,6 +6914,10 @@ export type Database = {
         Args: { p_limit?: number; p_months?: number }
         Returns: number
       }
+      record_phone_recovery_attempt: {
+        Args: { p_correct: boolean; p_user_id: string }
+        Returns: Json
+      }
       redeem_sub_invite: {
         Args: { p_code: string; p_user_id: string }
         Returns: Json
@@ -6863,6 +6928,10 @@ export type Database = {
       }
       refund_airtime_wallet: {
         Args: { p_actor_id: string; p_order_id: string; p_reason?: string }
+        Returns: Json
+      }
+      refund_mashup_order: {
+        Args: { p_actor_id: string; p_note?: string; p_order_id: string }
         Returns: Json
       }
       refund_order_wallet: {
@@ -6905,6 +6974,27 @@ export type Database = {
       release_expired_rc_reservations: { Args: never; Returns: number }
       release_registration_batch: {
         Args: { p_actor_id: string; p_batch_id: string }
+        Returns: Json
+      }
+      reserve_momo_claim_attempt: {
+        Args: { p_ip?: string; p_transaction_id: string; p_user_id: string }
+        Returns: Json
+      }
+      reserve_wallet_payment: {
+        Args: {
+          p_amount: number
+          p_fee: number
+          p_max_daily?: number
+          p_max_numbers_per_day?: number
+          p_max_pending?: number
+          p_max_per_number_per_hour?: number
+          p_network: string
+          p_pending_window_minutes?: number
+          p_phone: string
+          p_reference: string
+          p_total: number
+          p_user_id: string
+        }
         Returns: Json
       }
       resolve_sub_withdrawal: {
@@ -6992,9 +7082,9 @@ export type Database = {
         }[]
       }
       sub_chain_depth_above: { Args: { p_shop_id: string }; Returns: number }
-      toggle_fulfillment_supplier_network: {
-        Args: { p_enable: boolean; p_network: string; p_supplier_key: string }
-        Returns: Json
+      touch_wallet_payment_check: {
+        Args: { p_min_seconds?: number; p_reference: string; p_user_id: string }
+        Returns: boolean
       }
       transfer_commission_wallet: {
         Args: { p_amount: number; p_destination: string; p_owner_id: string }
