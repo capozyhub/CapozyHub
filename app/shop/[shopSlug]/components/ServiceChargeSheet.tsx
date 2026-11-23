@@ -253,7 +253,7 @@ export function ServiceChargeSheet({
             if (!res.ok) throw new Error(data.error || `OTP submission failed (HTTP ${res.status})`)
             setDisplayText(data.display_text || '')
             if (typeof data.total === 'number') setTotal(data.total)
-            // Hubtel's pre-charge verification replays the charge under a NEW reference
+            // A replayed charge can arrive under a NEW reference
             // (the transient UTLV- verify-reference is never the thing that gets polled) —
             // Paystack's own submit-otp response never includes `reference`, so this stays
             // a no-op there and keeps polling the original charge-time reference.

@@ -17,9 +17,7 @@ const processSchema = z
     .object({
         transactionId: z.string().uuid('Invalid transaction ID').optional(),
         transactionIds: z.array(z.string().uuid()).min(1).max(100).optional(),
-        // Moolre payouts were retired 2026-09-26 (owner decision): Paystack (MoMo) + manual only.
-        // An 'moolre' action is now rejected by validation. Legacy moolre_pending rows are
-        // still reconciled by app/api/cron/sync-moolre-withdrawals.
+        // Payouts: Paystack (MoMo) or manual only.
         action: z.enum(['manual', 'paystack', 'refund']),
         adminNote: z.string().max(500).trim().optional(),
     })
@@ -137,7 +135,6 @@ export async function POST(req: NextRequest) {
             // ─── ACTION: MANUAL ────────────────────────────────────────────────
             if (act === 'manual') {
                 // Atomic idempotency lock: only pending or failed rows may be manually completed.
-                // moolre_pending is excluded — the provider may still pay out (double-pay risk).
                 const { data: updatedTx, error: updateError } = await db
                     .from('shop_wallet_transactions')
                     .update({

@@ -44,7 +44,7 @@ import type { WithdrawalRow } from './_components/types'
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const QUEUE_STATUSES = new Set(['pending', 'moolre_pending', 'paystack_pending', 'failed'])
+const QUEUE_STATUSES = new Set(['pending', 'paystack_pending', 'failed'])
 const AGE_24H_MS = 24 * 60 * 60 * 1000
 
 type ActiveTab = 'queue' | 'history' | 'accountability'
@@ -56,7 +56,6 @@ type ActiveTab = 'queue' | 'history' | 'accountability'
 function statusLabel(status: WithdrawalRow['status']): string {
     const map: Record<WithdrawalRow['status'], string> = {
         pending: 'Pending',
-        moolre_pending: 'Moolre Pending',
         paystack_pending: 'Paystack Pending',
         completed: 'Completed',
         failed: 'Failed',
@@ -72,7 +71,6 @@ function statusBadgeCls(status: WithdrawalRow['status']): string {
         case 'failed':
         case 'reversed':
             return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/40'
-        case 'moolre_pending':
         case 'paystack_pending':
             return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 border border-brand-200 dark:border-brand-800/40'
         default:
@@ -84,7 +82,7 @@ function borderAccentCls(status: WithdrawalRow['status']): string {
     switch (status) {
         case 'completed': return 'border-l-emerald-500'
         case 'failed': case 'reversed': return 'border-l-red-500'
-        case 'moolre_pending': case 'paystack_pending': return 'border-l-blue-500'
+        case 'paystack_pending': return 'border-l-blue-500'
         default: return 'border-l-amber-500'
     }
 }
@@ -559,7 +557,6 @@ export default function AdminWithdrawalsPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All Providers</SelectItem>
-                                        <SelectItem value="moolre">Moolre</SelectItem>
                                         <SelectItem value="paystack">Paystack</SelectItem>
                                         <SelectItem value="manual">Manual</SelectItem>
                                     </SelectContent>

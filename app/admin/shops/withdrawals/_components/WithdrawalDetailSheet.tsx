@@ -34,14 +34,13 @@ import type { WithdrawalRow } from './types'
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 // Only pending and failed withdrawals are refundable.
-// In-flight (moolre_pending / paystack_pending) and completed/reversed rows must
+// In-flight (paystack_pending) and completed/reversed rows must
 // never show the Reject & Refund button — the provider may still pay out.
 const REFUNDABLE_STATUSES: WithdrawalRow['status'][] = ['pending', 'failed']
 
 function statusLabel(status: WithdrawalRow['status']): string {
     const map: Record<WithdrawalRow['status'], string> = {
         pending: 'Pending',
-        moolre_pending: 'Moolre Pending',
         paystack_pending: 'Paystack Pending',
         completed: 'Completed',
         failed: 'Failed',
@@ -55,7 +54,7 @@ function StatusDot({ status }: { status: WithdrawalRow['status'] }) {
         'w-3 h-3 rounded-full flex-shrink-0 mt-0.5',
         status === 'completed' ? 'bg-emerald-500' :
         status === 'failed' || status === 'reversed' ? 'bg-red-500' :
-        status === 'moolre_pending' || status === 'paystack_pending' ? 'bg-brand-500' :
+        status === 'paystack_pending' ? 'bg-brand-500' :
         'bg-amber-500',
     )
     return <span className={cls} />
@@ -230,7 +229,6 @@ export function WithdrawalDetailSheet({
 
     // Step 2: Submitted to provider
     const isSubmitted =
-        row.status === 'moolre_pending' ||
         row.status === 'paystack_pending' ||
         row.status === 'completed' ||
         row.status === 'failed' ||
@@ -278,7 +276,7 @@ export function WithdrawalDetailSheet({
             active: true,
             variant: 'error',
         })
-    } else if (row.status === 'moolre_pending' || row.status === 'paystack_pending') {
+    } else if (row.status === 'paystack_pending') {
         timelineSteps.push({
             icon: <Loader2 />,
             label: 'Awaiting Network Confirmation',
@@ -376,7 +374,7 @@ export function WithdrawalDetailSheet({
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                 : row.status === 'failed' || row.status === 'reversed'
                                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : row.status === 'moolre_pending' || row.status === 'paystack_pending'
+                                : row.status === 'paystack_pending'
                                 ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
                                 : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
                         )}>
@@ -435,20 +433,12 @@ export function WithdrawalDetailSheet({
                     </section>
 
                     {/* ── Provider references ── */}
-                    {(row.moolre_transaction_id || row.paystack_transfer_code || row.paystack_transfer_reference) && (
+                    {(row.paystack_transfer_code || row.paystack_transfer_reference) && (
                         <section>
                             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                                 Provider References
                             </p>
                             <div className="rounded-xl border divide-y bg-background">
-                                {row.moolre_transaction_id && (
-                                    <InfoRow label="Moolre ID">
-                                        <span className="flex items-center gap-1.5 justify-end font-mono text-xs">
-                                            {row.moolre_transaction_id}
-                                            <CopyButton value={row.moolre_transaction_id} label="Moolre ID" />
-                                        </span>
-                                    </InfoRow>
-                                )}
                                 {row.paystack_transfer_code && (
                                     <InfoRow label="Paystack Code">
                                         <span className="flex items-center gap-1.5 justify-end font-mono text-xs">

@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     // view-based status group filter (takes precedence over single-status param)
     if (view === 'queue') {
-        q = q.in('status', ['pending', 'moolre_pending', 'paystack_pending', 'failed'])
+        q = q.in('status', ['pending', 'paystack_pending', 'failed'])
     } else if (view === 'history') {
         q = q.in('status', ['completed', 'reversed'])
     } else if (status !== 'all') {

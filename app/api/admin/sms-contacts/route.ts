@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase'
 import { normalizeGhanaPhone } from '@/lib/sms-service'
 import { resolveNameSingle, resolveNamesBulk, BULK_ENRICH_TOTAL_CAP } from '@/lib/momo-verify'
 
-// Allow name-enrichment calls time to complete (Moolre + Paystack run sequentially per phone)
+// Allow name-enrichment calls time to complete (Paystack lookups run sequentially per phone)
 export const maxDuration = 60
 
 async function requireAdmin() {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             let finalFirst = (first_name || '').trim() || null
             let finalLast  = (last_name  || '').trim() || null
 
-            // Auto-enrich name server-side when none provided (Moolre → Paystack)
+            // Auto-enrich name server-side when none provided (Paystack)
             if (!finalFirst && !finalLast) {
                 const resolved = await resolveNameSingle(phone)
                 if (resolved) {
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
                 capHit = nameless.length > BULK_ENRICH_TOTAL_CAP
 
-                // resolveNamesBulk splits nameless across all providers in parallel
+                // resolveNamesBulk looks the nameless contacts up one by one
                 const resolved = await resolveNamesBulk(nameless)
 
                 for (const row of valid) {

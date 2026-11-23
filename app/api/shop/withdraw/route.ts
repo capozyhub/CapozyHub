@@ -3,7 +3,8 @@ import { createRouteClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { z } from 'zod'
 import { phoneSchema } from '@/lib/validation'
-import { MOOLRE_CHANNEL_MAP, getBanks } from '@/lib/moolre-transfer-service'
+import { isPayoutNetwork } from '@/lib/payout-networks'
+import { getBanks } from '@/lib/paystack-transfer-service'
 import { resolvePayoutAccountName } from '@/lib/payout-name-resolver'
 import { consumeNameLookupQuota } from '@/lib/payout-name-lookup-quota'
 import { checkWithdrawLimit } from '@/lib/withdraw-rate-limit'
@@ -49,7 +50,7 @@ const withdrawSchema = z.object({
     saveForLater: z.boolean().optional(),
     manualAccountName: manualAccountNameSchema.optional(),
     // When a saved payment detail is selected the server fetches the stored
-    // verified name from DB — Moolre is not called.
+    // verified name from DB — no lookup is made.
     savedDetailId: z.string().uuid('Invalid saved detail ID').optional(),
 }).superRefine((data: any, ctx: z.RefinementCtx) => {
     // network and payment_type must agree — otherwise a MoMo number can be filed as a
@@ -222,16 +223,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Insufficient shop wallet balance' }, { status: 400 })
         }
 
-        // 6. Server-side account name validation via Moolre — NEVER trust client-submitted name
-        if (MOOLRE_CHANNEL_MAP[network] === undefined) {
+        // 6. Server-side account name validation — NEVER trust client-submitted name
+        if (!isPayoutNetwork(network)) {
             return NextResponse.json({ error: `Unsupported network: ${network}` }, { status: 400 })
         }
 
         // Resolve the account name to record on the withdrawal.
         // Priority:
-        //   1. Saved payment detail — fetch stored verified name from DB, skip Moolre entirely.
-        //   2. New entry + Moolre succeeds — use Moolre-verified name.
-        //   3. New entry + Moolre fails + manual fallback supplied — flag for admin review.
+        //   1. Saved payment detail — fetch stored verified name from DB, skip the lookup entirely.
+        //   2. New entry + lookup succeeds — use the verified name.
+        //   3. New entry + lookup fails + manual fallback supplied — flag for admin review.
         //   4. Otherwise — reject.
         let verifiedAccountName: string
         let isNameVerified: boolean
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
 
             // The stored row replaced the client's values, so the cross-field rules the
             // schema applied to the request body must hold for the stored values too.
-            if ((network === 'Bank') !== (payment_type === 'bank') || MOOLRE_CHANNEL_MAP[network] === undefined) {
+            if ((network === 'Bank') !== (payment_type === 'bank') || !isPayoutNetwork(network)) {
                 return NextResponse.json({ error: 'This saved payment method is invalid. Please remove it and add it again.' }, { status: 400 })
             }
         } else {
@@ -285,7 +286,7 @@ export async function POST(req: NextRequest) {
                 verifiedAccountName = manualAccountName
                 isNameVerified = false
                 console.warn(
-                    `[shop/withdraw] User ${user.id} used manual name fallback after Moolre rejection:`,
+                    `[shop/withdraw] User ${user.id} used manual name fallback after lookup failure:`,
                     nameValidation.error
                 )
             } else {
@@ -296,7 +297,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 7b. Resolve bank_name server-side from Moolre banks cache (never trust client)
+        // 7b. Resolve bank_name server-side from the Paystack bank list (never trust client)
         let resolvedBankName: string | null = null
         if (payment_type === 'bank' && bankId) {
             try {
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
         // Define our separated account string fields
         const safeMomoNumber = payment_type === 'momo' ? momoNumber : null
         const safeAccountNumber = payment_type === 'bank' ? momoNumber : null
-        // Prefix with an admin-visible tag when the name bypassed Moolre — admins
+        // Prefix with an admin-visible tag when the name bypassed the lookup — admins
         // should double-check the name before approving the payout.
         const description = isNameVerified
             ? `Withdrawal request — ${network}: ${momoNumber}`

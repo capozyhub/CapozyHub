@@ -142,11 +142,8 @@ export function quoteAirtime(params: {
 /**
  * Zero-fee variant of quoteAirtime, used ONLY by the developer API's
  * commission-key airtime purchase route (app/api/airtime/purchase). API
- * buyers pay Hubtel's face value exactly -- no markup fee -- because they earn
- * a share of Hubtel's REAL commission instead (see lib/api-auth.ts's
- * credit_airtime_commission RPC call sites). Still enforces the same
- * admin-configurable min/max limits as quoteAirtime (Hubtel's own 100 GHS/
- * request cap is enforced separately in lib/hubtel-commission-service.ts).
+ * buyers pay face value exactly -- no markup fee. Still enforces the same
+ * admin-configurable min/max limits as quoteAirtime.
  *
  * Deliberately NOT a mode flag on quoteAirtime -- that function's fee
  * arithmetic stays exactly as the dashboard/shop need it; this is a distinct,

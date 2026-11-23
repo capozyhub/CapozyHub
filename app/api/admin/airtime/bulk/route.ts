@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { createServerClient } from '@/lib/supabase'
-import { manualRefulfillAirtime, manualStatusSyncAirtime, manualRefundAirtime, manualCompleteAirtime } from '@/lib/airtime-fulfillment'
+import { manualRefundAirtime, manualCompleteAirtime } from '@/lib/airtime-fulfillment'
 
-// Bulk admin airtime refulfill / sync / refund. Loops the EXISTING idempotent lib fns
-// (manualRefulfillAirtime / manualStatusSyncAirtime / manualRefundAirtime) — each carries a
-// double-action guard (unique-ref for dispatch, refund-once for refund), so no order is ever
-// topped up or refunded twice. We iterate SEQUENTIALLY (not Promise.all) to pace the metered
-// Fixie static-IP proxy that fronts Hubtel. 'refund' is admin-only (sub-admin excluded).
+// Bulk admin airtime refund / complete. Loops the existing idempotent lib fns
+// (manualRefundAirtime / manualCompleteAirtime) — each carries a double-action guard
+// (refund-once, guarded status flip), so no order is ever refunded or completed twice.
+// Iterated sequentially. 'refund' is admin-only (sub-admin excluded).
 
 const MAX_BULK = 50
 
@@ -20,7 +19,7 @@ async function verifyAdmin(supabaseUserClient: any): Promise<{ userId: string; r
     return ['admin', 'sub-admin'].includes(role) ? { userId: authUser.id, role } : null
 }
 
-// POST { action: 'refulfill' | 'sync' | 'refund' | 'complete', orderIds: string[] } — bulk (re)dispatch/sync/refund/complete airtime orders.
+// POST { action: 'refund' | 'complete', orderIds: string[] } — bulk refund/complete airtime orders.
 export async function POST(request: NextRequest) {
     try {
         const supabaseUserClient = await createRouteClient()
@@ -31,8 +30,8 @@ export async function POST(request: NextRequest) {
         try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
 
         const action = body?.action
-        if (action !== 'refulfill' && action !== 'sync' && action !== 'refund' && action !== 'complete') {
-            return NextResponse.json({ error: "action must be 'refulfill', 'sync', 'refund' or 'complete'" }, { status: 400 })
+        if (action !== 'refund' && action !== 'complete') {
+            return NextResponse.json({ error: "action must be 'refund' or 'complete'" }, { status: 400 })
         }
         // Refunds move money — strictly admin-only (sub-admin excluded).
         if (action === 'refund' && admin.role !== 'admin') {
@@ -51,21 +50,15 @@ export async function POST(request: NextRequest) {
 
         const results: any[] = []
 
-        // Sequential (for…of with await) — NOT Promise.all — to pace the metered Fixie proxy.
+        // Sequential (for…of with await) — NOT Promise.all.
         for (const id of orderIds) {
             try {
-                if (action === 'refulfill') {
-                    const r = await manualRefulfillAirtime(id)
-                    results.push({ orderId: id, ok: r.ok, status: r.status, message: r.message, commission: r.commission })
-                } else if (action === 'refund') {
+                if (action === 'refund') {
                     const r = await manualRefundAirtime(id, admin.userId)
                     results.push({ orderId: id, ok: r.ok, status: r.status, message: r.message, amount: r.amount })
-                } else if (action === 'complete') {
+                } else {
                     const r = await manualCompleteAirtime(id, admin.userId)
                     results.push({ orderId: id, ok: r.ok, status: r.status, message: r.message })
-                } else {
-                    const r = await manualStatusSyncAirtime(id)
-                    results.push({ orderId: id, ok: r.ok, status: r.status, verdict: r.verdict, message: r.message })
                 }
             } catch (e: any) {
                 results.push({ orderId: id, ok: false, status: 'error', message: String(e?.message || e) })
@@ -73,7 +66,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Classify each result: ok (delivered/marked), skipped (business-rule guard refusal,
-        // not a real failure), failed (genuine Hubtel rejection or thrown error).
+        // not a real failure), failed (a thrown error).
         const summary = { ok: 0, failed: 0, skipped: 0, total: results.length }
         for (const r of results) {
             if (r.ok === true) {
@@ -83,9 +76,8 @@ export async function POST(request: NextRequest) {
                 continue
             }
             const guardStatus = ['not_found', 'completed', 'processing', 'skipped'].includes(r.status)
-            const guardMessage = /already completed|already refunded|airtime only|Exceeds Hubtel|not in a refulfillable state|not refundable|refund via the shop order|still in-flight|not configured|no reference/i.test(String(r.message || ''))
-            const guardVerdict = action === 'sync' && ['pending', 'unknown'].includes(r.verdict)
-            if (guardStatus || guardMessage || guardVerdict) {
+            const guardMessage = /already completed|already refunded|not refundable|refund via the shop order/i.test(String(r.message || ''))
+            if (guardStatus || guardMessage) {
                 summary.skipped++
             } else {
                 summary.failed++

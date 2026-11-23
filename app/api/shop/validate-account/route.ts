@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { z } from 'zod'
-import { MOOLRE_CHANNEL_MAP } from '@/lib/moolre-transfer-service'
+import { isPayoutNetwork } from '@/lib/payout-networks'
 import { resolvePayoutAccountName } from '@/lib/payout-name-resolver'
 import { phoneSchema } from '@/lib/validation'
 import { consumeNameLookupQuota } from '@/lib/payout-name-lookup-quota'
@@ -70,15 +70,15 @@ export async function POST(req: NextRequest) {
         }))
 
         // 3. Only the networks the withdraw flow supports
-        if (MOOLRE_CHANNEL_MAP[network] === undefined) {
+        if (!isPayoutNetwork(network)) {
             return NextResponse.json({ error: `Unsupported network: ${network}` }, { status: 400 })
         }
         if (network === 'Bank' && !bankId) {
             return NextResponse.json({ error: 'Select a bank first' }, { status: 400 })
         }
 
-        // 4. Same resolver the withdraw route re-runs on submit (MoMo: Paystack
-        //    first; bank: Moolre only), so a name verified here cannot fail there.
+        // 4. Same resolver the withdraw route re-runs on submit (MoMo: Paystack;
+        //    bank names are confirmed by an admin), so a name verified here cannot fail there.
         const result = await resolvePayoutAccountName({ network, number: phone, bankId })
 
         if (!result.success || !result.name) {

@@ -744,7 +744,7 @@ export default function AdminAfaManagementPage() {
                                     <div className="pt-2">
                                         {!selectedApp.shop_id && (selectedApp.payment_method ?? 'momo') !== 'wallet' ? (
                                             <p className="text-xs text-muted-foreground italic">
-                                                Refund not available — this was a guest MoMo payment with no wallet or Paystack transaction to reverse. Refund manually via Hubtel.
+                                                Refund not available — this was a guest MoMo payment with no wallet or Paystack transaction to reverse. Refund it manually outside the platform.
                                             </p>
                                         ) : (
                                             <Button

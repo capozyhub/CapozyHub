@@ -1,6 +1,6 @@
 // lib/paystack-transfer-service.ts
 /**
- * Paystack Transfers (PAYOUT) service — MoMo only.
+ * Paystack Transfers (PAYOUT) service — MoMo transfers plus the bank list.
  * Isolated from collection code. Uses PAYSTACK_SECRET_KEY (same account/secret
  * that collects payments and signs webhooks). NEVER auto-sends; called by the
  * admin-gated process-withdrawal route.
@@ -17,7 +17,7 @@ export const PAYSTACK_MOMO_BANK_CODE: Record<'MTN MoMo' | 'Telecel Cash' | 'Airt
 
 /** Stable, idempotent reference. Paystack: lowercase a-z 0-9 _ - , 16..50 chars. */
 export function buildWithdrawalReference(txId: string): string {
-    const ref = `kfg-wd-${txId.toLowerCase()}`
+    const ref = `czh-wd-${txId.toLowerCase()}`
     if (ref.length < 16 || ref.length > 50) {
         throw new RangeError(`[PaystackTransfer] Reference out of bounds (${ref.length} chars): ${ref}`)
     }
@@ -146,5 +146,38 @@ export async function initiateBulkTransfer(p: {
         return { success: false, results: [], error: data.message || `HTTP ${res.status}` }
     } catch (err: any) {
         return { success: false, results: [], error: err.message || 'Network error' }
+    }
+}
+
+// ─── Bank list (for bank-account payout details) ────────────────────────────
+
+export interface BankEntry {
+    id: string
+    name: string
+}
+
+let bankListCache: BankEntry[] | null = null
+let bankListCachedAt = 0
+const BANK_CACHE_TTL_MS = 60 * 60 * 1000
+
+/** Ghana banks from Paystack, cached in memory for 1 hour. Returns [] on any failure. */
+export async function getBanks(): Promise<BankEntry[]> {
+    if (bankListCache && Date.now() - bankListCachedAt < BANK_CACHE_TTL_MS) return bankListCache
+    try {
+        const res = await fetch(`${PAYSTACK_BASE_URL}/bank?country=ghana&currency=GHS&type=ghipss&perPage=100`, {
+            headers: authHeaders(),
+        })
+        const data = await res.json()
+        if (!res.ok || !Array.isArray(data?.data)) return bankListCache ?? []
+        const banks: BankEntry[] = data.data
+            .filter((b: any) => b?.code && b?.name && b.active !== false)
+            .map((b: any) => ({ id: String(b.code), name: String(b.name) }))
+            .sort((a: BankEntry, b: BankEntry) => a.name.localeCompare(b.name))
+        bankListCache = banks
+        bankListCachedAt = Date.now()
+        return banks
+    } catch (err: any) {
+        console.error('[PaystackTransfer] getBanks error:', err?.message)
+        return bankListCache ?? []
     }
 }

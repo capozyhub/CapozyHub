@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
         // Persist the KYC payload server-side. Paystack receives only paystackRef —
         // the applicant's legal name, Ghana Card number and DOB never leave our
-        // systems, mirroring the USSD path's opaque Hubtel ItemName
+        // systems, mirroring the opaque ItemName used for other payment channels
         // (lib/ussd/utils.ts:55-74). Task 4's processor resolves the payload back
         // by paystack_reference at verify time.
         const { error: pendingError } = await db

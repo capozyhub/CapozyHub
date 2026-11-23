@@ -1,12 +1,11 @@
 import { resolveNameSingle } from '@/lib/momo-verify'
 import { normalizeGhanaPhone } from '@/lib/sms-service'
-import { validateAccountName, MOOLRE_CHANNEL_MAP } from '@/lib/moolre-transfer-service'
 
 // One resolver for "who owns this payout account?", shared by /api/shop/validate-account
 // (the page's Verify button) and /api/shop/withdraw (the server-side re-check on submit).
 // They previously used different providers, so a name could verify on the page and then
-// fail on submit. MoMo goes through the multi-provider resolver (Paystack first); bank
-// accounts have no Paystack equivalent and stay Moolre-only.
+// fail on submit. MoMo goes through the Paystack resolver; Ghana bank accounts have no
+// automatic lookup, so the client falls back to a typed name that an admin confirms.
 
 export interface PayoutNameResult {
     success: boolean
@@ -24,7 +23,7 @@ export async function resolvePayoutAccountName(params: {
     const { network, number, bankId } = params
 
     if (network === 'Bank') {
-        return validateAccountName(number, MOOLRE_CHANNEL_MAP.Bank, bankId)
+        return { success: false, name: null, error: 'Bank account names cannot be checked automatically. Enter the account name and an admin will confirm it before payout.' }
     }
 
     const normalized = normalizeGhanaPhone(number)

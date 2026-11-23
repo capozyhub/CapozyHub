@@ -125,10 +125,6 @@ interface AirtimeSettings {
     // Dashboard + Storefront toggles
     dashboard_airtime_enabled: string; dashboard_mashup_enabled: string
     storefront_airtime_enabled: string; storefront_mashup_enabled: string
-    // Hubtel Commission auto-fulfillment controls
-    airtime_auto_fulfillment_enabled: string
-    hubtel_airtime_networks: string
-    hubtel_commission_paused: string
 }
 
 // ─── SVG Network Logos ────────────────────────────────────────────────────────
@@ -196,31 +192,17 @@ function hasCorruptData(o: Order) {
     return o.fee_rate > 100 || (o.total_paid > o.airtime_amount * 3 && o.airtime_amount > 0)
 }
 
-function commissionOf(o: Order): number | undefined {
-    const c = o.fulfillment_metadata?.commission
-    return c === undefined || c === null ? undefined : Number(c)
-}
-
 // Single source of truth for per-order earnings. Tolerant of the admin_fee_amount DEFAULT-0 trap:
 // use admin_fee_amount when it's actually split (>0), else derive admin = fee - shop for a shop
-// order, else the whole fee for a direct order. Commission (Hubtel) is a separate, additive stream.
+// order, else the whole fee for a direct order.
 function earningsOf(o: Order) {
     const shop = o.shop_id ? Math.max(0, o.shop_fee_amount || 0) : 0
     const adminMarkup = (o.admin_fee_amount && o.admin_fee_amount > 0)
         ? o.admin_fee_amount
         : (o.shop_id ? Math.max(0, (o.fee_amount || 0) - shop) : (o.fee_amount || 0))
-    const commission = commissionOf(o) || 0
-    return { adminMarkup, shop, commission, totalAdmin: adminMarkup + commission }
+    return { adminMarkup, shop, totalAdmin: adminMarkup }
 }
 
-// Refulfill is useful only for failed/pending airtime (a processing order is in-flight; the server
-// refuses a resend). Sync applies to in-flight Hubtel-commission orders awaiting confirmation.
-function canRefulfill(o: Order) {
-    return o.type !== 'mashup' && (o.status === 'failed' || o.status === 'pending') && o.airtime_amount <= 100
-}
-function canSync(o: Order) {
-    return o.fulfillment_service === 'hubtel-commission' && (o.status === 'processing' || o.status === 'pending')
-}
 // Admin refund is allowed for any non-terminal-good airtime (never completed / already refunded).
 // Shop airtime is skipped server-side (refund via the shop order) — the button still shows.
 function canRefund(o: Order) {
@@ -242,45 +224,19 @@ function periodRange(timePeriod: string, customStart: string, customEnd: string)
     }
 }
 
-// Best-available human-readable Hubtel response for an order (callback Description, sync response, status-check, or error).
-function hubtelResponseOf(o: Order): { text: string; tone: 'success' | 'fail' | 'pending' } | null {
-    const m = o.fulfillment_metadata
-    if (!m) return null
-    const cb = m.callback
-    const desc: string | undefined = cb?.Description || m.api_response?.Data?.Description || m.error
-    const rc = String(cb?.ResponseCode ?? m.response_code ?? '')
-    if (o.status === 'completed' || rc === '0000') return { text: desc || 'Delivered successfully', tone: 'success' }
-    // Status Check API verdict is checked BEFORE the callback description: it is always the
-    // LATER, more authoritative signal when present (Hubtel's own docs describe it as the
-    // definitive final word — see docs/reference/hubtel-commission-services.md §6). An earlier
-    // callback's Description can be ambiguous/non-terminal text (e.g. Hubtel's own
-    // "TRANSACTION_NOT_COMPLETED" on an rc=0005 "state unknown" callback that never itself
-    // failed the order) — showing that ahead of a later definitive verdict misleads an admin
-    // investigating why an order actually failed. Found via a live investigation, 2026-09-08.
-    if (m.status_check?.verdict) {
-        const v = m.status_check.verdict
-        return { text: `Status check: ${v}`, tone: v === 'failed' ? 'fail' : v === 'success' ? 'success' : 'pending' }
-    }
-    if (desc) {
-        const fail = rc.startsWith('4') || /insufficient|fail|declin|reject|unpaid|error|invalid/i.test(desc)
-        return { text: desc, tone: fail ? 'fail' : 'pending' }
-    }
-    return null
-}
-
 // ─── Order Card (secondary view) ──────────────────────────────────────────────
 
-function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy, selectionMode, selected, onToggleSelect }: {
-    order: Order; onAction: (o: Order) => void; onRefulfill: (o: Order) => void; onSyncStatus: (o: Order) => void
+function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, onToggleSelect }: {
+    order: Order; onAction: (o: Order) => void
     onRefund: (o: Order) => void
     busy?: boolean; selectionMode?: boolean; selected?: boolean; onToggleSelect?: (o: Order) => void
 }) {
     const isFailed   = order.status === 'failed'
     const corrupt    = hasCorruptData(order)
-    const { adminMarkup, shop, commission } = earningsOf(order)
+    const { adminMarkup, shop } = earningsOf(order)
     const attempts    = order.airtime_fulfillment_attempts ?? 0
     const canAct      = (STATUS_TRANSITIONS[order.status]?.length ?? 0) > 0
-    const provider    = order.fulfillment_service === 'hubtel-commission' ? 'Hubtel' : order.fulfillment_service
+    const provider    = order.fulfillment_service
 
     return (
         <div
@@ -377,8 +333,6 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
                 <span className="text-muted-foreground">Net <span className="font-semibold tabular-nums text-foreground">{order.airtime_amount.toFixed(2)}</span></span>
                 <span className="text-muted-foreground/70 ">·</span>
                 <span className="text-muted-foreground">Admin <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
-                {commission > 0 && (<><span className="text-muted-foreground/70 ">·</span>
-                    <span className="text-muted-foreground">Comm <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{commission.toFixed(2)}</span></span></>)}
                 {order.shop_id && (<><span className="text-muted-foreground/70 ">·</span>
                     <span className="text-muted-foreground">Shop <span className="font-semibold tabular-nums text-foreground/80 ">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
                 <span className="text-muted-foreground/70 ">·</span>
@@ -401,41 +355,13 @@ function OrderCard({ order, onAction, onRefulfill, onSyncStatus, onRefund, busy,
                 </div>
             )}
 
-            {/* Hubtel response — lets admin see whether it delivered or why it failed */}
-            {(() => {
-                const r = hubtelResponseOf(order)
-                if (!r) return null
-                return (
-                    <div className={cn('text-xs mb-3 px-2.5 py-1.5 rounded-lg border truncate',
-                        r.tone === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900'
-                            : r.tone === 'fail' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-900'
-                                : 'bg-muted/50 text-muted-foreground border-border ')}
-                        title={r.text}>
-                        Hubtel: {r.text}
-                    </div>
-                )
-            })()}
-
             {/* Footer */}
             <div className="pt-3 border-t border-border space-y-2.5">
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3 shrink-0" /> {format(parseISO(order.created_at), 'MMM d, yyyy · p')}
                 </span>
-                {!selectionMode && (canSync(order) || canRefulfill(order) || canAct || canRefund(order)) && (
+                {!selectionMode && (canAct || canRefund(order)) && (
                     <div className="flex items-center gap-2 flex-wrap">
-                        {canSync(order) && (
-                            <Button size="sm" variant="outline" disabled={busy} className="flex-1 h-9 text-xs gap-1.5"
-                                onClick={() => onSyncStatus(order)}>
-                                <RefreshCw className={cn('w-3.5 h-3.5', busy && 'animate-spin')} /> Sync
-                            </Button>
-                        )}
-                        {canRefulfill(order) && (
-                            <Button size="sm" variant="outline" disabled={busy}
-                                className="flex-1 h-9 text-xs gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300"
-                                onClick={() => onRefulfill(order)}>
-                                <Repeat2 className={cn('w-3.5 h-3.5', busy && 'animate-spin')} /> Refulfill
-                            </Button>
-                        )}
                         {canAct && (
                             <Button size="sm" variant="outline" disabled={busy} className="flex-1 h-9 text-xs" onClick={() => onAction(order)}>
                                 Override
@@ -662,109 +588,6 @@ function NetworkFeeSection({
     )
 }
 
-// ─── HubtelFulfillmentSection (Settings, airtime only) ────────────────────────
-
-function parseNetworksJson(raw: string): Record<Network, boolean> {
-    const base: Record<Network, boolean> = { MTN: false, Telecel: false, AT: false }
-    try {
-        const parsed = JSON.parse(raw || '{}')
-        return {
-            MTN: parsed.MTN === true,
-            Telecel: parsed.Telecel === true,
-            AT: parsed.AT === true,
-        }
-    } catch { return base }
-}
-
-function HubtelFulfillmentSection({
-    settings,
-    setSettings,
-    onResume,
-    resuming,
-}: {
-    settings: AirtimeSettings
-    setSettings: React.Dispatch<React.SetStateAction<AirtimeSettings>>
-    onResume: () => void
-    resuming: boolean
-}) {
-    const autoOn = settings.airtime_auto_fulfillment_enabled === 'true'
-    const paused = settings.hubtel_commission_paused === 'true'
-    const nets = parseNetworksJson(settings.hubtel_airtime_networks)
-
-    const setNet = (net: Network, val: boolean) => {
-        const next = { ...nets, [net]: val }
-        setSettings(s => ({ ...s, hubtel_airtime_networks: JSON.stringify(next) }))
-    }
-
-    return (
-        <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-4">
-            <div>
-                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Wifi className="w-4 h-4 text-emerald-500" /> Hubtel auto-fulfillment
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Route airtime through Hubtel Commission Services</p>
-            </div>
-
-            {/* Master switch */}
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
-                <div className="min-w-0">
-                    <Label className="text-sm font-medium text-foreground">Auto-fulfill airtime via Hubtel</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Master switch — dispatches paid orders automatically</p>
-                </div>
-                <Switch
-                    checked={autoOn}
-                    onCheckedChange={v => setSettings(s => ({ ...s, airtime_auto_fulfillment_enabled: v ? 'true' : 'false' }))}
-                />
-            </div>
-
-            {/* Per-network switches */}
-            <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Enabled networks</p>
-                {NETWORKS.map(net => (
-                    <div key={net} className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
-                                <NetworkLogo id={net} className="[&_svg]:w-5 [&_svg]:h-5" />
-                            </div>
-                            <span className="text-sm font-medium text-foreground truncate">{net}</span>
-                        </div>
-                        <Switch
-                            checked={nets[net]}
-                            disabled={!autoOn}
-                            onCheckedChange={v => setNet(net, v)}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            {/* Commission paused indicator */}
-            <div className={cn(
-                'flex items-center justify-between gap-2 rounded-xl border p-3',
-                paused
-                    ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900'
-                    : 'bg-muted/50 border-border dark:bg-muted/40 ',
-            )}>
-                <div className="flex items-center gap-2 min-w-0">
-                    {paused
-                        ? <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                        : <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />}
-                    <div className="min-w-0">
-                        <Label className="text-sm font-medium text-foreground">Commission paused (low float)</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                            {paused ? 'Auto-fulfillment is paused after an insufficient-float failure.' : 'Float is healthy — auto-fulfillment active.'}
-                        </p>
-                    </div>
-                </div>
-                {paused && (
-                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs shrink-0" onClick={onResume} disabled={resuming}>
-                        {resuming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Resume'}
-                    </Button>
-                )}
-            </div>
-        </div>
-    )
-}
-
 // ─── LimitsAndTogglesSection (Settings) ──────────────────────────────────────
 
 function LimitsAndTogglesSection({
@@ -938,13 +761,9 @@ export default function AdminAirtimePage() {
         mashup_enabled_mtn: 'true', mashup_enabled_telecel: 'true', mashup_enabled_at: 'true',
         dashboard_airtime_enabled: 'true', dashboard_mashup_enabled: 'true',
         storefront_airtime_enabled: 'false', storefront_mashup_enabled: 'false',
-        airtime_auto_fulfillment_enabled: 'false',
-        hubtel_airtime_networks: '{"MTN":false,"Telecel":false,"AT":false}',
-        hubtel_commission_paused: 'false',
     })
     const [settingsLoading, setSettingsLoading] = useState(true)
     const [savingSettings, setSavingSettings] = useState(false)
-    const [resumingCommission, setResumingCommission] = useState(false)
 
     // Batches state
     const [batches, setBatches] = useState<AirtimeBatch[]>([])
@@ -983,38 +802,7 @@ export default function AdminAirtimePage() {
         } catch (e) { console.error(e) }
     }, [networkFilter, typeFilter, timePeriod, customStart, customEnd])
 
-    const handleRefulfill = useCallback(async (order: Order) => {
-        setBusyOrderId(order.id)
-        try {
-            const res = await fetch('/api/admin/airtime/refulfill', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId: order.id }),
-            })
-            const d = await res.json().catch(() => ({}))
-            if (!res.ok && res.status >= 500) { toast.error(d.error || 'Refulfillment failed'); return }
-            if (d.ok) toast.success(d.commission !== undefined ? `${d.message} · commission GHS ${Number(d.commission).toFixed(2)}` : (d.message || 'Dispatched to Hubtel'))
-            else toast.error(d.message || d.error || 'Refulfillment failed')
-        } catch { toast.error('Network error during refulfillment') }
-        finally { setBusyOrderId(null); loadOrders(); loadStats() }
-    }, [loadOrders, loadStats])
-
-    const handleSyncStatus = useCallback(async (order: Order) => {
-        setBusyOrderId(order.id)
-        try {
-            const res = await fetch('/api/admin/airtime/status-sync', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId: order.id }),
-            })
-            if (!res.ok) { toast.error('Status sync failed'); return }
-            const d = await res.json().catch(() => ({}))
-            if (d.verdict === 'success') toast.success(d.message || 'Confirmed delivered')
-            else if (d.verdict === 'failed') toast.error(d.message || 'Hubtel reports failed')
-            else toast.success(d.message || 'Status checked')
-        } catch { toast.error('Network error during status sync') }
-        finally { setBusyOrderId(null); loadOrders(); loadStats() }
-    }, [loadOrders, loadStats])
-
-    const handleBulk = useCallback(async (action: 'refulfill' | 'sync' | 'refund' | 'complete', ids: string[]) => {
+    const handleBulk = useCallback(async (action: 'refund' | 'complete', ids: string[]) => {
         if (ids.length === 0) { toast.error('No eligible orders selected'); return }
         setBulkRunning(true)
         setBulkProgress({ done: 0, total: ids.length })
@@ -1026,7 +814,7 @@ export default function AdminAirtimePage() {
             const d = await res.json().catch(() => ({}))
             if (!res.ok) { toast.error(d.error || 'Bulk action failed'); return }
             const s = d.summary || { ok: 0, failed: 0, skipped: 0 }
-            const label = action === 'refulfill' ? 'Refulfill' : action === 'refund' ? 'Refund' : action === 'complete' ? 'Complete' : 'Sync'
+            const label = action === 'refund' ? 'Refund' : 'Complete'
             const msg = `${label}: ${s.ok} ok · ${s.failed} failed · ${s.skipped} skipped`
             if (s.failed > 0) toast.error(msg); else toast.success(msg)
             setSelectedIds(new Set()); setSelectionMode(false)
@@ -1073,22 +861,6 @@ export default function AdminAirtimePage() {
             else { const d = await res.json(); toast.error(d.error || 'Failed to save') }
         } catch { toast.error('An error occurred') }
         setSavingSettings(false)
-    }
-
-    // Resume commission (clears the low-float pause flag) — persists immediately.
-    const resumeCommission = async () => {
-        setResumingCommission(true)
-        const next = { ...settings, hubtel_commission_paused: 'false' }
-        try {
-            const res = await fetch('/api/admin/airtime/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hubtel_commission_paused: 'false' }),
-            })
-            if (res.ok) { setSettings(next); toast.success('Commission resumed') }
-            else { const d = await res.json(); toast.error(d.error || 'Failed to resume') }
-        } catch { toast.error('An error occurred') }
-        setResumingCommission(false)
     }
 
     // ── Batch actions ─────────────────────────────────────────────────────────
@@ -1186,7 +958,6 @@ export default function AdminAirtimePage() {
             return {
                 grossSales:       n(serverStats.gross_sales),
                 adminMarkup:      n(serverStats.admin_markup),
-                hubtelCommission: n(serverStats.hubtel_commission),
                 shopProfit:       n(serverStats.shop_profit),
                 totalVolume:      n(serverStats.total_volume),
                 pendingValue:     n(serverStats.pending_value),
@@ -1194,7 +965,6 @@ export default function AdminAirtimePage() {
                 airtimeCount:     n(serverStats.airtime_count),
                 mashupCount:      n(serverStats.mashup_count),
                 pendingCount:     n(serverStats.pending_count),
-                hubtelCount:      n(serverStats.hubtel_count),
             }
         }
         const completed = filteredOrders.filter(o => o.status === 'completed')
@@ -1202,7 +972,6 @@ export default function AdminAirtimePage() {
         return {
             grossSales:       sum(o => o.total_paid),
             adminMarkup:      sum(o => earningsOf(o).adminMarkup),
-            hubtelCommission: sum(o => earningsOf(o).commission),
             shopProfit:       sum(o => earningsOf(o).shop),
             totalVolume:      sum(o => o.airtime_amount),
             pendingValue:     filteredOrders.filter(o => o.status === 'pending').reduce((a, o) => a + o.total_paid, 0),
@@ -1210,7 +979,6 @@ export default function AdminAirtimePage() {
             airtimeCount:     filteredOrders.filter(o => o.type !== 'mashup').length,
             mashupCount:      filteredOrders.filter(o => o.type === 'mashup').length,
             pendingCount:     filteredOrders.filter(o => o.status === 'pending').length,
-            hubtelCount:      completed.filter(o => o.fulfillment_service === 'hubtel-commission').length,
         }
     }, [serverStats, filteredOrders])
 
@@ -1218,9 +986,8 @@ export default function AdminAirtimePage() {
 
     const exportCSV = () => {
         if (filteredOrders.length === 0) { toast.error('No orders to export'); return }
-        const headers = ['Reference', 'Type', 'Network', 'Status', 'Beneficiary', 'Customer', 'Amount (GHS)', 'Admin Profit (GHS)', 'Shop Profit (GHS)', 'Total Paid (GHS)', 'Provider', 'Commission (GHS)', 'Attempts', 'Role', 'Date']
+        const headers = ['Reference', 'Type', 'Network', 'Status', 'Beneficiary', 'Customer', 'Amount (GHS)', 'Admin Profit (GHS)', 'Shop Profit (GHS)', 'Total Paid (GHS)', 'Provider', 'Attempts', 'Role', 'Date']
         const rows = filteredOrders.map(o => {
-            const commission = commissionOf(o)
             return [
                 o.reference_code,
                 o.type,
@@ -1233,7 +1000,6 @@ export default function AdminAirtimePage() {
                 earningsOf(o).shop.toFixed(2),
                 o.total_paid.toFixed(2),
                 o.fulfillment_service || '',
-                commission !== undefined ? commission.toFixed(2) : '',
                 String(o.airtime_fulfillment_attempts ?? 0),
                 o.user_role,
                 format(parseISO(o.created_at), 'yyyy-MM-dd HH:mm'),
@@ -1265,7 +1031,7 @@ export default function AdminAirtimePage() {
                         Airtime &amp; Mashup
                     </h1>
                     <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                        Revenue, fulfillment control &amp; Hubtel commission
+                        Revenue and manual fulfillment
                     </p>
                 </div>
 
@@ -1320,12 +1086,12 @@ export default function AdminAirtimePage() {
             </div>
 
             {/* ── Stats (money is completed-only; Pending shows at-risk value) ─ */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 <StatCard
                     icon={<Coins className="w-4 h-4" />}
                     label="Admin earnings"
-                    value={`GHS ${(cardStats.adminMarkup + cardStats.hubtelCommission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    sub={`GHS ${cardStats.adminMarkup.toFixed(2)} markup + GHS ${cardStats.hubtelCommission.toFixed(2)} commission`}
+                    value={`GHS ${cardStats.adminMarkup.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    sub="Markup on completed orders"
                     accent="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
@@ -1333,13 +1099,6 @@ export default function AdminAirtimePage() {
                     label="Gross sales"
                     value={`GHS ${cardStats.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     sub={<span><span className="text-brand-700">{cardStats.airtimeCount} airtime</span> · <span className="text-amber-500">{cardStats.mashupCount} mashup</span></span>}
-                />
-                <StatCard
-                    icon={<Wallet className="w-4 h-4" />}
-                    label="Hubtel commission"
-                    value={`GHS ${cardStats.hubtelCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    sub={`${cardStats.hubtelCount} via Hubtel`}
-                    accent="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
                     icon={<LayoutDashboard className="w-4 h-4" />}
@@ -1459,8 +1218,6 @@ export default function AdminAirtimePage() {
                                         key={order.id}
                                         order={order}
                                         onAction={setSelectedOrder}
-                                        onRefulfill={handleRefulfill}
-                                        onSyncStatus={handleSyncStatus}
                                         onRefund={(o) => setRefundAirtimeOrder(o)}
                                         busy={busyOrderId === order.id || bulkRunning}
                                         selectionMode={selectionMode}
@@ -1481,8 +1238,6 @@ export default function AdminAirtimePage() {
             {/* ── Multi-select bulk action bar (sticky) ───────────────────── */}
             {activeTab === 'orders' && selectionMode && selectedIds.size > 0 && (() => {
                 const selectedOrders = orders.filter(o => selectedIds.has(o.id))
-                const refulfillIds = selectedOrders.filter(canRefulfill).map(o => o.id)
-                const syncIds = selectedOrders.filter(canSync).map(o => o.id)
                 const refundIds = selectedOrders.filter(canRefund).map(o => o.id)
                 // Complete is available whether the order is still pending or already processing —
                 // covers both manual mashup fulfillment and admin-confirmed airtime.
@@ -1504,16 +1259,10 @@ export default function AdminAirtimePage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <div className="text-sm min-w-0 flex-1">
                                         <span className="font-semibold text-foreground">{selectedIds.size} selected</span>
-                                        <span className="text-muted-foreground"> · {refulfillIds.length} refulfillable · {syncIds.length} syncable</span>
+                                        <span className="text-muted-foreground"></span>
                                     </div>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set(filteredOrders.map(o => o.id)))}>Select all</Button>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set())}>Clear</Button>
-                                    <Button size="sm" variant="outline" className="h-9 gap-1.5" disabled={bulkRunning || syncIds.length === 0} onClick={() => handleBulk('sync', syncIds)}>
-                                        <RefreshCw className="w-3.5 h-3.5" /> Sync ({syncIds.length})
-                                    </Button>
-                                    <Button size="sm" className="h-9 gap-1.5" disabled={bulkRunning || refulfillIds.length === 0} onClick={() => handleBulk('refulfill', refulfillIds)}>
-                                        <Repeat2 className="w-3.5 h-3.5" /> Refulfill ({refulfillIds.length})
-                                    </Button>
                                     <Button size="sm" variant="outline" className="h-9 gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300" disabled={bulkRunning || completeIds.length === 0} onClick={() => handleBulk('complete', completeIds)}>
                                         <CheckCircle className="w-3.5 h-3.5" /> Complete ({completeIds.length})
                                     </Button>
@@ -1653,14 +1402,6 @@ export default function AdminAirtimePage() {
                                     />
                                 </div>
                                 <div className="space-y-4">
-                                    {activeSettingsTab === 'airtime' && (
-                                        <HubtelFulfillmentSection
-                                            settings={settings}
-                                            setSettings={setSettings}
-                                            onResume={resumeCommission}
-                                            resuming={resumingCommission}
-                                        />
-                                    )}
                                     <LimitsAndTogglesSection
                                         productType={activeSettingsTab}
                                         settings={settings}

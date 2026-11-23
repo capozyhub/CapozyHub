@@ -2,7 +2,7 @@
 //
 // dispatchApiWebhook is called inside every terminal-state transition, several
 // of which run in sequential loops of up to 50 (the admin bulk route, and the
-// hubtel-commission-reconcile cron which has FOUR such loops in one 60s
+// a reconcile cron which had FOUR such loops in one 60s
 // invocation). The per-key config cache is what stops that being ~200 api_keys
 // SELECTs per cron run whose answer is almost always "no webhook configured".
 //

@@ -1,42 +1,35 @@
 /**
- * Multi-provider MoMo account name resolution for Ghana numbers.
+ * MoMo account name resolution for Ghana numbers, via Paystack.
  *
- * Providers supported:
- *   • Paystack — primary; broad Ghana MoMo coverage
- *   • Moolre  — optional fallback; skipped automatically when its
- *               MOOLRE_TRANSFER_* env vars are not configured
- *   • Hubtel  — slot reserved; wire in when docs are available
- *
- * Single lookup  : tries providers in sequence until one succeeds
- * Bulk lookup    : distributes phones across all providers in parallel,
- *                  effectively multiplying the cap (100 × N providers)
+ * Single lookup : one attempt, plus one retry on a miss (provider failures are intermittent)
+ * Bulk lookup   : sequential lookups, capped per call
  */
 
 // ─── Network metadata ─────────────────────────────────────────────────────────
 
-const NETWORK_META: Record<string, { label: string; paystackCode: string; moolreChannel: number }> = {
-    '024': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    '025': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    '053': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    '054': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    '055': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    '059': { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
+const NETWORK_META: Record<string, { label: string; paystackCode: string }> = {
+    '024': { label: 'MTN',     paystackCode: 'MTN' },
+    '025': { label: 'MTN',     paystackCode: 'MTN' },
+    '053': { label: 'MTN',     paystackCode: 'MTN' },
+    '054': { label: 'MTN',     paystackCode: 'MTN' },
+    '055': { label: 'MTN',     paystackCode: 'MTN' },
+    '059': { label: 'MTN',     paystackCode: 'MTN' },
     // Paystack's Ghana mobile-money code for Telecel (ex-Vodafone) is VOD — confirmed
     // against GET /bank?currency=GHS&type=mobile_money (2026-09-28). 'VDF' was rejected
     // with "Unknown bank code: VDF", so the Paystack fallback never worked for Telecel.
-    '020': { label: 'TELECEL', paystackCode: 'VOD', moolreChannel: 6 },
-    '050': { label: 'TELECEL', paystackCode: 'VOD', moolreChannel: 6 },
-    '026': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
-    '027': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
-    '056': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
-    '057': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
+    '020': { label: 'TELECEL', paystackCode: 'VOD' },
+    '050': { label: 'TELECEL', paystackCode: 'VOD' },
+    '026': { label: 'AT',      paystackCode: 'ATL' },
+    '027': { label: 'AT',      paystackCode: 'ATL' },
+    '056': { label: 'AT',      paystackCode: 'ATL' },
+    '057': { label: 'AT',      paystackCode: 'ATL' },
 }
 
 export type NameResolveResult = {
     firstName: string
     lastName:  string
     fullName:  string
-    provider:  'paystack' | 'moolre' | 'hubtel'
+    provider:  'paystack'
     network:   string
 }
 
@@ -49,23 +42,20 @@ export type NameResolveResult = {
 // for a name-lookup call; on timeout these resolvers already return null,
 // same as any other failure.
 const PROVIDER_TIMEOUT_MS = 5000
-// Moolre's name enquiry measured 1.3–5.5 s (2026-09-28); at 5 s roughly 1 lookup in 4
-// was cut off before the answer arrived. Still bounded, just with realistic headroom.
-const MOOLRE_TIMEOUT_MS = 8000
 
 function toLocal(normalizedPhone: string): string {
     return '0' + normalizedPhone.slice(3)
 }
 
-type NetworkMeta = { label: string; paystackCode: string; moolreChannel: number }
+type NetworkMeta = { label: string; paystackCode: string }
 
 // The network the user explicitly picked wins over the number's prefix: Ghana has
 // number portability, so a prefix does not guarantee the number is still on that
 // network, and the payout is sent on the picked network.
 const NETWORK_HINT_META: Record<string, NetworkMeta> = {
-    'MTN MoMo':         { label: 'MTN',     paystackCode: 'MTN', moolreChannel: 1 },
-    'Telecel Cash':     { label: 'TELECEL', paystackCode: 'VOD', moolreChannel: 6 },
-    'AirtelTigo Money': { label: 'AT',      paystackCode: 'ATL', moolreChannel: 7 },
+    'MTN MoMo':         { label: 'MTN',     paystackCode: 'MTN' },
+    'Telecel Cash':     { label: 'TELECEL', paystackCode: 'VOD' },
+    'AirtelTigo Money': { label: 'AT',      paystackCode: 'ATL' },
 }
 
 function getMeta(normalizedPhone: string, networkHint?: string): NetworkMeta | null {
@@ -102,124 +92,33 @@ async function resolveViaPaystack(normalizedPhone: string, networkHint?: string)
     }
 }
 
-// ─── Moolre ───────────────────────────────────────────────────────────────────
-
-async function resolveViaMoolre(normalizedPhone: string, networkHint?: string): Promise<NameResolveResult | null> {
-    const apiUser  = process.env.MOOLRE_TRANSFER_API_USER
-    const apiKey   = process.env.MOOLRE_TRANSFER_API_KEY
-    const acctNum  = process.env.MOOLRE_ACCOUNT_NUMBER
-    const meta     = getMeta(normalizedPhone, networkHint)
-    if (!apiUser || !apiKey || !acctNum || !meta) return null
-
-    try {
-        const rawBody = await fetch('https://api.moolre.com/open/transact/validate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept':       'application/json',
-                'X-API-USER':   apiUser,
-                'X-API-KEY':    apiKey,
-            },
-            body: JSON.stringify({
-                type:          1,
-                receiver:      toLocal(normalizedPhone),
-                channel:       meta.moolreChannel,
-                currency:      'GHS',
-                accountnumber: acctNum,
-            }),
-            signal: AbortSignal.timeout(MOOLRE_TIMEOUT_MS),
-        }).then(r => r.text())
-
-        // Moolre's PHP backend sometimes prepends a var_dump line before JSON
-        let data: any = null
-        try { data = JSON.parse(rawBody) } catch {
-            const i = rawBody.indexOf('{'), j = rawBody.lastIndexOf('}')
-            if (i !== -1 && j > i) try { data = JSON.parse(rawBody.slice(i, j + 1)) } catch { /* */ }
-        }
-
-        if (data && String(data.status) === '1' && data.data) {
-            const fullName = String(data.data)
-            return { ...splitName(fullName), fullName, provider: 'moolre', network: meta.label }
-        }
-        return null
-    } catch {
-        return null
-    }
-}
-
-// ─── Hubtel (reserved) ────────────────────────────────────────────────────────
-// async function resolveViaHubtel(normalizedPhone: string): Promise<NameResolveResult | null> {
-//     // TODO: implement when Hubtel name-enquiry endpoint docs are available
-//     return null
-// }
-
-// ─── Provider registry ────────────────────────────────────────────────────────
-// Order matters for single lookups — first entry is tried first.
-// Paystack is primary. Moolre is only a fallback and returns null immediately when
-// its credentials are not configured, so it costs nothing on a Paystack-only setup.
-type Resolver = (phone: string, networkHint?: string) => Promise<NameResolveResult | null>
-
-const PROVIDERS: { name: string; fn: Resolver }[] = [
-    { name: 'paystack', fn: resolveViaPaystack  },
-    { name: 'moolre',   fn: resolveViaMoolre   },
-    // { name: 'hubtel', fn: resolveViaHubtel }, // uncomment when ready
-]
-
+export { getMeta as getNetworkMeta }
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-/**
- * Try each available provider in sequence until one returns a name.
- * Best for single contact adds or the verify endpoint.
- */
+/** Look up one number. Retries once on a miss: provider failures are intermittent. */
 export async function resolveNameSingle(
     normalizedPhone: string,
     networkHint?: string
 ): Promise<NameResolveResult | null> {
-    for (const { fn } of PROVIDERS) {
-        const result = await fn(normalizedPhone, networkHint)
-        if (result) return result
-    }
-    // Provider failures are intermittent — measured 2026-09-28, the same numbers flipped
-    // between resolving and not across runs minutes apart. Once every provider has had a
-    // go, one retry of the primary recovers most of them. Only runs on a full miss, and
-    // no caller is on the USSD hot path (all are owner/admin-triggered API routes).
-    return await PROVIDERS[0].fn(normalizedPhone, networkHint)
+    const first = await resolveViaPaystack(normalizedPhone, networkHint)
+    if (first) return first
+    return await resolveViaPaystack(normalizedPhone, networkHint)
 }
 
-/**
- * Bulk name enrichment distributed across all providers in parallel.
- *
- * The phones array is split into N chunks (one per provider) and all chunks
- * run simultaneously, so total capacity = capPerProvider × N providers.
- * Right now: 100 × 2 = 200 per upload. Adding Hubtel makes it 300.
- *
- * Returns a Map of normalizedPhone → NameResolveResult.
- */
+/** Maximum phones enriched in one bulk call. */
+export const BULK_ENRICH_TOTAL_CAP = 100
+
+/** Bulk name enrichment. Returns a Map of normalizedPhone → NameResolveResult. */
 export async function resolveNamesBulk(
     normalizedPhones: string[],
-    capPerProvider = 100
+    cap = BULK_ENRICH_TOTAL_CAP
 ): Promise<Map<string, NameResolveResult>> {
-    const results     = new Map<string, NameResolveResult>()
-    const totalCap    = PROVIDERS.length * capPerProvider
-    const phones      = normalizedPhones.slice(0, totalCap)
-
-    // Split phones into equally-sized chunks, one chunk per provider
-    await Promise.allSettled(
-        PROVIDERS.map(async ({ fn }, idx) => {
-            const chunk = phones.slice(idx * capPerProvider, (idx + 1) * capPerProvider)
-            for (const phone of chunk) {
-                try {
-                    const result = await fn(phone)
-                    if (result) results.set(phone, result)
-                } catch { /* skip individual failures */ }
-            }
-        })
-    )
-
+    const results = new Map<string, NameResolveResult>()
+    for (const phone of normalizedPhones.slice(0, cap)) {
+        try {
+            const result = await resolveViaPaystack(phone)
+            if (result) results.set(phone, result)
+        } catch { /* skip individual failures */ }
+    }
     return results
 }
-
-/** How many phones can be enriched in one bulk call with current providers. */
-export const BULK_ENRICH_TOTAL_CAP = PROVIDERS.length * 100
-
-export { getMeta as getNetworkMeta }

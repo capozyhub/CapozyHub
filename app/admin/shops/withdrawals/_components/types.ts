@@ -15,13 +15,11 @@ export interface WithdrawalRow {
   payment_type: 'momo' | 'bank' | null
   status:
     | 'pending'
-    | 'moolre_pending'
     | 'paystack_pending'
     | 'completed'
     | 'failed'
     | 'reversed'
-  payout_provider: 'moolre' | 'paystack' | 'manual' | null
-  moolre_transaction_id: string | null
+  payout_provider: 'paystack' | 'manual' | null
   paystack_transfer_code: string | null
   paystack_transfer_reference: string | null
   paystack_transfer_status: string | null

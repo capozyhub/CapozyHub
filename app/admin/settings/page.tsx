@@ -129,7 +129,6 @@ export default function AdminSettingsPage() {
     const [afaPriceAgent, setAfaPriceAgent] = useState('15')
     const [afaPriceDealer, setAfaPriceDealer] = useState('15')
     const [afaCostPrice, setAfaCostPrice] = useState('11.5')
-    const [smsCostPerSegment, setSmsCostPerSegment] = useState('0.243')
     const [storefrontAfaEnabled, setStorefrontAfaEnabled] = useState(false)
     // shop_global_settings caps — separate table, separate save path from the
     // admin_settings fields above. 0 means no limit (matches mashup_shop_fee_max_*).
@@ -169,8 +168,6 @@ export default function AdminSettingsPage() {
     const [pageAccessTransactions, setPageAccessTransactions] = useState(true)
     const [pageAccessAfaOrders, setPageAccessAfaOrders] = useState(true)
     const [pageAccessRecruit, setPageAccessRecruit] = useState(true)
-    const [pageAccessCommission, setPageAccessCommission] = useState(true)
-    const [pageAccessSms, setPageAccessSms] = useState(true)
     const [pageAccessDeveloperApi, setPageAccessDeveloperApi] = useState(true)
 
     // Snapshot of last-saved values (as a stable JSON string) for dirty-tracking
@@ -198,7 +195,6 @@ export default function AdminSettingsPage() {
         { key: 'afa_price_agent', value: afaPriceAgent },
         { key: 'afa_price_dealer', value: afaPriceDealer },
         { key: 'afa_cost_price', value: afaCostPrice },
-        { key: 'sms_cost_per_segment', value: smsCostPerSegment },
         // jsonb STRING 'true'/'false' — matches every sibling storefront toggle
         // (storefront_mashup_enabled, storefront_utilities_enabled). A jsonb
         // boolean here makes the gate unopenable (already fixed once).
@@ -227,8 +223,6 @@ export default function AdminSettingsPage() {
         { key: 'page_access_transactions', value: String(pageAccessTransactions) },
         { key: 'page_access_afa_orders', value: String(pageAccessAfaOrders) },
         { key: 'page_access_recruit', value: String(pageAccessRecruit) },
-        { key: 'page_access_commission', value: String(pageAccessCommission) },
-        { key: 'page_access_sms', value: String(pageAccessSms) },
         { key: 'page_access_developer_api', value: String(pageAccessDeveloperApi) },
         { key: 'landing_customer_count', value: landingCustomerCount.trim() },
         { key: 'landing_data_packages', value: JSON.stringify(landingDataPackages.filter(p => p.network && p.volume && p.price)) },
@@ -236,12 +230,12 @@ export default function AdminSettingsPage() {
         { key: 'landing_testimonials', value: JSON.stringify(landingTestimonials.filter(t => t.name && t.role && t.quote)) },
     ]), [
         paystackFee, agentPaystackFee, dealerPaystackFee, paystackMinTopup, paystackMaxTopup, mtnAdjustment,
-        agentUpgradePrice, afaPriceCustomer, afaPriceAgent, afaPriceDealer, afaCostPrice, smsCostPerSegment, storefrontAfaEnabled, supportEmail, guestStorefrontUrl,
+        agentUpgradePrice, afaPriceCustomer, afaPriceAgent, afaPriceDealer, afaCostPrice, storefrontAfaEnabled, supportEmail, guestStorefrontUrl,
         whatsappGroupLink, whatsappChannelLink, whatsappAdminNumber, whatsappCommunityLink, footerCopyrightText,
         footerBrandingText, autoFulfillment, pageAccessDashboard, pageAccessDataPackages,
         pageAccessOrders, pageAccessWallet, pageAccessComplaints, pageAccessNotifications, pageAccessProfile,
         pageAccessShop, pageAccessStorefront, pageAccessAirtime, pageAccessResultsChecker, pageAccessUpgrade,
-        pageAccessTransactions, pageAccessAfaOrders, pageAccessRecruit, pageAccessCommission, pageAccessSms,
+        pageAccessTransactions, pageAccessAfaOrders, pageAccessRecruit,
         pageAccessDeveloperApi, landingCustomerCount, landingDataPackages, landingAgentPlans,
         landingTestimonials,
     ])
@@ -300,7 +294,6 @@ export default function AdminSettingsPage() {
             setAfaPriceAgent(s.afa_price_agent || '15')
             setAfaPriceDealer(s.afa_price_dealer || '15')
             setAfaCostPrice(s.afa_cost_price || '11.5')
-            setSmsCostPerSegment(s.sms_cost_per_segment || '0.243')
             // Accept either jsonb representation defensively (matches
             // computeShopAfaCheckout's read) — a boolean once slipped in here.
             setStorefrontAfaEnabled(s.storefront_afa_enabled === 'true' || (s.storefront_afa_enabled as unknown) === true)
@@ -335,8 +328,6 @@ export default function AdminSettingsPage() {
             setPageAccessTransactions(s.page_access_transactions !== 'false')
             setPageAccessAfaOrders(s.page_access_afa_orders !== 'false')
             setPageAccessRecruit(s.page_access_recruit !== 'false')
-            setPageAccessCommission(s.page_access_commission !== 'false')
-            setPageAccessSms(s.page_access_sms !== 'false')
             setPageAccessDeveloperApi(s.page_access_developer_api !== 'false')
 
             const rawCount = s.landing_customer_count
@@ -488,7 +479,6 @@ export default function AdminSettingsPage() {
             ['Agent AFA price', afaPriceAgent],
             ['Dealer AFA price', afaPriceDealer],
             ['AFA platform cost', afaCostPrice],
-            ['SMS cost per segment', smsCostPerSegment],
         ]
         for (const [label, val] of nonNegativeChecks) {
             const n = parseFloat(val)
@@ -677,12 +667,6 @@ export default function AdminSettingsPage() {
                         </div>
                     </SettingsPanel>
 
-                    <SettingsPanel title="SMS Cost Basis" description="Hubtel's real per-segment SMS cost, used by the profit engine — not a customer-facing price" icon={MessageSquare}>
-                        <SettingField label="Cost Per 159-Char Segment (GHS)" hint="1 purchased credit = 1 segment. Update this if Hubtel's rate changes.">
-                            <Input type="number" value={smsCostPerSegment} onChange={e => setSmsCostPerSegment(e.target.value)} step="0.001" min="0" className="max-w-[180px]" />
-                        </SettingField>
-                    </SettingsPanel>
-
                     <SettingsPanel title="Storefront AFA Registration" description="Master switch and per-shop markup caps for AFA registration on shop storefronts" icon={IdCard}>
                         <ToggleRow
                             label="Enable Storefront AFA Registration"
@@ -754,8 +738,6 @@ export default function AdminSettingsPage() {
                             <ToggleRow compact label="Transactions" description="Payment and wallet history" checked={pageAccessTransactions} onCheckedChange={setPageAccessTransactions} />
                             <ToggleRow compact label="AFA Application" description="Field Agent registration" checked={pageAccessAfaOrders} onCheckedChange={setPageAccessAfaOrders} />
                             <ToggleRow compact label="Sub-Agents" description="Recruit and manage sub-agents" checked={pageAccessRecruit} onCheckedChange={setPageAccessRecruit} />
-                            <ToggleRow compact label="Commission Wallet" description="Recruiter earnings and withdrawals" checked={pageAccessCommission} onCheckedChange={setPageAccessCommission} />
-                            <ToggleRow compact label="SMS Platform" description="Bulk SMS sending" checked={pageAccessSms} onCheckedChange={setPageAccessSms} />
                             <ToggleRow compact label="Developer API" description="API keys and documentation" checked={pageAccessDeveloperApi} onCheckedChange={setPageAccessDeveloperApi} />
                             <ToggleRow compact color="emerald" label="Public Storefront" description="Disabling takes all shops offline" checked={pageAccessStorefront} onCheckedChange={setPageAccessStorefront} />
                         </div>

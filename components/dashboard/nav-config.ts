@@ -64,7 +64,6 @@ export const userNavGroups: NavGroup[] = [
         label: 'Money',
         items: [
             { href: '/dashboard/wallet', label: 'Top Up Wallet', icon: Wallet },
-            { href: '/dashboard/commission', label: 'Commission Wallet', icon: Percent },
             { href: '/dashboard/transactions', label: 'My Activities', icon: Activity },
             { href: '/dashboard/my-orders', label: 'Order History', icon: ShoppingCart },
         ],

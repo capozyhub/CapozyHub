@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { cookies } from 'next/headers'
-import { getBanks } from '@/lib/moolre-transfer-service'
+import { getBanks } from '@/lib/paystack-transfer-service'
 
 export async function GET(req: NextRequest) {
     try {

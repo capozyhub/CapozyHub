@@ -16,7 +16,7 @@ async function requireAdmin() {
  * GET /api/admin/sms-contacts/verify?phone=0244000001
  *
  * Resolves the registered MoMo account name for a Ghana phone number.
- * Tries Moolre first (native Ghana gateway), then Paystack as fallback.
+ * Resolves the account name through Paystack.
  * Returns which provider resolved it so the UI can display the badge correctly.
  *
  * Response (valid):
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
             })
         }
 
-        // Try Moolre → Paystack → (Hubtel when available)
+        // Paystack name lookup
         const result = await resolveNameSingle(normalized)
 
         if (result) {

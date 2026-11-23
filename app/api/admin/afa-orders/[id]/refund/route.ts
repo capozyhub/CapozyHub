@@ -15,7 +15,7 @@ import { buildAfaGuestRefundMessage } from '@/lib/sms-service'
 //   2. no shop_id, wallet-paid  -> refund_afa_order_wallet (credit the
 //                                   original applicant's own wallet)
 //   3. no shop_id, momo-paid    -> unsupported; no rail to reverse a guest
-//                                   USSD Hubtel MoMo payment exists in this
+//                                   USSD MoMo payment exists in this
 //                                   codebase. Returns a clear 400, not a
 //                                   silent no-op.
 //

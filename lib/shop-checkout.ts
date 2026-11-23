@@ -9,7 +9,6 @@ import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
-import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { parseSettingNumber } from '@/lib/paystack-fees'
 import { checkRecipientNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
 
@@ -78,8 +77,7 @@ export function sanitizeForPaystack(text: string): string {
  * empty-email MoMo charges and blocked the card popup. Deliberately carries no shop name
  * or other shop-identifying text — the synthetic address must not leak which storefront
  * a guest bought from. The random suffix keeps it unique per attempt. Used by BOTH
- * /api/shop/charge (MoMo) and /api/shop/initialize (card), and the shared Hubtel utility
- * service for billers that need an email fallback.
+ * /api/shop/charge (MoMo) and /api/shop/initialize (card).
  */
 export function buildGuestEmail(phone: string): string {
     const cleanPhone = (phone || '').replace(/\D/g, '') || 'guest'

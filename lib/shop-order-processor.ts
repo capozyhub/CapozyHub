@@ -482,7 +482,7 @@ export async function processShopOrder(
                 if (airtimeInsertError) {
                     console.error('[ShopOrder] Failed to capture airtime order id:', airtimeInsertError)
                 }
-                // Hubtel airtime dispatch is for plain airtime only — never mashup
+                // Plain airtime and mashup are both fulfilled manually from the admin airtime page
                 airtimeOrderId = metadata.order_type === 'airtime' ? (newAirtimeOrder?.id ?? null) : null
             }
         }
@@ -601,20 +601,7 @@ async function triggerShopFulfillment(
                 source: `Shop Storefront (${extra.shopName})`
             }).catch(e => console.error('[Shop Order Processor] Admin Airtime Email Error:', e))
             
-            // Admin SMS alert disabled for airtime — it auto-fulfills via Hubtel now (admins still get the
-            // email above + a web-push on auto-fulfillment failure). Mashup uses sendAdminNewOrderAlert below.
-
-            // ── Auto-dispatch via Hubtel Commission Services (no-op when kill-switch off) ──
-            // Fallback: admin alerts above already fired; if auto is OFF the order stays pending
-            // for manual fulfillment — today's behavior preserved.
-            if (extra.airtimeOrderId) {
-                try {
-                    const { dispatchAirtimeFulfillment } = await import('@/lib/airtime-fulfillment')
-                    await dispatchAirtimeFulfillment(extra.airtimeOrderId)
-                } catch (e) {
-                    console.error('[ShopOrder] airtime auto-dispatch failed:', e)
-                }
-            }
+            // Airtime is fulfilled manually from the admin airtime page: the admin email above is the alert.
         } else {
             await sendAdminNewOrderAlert({
                 ...alertDetails,

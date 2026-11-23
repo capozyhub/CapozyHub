@@ -24,7 +24,7 @@ export function signWebhookPayload(secret: string, payload: string): string {
 //
 // dispatchApiWebhook is called from inside every terminal-state transition, and
 // several of those run in sequential loops of up to 50: the admin bulk route
-// (MAX_BULK = 50) and app/api/cron/hubtel-commission-reconcile, which has FOUR
+// (MAX_BULK = 50) and a reconcile cron, which had FOUR
 // such loops in one invocation. Without this cache that is up to 200 api_keys
 // SELECTs per cron run whose answer is almost always "no webhook configured" —
 // today it is ALWAYS that, since 0 of 39 keys have a webhook_url and, after the

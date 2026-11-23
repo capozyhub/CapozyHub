@@ -8,7 +8,7 @@ import { toast } from '@/lib/toast'
 import { Copy, Check, AlertTriangle, Loader2, Smartphone, Landmark } from 'lucide-react'
 import type { WithdrawalRow } from './types'
 
-// Moolre payouts retired 2026-09-26 — Paystack (MoMo) + manual only.
+// Payouts: Paystack (MoMo) + manual only.
 type Provider = 'paystack' | 'manual'
 
 export function PayoutDialog({

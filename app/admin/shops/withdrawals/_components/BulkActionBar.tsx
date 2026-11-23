@@ -6,7 +6,7 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import type { WithdrawalRow } from './types'
 
-// Moolre payouts retired 2026-09-26 — Paystack (MoMo) + manual only.
+// Payouts: Paystack (MoMo) + manual only.
 const SUCCESS_STATUSES = new Set(['completed', 'paystack_pending'])
 
 interface BulkActionBarProps {

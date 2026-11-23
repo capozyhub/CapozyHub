@@ -103,7 +103,6 @@ export async function sendOrderSuccessSMS(
 ) {
     const message = buildOrderSuccessMessage(details.size)
 
-    // ROUTE: Moolre (Temporary fallback)
     return sendSMS({
         recipient: details.recipientNumber,
         message,
@@ -145,7 +144,6 @@ export async function sendWalletTopupSuccessSMS(
 ) {
     const message = `Your top-up was successful! GHS ${details.amount.toFixed(2)} has been added to your Capozy Wallet. New balance: GHS ${details.newBalance.toFixed(2)}. Thank you!`
 
-    // ROUTE: Moolre
     return sendSMS({
         recipient: phoneNumber,
         message
@@ -187,7 +185,6 @@ export async function sendAgentUpgradeSuccessSMS(
 ) {
     const message = `Congratulations ${firstName}! Your Agent membership is now active for ${planDays}, giving you access to our lowest Agent prices. Login to start ordering!`
 
-    // ROUTE: Moolre (Temporary fallback)
     return sendSMS({ recipient: phoneNumber, message })
 }
 
@@ -199,7 +196,6 @@ export async function sendPermanentAgentUpgradeSuccessSMS(
 ) {
     const message = `Congratulations! Your Agent membership is now PERMANENT, giving you lifetime access to our best Agent benefits and pricing. Thank you!`
 
-    // ROUTE: Moolre (Temporary fallback)
     return sendSMS({ recipient: phoneNumber, message })
 }
 
@@ -222,7 +218,6 @@ export async function sendAgentExtensionSuccessSMS(
 
     const message = `Your Agent membership has been successfully extended until ${formattedDate}. Thank you for staying with us!`
 
-    // ROUTE: Moolre (Temporary fallback)
     return sendSMS({
         recipient: phoneNumber,
         message
@@ -327,7 +322,6 @@ export async function sendAgentExpiryNotificationSMS(
 ) {
     const message = `Hi ${firstName}, your Agent membership has expired. You can renew anytime from your dashboard to continue enjoying Agent prices. Thank you!`
 
-    // ROUTE: Moolre
     return sendSMS({
         recipient: phoneNumber,
         message

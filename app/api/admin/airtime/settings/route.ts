@@ -25,8 +25,6 @@ const AIRTIME_SETTING_KEYS = [
     'dashboard_airtime_enabled', 'dashboard_mashup_enabled',
     // Storefront toggles
     'storefront_airtime_enabled', 'storefront_mashup_enabled',
-    // Hubtel Commission auto-fulfillment controls
-    'airtime_auto_fulfillment_enabled', 'hubtel_airtime_networks', 'hubtel_commission_paused',
 ]
 
 async function verifyAdmin(supabaseUserClient: any) {
@@ -85,7 +83,7 @@ export async function POST(request: NextRequest) {
         // Fees, limits and switches are read as numbers / 'true' / 'false' at purchase time, so a
         // junk value must be refused here rather than silently falling back to a default.
         for (const { key, value } of updates) {
-            const isSwitch = /_enabled(_|$)|_paused$|^airtime_auto_fulfillment_enabled$/.test(key) && key !== 'hubtel_airtime_networks'
+            const isSwitch = /_enabled(_|$)/.test(key)
             if (isSwitch) {
                 if (value !== 'true' && value !== 'false') return NextResponse.json({ error: `${key} must be true or false` }, { status: 400 })
             } else if (key.includes('_fee_')) {

@@ -80,7 +80,7 @@ async function verifyPaystackTransactionLive(reference: string): Promise<{ mobil
  * lazy-imported specifically to stay out of pure-logic `npx tsx` tests).
  *
  * `payer_momo_resolved_at` is stamped ONLY when a name was actually resolved.
- * A transient provider outage (Moolre/Paystack blip) resolves `name: null` —
+ * A transient provider outage (Paystack blip) resolves `name: null` —
  * stamping resolved_at anyway would permanently freeze "MoMo Name:
  * Unavailable" on that order, since the cached-row branch above short-circuits
  * on `payer_momo_resolved_at && payer_momo_number` forever after. Leaving

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
@@ -73,7 +73,6 @@ interface BankEntry { id: string; name: string }
 const STATUS: Record<string, { label: string; tone: string; icon: typeof Clock; spin?: boolean }> = {
     pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
     shop_owner_pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
-    moolre_pending: { label: 'Sending', tone: 'text-sky-700 dark:text-sky-400', icon: Loader2, spin: true },
     paystack_pending: { label: 'Sending', tone: 'text-sky-700 dark:text-sky-400', icon: Loader2, spin: true },
     completed: { label: 'Paid', tone: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
     failed: { label: 'Failed', tone: 'text-red-700 dark:text-red-400', icon: AlertCircle },

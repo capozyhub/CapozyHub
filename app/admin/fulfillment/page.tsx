@@ -1251,7 +1251,7 @@ export default function FulfillmentPage() {
                                                     <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Status</p>
                                                     <div>
                                                         {(() => {
-                                                            // "Background Queue Fulfillment Success" is a Hubtel processing sub-state
+                                                            // "Background Queue Fulfillment Success" is a provider processing sub-state
                                                             // (distinct from the new 'queued' registration status) — keep its yellow chip.
                                                             const isBgQueue = order.status === 'processing'
                                                                 && order.mtn_fulfillment_tracking?.some((t: any) => t.api_response?.note === 'Background Queue Fulfillment Success')

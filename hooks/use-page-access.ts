@@ -22,7 +22,7 @@ export interface PageAccessSettings {
     developerApi: boolean
 }
 
-// Audited 2026-09-18: /dashboard/recruit, /dashboard/commission, /dashboard/sms
+// Audited 2026-09-18: /dashboard/recruit
 // and /dashboard/api were real dashboard pages (all four in userNavItems/the
 // sidebar's own Sub-Agents block, components/dashboard/sidebar.tsx) with NO
 // entry here at all — PageAccessGuard (components/dashboard/page-access-guard.tsx)
@@ -45,7 +45,6 @@ const PAGE_ROUTE_MAP: Record<string, keyof PageAccessSettings> = {
     '/dashboard/transactions': 'transactions',
     '/dashboard/afa-orders': 'afaOrders',
     '/dashboard/recruit': 'recruit',
-    '/dashboard/commission': 'commission',
     '/dashboard/api': 'developerApi',
 }
 

@@ -1,18 +1,12 @@
 // lib/api-order-failure.ts
 //
-// Shared across airtime and utility bills: classifies a Hubtel failure signal
-// into a small, stable, customer-safe reason code (never raw Hubtel text —
-// see capozy-fulfillment skill checklist item 20: raw supplier text must
-// never reach a customer-facing surface), and auto-refunds the buyer's
-// wallet for DEVELOPER-API orders only when that failure is genuinely
-// definitive.
+// Classifies a fulfillment failure into a small, stable, customer-safe reason code
+// (never raw supplier text: raw supplier text must never reach a customer-facing
+// surface), and auto-refunds the buyer's wallet for DEVELOPER-API orders only when
+// that failure is genuinely definitive.
 //
-// Deliberately narrow: only two categories today, because Hubtel's own
-// failure response codes are documented in this codebase as "INDICATIVE —
-// confirm" (docs/reference/hubtel-commission-services.md §6) rather than
-// fully mapped. Splitting further later needs no API shape change — just a
-// new ReasonCode member and REASON_MESSAGES entry.
-import type { CommissionOutcome } from '@/lib/hubtel-commission-outcome'
+// Deliberately narrow: only two categories today. Splitting further later needs no API
+// shape change — just a new ReasonCode member and REASON_MESSAGES entry.
 
 export type ReasonCode = 'invalid_request' | 'provider_rejected'
 
@@ -29,7 +23,7 @@ export const REASON_MESSAGES: Record<ReasonCode, string> = {
  * definitive isFulfilled:false/'unpaid' verdict, which carries no response-code
  * breakdown of its own.
  */
-export function categorizeFailure(trigger: CommissionOutcome | 'status_check_failed'): { code: ReasonCode; message: string } {
+export function categorizeFailure(trigger: 'permanent_failure' | 'failed' | 'status_check_failed'): { code: ReasonCode; message: string } {
     const code: ReasonCode = trigger === 'permanent_failure' ? 'invalid_request' : 'provider_rejected'
     return { code, message: REASON_MESSAGES[code] }
 }
