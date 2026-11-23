@@ -308,7 +308,7 @@ paths:
               properties:
                 network: { type: string, enum: [MTN, Telecel, AT] }
                 beneficiary_phone: { type: string, example: "0551617309" }
-                amount: { type: number, example: 10, description: "What the beneficiary receives — you pay exactly this amount, no fee." }
+                amount: { type: number, example: 10, description: "What the beneficiary receives. The platform fee for your role is added on top (total_paid = amount + fee_amount)." }
                 reference: { type: string, minLength: 3, maxLength: 100 }
       responses:
         "200":
@@ -329,7 +329,7 @@ paths:
                           network: { type: string }
                           beneficiary_phone: { type: string }
                           airtime_amount: { type: number }
-                          fee_amount: { type: number, description: "Always 0 on this endpoint." }
+                          fee_amount: { type: number, description: "Platform fee added on top: total_paid = amount + fee_amount." }
                           total_paid: { type: number }
                           new_balance: { type: number }
         "400": { $ref: '#/components/responses/BadRequest' }
@@ -397,7 +397,7 @@ paths:
                           network: { type: string }
                           beneficiary_phone: { type: string }
                           airtime_amount: { type: number }
-                          fee_amount: { type: number, description: "Always 0 on this product." }
+                          fee_amount: { type: number, description: "Platform fee added on top: total_paid = amount + fee_amount." }
                           reason: { type: string, description: "Present only when status is refunded — a short, sanitized explanation of why the order failed and was auto-refunded (never raw provider text)." }
         "401": { $ref: '#/components/responses/Unauthorized' }
         "403": { $ref: '#/components/responses/Forbidden' }

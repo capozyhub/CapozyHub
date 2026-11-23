@@ -220,16 +220,17 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                 type="button"
                 onClick={() => setOpenMore(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
                 aria-expanded={open}
+                title={isCollapsed ? (open ? 'Show less' : `More (${count})`) : undefined}
                 className={cn(
                     'flex w-full items-center gap-3 rounded-2xl p-1 pr-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground',
                     FOCUS,
-                    hideCollapsed && 'lg:hidden',
+                    isCollapsed && 'lg:justify-center lg:pr-1',
                 )}
             >
                 <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
                     <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
                 </span>
-                <span className="flex-1">{open ? 'Show less' : `More (${count})`}</span>
+                <span className={cn('flex-1', hideCollapsed)}>{open ? 'Show less' : `More (${count})`}</span>
             </button>
         )
     }
