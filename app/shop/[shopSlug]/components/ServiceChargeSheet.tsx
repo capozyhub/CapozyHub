@@ -226,16 +226,16 @@ export function ServiceChargeSheet({
                 }
                 if (data.code === 'INVALID_PREFIX') { setStep('form'); toast.error(data.error); return }
                 if (data.needsManualSelection) { setProvider(''); setAutoDetected(false); setStep('form'); toast.error('Select your MoMo network.'); return }
-                throw new Error(data.error || `Payment service error (HTTP ${res.status})`)
+                throw new Error(data.error || 'We could not take the payment. Try again, or message the shop.')
             }
             setReference(data.reference); refForPaid.current = data.reference; setDisplayText(data.display_text || '')
             if (typeof data.total === 'number') setTotal(data.total)
             if (data.status === 'send_otp') setStep('otp')
             else if (data.status === 'success') { setStep('pending'); start(data.reference) }
-            else if (data.status === 'failed') throw new Error(data.display_text || 'Payment could not be processed')
+            else if (data.status === 'failed') throw new Error(data.display_text || 'The payment did not go through. Try again.')
             else { setStep('pending'); start(data.reference) }
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Payment failed'
+            const msg = e instanceof Error ? e.message : 'The payment did not go through. Try again.'
             toast.error(msg); setFailedMessage(msg); setStep('failed')
         }
     }
@@ -250,21 +250,18 @@ export function ServiceChargeSheet({
                 body: JSON.stringify({ reference, otp }),
             })
             const data = await res.json().catch(() => ({}))
-            if (!res.ok) throw new Error(data.error || `OTP submission failed (HTTP ${res.status})`)
+            if (!res.ok) throw new Error(data.error || 'That code was not accepted. Check it and try again.')
             setDisplayText(data.display_text || '')
             if (typeof data.total === 'number') setTotal(data.total)
-            // A replayed charge can arrive under a NEW reference
-            // (the transient UTLV- verify-reference is never the thing that gets polled) —
-            // Paystack's own submit-otp response never includes `reference`, so this stays
-            // a no-op there and keeps polling the original charge-time reference.
+            // The submit-otp response normally carries no reference, so polling continues on the original one.
             const pollRef = data.reference || reference
             if (data.reference && data.reference !== reference) { setReference(data.reference); refForPaid.current = data.reference }
             if (data.status === 'success') { setStep('pending'); start(pollRef) }
             else if (data.status === 'send_otp') { setOtp(''); setStep('otp'); toast.info(data.display_text || 'Re-enter OTP') }
-            else if (data.status === 'failed') throw new Error(data.display_text || 'Payment failed')
+            else if (data.status === 'failed') throw new Error(data.display_text || 'The payment did not go through. Try again.')
             else { setStep('pending'); start(pollRef) }
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'OTP failed'
+            const msg = e instanceof Error ? e.message : 'That code did not work. Try again.'
             toast.error(msg); setFailedMessage(msg); setStep('failed')
         }
     }
