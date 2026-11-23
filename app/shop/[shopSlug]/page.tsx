@@ -6,7 +6,6 @@ import { createServerComponentClient } from '@/lib/supabase-server'
 import ShopStorefront from './ShopStorefront'
 import { getAdminOOSNetworks, mergeOOS } from '@/lib/network-stock'
 import { getShopUrl } from '@/lib/site-url'
-import type { UtilityBiller } from '@/lib/hubtel-utility/billers'
 
 interface Props {
     params: Promise<{ shopSlug: string }>
@@ -90,7 +89,6 @@ export default async function ShopPage({ params }: Props) {
             'mashup_min_amount_customer', 'mashup_max_amount_customer',
             'results_checker_enabled', 'results_checker_storefront_enabled', 'results_checker_paystack_fee_percent', 'results_checker_max_quantity', 'results_checker_allow_backorders',
             'airtime_enabled_mtn', 'airtime_enabled_telecel', 'airtime_enabled_at',
-            'utility_bills_enabled', 'storefront_utilities_enabled', 'hubtel_utility_billers', 'utility_min_amount', 'utility_max_amount',
             'storefront_afa_enabled', 'afa_price_customer', 'afa_price_agent', 'afa_price_dealer',
         ]) as any)
 
@@ -111,31 +109,6 @@ export default async function ShopPage({ params }: Props) {
         adminSettingsMap[row.key] = row.value
     }
 
-    // ── Utility Bills tab gate — resolved ONCE, server-side, into a single boolean so the
-    // client never re-derives gating. Mirrors the gate chain in app/api/shop/utility/lookup
-    // and lib/shop-checkout.ts's 'utility' branch: global admin gates AND ≥1 biller enabled
-    // AND the shop's own opt-in (shop_profiles.utilities_enabled). Sub-agent shops are allowed
-    // to sell utilities same as any other shop — no sub-agent exclusion here. ──
-    const { UTILITY_BILLER_KEYS } = await import('@/lib/hubtel-utility/billers')
-    const { parseSettingNumber } = await import('@/lib/paystack-fees')
-
-    const billersMapRaw = adminSettingsMap['hubtel_utility_billers']
-    const enabledUtilityBillers: Partial<Record<UtilityBiller, boolean>> = {}
-    for (const key of UTILITY_BILLER_KEYS as UtilityBiller[]) {
-        enabledUtilityBillers[key] = !!(billersMapRaw && typeof billersMapRaw === 'object' && !Array.isArray(billersMapRaw) && billersMapRaw[key] === true)
-    }
-    const anyUtilityBillerEnabled = Object.values(enabledUtilityBillers).some(Boolean)
-
-    const utilitiesEnabled =
-        adminSettingsMap['utility_bills_enabled'] === 'true' &&
-        adminSettingsMap['storefront_utilities_enabled'] === 'true' &&
-        anyUtilityBillerEnabled &&
-        shop.utilities_enabled === true
-
-    const utilityMinAmount = parseSettingNumber(adminSettingsMap['utility_min_amount'], 1)
-    const utilityMaxAmount = parseSettingNumber(adminSettingsMap['utility_max_amount'], 1000)
-
-    // Check Global Storefront Access Settings
     const storefrontSetting = adminSettingsMap['page_access_storefront']
 
     // Admin pass-through check
@@ -346,9 +319,5 @@ export default async function ShopPage({ params }: Props) {
         rcMarkup={parseFloat(String(shop.results_checker_markup_customer || 0))}
         rcMarkups={rcMarkups}
         oosNetworks={oosNetworks}
-        utilitiesEnabled={utilitiesEnabled}
-        enabledUtilityBillers={enabledUtilityBillers}
-        utilityMinAmount={utilityMinAmount}
-        utilityMaxAmount={utilityMaxAmount}
     />
 }

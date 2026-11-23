@@ -12,7 +12,7 @@
 // confirm" (docs/reference/hubtel-commission-services.md §6) rather than
 // fully mapped. Splitting further later needs no API shape change — just a
 // new ReasonCode member and REASON_MESSAGES entry.
-import type { CommissionOutcome } from '@/lib/hubtel-utility/service'
+import type { CommissionOutcome } from '@/lib/hubtel-commission-outcome'
 
 export type ReasonCode = 'invalid_request' | 'provider_rejected'
 

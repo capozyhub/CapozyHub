@@ -27,10 +27,8 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { CopyrightFooter } from '@/components/CopyrightFooter'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { StorefrontDataTab } from './components/StorefrontDataTab'
-import { StorefrontUtilitiesTab } from './components/StorefrontUtilitiesTab'
 import AfaRegistrationForm from './AfaRegistrationForm'
 import { ServiceChargeSheet, type ChargeDescriptor } from './components/ServiceChargeSheet'
-import type { UtilityBiller } from '@/lib/hubtel-utility/billers'
 import { StorefrontTermsBoundary } from './components/StorefrontTermsBoundary'
 import { NetworkIcon } from '@/components/network-icon'
 import { AnnouncementCTAButtons } from '@/components/announcements/AnnouncementCTAButtons'
@@ -111,18 +109,6 @@ interface Props {
     rcMarkup?: number
     rcMarkups?: Record<string, number>
     oosNetworks?: string[]
-    /**
-     * Server-computed gate for the Utilities tab (global admin gates AND shop opt-in AND
-     * ≥1 biller enabled AND NOT a sub-agent shop) — resolved once in
-     * app/shop/[shopSlug]/page.tsx, mirroring the utility API routes' own gate chain. The
-     * client never re-derives this; it only reads the prop. Optional/defaulted so pages that
-     * haven't been updated yet (e.g. the white-label shop-domain route) keep compiling with
-     * the tab simply hidden.
-     */
-    utilitiesEnabled?: boolean
-    enabledUtilityBillers?: Partial<Record<UtilityBiller, boolean>>
-    utilityMinAmount?: number
-    utilityMaxAmount?: number
 }
 
 // Brand colors per network (used in Airtime tab)
@@ -174,7 +160,6 @@ function calcMashupBundle(amount: number, pref: BundlePreference): { data: strin
 
 export default function ShopStorefront({
     shop, packages, adminSettings, initialAnnouncement = null, rcTypes: rcTypesProp = [], rcMarkup: rcMarkupProp = 0, rcMarkups: rcMarkupsProp = {}, oosNetworks = [],
-    utilitiesEnabled = false, enabledUtilityBillers = {}, utilityMinAmount = 1, utilityMaxAmount = 1000,
 }: Props) {
     // RC pricing is SEEDED from the server-render snapshot, then re-pulled LIVE on the client
     // (mount + focus/visibility) so the browsed price always matches what the charge computes —
@@ -214,7 +199,7 @@ export default function ShopStorefront({
 
     // Global State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [activeTab, setActiveTab] = useState<'data' | 'airtime' | 'mashup' | 'vouchers' | 'utilities' | 'afa'>('data')
+    const [activeTab, setActiveTab] = useState<'data' | 'airtime' | 'mashup' | 'vouchers' | 'afa'>('data')
     const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
     const [loading, setLoading] = useState(false)
     const [pageLoading, setPageLoading] = useState(false)
@@ -770,7 +755,7 @@ export default function ShopStorefront({
     }, [mashupAmount, mashupBundle])
 
     // ── Select product + scroll to section ───────────────────
-    const selectProduct = (tab: 'data' | 'airtime' | 'mashup' | 'vouchers' | 'utilities' | 'afa') => {
+    const selectProduct = (tab: 'data' | 'airtime' | 'mashup' | 'vouchers' | 'afa') => {
         setActiveTab(tab)
         setIsSidebarOpen(false)
         setTimeout(() => {
@@ -799,7 +784,6 @@ export default function ShopStorefront({
         ...(isShopAirtimeEnabled ? [{ key: 'airtime' as const, label: 'Airtime', icon: Smartphone }] : []),
         ...(isShopMashupEnabled ? [{ key: 'mashup' as const, label: 'Mashup', icon: Zap }] : []),
         ...(isRCEnabled ? [{ key: 'vouchers' as const, label: 'Results checker', icon: GraduationCap }] : []),
-        ...(utilitiesEnabled ? [{ key: 'utilities' as const, label: 'Bills', icon: Receipt }] : []),
         ...(isShopAfaEnabled ? [{ key: 'afa' as const, label: 'AFA', icon: IdCard }] : []),
     ]
 
@@ -1254,17 +1238,6 @@ export default function ShopStorefront({
                 {/* ── Data Packages Tab Content ── */}
                 {activeTab === 'data' && (
                     <StorefrontDataTab shopSlug={shop.shop_slug} packages={packages} oosNetworks={oosNetworks} brandName={shop.shop_name} />
-                )}
-
-                {/* ── Utility Bills Tab Content ── */}
-                {utilitiesEnabled && activeTab === 'utilities' && (
-                    <StorefrontUtilitiesTab
-                        shopSlug={shop.shop_slug}
-                        enabledBillers={enabledUtilityBillers}
-                        minAmount={utilityMinAmount}
-                        maxAmount={utilityMaxAmount}
-                        onProceedToPayment={(descriptor) => { setChargeDescriptor(descriptor); setChargeOpen(true) }}
-                    />
                 )}
 
                 {/* ── AFA ── */}

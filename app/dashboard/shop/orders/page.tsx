@@ -32,7 +32,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { MomoDetailsModal } from '@/components/shared/momo-details-modal'
 import { isMomoLookupEligible } from '@/lib/momo-eligibility'
-import { UTILITY_BILLER_KEYS, UTILITY_BILLERS, type UtilityBiller } from '@/lib/hubtel-utility/billers'
 
 interface ShopOrder {
     id: string
@@ -48,8 +47,6 @@ interface ShopOrder {
     order_type?: string
     package_id?: string | null
     is_rc?: boolean
-    is_utility?: boolean
-    biller?: UtilityBiller
     // 'ussd' (data/airtime) or 'ussd_shop' (results checker) = sold via USSD;
     // 'website'/null = sold online. Drives the USSD tag in the table.
     source?: string
@@ -145,7 +142,7 @@ export default function ShopOrdersPage() {
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [fees, setFees] = useState<ShopFees>({ mtn: 0, telecel: 0, at: 0 })
     const [hasNoRcMargin, setHasNoRcMargin] = useState(false)
-    const [activeTab, setActiveTab] = useState<'all' | 'data' | 'airtime' | 'vouchers' | 'afa' | 'utility'>('all')
+    const [activeTab, setActiveTab] = useState<'all' | 'data' | 'airtime' | 'vouchers' | 'afa'>('all')
 
     // Filter state
     const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -153,7 +150,6 @@ export default function ShopOrdersPage() {
     // Source filter UI removed (storefront is the only sales channel); kept at 'all' for the query plumbing.
     const [filterSource] = useState<'all' | 'storefront' | 'ussd'>('all')
     const [filterDate, setFilterDate] = useState<'today' | '7d' | '30d' | 'all'>('today')
-    const [utilityBillerFilter, setUtilityBillerFilter] = useState<'all' | UtilityBiller>('all')
     const [searchPhone, setSearchPhone] = useState('')
     const [debouncedSearchPhone, setDebouncedSearchPhone] = useState('')
 
@@ -224,13 +220,13 @@ export default function ShopOrdersPage() {
     // Any filter/tab change resets to page 1 — paging stays meaningful only within a fixed filter set.
     useEffect(() => {
         setPage(1)
-    }, [activeTab, filterStatus, filterNetwork, filterSource, filterDate, debouncedSearchPhone, utilityBillerFilter])
+    }, [activeTab, filterStatus, filterNetwork, filterSource, filterDate, debouncedSearchPhone])
 
     useEffect(() => {
         if (!shopId) return
         fetchOrders(page)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shopId, page, activeTab, filterStatus, filterNetwork, filterSource, filterDate, debouncedSearchPhone, utilityBillerFilter])
+    }, [shopId, page, activeTab, filterStatus, filterNetwork, filterSource, filterDate, debouncedSearchPhone])
 
     const getDateFrom = (): string | null => {
         const now = new Date()
@@ -317,46 +313,6 @@ export default function ShopOrdersPage() {
                     revenue: allRows.reduce((s, r) => s + (r.selling_price || 0), 0),
                     profit: allRows.reduce((s, r) => s + (r.profit || 0), 0),
                 })
-            } else if (activeTab === 'utility') {
-                // Utility bills (ECG/Ghana Water/DSTV/GOtv/StarTimes) live in their own
-                // table with an owner-only RLS policy, and storefront utility orders always
-                // insert user_id: null — so the browser-client RLS read never returns rows
-                // for a shop owner. Read via the server route instead (service-role, scoped
-                // to this shop's shop_id), which also computes stats over the SAME filtered
-                // query used for the list.
-                const params = new URLSearchParams()
-                if (filterStatus !== 'all') params.set('status', filterStatus)
-                if (utilityBillerFilter !== 'all') params.set('biller', utilityBillerFilter)
-                if (filterSource !== 'all') params.set('source', filterSource)
-                if (dateFrom) params.set('from', dateFrom)
-                if (search) params.set('search', search)
-                params.set('limit', String(ORDER_HISTORY_PAGE_SIZE))
-                params.set('offset', String(from))
-
-                const res = await fetch(`/api/shop/utility-orders?${params.toString()}`)
-                const json = await res.json().catch(() => null)
-                if (!json?.success) throw new Error(json?.error || 'Failed to load utility orders')
-
-                const mapped: ShopOrder[] = (json.data.orders || []).map((o: any) => ({
-                    id: o.id,
-                    guest_phone: o.destination_phone || '',
-                    type_name: o.account_name || o.account_number,
-                    selling_price: Number(o.amount),
-                    profit: Number(o.partner_commission_amount) || 0,
-                    status: o.status,
-                    created_at: o.created_at,
-                    is_utility: true,
-                    biller: o.biller,
-                    source: o.source,
-                }))
-                setOrders(mapped)
-                setTotalCount(json.data.total || 0)
-                setStats(json.data.stats) // full replace — matches both sibling branches,
-                // fixes the "stale stats bleed across tabs" defect (previously a partial spread).
-                setLoading(false)
-                setInitialLoading(false) // the shared `finally` block below is skipped by this
-                // early return, so this must be set here explicitly to match its end state.
-                return
             } else if (activeTab === 'vouchers') {
                 // Vouchers (results checker) live in their own table — a separate,
                 // independently paginated query, not merged with data/airtime.
@@ -730,7 +686,6 @@ export default function ShopOrdersPage() {
     // phone and desktop (mashup bundles used to show as "Airtime" on phones).
     const describeOrder = (order: ShopOrder): { icon: React.ReactNode; label: string } => {
         const ic = 'h-3.5 w-3.5 flex-shrink-0 text-brand-700 dark:text-brand-500'
-        if (order.is_utility) return { icon: <Coins className={ic} />, label: `${order.biller ? (UTILITY_BILLERS[order.biller]?.label ?? order.biller) : 'Utility'} · ${order.type_name ?? ''}` }
         if (order.is_rc) return { icon: <FileText className={ic} />, label: `${order.quantity}x ${order.type_name}` }
         if (order.is_afa) return { icon: <IdCard className={ic} />, label: 'AFA registration' }
         if (order.package_id == null && isMashupOrder(order.package_size)) return { icon: <Zap className={ic} />, label: 'MTN Mashup bundle' }
@@ -744,7 +699,6 @@ export default function ShopOrdersPage() {
         { id: 'airtime', label: 'Airtime', icon: RefreshCcw },
         { id: 'vouchers', label: 'Vouchers', icon: FileText },
         { id: 'afa', label: 'AFA', icon: IdCard },
-        { id: 'utility', label: 'Bills', icon: Coins },
     ] as const
 
     if (initialLoading) {
@@ -760,14 +714,14 @@ export default function ShopOrdersPage() {
         )
     }
 
-    const profitLabel = (activeTab === 'vouchers' || activeTab === 'utility') ? 'Commission' : 'Profit'
+    const profitLabel = activeTab === 'vouchers' ? 'Commission' : 'Profit'
     const statTiles = [
         { label: 'Orders', value: String(stats.total), icon: ShoppingCart, tone: 'text-brand-700 dark:text-brand-500' },
         { label: 'In progress', value: String(stats.pending + stats.queued + stats.processing), icon: Clock, tone: 'text-brand-700 dark:text-brand-500' },
         { label: 'Delivered', value: String(stats.completed), icon: CheckCircle2, tone: 'text-emerald-600 dark:text-emerald-400' },
         { label: 'Refunded', value: String(stats.refunded), icon: AlertCircle, tone: 'text-muted-foreground' },
         { label: 'Sales', value: formatCurrency(stats.revenue), icon: TrendingUp, tone: 'text-brand-700 dark:text-brand-500' },
-        { label: profitLabel, value: formatCurrency(stats.profit), icon: activeTab === 'vouchers' || activeTab === 'utility' ? Coins : TrendingUp, tone: 'text-emerald-600 dark:text-emerald-400' },
+        { label: profitLabel, value: formatCurrency(stats.profit), icon: activeTab === 'vouchers' ? Coins : TrendingUp, tone: 'text-emerald-600 dark:text-emerald-400' },
     ]
 
     return (
@@ -881,20 +835,7 @@ export default function ShopOrdersPage() {
                         ))}
                     </div>
 
-                    {activeTab === 'utility' ? (
-                        <select
-                            title="Filter by biller"
-                            aria-label="Filter by biller"
-                            className={SELECT}
-                            value={utilityBillerFilter}
-                            onChange={(e) => setUtilityBillerFilter(e.target.value as any)}
-                        >
-                            <option value="all">All billers</option>
-                            {UTILITY_BILLER_KEYS.map((b) => (
-                                <option key={b} value={b}>{UTILITY_BILLERS[b].label}</option>
-                            ))}
-                        </select>
-                    ) : activeTab !== 'vouchers' && activeTab !== 'afa' && (
+                                        {activeTab !== 'vouchers' && activeTab !== 'afa' && (
                         <select
                             title="Filter by network"
                             aria-label="Filter by network"
@@ -969,8 +910,8 @@ export default function ShopOrdersPage() {
                             const { icon, label } = describeOrder(order)
                             const tag = getSelfCompletedTag(order.orders?.[0] || {}) || getRetryTag(order.orders?.[0] || {})
                             const orderComplaints = order.is_rc ? (order.rc_complaints || []) : (order.orders?.[0]?.complaints || [])
-                            const canMomo = !order.is_rc && !order.is_afa && !order.is_utility && isMomoLookupEligible({ status: displayStatus })
-                            const canComplain = displayStatus === 'completed' && !order.is_rc && !order.is_afa && !order.is_utility && isWithin48Hours(order.created_at)
+                            const canMomo = !order.is_rc && !order.is_afa && isMomoLookupEligible({ status: displayStatus })
+                            const canComplain = displayStatus === 'completed' && !order.is_rc && !order.is_afa && isWithin48Hours(order.created_at)
                             const when = new Date(order.created_at)
 
                             return (

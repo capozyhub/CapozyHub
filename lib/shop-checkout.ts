@@ -9,7 +9,6 @@ import { resolveOwnerCost } from '@/lib/pricing/cost-basis'
 import { roleFeeSettingKeys, resolveRoleFeeSetting } from '@/lib/pricing/shop-fee-resolver'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentDataCost } from '@/lib/sub-agent-data-pricing'
-import { isUtilityBiller, UTILITY_BILLERS } from '@/lib/hubtel-utility/billers'
 import { toMsisdn233 } from '@/lib/hubtel-commission-service'
 import { parseSettingNumber } from '@/lib/paystack-fees'
 import { checkRecipientNetwork, validateGhanaianPhone } from '@/lib/phone-validation'
@@ -19,14 +18,11 @@ export interface ShopCheckoutInput {
     packageId?: string
     guestPhone: string
     guestEmail?: string
-    orderType?: 'data' | 'airtime' | 'mashup' | 'utility'
+    orderType?: 'data' | 'airtime' | 'mashup'
     network?: string
     amount?: number | string
     useExactAmount?: boolean
     bundlePreference?: string
-    utilityBiller?: string
-    utilityAccount?: string
-    utilityPhone?: string
     /** Buyer confirmed the recipient number was ported to the selected network. */
     portedConfirmed?: boolean
 }
@@ -98,16 +94,13 @@ export function buildGuestEmail(phone: string): string {
 export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Promise<ShopCheckoutResult | ShopCheckoutError> {
     const {
         shopSlug, packageId, guestPhone, guestEmail, orderType, network, amount, useExactAmount, bundlePreference,
-        utilityBiller, utilityAccount, utilityPhone,
     } = body
 
     if (!shopSlug || !guestPhone) return { ok: false, status: 400, error: 'Missing required fields' }
 
     if ((orderType === 'airtime' || orderType === 'mashup') && (!network || !amount)) {
         return { ok: false, status: 400, error: 'Missing airtime/mashup fields' }
-    } else if (orderType === 'utility' && (!utilityBiller || !utilityAccount || !amount)) {
-        return { ok: false, status: 400, error: 'Missing utility fields' }
-    } else if (orderType !== 'airtime' && orderType !== 'mashup' && orderType !== 'utility' && !packageId) {
+    } else if (orderType !== 'airtime' && orderType !== 'mashup' && !packageId) {
         return { ok: false, status: 400, error: 'Missing package identifier' }
     }
     if (orderType === 'mashup' && network !== 'MTN') {
@@ -128,7 +121,7 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
     if (typeof shopSlug !== 'string' || !/^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/.test(shopSlug)) {
         return { ok: false, status: 400, error: 'Invalid shop identifier' }
     }
-    if (orderType !== 'airtime' && orderType !== 'mashup' && orderType !== 'utility' && (typeof packageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(packageId))) {
+    if (orderType !== 'airtime' && orderType !== 'mashup' && (typeof packageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(packageId))) {
         return { ok: false, status: 400, error: 'Invalid package identifier' }
     }
     if (typeof guestPhone !== 'string') return { ok: false, status: 400, error: 'Invalid phone number' }
@@ -202,8 +195,6 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
             'airtime_fee_telecel_customer', 'airtime_fee_telecel_agent', 'airtime_fee_telecel_dealer',
             'airtime_fee_at_customer', 'airtime_fee_at_agent', 'airtime_fee_at_dealer',
             'mashup_fee_mtn_customer', 'mashup_fee_mtn_agent', 'mashup_fee_mtn_dealer',
-            'utility_bills_enabled', 'storefront_utilities_enabled', 'hubtel_utility_billers',
-            'utility_min_amount', 'utility_max_amount',
         ])
     const settings: Record<string, string> = {}
     for (const row of (settingsRows || [])) settings[row.key] = row.value
@@ -271,63 +262,6 @@ export async function computeShopCheckout(db: any, body: ShopCheckoutInput): Pro
             airtime_amount: actualAirtimeAmount, selling_price: actualAirtimeAmount, cost_price: actualAirtimeAmount,
             profit, fee_amount: feeAmount, use_exact_amount: !!useExactAmount, original_amount: numAmount,
             bundle_preference: resolvedBundlePreference,
-        }
-    } else if (orderType === 'utility') {
-        // COMMISSION-based: the customer pays exact face value, profit = 0 by design — this
-        // is the ONE order type where a zero profit is legal (the shop owner instead earns a
-        // configurable share of Hubtel's commission via credit_utility_commission, credited
-        // automatically because utility_orders.shop_id is set). This branch therefore does
-        // NOT flow through the `profit <= 0` rejection guarding the data branch below.
-        if (!isUtilityBiller(utilityBiller)) {
-            return { ok: false, status: 400, error: 'Invalid biller' }
-        }
-        const billerDef = UTILITY_BILLERS[utilityBiller]
-
-        if (settings['utility_bills_enabled'] !== 'true' || settings['storefront_utilities_enabled'] !== 'true') {
-            return { ok: false, status: 503, error: 'Utility bill payments are currently unavailable' }
-        }
-        const billersMap = settings['hubtel_utility_billers'] as unknown
-        if (!billersMap || typeof billersMap !== 'object' || Array.isArray(billersMap) || (billersMap as Record<string, unknown>)[utilityBiller] !== true) {
-            return { ok: false, status: 503, error: `${billerDef.label} is currently unavailable` }
-        }
-        // Per-shop opt-out (shop_profiles.utilities_enabled) is an owner-controlled toggle,
-        // not a temporary outage — 403 "This service is not available in this shop", not the
-        // 503 used for the global admin_settings kill-switches checked above.
-        if ((shop as any).utilities_enabled !== true) {
-            return { ok: false, status: 403, error: 'This service is not available in this shop' }
-        }
-
-        const trimmedUtilityAccount = typeof utilityAccount === 'string' ? utilityAccount.trim() : ''
-        if (!trimmedUtilityAccount) return { ok: false, status: 400, error: `${billerDef.accountLabel} is required` }
-        if (trimmedUtilityAccount.length > 30) return { ok: false, status: 400, error: `${billerDef.accountLabel} is too long` }
-
-        let destinationPhone: string | null = null
-        if (utilityBiller === 'ecg' || utilityBiller === 'ghana_water') {
-            const trimmedUtilityPhone = typeof utilityPhone === 'string' ? utilityPhone.trim() : ''
-            if (!trimmedUtilityPhone) return { ok: false, status: 400, error: `${billerDef.label} requires a customer phone number` }
-            destinationPhone = toMsisdn233(trimmedUtilityPhone)
-        }
-
-        const numUtilityAmount = Number(amount)
-        if (!Number.isFinite(numUtilityAmount) || numUtilityAmount <= 0) return { ok: false, status: 400, error: 'Invalid amount' }
-        const roundedUtilityAmount = Math.round(numUtilityAmount * 100) / 100
-        const minUtilityAmount = parseSettingNumber(settings['utility_min_amount'], 1)
-        const maxUtilityAmount = parseSettingNumber(settings['utility_max_amount'], 1000)
-        if (roundedUtilityAmount < minUtilityAmount) return { ok: false, status: 400, error: `Minimum amount is GHS ${minUtilityAmount.toFixed(2)}` }
-        if (roundedUtilityAmount > maxUtilityAmount) return { ok: false, status: 400, error: `Maximum amount is GHS ${maxUtilityAmount.toFixed(2)}` }
-
-        sellingPrice = roundedUtilityAmount
-        costPrice = roundedUtilityAmount
-        profit = 0
-        totalAmount = Math.round(roundedUtilityAmount * 100)
-        pkgNetwork = ''
-        pkgSize = billerDef.label
-        metadataPayload = {
-            order_type: 'utility',
-            biller: utilityBiller,
-            account_number: trimmedUtilityAccount,
-            destination_phone: destinationPhone,
-            account_name: null,
         }
     } else {
         const { data: pkg } = await db.from('data_packages').select('*').eq('id', packageId).eq('is_available', true).single()

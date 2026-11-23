@@ -207,18 +207,6 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ received: true })
             }
 
-            // ✅ UTILITY ORDERS: References starting with UTLP- are storefront utility-bill
-            // payments made via the Paystack rail (as opposed to UTIL-, which is Hubtel Direct
-            // Receive Money and is settled via lib/hubtel-receive/settle.ts, never this webhook).
-            // processUtilityShopOrder is idempotent on reference_code, so racing this against
-            // the browser's own status poll is safe — see its doc comment for the ordering.
-            if (reference && reference.startsWith('UTLP-')) {
-                const { processUtilityShopOrder } = await import('@/lib/utility-fulfillment')
-                console.log(`[PaystackWebhook] Routing utility order: ${reference}`)
-                await processUtilityShopOrder(reference, metadata || {}, paidAmountKobo)
-                return NextResponse.json({ received: true })
-            }
-
             // ✅ SHOP AFA ORDERS: References starting with SHOPAFA- are storefront AFA
             // registrations. Checked BEFORE SHOP- so the more specific prefix wins.
             // Without this the flow is callback-only: a guest who pays and never
