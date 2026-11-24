@@ -141,7 +141,6 @@ export default function DownloadPage() {
                                     id={`tab-${d.key}`}
                                     aria-selected={device === d.key}
                                     aria-controls="device-panel"
-                                    tabIndex={device === d.key ? 0 : -1}
                                     onClick={() => setDevice(d.key)}
                                     className={cn(
                                         'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold',

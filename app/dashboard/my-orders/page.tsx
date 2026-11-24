@@ -282,7 +282,7 @@ export default function MyOrdersPage() {
         })
         const json = await response.json().catch(() => ({}))
         if (!response.ok || !json?.success) {
-            toast.error(json?.error || 'Refund failed. Please try again.')
+            toast.error(typeof json?.error === 'string' && json.error.length < 160 ? json.error : 'We could not refund this order. Try again.')
             throw new Error(json?.error || 'refund_failed')
         }
         setOrders(prev => Array.isArray(prev)
@@ -353,7 +353,7 @@ export default function MyOrdersPage() {
             fetchData()
         } catch (error: any) {
             console.error('Retry error:', error)
-            toast.error('We could not retry this order. Try again.')
+            toast.error(error?.message && error.message.length < 220 ? error.message : 'We could not retry this order. Try again.')
         } finally {
             setRetryBusy(false)
         }
@@ -396,7 +396,7 @@ export default function MyOrdersPage() {
             fetchData()
         } catch (error: any) {
             console.error('Confirm received error:', error)
-            toast.error('We could not confirm this order. Try again.')
+            toast.error(error?.message && error.message.length < 220 ? error.message : 'We could not confirm this order. Try again.')
         } finally {
             setConfirmBusy(false)
         }
@@ -880,7 +880,7 @@ export default function MyOrdersPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="text-sm text-muted-foreground space-y-2">
-                        <span>Did the customer confirm they received this order before marking it complete? This can&apos;t be undone.</span>
+                        <span>Only mark this order complete if the data has arrived on the number. This can&apos;t be undone.</span>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmTarget(null)} disabled={confirmBusy}>Cancel</Button>

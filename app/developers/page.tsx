@@ -932,7 +932,7 @@ export default function DevelopersPage() {
                                     <h3 className="text-sm font-bold text-foreground mb-3">Getting Your API Key</h3>
                                     <ol className="space-y-2">
                                         {[
-                                            'Log in to your Capozy Hub account (agent role required)',
+                                            `Log in to your ${BRAND.name} account (agent role required)`,
                                             'Navigate to Dashboard → Developer API',
                                             'Click Generate API Key and accept the policy',
                                             'Copy and store the key — it will not be shown again',

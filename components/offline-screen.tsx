@@ -29,7 +29,7 @@ export function OfflineScreen({ name, autoFocus = false }: { name: string; autoF
                     <p className="text-sm font-semibold text-brand-400">{name}</p>
                     <h1 id="offline-title" className="font-display text-3xl font-bold tracking-tight">You are offline</h1>
                     <p id="offline-body" className="text-sm leading-relaxed text-silver-200">
-                        There is no internet connection. Check your data or Wi-Fi, then try again. Anything you were doing is safe.
+                        There is no internet connection. Check your data or Wi-Fi, then try again. If you were paying, check your orders before you pay again.
                     </p>
                 </div>
                 <button

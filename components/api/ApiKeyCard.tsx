@@ -145,7 +145,7 @@ export function ApiKeyCard({
                 }),
             })
             const json = await res.json()
-            if (!res.ok) { setError('We could not generate your key. Try again.'); return }
+            if (!res.ok) { setError('We could not generate your key. Try again.'); setShowWarningModal(false); return }
             const response = json as NewKeyResponse
             setNewKey(response.api_key.key)
             setShowKey(true)
@@ -155,6 +155,7 @@ export function ApiKeyCard({
             onGenerated()
         } catch (err: any) {
             setError('We could not generate your key. Try again.')
+            setShowWarningModal(false)
         } finally {
             setIsGenerating(false)
         }
@@ -207,14 +208,18 @@ export function ApiKeyCard({
                                     {showKey ? newKey : '•'.repeat(Math.min(newKey.length, 48))}
                                 </code>
                                 <button
+                                    type="button"
+                                    aria-label={showKey ? 'Hide key' : 'Show key'}
                                     onClick={() => setShowKey(s => !s)}
-                                    className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors flex-shrink-0"
+                                    className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors flex-shrink-0"
                                 >
                                     {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                                 <button
+                                    type="button"
+                                    aria-label="Copy key"
                                     onClick={copyNewKey}
-                                    className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors flex-shrink-0"
+                                    className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors flex-shrink-0"
                                 >
                                     {copiedKey ? <Check className="w-4 h-4 text-brand-400" /> : <Copy className="w-4 h-4" />}
                                 </button>
@@ -348,9 +353,9 @@ export function ApiKeyCard({
                 )}
 
                 {error && (
-                    <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 p-4">
+                    <div className="flex items-start gap-3 rounded-xl neu-inset p-4" role="alert">
                         <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                     </div>
                 )}
             </div>

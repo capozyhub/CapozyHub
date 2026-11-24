@@ -106,7 +106,6 @@ export default function ShopDomainDiscoveryPage() {
         } catch {
             if (seq !== searchSeq.current) return
             setError(true)
-            recordMiss()
         } finally {
             if (seq === searchSeq.current) setIsLoading(false)
         }

@@ -91,6 +91,7 @@ export default function TransactionsPage() {
             if ((pageRes as any).error) throw (pageRes as any).error
 
             const today = todayRes.rows
+            if (todayRes.failed || (walletRes as any).error) setFailed(true)
             const sum = (rows: any[]) => rows.reduce((s, t) => s + (t.amount || 0), 0)
             setTransactions((pageRes as any).data || [])
             setTotalCount((countRes as any).count || 0)
@@ -180,7 +181,7 @@ export default function TransactionsPage() {
             </div>
 
             <section className="neu-raised-sm space-y-4 rounded-3xl p-5 sm:p-6" aria-label="Filters">
-                <div className="neu-inset flex items-center gap-2 rounded-xl px-3">
+                <div className="neu-inset flex items-center gap-2 rounded-xl px-3 focus-within:outline focus-within:outline-2 focus-within:outline-black dark:focus-within:outline-brand-500">
                     <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <input
                         aria-label="Search the rows on this page"
@@ -246,7 +247,7 @@ export default function TransactionsPage() {
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className={cn('font-display text-base font-bold tabular-nums', credit ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground')}>
+                                        <p className={cn('font-display text-base font-bold tabular-nums', 'text-foreground')}>
                                             {credit ? '+' : '-'}{formatCurrency(txn.amount)}
                                         </p>
                                         {txn.balance_after !== undefined && (
