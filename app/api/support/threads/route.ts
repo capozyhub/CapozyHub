@@ -81,6 +81,13 @@ export async function POST(request: Request) {
 
         if (threadError) {
             // Raised by the DB trigger — per-user open-thread cap (race-safe).
+            // Unique index: one open complaint per order (covers double submits).
+            if ((threadError as any).code === '23505') {
+                return NextResponse.json(
+                    { success: false, error: 'You already have an open complaint about this order. Add your message to it in Help and complaints.' },
+                    { status: 409 }
+                )
+            }
             if (String(threadError.message).includes('OPEN_THREAD_LIMIT')) {
                 return NextResponse.json(
                     { success: false, error: 'You already have 3 open complaints. Please wait for a response or close one first.' },

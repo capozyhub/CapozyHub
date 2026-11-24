@@ -35,7 +35,7 @@ export async function POST(
         // RLS-scoped read: returns the thread only if the caller owns it.
         const { data: thread } = await supabase
             .from('support_threads')
-            .select('id, user_id, subject, status, closed_at')
+            .select('id, user_id, subject, status, closed_at, last_message_at, created_at')
             .eq('id', id)
             .maybeSingle()
         const t = thread as any
@@ -45,8 +45,9 @@ export async function POST(
         if (t.status !== 'closed') {
             return NextResponse.json({ success: false, error: 'This complaint is already open.' }, { status: 409 })
         }
-        const closedAt = t.closed_at ? new Date(t.closed_at).getTime() : 0
-        if (closedAt && Date.now() - closedAt > REOPEN_WINDOW_DAYS * 86_400_000) {
+        // No close date (older rows): fall back to the last activity so the window still applies.
+        const closedAt = new Date(t.closed_at ?? t.last_message_at ?? t.created_at).getTime()
+        if (Number.isFinite(closedAt) && Date.now() - closedAt > REOPEN_WINDOW_DAYS * 86_400_000) {
             return NextResponse.json(
                 { success: false, error: `This complaint was closed more than ${REOPEN_WINDOW_DAYS} days ago. Please open a new one.` },
                 { status: 409 }
@@ -75,7 +76,16 @@ export async function POST(
             .eq('id', id)
             .eq('status', 'closed')
             .select('id')
-        if (reopenError) throw reopenError
+        if (reopenError) {
+            // Unique index: another complaint on the same order is already open.
+            if ((reopenError as any).code === '23505') {
+                return NextResponse.json(
+                    { success: false, error: 'There is already an open complaint about this order. Add your message to it instead.' },
+                    { status: 409 }
+                )
+            }
+            throw reopenError
+        }
         if (!reopened || reopened.length === 0) {
             return NextResponse.json({ success: false, error: 'This complaint is already open.' }, { status: 409 })
         }
@@ -91,7 +101,15 @@ export async function POST(
             })
             .select()
             .single()
-        if (messageError) throw messageError
+        if (messageError) {
+            // Put it back, so a failed message never leaves an open complaint that nobody is told about.
+            await adminDb
+                .from('support_threads')
+                .update({ status: 'closed', closed_at: t.closed_at ?? new Date().toISOString() })
+                .eq('id', id)
+                .eq('status', 'open')
+            throw messageError
+        }
 
         waitUntil(
             sendAdminPushNotification({

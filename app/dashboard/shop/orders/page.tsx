@@ -956,7 +956,7 @@ export default function ShopOrdersPage() {
 
                                         {orderComplaints.length > 0 ? (
                                             <span className={cn(PILL, 'neu-inset text-brand-700 dark:text-brand-500')}>
-                                                <MessageSquare className="h-3 w-3" /> {['closed', 'resolved', 'rejected'].includes(String(orderComplaints[0].status))
+                                                <MessageSquare className="h-3 w-3" /> {orderComplaints.every((c: any) => ['closed', 'resolved', 'rejected'].includes(String(c.status)))
                                                     ? 'Report closed'
                                                     : 'Report sent, support is on it'}
                                             </span>

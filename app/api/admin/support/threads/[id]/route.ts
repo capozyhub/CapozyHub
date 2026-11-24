@@ -224,12 +224,30 @@ export async function POST(
 
         if (payload.action === 'assign') {
             // Self-assign or release only. Handing a complaint to someone else is not offered.
-            const { error: assignError } = payload.to === 'me'
-                ? await supabase
+            if (payload.to === 'me') {
+                if (thread.status !== 'open') {
+                    return NextResponse.json({ success: false, error: 'This complaint is closed.' }, { status: 409 })
+                }
+                // Insert-only: if a teammate took it first, say so instead of silently taking it over.
+                const { error: assignError } = await supabase
                     .from('support_thread_assignments')
-                    .upsert({ thread_id: id, admin_id: access.user!.id, assigned_at: new Date().toISOString() }, { onConflict: 'thread_id' })
-                : await supabase.from('support_thread_assignments').delete().eq('thread_id', id)
-            if (assignError) throw assignError
+                    .insert({ thread_id: id, admin_id: access.user!.id, assigned_at: new Date().toISOString() })
+                if (assignError) {
+                    if ((assignError as any).code === '23505') {
+                        const { data: current } = await supabase
+                            .from('support_thread_assignments')
+                            .select('admin_id')
+                            .eq('thread_id', id)
+                            .maybeSingle()
+                        if (current?.admin_id === access.user!.id) return NextResponse.json({ success: true })
+                        return NextResponse.json({ success: false, error: 'A teammate is already handling this one.' }, { status: 409 })
+                    }
+                    throw assignError
+                }
+                return NextResponse.json({ success: true })
+            }
+            const { error: releaseError } = await supabase.from('support_thread_assignments').delete().eq('thread_id', id)
+            if (releaseError) throw releaseError
             return NextResponse.json({ success: true })
         }
 
@@ -241,7 +259,15 @@ export async function POST(
                 .eq('id', id)
                 .eq('status', 'closed')
                 .select('id')
-            if (reopenError) throw reopenError
+            if (reopenError) {
+                if ((reopenError as any).code === '23505') {
+                    return NextResponse.json(
+                        { success: false, error: 'Another complaint about this order is already open. Reply there instead.' },
+                        { status: 409 }
+                    )
+                }
+                throw reopenError
+            }
             if (!reopened || reopened.length === 0) {
                 return NextResponse.json({ success: false, error: 'Complaint is already open' }, { status: 409 })
             }

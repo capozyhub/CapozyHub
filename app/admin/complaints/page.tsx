@@ -253,13 +253,19 @@ export default function AdminComplaintsPage() {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }, [messages.length, active?.id])
 
-    const patchActive = (patch: Partial<Conversation>) => {
-        setActive(prev => prev ? { ...prev, ...patch } : prev)
-        setItems(prev => prev.map(t => t.id === active?.id ? { ...t, ...patch } : t))
+    // Patches one specific complaint. The admin may have opened another one while the request
+    // was in flight, so the open pane is only touched if it is still the same complaint.
+    const patchActive = (id: string, patch: Partial<Conversation>) => {
+        setActive(prev => prev && prev.id === id ? { ...prev, ...patch } : prev)
+        setItems(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t))
+    }
+    const addLocalMessage = (id: string, m: Message) => {
+        if (activeRef.current?.id !== id) return
+        setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m])
     }
 
-    const post = async (body: Record<string, unknown>) => {
-        const res = await fetch(`/api/admin/support/threads/${active!.id}`, {
+    const post = async (id: string, body: Record<string, unknown>) => {
+        const res = await fetch(`/api/admin/support/threads/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -273,12 +279,13 @@ export default function AdminComplaintsPage() {
         const text = reply.trim()
         if (!text || !active || busy) return
         setBusy('reply')
+        const id = active.id
         try {
-            const json = await post({ action: 'reply', message: text })
+            const json = await post(id, { action: 'reply', message: text })
             const sent = json.data.message as Message
-            setReply('')
-            setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
-            patchActive({ last_message: { body: sent.body, sender_role: 'admin', created_at: sent.created_at }, last_message_at: sent.created_at, unread_count: 0 })
+            if (activeRef.current?.id === id) setReply('')
+            addLocalMessage(id, sent)
+            patchActive(id, { last_message: { body: sent.body, sender_role: 'admin', created_at: sent.created_at }, last_message_at: sent.created_at, unread_count: 0 })
         } catch (e: any) {
             toast.error(e?.message || 'We could not send that reply. Try again.')
         } finally { setBusy(null) }
@@ -287,16 +294,16 @@ export default function AdminComplaintsPage() {
     const closeThread = async () => {
         if (!active || busy) return
         setBusy('close')
+        const id = active.id
         try {
-            await post({ action: 'close', closing_note: note.trim() || undefined })
+            await post(id, { action: 'close', closing_note: note.trim() || undefined })
             if (note.trim()) {
                 const sentAt = new Date().toISOString()
-                setMessages(prev => [...prev, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt }])
+                addLocalMessage(id, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt })
             }
             toast.success('Complaint closed. The customer has been told.')
-            setClosing(false)
-            setNote('')
-            patchActive({ status: 'closed', closed_at: new Date().toISOString() })
+            if (activeRef.current?.id === id) { setClosing(false); setNote('') }
+            patchActive(id, { status: 'closed', closed_at: new Date().toISOString() })
         } catch (e: any) {
             toast.error(e?.message || 'We could not close this complaint. Try again.')
         } finally { setBusy(null) }
@@ -305,10 +312,11 @@ export default function AdminComplaintsPage() {
     const reopenThread = async () => {
         if (!active || busy) return
         setBusy('reopen')
+        const id = active.id
         try {
-            await post({ action: 'reopen' })
+            await post(id, { action: 'reopen' })
             toast.success('Complaint reopened. The customer has been told.')
-            patchActive({ status: 'open', closed_at: null })
+            patchActive(id, { status: 'open', closed_at: null })
         } catch (e: any) {
             toast.error(e?.message || 'We could not reopen this complaint. Try again.')
         } finally { setBusy(null) }
@@ -317,33 +325,37 @@ export default function AdminComplaintsPage() {
     const assign = async (to: 'me' | 'none') => {
         if (!active || busy) return
         setBusy('assign')
+        const id = active.id
         try {
-            await post({ action: 'assign', to })
-            patchActive({ assignee: to === 'me' && viewerId ? { admin_id: viewerId, name: 'You' } : null })
+            await post(id, { action: 'assign', to })
+            patchActive(id, { assignee: to === 'me' && viewerId ? { admin_id: viewerId, name: 'You' } : null })
             toast.success(to === 'me' ? 'This one is yours now.' : 'Released. Anyone on the team can pick it up.')
         } catch (e: any) {
             toast.error(e?.message || 'We could not update the handler. Try again.')
+            // A teammate may have taken it first: reload so the list shows who has it.
+            fetchItems()
         } finally { setBusy(null) }
     }
 
     const resolveReport = async (status: 'resolved' | 'rejected') => {
         if (!active || busy) return
         setBusy(status === 'resolved' ? 'resolve' : 'reject')
+        const id = active.id
         try {
             const res = await fetch('/api/admin/complaints/resolve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: active.id, status, resolution_notes: note }),
+                body: JSON.stringify({ id, status, resolution_notes: note }),
             })
             const json = await res.json().catch(() => ({}))
             if (!res.ok) throw new Error(typeof json.error === 'string' && json.error.length < 160 ? json.error : 'That did not go through. Try again.')
             toast.success(status === 'resolved' ? 'Marked resolved. The customer has been told.' : 'Rejected. The customer has been told.')
             if (note.trim()) {
                 const sentAt = new Date().toISOString()
-                setMessages(prev => [...prev, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt }])
+                addLocalMessage(id, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt })
             }
-            setNote('')
-            patchActive({ status: 'closed', report_status: status, closed_at: new Date().toISOString() })
+            if (activeRef.current?.id === id) setNote('')
+            patchActive(id, { status: 'closed', report_status: status, closed_at: new Date().toISOString() })
         } catch (e: any) {
             toast.error(e?.message || 'We could not update this complaint. Try again.')
         } finally { setBusy(null) }
