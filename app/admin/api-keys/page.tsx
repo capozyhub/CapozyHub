@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { toast } from '@/lib/toast'
 import {
     Key, CheckCircle2, XCircle, Clock, User, Activity,
@@ -61,14 +62,14 @@ interface ApiLogItem {
 // Matched on the path suffix (the same trick middleware.ts uses for its fail-closed set) so a
 // developer-API request gets its friendly label instead of generic "API Request".
 const ENDPOINT_LABELS: Record<string, string> = {
-    '/data/purchase':  'Data Purchase',
-    '/data/bulk':      'Bulk Purchase',
-    '/wallet/balance': 'Balance Fetch',
-    '/wallet/topup':   'Wallet Top-Up',
-    '/orders':         'Order Status',
+    '/data/purchase':  'Data purchase',
+    '/data/bulk':      'Bulk purchase',
+    '/wallet/balance': 'Balance check',
+    '/wallet/topup':   'Wallet top-up',
+    '/orders':         'Order status',
     '/airtime':        'Airtime',
     '/afa':            'AFA',
-    '/resultschecker': 'Results Checker',
+    '/resultschecker': 'Results checker',
 }
 
 function getFriendlyLabel(endpoint: string): string {
@@ -76,7 +77,7 @@ function getFriendlyLabel(endpoint: string): string {
     for (const [key, label] of Object.entries(ENDPOINT_LABELS)) {
         if (suffix.startsWith(key)) return label
     }
-    return 'API Request'
+    return 'Other request'
 }
 
 interface Pagination {
@@ -179,7 +180,7 @@ function StatCard({
                 )}
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                        {pulse && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />}
+                        {pulse && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />}
                         <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
                     </div>
                     <p className={cn('text-sm sm:text-base lg:text-lg font-semibold mt-0.5 tabular-nums whitespace-nowrap', a.text)}>{value}</p>
@@ -227,9 +228,9 @@ function RateLimitEditor({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key_id: keyId, rate_limits: values }),
             })
-            if (res.ok) { toast.success('Rate limits updated'); onSaved() }
-            else { const j = await res.json(); toast.error(j.error || 'Failed to update') }
-        } catch { toast.error('Network error') }
+            if (res.ok) { toast.success('Limits saved'); onSaved() }
+            else { const j = await res.json().catch(() => ({})); toast.error(j.error || 'Could not update the limits. Try again.') }
+        } catch { toast.error('Could not reach the server. Check your connection and try again.') }
         finally { setSaving(false) }
     }
 
@@ -237,7 +238,7 @@ function RateLimitEditor({
         <div className="mt-4 pt-4 border-t border-border space-y-4">
             <div className="flex items-center gap-2 mb-3">
                 <Sliders className="w-4 h-4 text-brand-700 dark:text-brand-500" />
-                <h4 className="text-sm font-semibold text-foreground">Per-Key Rate Limits <span className="text-xs text-muted-foreground font-normal">(req / min)</span></h4>
+                <h4 className="text-sm font-semibold text-foreground">Rate limits for this key <span className="text-xs text-muted-foreground font-normal">(req / min)</span></h4>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {field('purchase', 'Purchase', 'req/min')}
@@ -250,10 +251,10 @@ function RateLimitEditor({
                     size="sm"
                     onClick={save}
                     disabled={saving}
-                    className="h-8 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white gap-1.5"
+                    className="h-8 text-xs font-semibold clay-black gap-1.5"
                 >
                     {saving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    {saving ? 'Saving…' : 'Save Limits'}
+                    {saving ? 'Saving…' : 'Save limits'}
                 </Button>
                 <Button
                     size="sm"
@@ -261,7 +262,7 @@ function RateLimitEditor({
                     onClick={() => setValues(DEFAULT_RATE_LIMITS)}
                     className="h-8 text-xs"
                 >
-                    Reset to Default
+                    Reset to defaults
                 </Button>
             </div>
         </div>
@@ -295,7 +296,7 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
     }
 
     if (!data) {
-        return <p className="text-xs text-muted-foreground">Failed to load activity.</p>
+        return <p className="text-xs text-muted-foreground">Could not load this user's activity. Close this panel and open it again to retry.</p>
     }
 
     const tile = (label: string, value: string | number, color = 'text-foreground') => (
@@ -312,11 +313,11 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
             {tile('Success', data.success_orders.toLocaleString(), 'text-emerald-700 dark:text-emerald-400')}
             {tile('Failed', data.failed_orders.toLocaleString(), 'text-red-600 dark:text-red-400')}
             {tile('Pending', data.pending_orders.toLocaleString(), 'text-amber-500')}
-            {tile('Success Rate', `${data.success_rate}%`,
+            {tile('Success rate', `${data.success_rate}%`,
                 data.success_rate >= 90 ? 'text-emerald-700 dark:text-emerald-400'
                 : data.success_rate >= 70 ? 'text-amber-500' : 'text-red-600 dark:text-red-400')}
-            {tile('Reqs (24h)', data.requests_24h.toLocaleString(), 'text-brand-700 dark:text-brand-400')}
-            {tile('Avg Latency', `${data.avg_response_ms}ms`)}
+            {tile('Requests (24h)', data.requests_24h.toLocaleString(), 'text-brand-700 dark:text-brand-400')}
+            {tile('Average speed', `${data.avg_response_ms}ms`)}
         </div>
     )
 }
@@ -352,7 +353,7 @@ function KeyRow({ item, onAction }: {
                         <User className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground truncate text-sm">{item.user?.name || 'Unknown User'}</p>
+                        <p className="font-semibold text-foreground truncate text-sm">{item.user?.name || 'Unknown user'}</p>
                         <p className="text-xs text-muted-foreground truncate">{item.user?.email || '—'}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <code className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
@@ -379,8 +380,7 @@ function KeyRow({ item, onAction }: {
                         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 lg:hidden',
                         cfg.bg, cfg.color, cfg.border
                     )}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot,
-                            item.status === 'active' && 'animate-pulse')} />
+                        <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
                         {cfg.label}
                     </div>
                 </div>
@@ -403,8 +403,7 @@ function KeyRow({ item, onAction }: {
                         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
                         cfg.bg, cfg.color, cfg.border
                     )}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot,
-                            item.status === 'active' && 'animate-pulse')} />
+                        <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
                         <StatusIcon className="w-3.5 h-3.5" />
                         {cfg.label}
                     </div>
@@ -444,7 +443,7 @@ function KeyRow({ item, onAction }: {
                             variant="outline"
                             onClick={() => act('revoke')}
                             disabled={acting}
-                            className="h-8 text-xs text-red-500 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20"
+                            className="h-8 text-xs text-red-600 dark:text-red-400 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/20"
                         >
                             {acting ? '…' : <><X className="w-3 h-3 mr-1" />Revoke</>}
                         </Button>
@@ -485,8 +484,8 @@ function KeyRow({ item, onAction }: {
                 <div className="px-4 sm:px-5 py-4 sm:py-5 border-t border-border bg-muted/50 dark:bg-muted/20">
                     <div className="flex items-center gap-2 mb-3">
                         <BarChart2 className="w-4 h-4 text-brand-700 dark:text-brand-500" />
-                        <h4 className="text-sm font-semibold text-foreground">User Activity</h4>
-                        <span className="text-xs text-muted-foreground font-normal hidden sm:inline">API order + request totals</span>
+                        <h4 className="text-sm font-semibold text-foreground">User activity</h4>
+                        <span className="text-xs text-muted-foreground font-normal hidden sm:inline">Orders and requests made with this key</span>
                     </div>
                     <UserActivityPanel keyId={item.id} userId={item.user.id} />
                 </div>
@@ -502,10 +501,12 @@ function LogsTab() {
     const [isLoading, setIsLoading] = useState(true)
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
+    const [failed, setFailed] = useState(false)
     const PER_PAGE = 50
 
     const fetchLogs = useCallback(async (p = 1) => {
         setIsLoading(true)
+        setFailed(false)
         try {
             const res = await fetch(`/api/admin/api-keys?tab=logs&page=${p}&limit=${PER_PAGE}`)
             if (res.ok) {
@@ -513,8 +514,8 @@ function LogsTab() {
                 setLogs(json.logs || [])
                 setTotal(json.pagination?.total || 0)
                 setPage(p)
-            }
-        } catch { console.error('Failed to fetch logs') }
+            } else setFailed(true)
+        } catch { setFailed(true) }
         finally { setIsLoading(false) }
     }, [])
 
@@ -541,6 +542,14 @@ function LogsTab() {
         </div>
     )
 
+    if (failed) return (
+        <div role="alert" className="neu-raised-sm rounded-3xl p-8 text-center">
+            <p className="text-sm font-semibold text-foreground">Could not load the request logs</p>
+            <p className="text-xs text-muted-foreground mt-1">Check your connection, then try again.</p>
+            <Button variant="outline" size="sm" className="mt-4 h-8" onClick={() => fetchLogs(page)}>Try again</Button>
+        </div>
+    )
+
     if (logs.length === 0) return (
         <div className="text-center py-16">
             <BarChart2 className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
@@ -550,12 +559,12 @@ function LogsTab() {
 
     return (
         <div className="space-y-4">
-            <div className="rounded-2xl border border-border overflow-hidden">
+            <div className="neu-raised-sm rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <div className="min-w-[620px]">
                         {/* Table header */}
                         <div className="grid grid-cols-[64px_1fr_1fr_72px_72px_110px] gap-2 px-4 py-2.5 bg-muted/50 border-b border-border">
-                            {['Method', 'Action', 'User / Key', 'Status', 'Time', 'When'].map(h => (
+                            {['Method', 'Action', 'User or key', 'Status', 'Speed', 'When'].map(h => (
                                 <span key={h} className="text-xs font-semibold text-muted-foreground">{h}</span>
                             ))}
                         </div>
@@ -623,11 +632,15 @@ function LogsTab() {
 type Tab = 'keys' | 'logs'
 
 export default function AdminApiKeysPage() {
+    const { ask, dialog } = useConfirm()
     const [tab, setTab] = useState<Tab>('keys')
     const [keys, setKeys] = useState<ApiKeyItem[]>([])
     const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 50, total: 0, total_pages: 0 })
     const [stats, setStats] = useState<AggregateStats | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [loadFailed, setLoadFailed] = useState(false)
+    const [settingsLoaded, setSettingsLoaded] = useState(false)
+    const keysSeq = useRef(0)
     const [statusFilter, setStatusFilter] = useState('')
     const [roleFilter, setRoleFilter] = useState('')
     const [sortBy, setSortBy] = useState<SortBy>('recent')
@@ -640,7 +653,9 @@ export default function AdminApiKeysPage() {
     const [settingsSaving, setSettingsSaving] = useState(false)
 
     const fetchKeys = useCallback(async (page = 1) => {
+        const seq = ++keysSeq.current
         setIsLoading(true)
+        setLoadFailed(false)
         try {
             const params = new URLSearchParams({ page: String(page), limit: '50' })
             if (statusFilter) params.set('status', statusFilter)
@@ -648,18 +663,21 @@ export default function AdminApiKeysPage() {
             if (sortBy) params.set('sort', sortBy)
             if (debouncedSearch) params.set('search', debouncedSearch)
             const res = await fetch(`/api/admin/api-keys?${params}`)
+            if (seq !== keysSeq.current) return
             if (res.ok) {
                 const json = await res.json()
+                if (seq !== keysSeq.current) return
                 setKeys(json.keys || [])
                 setPagination(json.pagination || { page: 1, limit: 50, total: 0, total_pages: 0 })
                 if (json.stats) setStats(json.stats)
                 if (json.settings) {
                     setFeatureEnabled(json.settings.feature_enabled !== false)
                     setAllowedRoles(Array.isArray(json.settings.allowed_roles) ? json.settings.allowed_roles : ['agent'])
+                    setSettingsLoaded(true)
                 }
-            }
-        } catch { console.error('Failed to fetch keys') }
-        finally { setIsLoading(false) }
+            } else setLoadFailed(true)
+        } catch { if (seq === keysSeq.current) setLoadFailed(true) }
+        finally { if (seq === keysSeq.current) setIsLoading(false) }
     }, [statusFilter, roleFilter, sortBy, debouncedSearch])
 
     // Debounce search → server query (350ms)
@@ -669,6 +687,7 @@ export default function AdminApiKeysPage() {
     }, [searchQuery])
 
     const saveSettings = async () => {
+        if (!settingsLoaded) { toast.error('The saved settings have not loaded yet. Refresh the list first.'); return }
         setSettingsSaving(true)
         try {
             const res = await fetch('/api/admin/api-keys', {
@@ -676,10 +695,10 @@ export default function AdminApiKeysPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'save_settings', feature_enabled: featureEnabled, allowed_roles: allowedRoles }),
             })
-            const json = await res.json()
+            const json = await res.json().catch(() => ({}))
             if (res.ok) toast.success(json.message || 'Settings saved')
-            else toast.error(json.error || 'Failed to save settings')
-        } catch { toast.error('Network error') }
+            else toast.error(json.error || 'Could not save the settings. Try again.')
+        } catch { toast.error('Could not reach the server. Check your connection and try again.') }
         finally { setSettingsSaving(false) }
     }
 
@@ -694,20 +713,29 @@ export default function AdminApiKeysPage() {
     useEffect(() => { fetchKeys(1) }, [fetchKeys])
 
     const handleAction = async (keyId: string, action: 'approve' | 'revoke') => {
+        if (action === 'revoke') {
+            const ok = await ask({
+                title: 'Revoke this API key?',
+                description: 'Anything using it stops working straight away. This cannot be undone. The owner would have to create a new key.',
+                confirmLabel: 'Revoke key',
+                destructive: true,
+            })
+            if (!ok) return
+        }
         try {
             const res = await fetch('/api/admin/api-keys', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key_id: keyId, action }),
             })
-            const json = await res.json()
+            const json = await res.json().catch(() => ({}))
             if (res.ok) {
-                toast.success(json.message || `Key ${action}d`)
+                toast.success(json.message || (action === 'approve' ? 'Key approved' : 'Key revoked'))
                 fetchKeys(pagination.page)
             } else {
-                toast.error(json.error || 'Action failed')
+                toast.error(json.error || 'That did not work. Try again.')
             }
-        } catch { toast.error('Network error') }
+        } catch { toast.error('Could not reach the server. Check your connection and try again.') }
     }
 
     // Server already filtered + searched + sorted.
@@ -718,6 +746,7 @@ export default function AdminApiKeysPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
 
             {/* ── Header ─────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-4">
@@ -726,8 +755,8 @@ export default function AdminApiKeysPage() {
                         <Key className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-foreground tracking-tight">API Key Management</h1>
-                        <p className="text-sm text-muted-foreground mt-0.5">Approve, revoke, and set per-key rate limits</p>
+                        <h1 className="font-display text-xl font-bold text-foreground tracking-tight">API keys</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Approve or revoke keys and set how many requests each can make</p>
                     </div>
                 </div>
                 <Button
@@ -743,9 +772,9 @@ export default function AdminApiKeysPage() {
 
             {/* ── Stats ──────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                <StatCard icon={Key} label="Total Keys" value={pagination.total.toLocaleString()} accent="slate" />
-                <StatCard icon={Clock} label="Pending" value={pendingCount.toLocaleString()} accent="amber" pulse={pendingCount > 0} />
-                <StatCard icon={CheckCircle2} label="Active Keys" value={activeCount.toLocaleString()} accent="emerald" />
+                <StatCard icon={Key} label="All keys" value={pagination.total.toLocaleString()} accent="slate" />
+                <StatCard icon={Clock} label="Waiting for approval" value={pendingCount.toLocaleString()} sub="On this page" accent="amber" pulse={pendingCount > 0} />
+                <StatCard icon={CheckCircle2} label="Active" value={activeCount.toLocaleString()} sub="On this page" accent="emerald" />
                 <StatCard icon={Activity} label="Requests (24h)" value={(stats?.requests_24h ?? 0).toLocaleString()} accent="violet" />
                 <StatCard
                     icon={Wallet}
@@ -756,7 +785,7 @@ export default function AdminApiKeysPage() {
                 />
                 <StatCard
                     icon={Percent}
-                    label="Success Rate (24h)"
+                    label="Success rate (24h)"
                     value={`${(stats?.success_rate_24h ?? 0).toFixed(1)}%`}
                     sub={`${(stats?.requests_ok_24h ?? 0).toLocaleString()} ok`}
                     accent={(stats?.success_rate_24h ?? 100) >= 90 ? 'emerald' : (stats?.success_rate_24h ?? 0) >= 70 ? 'amber' : 'red'}
@@ -770,7 +799,7 @@ export default function AdminApiKeysPage() {
                 />
                 <StatCard
                     icon={Gauge}
-                    label="Avg Latency"
+                    label="Average speed"
                     value={`${stats?.avg_response_ms ?? 0}ms`}
                     sub={stats?.top_user ? `Top: ${stats.top_user.name}` : undefined}
                     accent="sky"
@@ -778,13 +807,13 @@ export default function AdminApiKeysPage() {
             </div>
 
             {stats?.top_user && (
-                <div className="rounded-2xl border border-amber-200/60 dark:border-amber-700/40 clay-gold dark:from-amber-950/20 dark:to-orange-950/20 p-3 sm:p-4">
+                <div className="neu-raised-sm rounded-3xl p-3 sm:p-4">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                             <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-[11px] font-semibold text-foreground">Top API User (24h)</p>
+                            <p className="text-xs sm:text-[11px] font-semibold text-foreground">Busiest user (24h)</p>
                             <p className="text-sm font-semibold text-foreground truncate">{stats.top_user.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{stats.top_user.email}</p>
                         </div>
@@ -797,17 +826,19 @@ export default function AdminApiKeysPage() {
             )}
 
             {/* ── Feature Controls ────────────────────────────────────────── */}
-            <div className="dark:border-border/60 p-5 neu-raised-sm rounded-3xl">
+            <div className="p-5 neu-raised-sm rounded-3xl">
                 <div className="flex items-center gap-2 mb-4">
                     <Settings className="w-4 h-4 text-brand-700 dark:text-brand-500" />
-                    <h3 className="text-sm font-semibold text-foreground">Feature Controls</h3>
-                    <span className="text-xs text-muted-foreground font-normal">Global API access settings</span>
+                    <h3 className="font-display text-sm font-semibold text-foreground">API access</h3>
+                    <span className="text-xs text-muted-foreground font-normal">Applies to everyone</span>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-6">
                     {/* Master toggle */}
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => setFeatureEnabled(e => !e)}
+                            type="button"
+                        aria-pressed={featureEnabled}
+                        onClick={() => setFeatureEnabled(e => !e)}
                             className={cn(
                                 'flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all',
                                 featureEnabled
@@ -819,13 +850,13 @@ export default function AdminApiKeysPage() {
                                 ? <ToggleRight className="w-5 h-5" />
                                 : <ToggleLeft className="w-5 h-5" />
                             }
-                            API Access {featureEnabled ? 'Enabled' : 'Disabled'}
+                            API access is {featureEnabled ? 'on' : 'off'}
                         </button>
                     </div>
 
                     {/* Role allowlist */}
                     <div className="flex flex-col gap-2">
-                        <p className="text-[11px] font-semibold text-muted-foreground">Allowed Roles</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Who can use API keys</p>
                         <div className="flex flex-wrap gap-2">
                             {(['agent', 'dealer', 'subagent', 'customer', 'sub-admin', 'admin'] as const).map(role => (
                                 <label key={role} className={cn(
@@ -848,7 +879,7 @@ export default function AdminApiKeysPage() {
                                 </label>
                             ))}
                         </div>
-                        <p className="text-[11px] text-muted-foreground">Only selected roles can generate and use API keys.</p>
+                        <p className="text-[11px] text-muted-foreground">Only the selected roles can create and use keys.</p>
                     </div>
                 </div>
 
@@ -857,20 +888,20 @@ export default function AdminApiKeysPage() {
                         size="sm"
                         onClick={saveSettings}
                         disabled={settingsSaving}
-                        className="h-8 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white gap-1.5"
+                        className="h-8 text-xs font-semibold clay-black gap-1.5"
                     >
                         {settingsSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                        {settingsSaving ? 'Saving…' : 'Save Settings'}
+                        {settingsSaving ? 'Saving…' : 'Save settings'}
                     </Button>
-                    <p className="text-[11px] text-muted-foreground">Changes take effect immediately for new API requests.</p>
+                    <p className="text-[11px] text-muted-foreground">Changes apply to new requests straight away. Press Save to keep them.</p>
                 </div>
             </div>
 
             {/* ── Tabs ───────────────────────────────────────────────────── */}
             <div className="flex gap-1 p-1 bg-muted dark:bg-muted/80 rounded-2xl w-fit">
                 {([
-                    { id: 'keys', label: 'API Keys', icon: Key },
-                    { id: 'logs', label: 'Request Logs', icon: BarChart2 },
+                    { id: 'keys', label: 'Keys', icon: Key },
+                    { id: 'logs', label: 'Request logs', icon: BarChart2 },
                 ] as { id: Tab; label: string; icon: any }[]).map(t => {
                     const Icon = t.icon
                     return (
@@ -906,7 +937,7 @@ export default function AdminApiKeysPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
                                 type="text"
-                                placeholder="Search by name, email, phone or key prefix…"
+                                aria-label="Search keys" placeholder="Search by name, email, phone or key prefix…"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 className="w-full pl-10 pr-9 py-2.5 neu-raised-sm rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 text-foreground placeholder:text-muted-foreground"
@@ -953,11 +984,11 @@ export default function AdminApiKeysPage() {
                                         aria-label="Filter by role"
                                         className="appearance-none pl-3 pr-8 py-2 neu-raised-sm rounded-2xl text-xs font-semibold text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer w-full"
                                     >
-                                        <option value="">All Roles</option>
+                                        <option value="">All roles</option>
                                         <option value="agent">Agent</option>
                                         <option value="dealer">Dealer</option>
                                         <option value="customer">Customer</option>
-                                        <option value="sub-admin">Sub-Admin</option>
+                                        <option value="sub-admin">Sub-admin</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -973,8 +1004,8 @@ export default function AdminApiKeysPage() {
                                     >
                                         <option value="recent">Newest</option>
                                         <option value="oldest">Oldest</option>
-                                        <option value="requests">Most Requests</option>
-                                        <option value="last_used">Last Used</option>
+                                        <option value="requests">Most requests</option>
+                                        <option value="last_used">Last used</option>
                                     </select>
                                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                                 </div>
@@ -983,16 +1014,22 @@ export default function AdminApiKeysPage() {
                     </div>
 
                     {/* Key list */}
-                    {isLoading ? (
+                    {loadFailed && !isLoading ? (
+                        <div role="alert" className="neu-raised-sm rounded-3xl p-8 text-center">
+                            <p className="text-sm font-semibold text-foreground">Could not load the API keys</p>
+                            <p className="text-xs text-muted-foreground mt-1">Check your connection, then try again.</p>
+                            <Button variant="outline" size="sm" className="mt-4 h-8" onClick={() => fetchKeys(pagination.page)}>Try again</Button>
+                        </div>
+                    ) : isLoading ? (
                         <div className="space-y-3">
                             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
                         </div>
                     ) : filteredKeys.length === 0 ? (
                         <div className="text-center py-16 neu-raised-sm rounded-3xl">
                             <Shield className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
-                            <p className="text-sm font-semibold text-muted-foreground">No API Keys Found</p>
+                            <p className="text-sm font-semibold text-foreground">No keys found</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                                {statusFilter ? `No ${statusFilter} keys.` : 'No developers have generated API keys yet.'}
+                                {statusFilter || roleFilter || debouncedSearch ? 'Nothing matches these filters. Try clearing them.' : 'Nobody has created an API key yet.'}
                             </p>
                         </div>
                     ) : (
