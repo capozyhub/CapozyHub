@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -83,6 +83,8 @@ interface MomoSettings {
     momo_max_claimable: string
 }
 
+const fullName = (u: any) => [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim()
+
 const EMPTY_ACCOUNT = (): { network: string; number: string } => ({ network: 'MTN Mobile Money', number: '' })
 
 const NETWORK_OPTIONS = [
@@ -137,19 +139,24 @@ export default function MomoClaimsAdminPage() {
         momo_max_claimable: '50000',
     })
     const [isSavingSettings, setIsSavingSettings] = useState(false)
+    const [settingsLoaded, setSettingsLoaded] = useState(false)
+    const [loadFailed, setLoadFailed] = useState(false)
+    const [refsFailed, setRefsFailed] = useState(false)
+    const dataSeq = useRef(0)
 
     const fetchReferences = useCallback(async () => {
         setRefsLoading(true)
+        setRefsFailed(false)
         try {
             const res = await fetch('/api/admin/momo-references')
             const data = await res.json()
             if (data.success) {
                 setReferences(data.references || [])
             } else {
-                toast.error(data.error || 'Failed to load references')
+                setRefsFailed(true)
             }
         } catch (e: any) {
-            toast.error('Network error loading references')
+            setRefsFailed(true)
         } finally {
             setRefsLoading(false)
         }
@@ -167,15 +174,15 @@ export default function MomoClaimsAdminPage() {
                 toast.success('Reference updated')
                 fetchReferences()
             } else {
-                toast.error(data.error || 'Failed to update')
+                toast.error(data.error || 'Could not update the reference. Try again.')
             }
         } catch (e) {
-            toast.error('Network error')
+            toast.error('Could not reach the server. Check your connection and try again.')
         }
     }
 
     const handleDeleteRef = async (id: string) => {
-        if (!(await ask({ title: 'Delete this reference?', description: 'The user will need to generate a new one.', confirmLabel: 'Delete reference', destructive: true }))) return
+        if (!(await ask({ title: 'Delete this reference?', description: 'It is removed for good. The user has to generate a new one.', confirmLabel: 'Delete reference', destructive: true }))) return
         try {
             const res = await fetch('/api/admin/momo-references', {
                 method: 'DELETE',
@@ -187,18 +194,21 @@ export default function MomoClaimsAdminPage() {
                 toast.success('Reference deleted')
                 fetchReferences()
             } else {
-                toast.error(data.error || 'Failed to delete')
+                toast.error(data.error || 'Could not delete the reference. Try again.')
             }
         } catch (e) {
-            toast.error('Network error')
+            toast.error('Could not reach the server. Check your connection and try again.')
         }
     }
 
     const fetchData = useCallback(async () => {
+        const seq = ++dataSeq.current
         setIsLoading(true)
+        setLoadFailed(false)
         try {
             const res = await fetch('/api/admin/momo-claims')
             const data = await res.json()
+            if (seq !== dataSeq.current) return
             if (!data.success) throw new Error(data.error || 'Failed to fetch')
 
             const txnList: MomoTransaction[] = data.transactions || []
@@ -212,14 +222,15 @@ export default function MomoClaimsAdminPage() {
                     .select('id, first_name, last_name')
                     .in('id', claimerIds)
                 claimerMap = ((claimers as any[]) || []).reduce((acc: Record<string, string>, u: any) => {
-                    acc[u.id] = `${u.first_name} ${u.last_name}`.trim()
+                    acc[u.id] = fullName(u)
                     return acc
                 }, {})
             }
 
+            if (seq !== dataSeq.current) return
             const enriched = txnList.map(t => ({
                 ...t,
-                claimer_name: t.claimed_by ? claimerMap[t.claimed_by] || 'Unknown' : undefined,
+                claimer_name: t.claimed_by ? claimerMap[t.claimed_by] || 'Unnamed user' : undefined,
             }))
             setTransactions(enriched)
 
@@ -238,9 +249,9 @@ export default function MomoClaimsAdminPage() {
                     const userIds = suspicious.map(([id]) => id)
                     const { data: suspUsers } = await supabase.from('users').select('id, first_name, last_name').in('id', userIds)
                     const userMap: Record<string, string> = ((suspUsers as any[]) || []).reduce((acc: Record<string, string>, u: any) => {
-                        acc[u.id] = `${u.first_name} ${u.last_name}`.trim(); return acc
+                        acc[u.id] = fullName(u); return acc
                     }, {})
-                    setAttempts(suspicious.map(([id, count]) => ({ user_id: id, count, user_name: userMap[id] || 'Unknown' })))
+                    setAttempts(suspicious.map(([id, count]) => ({ user_id: id, count, user_name: userMap[id] || 'Unnamed user' })))
                 } else { setAttempts([]) }
             }
 
@@ -256,13 +267,13 @@ export default function MomoClaimsAdminPage() {
                     momo_min_claimable: s.momo_min_claimable || '1',
                     momo_max_claimable: s.momo_max_claimable || '50000',
                 })
+                setSettingsLoaded(true)
             }
 
         } catch (e: any) {
-            toast.error('Failed to load MoMo claims data')
-            console.error(e)
+            if (seq === dataSeq.current) setLoadFailed(true)
         } finally {
-            setIsLoading(false)
+            if (seq === dataSeq.current) setIsLoading(false)
         }
     }, [])
 
@@ -274,7 +285,7 @@ export default function MomoClaimsAdminPage() {
     }, [isAdmin, isSubAdmin, fetchData, fetchReferences])
 
     const handleVoid = async (txn: MomoTransaction) => {
-        if (!(await ask({ title: `Void transaction ${txn.transaction_id}?`, description: 'The user will no longer be able to claim it.', confirmLabel: 'Void it', destructive: true }))) return
+        if (!(await ask({ title: `Void ${txn.transaction_id}?`, description: 'Nobody will be able to claim it. You can restore it later.', confirmLabel: 'Void it', destructive: true }))) return
         setActionLoading(txn.id)
         try {
             const res = await fetch('/api/admin/momo-claims', {
@@ -284,10 +295,10 @@ export default function MomoClaimsAdminPage() {
             })
             const data = await res.json()
             if (!data.success) throw new Error(data.error)
-            toast.success(`Transaction ${txn.transaction_id} voided`)
+            toast.success(`${txn.transaction_id} voided`)
             fetchData()
         } catch (e: any) {
-            toast.error('Failed to void transaction')
+            toast.error(e?.message || 'Could not void this transaction. Try again.')
         } finally {
             setActionLoading(null)
         }
@@ -303,10 +314,10 @@ export default function MomoClaimsAdminPage() {
             })
             const data = await res.json()
             if (!data.success) throw new Error(data.error)
-            toast.success('Transaction restored to pending')
+            toast.success('Transaction is pending again')
             fetchData()
         } catch (e: any) {
-            toast.error('Failed to restore transaction')
+            toast.error(e?.message || 'Could not restore this transaction. Try again.')
         } finally {
             setActionLoading(null)
         }
@@ -320,7 +331,7 @@ export default function MomoClaimsAdminPage() {
             if (searchQuery) {
                 const q = searchQuery.toLowerCase()
                 if (
-                    !t.transaction_id.includes(q) &&
+                    !t.transaction_id.toLowerCase().includes(q) &&
                     !t.sender_name.toLowerCase().includes(q) &&
                     !(t.claimer_name || '').toLowerCase().includes(q)
                 ) return false
@@ -354,6 +365,13 @@ export default function MomoClaimsAdminPage() {
     }, [filtered])
 
     const handleSaveSettings = async () => {
+        if (!settingsLoaded) { toast.error('The saved settings have not loaded yet. Refresh the page first.'); return }
+        const fees = [settings.momo_claim_fee_customer, settings.momo_claim_fee_agent].map(Number)
+        if (fees.some(n => !Number.isFinite(n) || n < 0 || n > 100)) { toast.error('Claim fees must be between 0 and 100 percent.'); return }
+        const min = Number(settings.momo_min_claimable)
+        const max = Number(settings.momo_max_claimable)
+        if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max <= 0 || min > max) { toast.error('The smallest amount must be lower than the largest amount.'); return }
+        if (settings.momo_payment_accounts.some(a => !a.number.trim())) { toast.error('Fill in every payment number, or remove the empty row.'); return }
         setIsSavingSettings(true)
         try {
             const res = await fetch('/api/admin/momo-claims', {
@@ -363,9 +381,9 @@ export default function MomoClaimsAdminPage() {
             })
             const data = await res.json()
             if (!data.success) throw new Error(data.error || 'Failed to save')
-            toast.success('MoMo settings saved successfully')
+            toast.success('MoMo settings saved')
         } catch (e: any) {
-            toast.error(e.message || 'Failed to save settings')
+            toast.error(e.message || 'Could not save the settings. Try again.')
         } finally {
             setIsSavingSettings(false)
         }
@@ -374,7 +392,7 @@ export default function MomoClaimsAdminPage() {
     if (!isAdmin && !isSubAdmin) {
         return (
             <div className="p-8 text-center text-muted-foreground">
-                You do not have permission to view this page.
+                You don't have access to this page.
             </div>
         )
     }
@@ -385,12 +403,12 @@ export default function MomoClaimsAdminPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Smartphone className="w-6 h-6 text-brand-700" />
-                        MoMo Claims
+                    <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+                        <Smartphone className="w-6 h-6 text-brand-700 dark:text-brand-500" />
+                        MoMo claims
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1">
-                        Monitor and manage all MoMo Transaction ID claims
+                        Payments users claim with a MoMo transaction ID
                     </p>
                 </div>
                 <Button variant="outline" onClick={fetchData} disabled={isLoading} size="sm">
@@ -401,12 +419,18 @@ export default function MomoClaimsAdminPage() {
 
             <Tabs defaultValue="monitoring">
                 <TabsList>
-                    <TabsTrigger value="monitoring">📊 Monitoring</TabsTrigger>
-                    {isAdmin && <TabsTrigger value="references"><UserCheck className="w-4 h-4 mr-1" />User References</TabsTrigger>}
+                    <TabsTrigger value="monitoring">Transactions</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="references"><UserCheck className="w-4 h-4 mr-1" />User references</TabsTrigger>}
                     {isAdmin && <TabsTrigger value="settings"><Settings2 className="w-4 h-4 mr-1" />Settings</TabsTrigger>}
                 </TabsList>
 
             <TabsContent value="monitoring" className="space-y-6 mt-4">
+            {loadFailed && !isLoading && (
+                <div role="alert" className="neu-raised-sm rounded-3xl p-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-foreground">Could not load the MoMo data. The lists below may be empty or out of date.</p>
+                    <Button variant="outline" size="sm" onClick={fetchData}>Try again</Button>
+                </div>
+            )}
             {/* Stat Cards */}
             {isLoading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -415,14 +439,14 @@ export default function MomoClaimsAdminPage() {
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     {[
-                        { label: 'Total', value: filteredStats.total, color: 'text-brand-700', bg: 'bg-brand-50' },
-                        { label: 'Pending', value: filteredStats.pending, color: 'text-amber-600', bg: 'bg-amber-50' },
-                        { label: 'Claimed', value: filteredStats.claimed, color: 'text-green-600', bg: 'bg-green-50' },
-                        { label: 'Voided', value: filteredStats.voided, color: 'text-muted-foreground', bg: 'bg-muted/50' },
-                        { label: 'Flagged', value: filteredStats.flagged, color: 'text-red-600', bg: 'bg-red-50' },
-                        { label: 'Total Credited', value: formatCurrency(filteredStats.totalCredited), color: 'text-emerald-700', bg: 'bg-emerald-50', isAmount: true },
+                        { label: 'Total', value: filteredStats.total, color: 'text-foreground' },
+                        { label: 'Pending', value: filteredStats.pending, color: 'text-amber-600 dark:text-amber-400' },
+                        { label: 'Claimed', value: filteredStats.claimed, color: 'text-emerald-700 dark:text-emerald-400' },
+                        { label: 'Voided', value: filteredStats.voided, color: 'text-muted-foreground' },
+                        { label: 'Flagged', value: filteredStats.flagged, color: 'text-red-600 dark:text-red-400' },
+                        { label: 'Total credited', value: formatCurrency(filteredStats.totalCredited), color: 'text-emerald-700 dark:text-emerald-400' },
                     ].map((s) => (
-                        <Card key={s.label} className={`${s.bg} border-0`}>
+                        <Card key={s.label} className="neu-raised-sm border-0">
                             <CardContent className="p-4">
                                 <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
                                 <p className={`text-xl font-bold mt-1 ${s.color}`}>{s.value}</p>
@@ -437,7 +461,7 @@ export default function MomoClaimsAdminPage() {
                 <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by TXN ID, sender, or claimer..."
+                        aria-label="Search transactions" placeholder="Search by transaction ID, sender or claimer…"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9"
@@ -448,7 +472,7 @@ export default function MomoClaimsAdminPage() {
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="claimed">Claimed</SelectItem>
                         <SelectItem value="voided">Voided</SelectItem>
@@ -460,7 +484,7 @@ export default function MomoClaimsAdminPage() {
                         <SelectValue placeholder="Network" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Networks</SelectItem>
+                        <SelectItem value="all">All networks</SelectItem>
                         <SelectItem value="MTN">MTN</SelectItem>
                         <SelectItem value="Telecel">Telecel</SelectItem>
                         <SelectItem value="AirtelTigo">AirtelTigo</SelectItem>
@@ -495,7 +519,7 @@ export default function MomoClaimsAdminPage() {
                     ) : filtered.length === 0 ? (
                         <div className="p-12 text-center text-muted-foreground">
                             <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                            <p>No transactions found</p>
+                            <p>{transactions.length === 0 ? 'No MoMo payments have come in yet.' : 'No transactions match these filters.'}</p>
                         </div>
                     ) : (
                         <>
@@ -540,7 +564,7 @@ export default function MomoClaimsAdminPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button variant="outline" size="sm" className="h-8 text-xs flex-1"
-                                                onClick={() => setRawSmsModal({ open: true, sms: txn.raw_sms || '(no raw SMS saved)', txnId: txn.transaction_id })}
+                                                onClick={() => setRawSmsModal({ open: true, sms: txn.raw_sms || '(No SMS text was saved for this one.)', txnId: txn.transaction_id })}
                                             >
                                                 <Eye className="w-3 h-3 mr-1" /> View SMS
                                             </Button>
@@ -569,7 +593,7 @@ export default function MomoClaimsAdminPage() {
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/40 border-b">
                                     <tr>
-                                        {['Transaction ID', 'Sender', 'Network', 'Amount', 'Fee', 'Net', 'Status', 'Claimed By', 'Received', 'Actions'].map(h => (
+                                        {['Transaction ID', 'Sender', 'Network', 'Amount', 'Fee', 'Net', 'Status', 'Claimed by', 'Received', 'Actions'].map(h => (
                                             <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                                         ))}
                                     </tr>
@@ -605,19 +629,19 @@ export default function MomoClaimsAdminPage() {
                                                 <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(txn.created_at)}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7" title="View Raw SMS"
-                                                            onClick={() => setRawSmsModal({ open: true, sms: txn.raw_sms || '(no raw SMS saved)', txnId: txn.transaction_id })}
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9" title="View the SMS" aria-label="View the SMS"
+                                                            onClick={() => setRawSmsModal({ open: true, sms: txn.raw_sms || '(No SMS text was saved for this one.)', txnId: txn.transaction_id })}
                                                         >
                                                             <Eye className="w-3.5 h-3.5" />
                                                         </Button>
                                                         {(txn.status === 'pending' || txn.status === 'flagged') ? (
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50" title="Void Transaction"
+                                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-red-600 hover:bg-red-50" title="Void this transaction" aria-label="Void this transaction"
                                                                 disabled={actionLoading === txn.id} onClick={() => handleVoid(txn)}
                                                             >
                                                                 {actionLoading === txn.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                                                             </Button>
                                                         ) : txn.status === 'voided' ? (
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-50" title="Restore to Pending"
+                                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-emerald-700 hover:bg-emerald-50" title="Restore to pending" aria-label="Restore to pending"
                                                                 disabled={actionLoading === txn.id} onClick={() => handleUndoVoid(txn)}
                                                             >
                                                                 {actionLoading === txn.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
@@ -642,9 +666,9 @@ export default function MomoClaimsAdminPage() {
                     <CardHeader>
                         <CardTitle className="text-base text-red-700 flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4" />
-                            Suspicious Activity (Last 24h — ≥5 Lookups)
+                            Possible abuse: 5 or more lookups in 24 hours
                         </CardTitle>
-                        <CardDescription>Users with unusually high lookup attempt counts. Consider investigating.</CardDescription>
+                        <CardDescription>These users tried to look up transaction IDs unusually often. Worth a closer look.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
@@ -663,8 +687,8 @@ export default function MomoClaimsAdminPage() {
             <Dialog open={rawSmsModal.open} onOpenChange={(o) => setRawSmsModal(prev => ({ ...prev, open: o }))}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Raw SMS — TXN {rawSmsModal.txnId}</DialogTitle>
-                        <DialogDescription>Original SMS text received from the Forward SMS app.</DialogDescription>
+                        <DialogTitle>SMS for {rawSmsModal.txnId}</DialogTitle>
+                        <DialogDescription>The text exactly as the SMS forwarder received it.</DialogDescription>
                     </DialogHeader>
                     <div className="bg-muted rounded-lg p-4 text-sm font-mono whitespace-pre-wrap break-words">
                         {rawSmsModal.sms}
@@ -676,17 +700,17 @@ export default function MomoClaimsAdminPage() {
             <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Custom Date Range</DialogTitle>
-                        <DialogDescription>Select a start and end date to filter transactions.</DialogDescription>
+                        <DialogTitle>Custom dates</DialogTitle>
+                        <DialogDescription>Pick the first and last day to include.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <div className="space-y-2">
-                            <Label>From</Label>
-                            <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+                            <Label htmlFor="momo-from">From</Label>
+                            <Input id="momo-from" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label>To</Label>
-                            <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+                            <Label htmlFor="momo-to">To</Label>
+                            <Input id="momo-to" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
                         </div>
                     </div>
                     <div className="flex gap-2 justify-end">
@@ -696,9 +720,9 @@ export default function MomoClaimsAdminPage() {
                                 setTimePeriod('Custom')
                                 setIsCustomDialogOpen(false)
                             } else {
-                                toast.error('Please select both start and end dates')
+                                toast.error('Pick both a start and an end date.')
                             }
-                        }}>Apply Range</Button>
+                        }}>Apply dates</Button>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -710,8 +734,8 @@ export default function MomoClaimsAdminPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle>User Payment References</CardTitle>
-                            <CardDescription>Manage unique 5-character reference codes generated by users.</CardDescription>
+                            <CardTitle>User payment references</CardTitle>
+                            <CardDescription>Each user gets a short code to put on their payment. Switch one off or delete it here.</CardDescription>
                         </div>
                         <Button variant="outline" size="sm" onClick={fetchReferences} disabled={refsLoading}>
                             <RefreshCw className={`w-4 h-4 mr-2 ${refsLoading ? 'animate-spin' : ''}`} />
@@ -723,9 +747,14 @@ export default function MomoClaimsAdminPage() {
                             <div className="space-y-3">
                                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
                             </div>
+                        ) : refsFailed ? (
+                            <div role="alert" className="text-center py-8 space-y-2">
+                                <p className="text-sm text-foreground">Could not load the references.</p>
+                                <Button variant="outline" size="sm" onClick={fetchReferences}>Try again</Button>
+                            </div>
                         ) : references.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                No user references generated yet.
+                                Nobody has generated a reference yet.
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -748,7 +777,7 @@ export default function MomoClaimsAdminPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-medium">{r.users?.first_name} {r.users?.last_name}</p>
+                                                    <p className="font-medium">{fullName(r.users) || 'Unnamed user'}</p>
                                                     <p className="text-xs text-muted-foreground">{r.users?.phone_number}</p>
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
@@ -764,13 +793,14 @@ export default function MomoClaimsAdminPage() {
                                                         <Switch 
                                                             checked={r.is_active}
                                                             onCheckedChange={(v) => handleToggleRef(r.id, v)}
-                                                            title={r.is_active ? "Disable reference" : "Enable reference"}
+                                                            aria-label={r.is_active ? 'Disable reference' : 'Enable reference'}
+                                                            title={r.is_active ? 'Disable reference' : 'Enable reference'}
                                                         />
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon" 
-                                                            className="h-8 w-8 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950" 
-                                                            title="Delete reference permanently"
+                                                            className="h-9 w-9 text-red-600 hover:bg-red-50 dark:hover:bg-red-950" 
+                                                            title="Delete this reference" aria-label="Delete this reference"
                                                             onClick={() => handleDeleteRef(r.id)}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
@@ -794,14 +824,14 @@ export default function MomoClaimsAdminPage() {
                 {/* Enable Toggle */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>MoMo Claim Feature</CardTitle>
-                        <CardDescription>Enable or disable the entire MoMo claim system for all users.</CardDescription>
+                        <CardTitle>MoMo claims</CardTitle>
+                        <CardDescription>Switch the whole feature on or off for everyone.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center justify-between p-4 border rounded-lg">
                             <div>
-                                <Label className="text-base">Enable MoMo Claims</Label>
-                                <p className="text-sm text-muted-foreground">When disabled, the claim card is hidden and API returns 503.</p>
+                                <Label className="text-base">Let users claim MoMo payments</Label>
+                                <p className="text-sm text-muted-foreground">When off, the claim card is hidden and claim requests are refused.</p>
                             </div>
                             <Switch
                                 checked={settings.momo_claim_enabled}
@@ -814,21 +844,22 @@ export default function MomoClaimsAdminPage() {
                 {/* Payment Accounts */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Payment Accounts</CardTitle>
-                        <CardDescription>MoMo numbers users will send money to. Account name is shown below the numbers.</CardDescription>
+                        <CardTitle>Where users send money</CardTitle>
+                        <CardDescription>The MoMo numbers users pay into. The account name shows under the numbers.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Account Name (Display Only)</Label>
+                            <Label htmlFor="momo-account-name">Account name (shown to users)</Label>
                             <Input
+                                id="momo-account-name"
                                 value={settings.momo_account_name}
                                 onChange={(e) => setSettings(p => ({ ...p, momo_account_name: e.target.value }))}
-                                placeholder="e.g. Felix Boahen"
+                                placeholder="Name on the MoMo account"
                                 maxLength={80}
                             />
                         </div>
                         <div className="space-y-3">
-                            <Label>Payment Numbers</Label>
+                            <Label>Payment numbers</Label>
                             {settings.momo_payment_accounts.map((acct, i) => (
                                 <div key={i} className="grid grid-cols-[180px_1fr_auto] gap-2 items-end">
                                     <div className="space-y-1">
@@ -847,9 +878,9 @@ export default function MomoClaimsAdminPage() {
                                         </select>
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <p className="text-xs text-muted-foreground">MoMo Number</p>}
+                                        {i === 0 && <p className="text-xs text-muted-foreground">MoMo number</p>}
                                         <Input
-                                            placeholder="e.g. 0551617309"
+                                            placeholder="e.g. 0240000000" aria-label={`MoMo number for account ${i + 1}`} inputMode="tel"
                                             value={acct.number}
                                             onChange={(e) => {
                                                 const updated = [...settings.momo_payment_accounts]
@@ -861,6 +892,7 @@ export default function MomoClaimsAdminPage() {
                                     <Button
                                         type="button" variant="ghost" size="icon"
                                         className="text-destructive hover:bg-destructive/10"
+                                        aria-label={`Remove account ${i + 1}`}
                                         onClick={() => setSettings(p => ({ ...p, momo_payment_accounts: p.momo_payment_accounts.filter((_, idx) => idx !== i) }))}
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -870,7 +902,7 @@ export default function MomoClaimsAdminPage() {
                             <Button type="button" variant="outline" size="sm"
                                 onClick={() => setSettings(p => ({ ...p, momo_payment_accounts: [...p.momo_payment_accounts, EMPTY_ACCOUNT()] }))}
                             >
-                                <Plus className="w-4 h-4 mr-1" /> Add Payment Number
+                                <Plus className="w-4 h-4 mr-1" /> Add a number
                             </Button>
                         </div>
                     </CardContent>
@@ -879,26 +911,26 @@ export default function MomoClaimsAdminPage() {
                 {/* Claim Fees */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Claim Fees (Role-Based)</CardTitle>
-                        <CardDescription>Percentage deducted from the claimed amount. Set to 0 for no charge. Applied server-side — users cannot bypass this.</CardDescription>
+                        <CardTitle>Claim fees</CardTitle>
+                        <CardDescription>A percentage taken off the claimed amount. Use 0 for no fee. The server applies it, so users can't skip it.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Customer Claim Fee (%)</Label>
+                                <Label>Customer fee (%)</Label>
                                 <Input type="number" min="0" max="100" step="0.01"
                                     value={settings.momo_claim_fee_customer}
                                     onChange={(e) => setSettings(p => ({ ...p, momo_claim_fee_customer: e.target.value }))}
                                 />
-                                <p className="text-xs text-muted-foreground">0 = no charge for customers</p>
+                                <p className="text-xs text-muted-foreground">0 means customers pay no fee</p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Agent Claim Fee (%)</Label>
+                                <Label>Agent fee (%)</Label>
                                 <Input type="number" min="0" max="100" step="0.01"
                                     value={settings.momo_claim_fee_agent}
                                     onChange={(e) => setSettings(p => ({ ...p, momo_claim_fee_agent: e.target.value }))}
                                 />
-                                <p className="text-xs text-muted-foreground">0 = no charge for agents</p>
+                                <p className="text-xs text-muted-foreground">0 means agents pay no fee</p>
                             </div>
                         </div>
                     </CardContent>
@@ -907,20 +939,20 @@ export default function MomoClaimsAdminPage() {
                 {/* Amount Limits */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Accepted Amount Range</CardTitle>
-                        <CardDescription>Shown to users on the wallet page. Claims below minimum are blocked server-side.</CardDescription>
+                        <CardTitle>Amounts users can claim</CardTitle>
+                        <CardDescription>Shown to users on the wallet page. Claims outside this range are refused.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Minimum Claimable Amount (GHS)</Label>
+                                <Label>Smallest amount (GH₵)</Label>
                                 <Input type="number" min="0" step="0.01"
                                     value={settings.momo_min_claimable}
                                     onChange={(e) => setSettings(p => ({ ...p, momo_min_claimable: e.target.value }))}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Maximum Claimable Amount (GHS)</Label>
+                                <Label>Largest amount (GH₵)</Label>
                                 <Input type="number" min="0" step="0.01"
                                     value={settings.momo_max_claimable}
                                     onChange={(e) => setSettings(p => ({ ...p, momo_max_claimable: e.target.value }))}
@@ -932,7 +964,7 @@ export default function MomoClaimsAdminPage() {
 
                 <Button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full md:w-auto">
                     {isSavingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save MoMo Settings
+                    Save settings
                 </Button>
             </TabsContent>
             )}
