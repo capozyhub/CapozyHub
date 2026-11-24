@@ -15,10 +15,10 @@ export function TopMovers({ trends }: { trends: AdminTrends | null }) {
                 <div>
                     <div className="flex items-center gap-2 mb-3">
                         <Package className="w-4 h-4" style={{ color: accent.yellow }} />
-                        <p className={sectionLabel}>Top Packages</p>
+                        <h2 className={sectionLabel}>Top packages</h2>
                     </div>
                     {!trends ? (
-                        <div className="h-32 animate-pulse rounded-xl bg-muted dark:bg-card/5" />
+                        <div className="h-32 animate-pulse rounded-xl bg-foreground/10" />
                     ) : packages.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-4">No sales in this period</p>
                     ) : (
@@ -38,10 +38,10 @@ export function TopMovers({ trends }: { trends: AdminTrends | null }) {
                 <div>
                     <div className="flex items-center gap-2 mb-3">
                         <Crown className="w-4 h-4" style={{ color: accent.violet }} />
-                        <p className={sectionLabel}>Top Agents</p>
+                        <h2 className={sectionLabel}>Top agents</h2>
                     </div>
                     {!trends ? (
-                        <div className="h-32 animate-pulse rounded-xl bg-muted dark:bg-card/5" />
+                        <div className="h-32 animate-pulse rounded-xl bg-foreground/10" />
                     ) : agents.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-4">No agent sales in this period</p>
                     ) : (

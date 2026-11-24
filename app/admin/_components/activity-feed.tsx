@@ -24,8 +24,8 @@ export function ActivityFeed({ items, isLoading }: { items: ActivityItem[]; isLo
     return (
         <div className={cn(cardSurface, 'p-5 flex flex-col h-full')}>
             <div className="flex items-center gap-2 mb-4">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className={sectionLabel}>Recent Activity</p>
+                <span aria-hidden="true" className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse motion-reduce:animate-none" />
+                <h2 className={sectionLabel}>Recent activity</h2>
             </div>
 
             {isLoading ? (
@@ -41,12 +41,12 @@ export function ActivityFeed({ items, isLoading }: { items: ActivityItem[]; isLo
                         const Icon = meta.icon
                         return (
                             <li key={`${item.kind}-${item.id}`} className={cn(mutedSurface, 'p-2.5 flex items-center gap-3')}>
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${meta.color}1a`, color: meta.color }}>
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${meta.color}1a`, color: meta.color }}>
                                     <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
-                                    <p className="text-[11px] text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground">
                                         <span className="capitalize">{item.kind}</span>
                                         {item.status ? ` · ${item.status}` : ''} · {timeAgo(item.at)}
                                     </p>

@@ -22,7 +22,7 @@ function BreakdownList({ rows, keyName }: { rows: BreakdownRow[]; keyName: 'cate
                             <span className="font-semibold capitalize text-foreground">{String(name).replace(/_/g, ' ')}</span>
                             <span className="text-muted-foreground">{formatCurrency(r.revenue)}</span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-muted dark:bg-card/5 overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                         </div>
                     </div>
@@ -39,16 +39,16 @@ export function ProductSourceBreakdown({ byCategory, bySource }: { byCategory: B
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <Layers className="w-4 h-4" style={{ color: accent.violet }} />
-                        <p className={sectionLabel}>By Product</p>
+                        <h2 className={sectionLabel}>By product</h2>
                     </div>
-                    {!byCategory ? <div className="h-24 animate-pulse rounded-xl bg-muted dark:bg-card/5" /> : <BreakdownList rows={byCategory} keyName="category" />}
+                    {!byCategory ? <div className="h-24 animate-pulse rounded-xl bg-foreground/10" /> : <BreakdownList rows={byCategory} keyName="category" />}
                 </div>
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <Radio className="w-4 h-4" style={{ color: accent.emerald }} />
-                        <p className={sectionLabel}>By Channel</p>
+                        <h2 className={sectionLabel}>By channel</h2>
                     </div>
-                    {!bySource ? <div className="h-24 animate-pulse rounded-xl bg-muted dark:bg-card/5" /> : <BreakdownList rows={bySource} keyName="source" />}
+                    {!bySource ? <div className="h-24 animate-pulse rounded-xl bg-foreground/10" /> : <BreakdownList rows={bySource} keyName="source" />}
                 </div>
             </div>
         </div>

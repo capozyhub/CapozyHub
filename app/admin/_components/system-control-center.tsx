@@ -18,12 +18,12 @@ const DEFAULT_ON: Record<ToggleKey, boolean> = {
 }
 
 const MONEY_LABELS: Record<string, { label: string; prefix?: string; suffix?: string }> = {
-    paystack_fee_percent: { label: 'Customer Fee', suffix: '%' },
-    agent_paystack_fee_percent: { label: 'Agent Fee', suffix: '%' },
-    dealer_paystack_fee_percent: { label: 'Dealer Fee', suffix: '%' },
-    paystack_min_topup: { label: 'Min Top-up', prefix: '₵' },
-    paystack_max_topup: { label: 'Max Top-up', prefix: '₵' },
-    mtn_price_adjustment: { label: 'MTN Adj.', prefix: '₵' },
+    paystack_fee_percent: { label: 'Customer fee', suffix: '%' },
+    agent_paystack_fee_percent: { label: 'Agent fee', suffix: '%' },
+    dealer_paystack_fee_percent: { label: 'Dealer fee', suffix: '%' },
+    paystack_min_topup: { label: 'Min top-up', prefix: '₵' },
+    paystack_max_topup: { label: 'Max top-up', prefix: '₵' },
+    mtn_price_adjustment: { label: 'MTN adjustment', prefix: '₵' },
 }
 
 export function SystemControlCenter() {
@@ -90,16 +90,16 @@ export function SystemControlCenter() {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <SlidersHorizontal className="w-4 h-4" style={{ color: accent.red }} />
-                    <p className={sectionLabel}>System Controls</p>
+                    <h2 className={sectionLabel}>System controls</h2>
                 </div>
-                <Link href="/admin/settings" className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-foreground dark:hover:text-white">
-                    Manage in Settings <ExternalLink className="w-3 h-3" />
+                <Link href="/admin/settings" className="inline-flex items-center gap-1 rounded text-xs font-bold text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 dark:hover:text-white dark:focus-visible:outline-brand-500">
+                    Open settings <ExternalLink className="w-3 h-3" />
                 </Link>
             </div>
 
             {!isAdmin && (
-                <div className="flex items-center gap-2 mb-3 text-[11px] text-amber-600 dark:text-amber-400">
-                    <ShieldAlert className="w-3.5 h-3.5" /> Read-only — admin role required to change controls.
+                <div className="flex items-center gap-2 mb-3 text-xs text-amber-700 dark:text-amber-400">
+                    <ShieldAlert className="w-3.5 h-3.5" /> Read-only. You need the admin role to change these.
                 </div>
             )}
 
@@ -111,7 +111,7 @@ export function SystemControlCenter() {
                         <div key={key} className={cn(mutedSurface, 'p-3 flex items-center justify-between gap-3')}>
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-foreground">{TOGGLE_META[key].label}</p>
-                                <p className="text-[11px] text-muted-foreground truncate">{TOGGLE_META[key].description}</p>
+                                <p className="text-xs text-muted-foreground truncate">{TOGGLE_META[key].description}</p>
                             </div>
                             <Switch
                                 checked={on}
@@ -127,19 +127,19 @@ export function SystemControlCenter() {
                 <div className={cn(mutedSurface, 'p-3 flex items-center justify-between gap-3')}>
                     <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                            Payment Maintenance
-                            {paymentMaintenance && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                            Payment maintenance
+                            {paymentMaintenance && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">Set via environment — redeploy to change</p>
+                        <p className="text-xs text-muted-foreground">Set in the environment. Redeploy to change it.</p>
                     </div>
-                    <span className={cn('text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap', paymentMaintenance ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10')}>
+                    <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', paymentMaintenance ? 'glass-inset text-amber-700 dark:text-amber-400' : 'glass-inset text-emerald-700 dark:text-emerald-400')}>
                         {paymentMaintenance ? 'ON' : 'OFF'}
                     </span>
                 </div>
             </div>
 
             {/* Read-only money config */}
-            <p className={cn(sectionLabel, 'mt-5 mb-2')}>Money Config</p>
+            <h2 className={cn(sectionLabel, 'mt-5 mb-2')}>Money settings</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {MONEY_CONFIG_KEYS.map(key => {
                     const meta = MONEY_LABELS[key]

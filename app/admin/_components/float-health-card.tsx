@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Scale, ArrowRight } from 'lucide-react'
-import { cardSurface, sectionLabel, accent } from './dashboard-tokens'
+import { cardSurface, sectionLabel, focusRing, accent } from './dashboard-tokens'
 import type { AdminStats } from './use-admin-dashboard'
 
 export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
@@ -22,9 +22,9 @@ export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Scale className="w-4 h-4" style={{ color: accent.slate }} />
-                    <p className={sectionLabel}>Float &amp; Liability</p>
+                    <h2 className={sectionLabel}>Float and liability</h2>
                 </div>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dot }} />
                     {healthLabel}
                 </span>
@@ -33,13 +33,13 @@ export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
             <div className="space-y-3 flex-1">
                 <div>
                     <p className="text-xs text-muted-foreground">Wallet liability (held for users)</p>
-                    <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(liability)}</p>
+                    <p className="break-words font-display text-2xl font-bold tabular-nums tracking-tight text-foreground">{formatCurrency(liability)}</p>
                 </div>
-                <div className="h-px bg-muted/70 dark:bg-card/10" />
+                <div className="h-px bg-foreground/10" />
                 <div className="flex items-end justify-between">
                     <div>
                         <p className="text-xs text-muted-foreground">Outstanding debt owed to you</p>
-                        <p className={cn('text-xl font-bold tracking-tight', debt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground')}>
+                        <p className={cn('text-xl font-bold tracking-tight', debt > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-foreground')}>
                             {formatCurrency(debt)}
                         </p>
                     </div>
@@ -48,7 +48,7 @@ export function FloatHealthCard({ stats }: { stats: AdminStats | null }) {
             </div>
 
             {debt > 0 && (
-                <Link href="/admin/top-up?tab=settlements" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400 hover:gap-1.5 transition-all">
+                <Link href="/admin/top-up?tab=settlements" className={cn('mt-4 inline-flex items-center gap-1 rounded text-xs font-bold text-rose-700 transition-all hover:gap-1.5 motion-reduce:transition-none dark:text-rose-400', focusRing)}>
                     Review settlements <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
             )}

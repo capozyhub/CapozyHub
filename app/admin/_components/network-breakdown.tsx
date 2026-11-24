@@ -13,11 +13,11 @@ export function NetworkBreakdown({ rows }: { rows: BreakdownRow[] | null }) {
         <div className={cn(cardSurface, 'p-5')}>
             <div className="flex items-center gap-2 mb-4">
                 <Signal className="w-4 h-4" style={{ color: accent.blue }} />
-                <p className={sectionLabel}>Revenue by Network</p>
+                <h2 className={sectionLabel}>Revenue by network</h2>
             </div>
 
             {!rows ? (
-                <div className="h-40 animate-pulse rounded-xl bg-muted dark:bg-card/5" />
+                <div className="h-40 animate-pulse rounded-xl bg-foreground/10" />
             ) : data.length === 0 ? (
                 <div className="h-40 flex items-center justify-center text-sm text-muted-foreground">No data in this period</div>
             ) : (
@@ -31,7 +31,7 @@ export function NetworkBreakdown({ rows }: { rows: BreakdownRow[] | null }) {
                                     <span className="font-semibold text-foreground">{r.network || 'Unknown'}</span>
                                     <span className="text-muted-foreground">{formatCurrency(r.revenue)} · {r.orders}</span>
                                 </div>
-                                <div className="h-2 rounded-full bg-muted dark:bg-card/5 overflow-hidden">
+                                <div className="h-2 rounded-full bg-foreground/10 overflow-hidden">
                                     <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                                 </div>
                             </div>

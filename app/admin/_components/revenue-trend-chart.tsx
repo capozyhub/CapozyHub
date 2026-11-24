@@ -13,15 +13,16 @@ export function RevenueTrendChart({ trends }: { trends: AdminTrends | null }) {
         <div className={cn(cardSurface, 'p-5')}>
             <div className="flex items-center gap-2 mb-4">
                 <Activity className="w-4 h-4" style={{ color: accent.emerald }} />
-                <p className={sectionLabel}>Revenue &amp; Profit</p>
+                <h2 className={sectionLabel}>Revenue and profit</h2>
             </div>
 
             {!trends ? (
-                <div className="h-64 animate-pulse rounded-xl bg-muted dark:bg-card/5" />
+                <div className="h-64 animate-pulse rounded-xl bg-foreground/10" />
             ) : data.length === 0 ? (
                 <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">No data in this period</div>
             ) : (
-                <div className="h-64">
+                // Axis labels follow the theme's muted text colour, so they read on light and dark glass.
+                <div className="h-64 [&_.recharts-cartesian-axis-tick-value]:fill-[hsl(var(--muted-foreground))]" role="img" aria-label={`Revenue and profit over the selected period. Total revenue ${formatCurrency(data.reduce((a, p) => a + (p.revenue || 0), 0))}, total profit ${formatCurrency(data.reduce((a, p) => a + (p.profit || 0), 0))}.`}>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
                             <defs>
@@ -34,12 +35,12 @@ export function RevenueTrendChart({ trends }: { trends: AdminTrends | null }) {
                                     <stop offset="100%" stopColor={accent.yellow} stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#94a3b833" vertical={false} />
-                            <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} minTickGap={16} />
-                            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} width={48}
+                            <CartesianGrid strokeDasharray="3 3" stroke="#88888840" vertical={false} />
+                            <XAxis dataKey="bucket" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} minTickGap={16} />
+                            <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={48}
                                 tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))} />
                             <Tooltip
-                                contentStyle={{ borderRadius: 12, border: '1px solid #88888833', background: 'rgba(15,20,25,0.95)', color: '#fff', fontSize: 12 }}
+                                contentStyle={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(12,12,12,0.92)', color: '#fff', fontSize: 13 }}
                                 formatter={(value: any, name: any) => [formatCurrency(Number(value)), name === 'revenue' ? 'Revenue' : 'Profit']}
                             />
                             <Area type="monotone" dataKey="revenue" stroke={accent.emerald} strokeWidth={2} fill="url(#revFill)" />

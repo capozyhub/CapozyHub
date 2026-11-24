@@ -1,24 +1,29 @@
 /**
- * Design tokens for the admin fintech console.
+ * Design tokens for the admin overview.
  *
- * One disciplined, theme-adaptive system (replaces the old rainbow gradient
- * cards). Surfaces are neutral; brand accents are used semantically on numbers
- * and indicators, never as full-card fills.
+ * The page is frosted glass over a soft gold-and-silver glow (see .glass in globals.css).
+ * Panels are `glass`, tiles inside them are `glass-inset`. Text keeps the theme colours
+ * (foreground / muted-foreground), so it stays readable in both light and dark mode; colour is
+ * used on icons, charts and status words only.
  */
 
-/** Primary elevated surface (KPI cards, panels). */
-export const cardSurface =
-    'rounded-xl border border-border bg-card shadow-sm dark:shadow-none'
+/** A frosted panel (KPI cards, charts, lists). */
+export const cardSurface = 'glass rounded-3xl'
 
-/** Secondary/recessed surface (inner tiles, list rows). */
-export const mutedSurface =
-    'rounded-lg border border-border bg-muted/40'
+/** A recessed tile inside a panel (stat tiles, list rows). */
+export const mutedSurface = 'glass-inset rounded-2xl'
 
-export const sectionLabel =
-    'text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400'
+/** Panel heading. */
+export const sectionLabel = 'text-sm font-semibold text-foreground/80'
 
-export const kpiValue = 'text-2xl font-bold tracking-tight text-zinc-900 dark:text-white'
+/** Big number on a KPI card. Steps down on narrow screens so money figures never overflow. */
+export const kpiValue = 'min-w-0 break-words font-display text-xl font-bold tabular-nums tracking-tight text-foreground sm:text-2xl xl:text-3xl'
 
+/** Round frosted bubble behind a coloured icon. */
+export const iconBubble = 'glass-inset flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full'
+
+/** Keyboard focus ring for links and buttons on glass. */
+export const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 dark:focus-visible:outline-brand-500'
 /** Semantic accent palette (hex for charts; classes used inline in JSX). */
 export const accent = {
     red: '#DC2626',      // alert (semantic only, not brand)

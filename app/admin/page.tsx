@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useAdminCounts } from '@/hooks/use-admin-counts'
+import { BRAND } from '@/lib/brand'
+import { cn } from '@/lib/utils'
 import { useAdminDashboard, type DashRange } from './_components/use-admin-dashboard'
 import { TimeRange } from './_components/time-range'
 import { KpiStrip } from './_components/kpi-strip'
@@ -18,56 +20,77 @@ import { TopMovers } from './_components/top-movers'
 import { ActivityFeed } from './_components/activity-feed'
 import { ActionRequiredRail, totalActions } from './_components/action-required-rail'
 import { QuickActions } from './_components/quick-actions'
+import { cardSurface, focusRing } from './_components/dashboard-tokens'
+
+/** Morning, afternoon or evening, worked out in the browser so it matches the admin's own clock. */
+function useGreeting() {
+    const [greeting, setGreeting] = useState('Welcome back')
+    useEffect(() => {
+        const h = new Date().getHours()
+        setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening')
+    }, [])
+    return greeting
+}
 
 export default function AdminDashboardPage() {
     const [range, setRange] = useState<DashRange>('today')
-    const { isSubAdmin } = useAuth()
+    const { isSubAdmin, dbUser } = useAuth()
     const { counts } = useAdminCounts()
     const { stats, trends, activity, engine, degraded, isLoading, error, refresh } = useAdminDashboard(range)
+    const greeting = useGreeting()
 
     const actions = totalActions(counts)
+    const firstName = dbUser?.first_name?.trim()
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <AlertTriangle className="w-10 h-10 text-rose-500" />
-                <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">Failed to load dashboard</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <button
-                    onClick={refresh}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                    <RefreshCw className="w-4 h-4" /> Retry
-                </button>
+            <div className="relative isolate overflow-x-clip">
+                <div aria-hidden="true" className="glass-aurora pointer-events-none absolute -inset-x-4 -top-6 -z-10 h-[34rem] lg:-inset-x-6" />
+                <div className={cn(cardSurface, 'mx-auto mt-10 flex max-w-md flex-col items-center gap-3 p-8 text-center')} role="alert">
+                    <span className="glass-inset flex h-12 w-12 items-center justify-center rounded-full">
+                        <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+                    </span>
+                    <h1 className="font-display text-xl font-bold text-foreground">The dashboard did not load</h1>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{error}</p>
+                    <button
+                        type="button"
+                        onClick={refresh}
+                        className={cn('clay-gold mt-2 inline-flex min-h-[3rem] items-center gap-2 rounded-full px-6 text-sm font-semibold', focusRing)}
+                    >
+                        <RefreshCw className="h-4 w-4" aria-hidden="true" /> Try again
+                    </button>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-5">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
-                    <p className="text-sm text-muted-foreground">Platform performance &amp; operations at a glance.</p>
+        <div className="relative isolate space-y-6 overflow-x-clip">
+            {/* The glow the glass blurs. Decorative, behind everything. */}
+            <div aria-hidden="true" className="glass-aurora pointer-events-none absolute -inset-x-4 -top-6 -z-10 h-[64rem] lg:-inset-x-6" />
+
+            <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
+                        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-500" />
+                        {BRAND.name} admin
+                    </p>
+                    <h1 className="mt-1 font-display text-2xl font-bold leading-tight tracking-tight text-balance text-foreground sm:text-3xl">
+                        {greeting}{firstName ? `, ${firstName}` : ''}
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                        {actions > 0
+                            ? `${actions} ${actions === 1 ? 'thing needs' : 'things need'} you. Here is the rest of the picture.`
+                            : 'Nothing is waiting on you. Here is how the platform is doing.'}
+                    </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    {actions > 0 && (
-                        <div className="inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-500/10 px-3 py-1.5 rounded-full border border-rose-100 dark:border-rose-500/20">
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                            <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
-                                {actions} Action{actions > 1 ? 's' : ''}
-                            </span>
-                        </div>
-                    )}
-                    <TimeRange value={range} onChange={setRange} />
-                </div>
-            </div>
+                <TimeRange value={range} onChange={setRange} />
+            </header>
 
             {degraded && (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-sm text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    Revenue &amp; balance figures are temporarily unavailable (stats service degraded). Counts shown may be incomplete.
+                <div role="status" className={cn(cardSurface, 'flex items-start gap-3 rounded-2xl px-4 py-3 text-sm text-amber-900 dark:text-amber-300')}>
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <span>Revenue and balance figures are unavailable right now because the stats service is slow. Counts may be incomplete.</span>
                 </div>
             )}
 
@@ -75,25 +98,25 @@ export default function AdminDashboardPage() {
 
             <KpiStrip stats={stats} trends={trends} range={range} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2"><RevenueTrendChart trends={trends} /></div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <div className="lg:col-span-2 [&>*]:h-full"><RevenueTrendChart trends={trends} /></div>
                 <FloatHealthCard stats={stats} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2"><OperationalHealthPanel stats={stats} engine={engine} counts={counts} /></div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <div className="lg:col-span-2 [&>*]:h-full"><OperationalHealthPanel stats={stats} engine={engine} counts={counts} /></div>
                 <SystemControlCenter />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <NetworkBreakdown rows={trends?.byNetwork ?? null} />
                 <GrowthPanel stats={stats} counts={counts} />
             </div>
 
             <ProductSourceBreakdown byCategory={trends?.byCategory ?? null} bySource={trends?.bySource ?? null} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2 space-y-4">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <div className="space-y-5 lg:col-span-2">
                     <TopMovers trends={trends} />
                     <QuickActions isSubAdmin={isSubAdmin} />
                 </div>

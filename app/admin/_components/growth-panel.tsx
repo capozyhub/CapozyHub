@@ -21,7 +21,7 @@ export function GrowthPanel({ stats, counts }: { stats: AdminStats | null; count
         <div className={cn(cardSurface, 'p-5 flex flex-col h-full')}>
             <div className="flex items-center gap-2 mb-4">
                 <Users className="w-4 h-4" style={{ color: accent.blue }} />
-                <p className={sectionLabel}>Growth &amp; Roles</p>
+                <h2 className={sectionLabel}>Growth and roles</h2>
             </div>
 
             <div className="grid grid-cols-3 gap-2.5 mb-4">

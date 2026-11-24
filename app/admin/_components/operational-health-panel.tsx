@@ -9,17 +9,17 @@ import type { AdminCounts } from '@/hooks/use-admin-counts'
 
 function Stat({ icon: Icon, label, value, color, href }: { icon: typeof Package; label: string; value: string | number; color: string; href?: string }) {
     const body = (
-        <div className={cn(mutedSurface, 'p-3 flex items-center gap-3', href && 'hover:border-border dark:hover:border-white/20 transition-colors')}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}1a`, color }}>
+        <div className={cn(mutedSurface, 'flex h-full items-center gap-3 p-3', href && 'glass-hover')}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}1a`, color }}>
                 <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
-                <p className="text-base font-bold text-foreground">{value}</p>
+                <p className="text-xs font-semibold leading-snug text-muted-foreground">{label}</p>
+                <p className="break-words text-base font-bold tabular-nums text-foreground">{value}</p>
             </div>
         </div>
     )
-    return href ? <Link href={href}>{body}</Link> : body
+    return href ? <Link href={href} className="block h-full rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 dark:focus-visible:outline-brand-500">{body}</Link> : body
 }
 
 export function OperationalHealthPanel({ stats, engine, counts }: { stats: AdminStats | null; engine: EngineStatus | null; counts: AdminCounts }) {
@@ -28,16 +28,16 @@ export function OperationalHealthPanel({ stats, engine, counts }: { stats: Admin
     const engineHealthy = autoOn && failedRate < 10
 
     return (
-        <div className={cn(cardSurface, 'p-5')}>
+        <div className={cn(cardSurface, 'flex flex-col p-5')}>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4" style={{ color: accent.blue }} />
-                    <p className={sectionLabel}>Operational Health</p>
+                    <h2 className={sectionLabel}>Operations</h2>
                 </div>
                 <span
                     className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-bold',
-                        engineHealthy ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : 'text-rose-600 bg-rose-50 dark:bg-rose-500/10'
+                        'inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold',
+                        engineHealthy ? 'glass-inset text-emerald-700 dark:text-emerald-400' : 'glass-inset text-rose-700 dark:text-rose-400'
                     )}
                 >
                     {autoOn ? <Zap className="w-3.5 h-3.5" /> : <ZapOff className="w-3.5 h-3.5" />}
@@ -45,15 +45,15 @@ export function OperationalHealthPanel({ stats, engine, counts }: { stats: Admin
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
-                <Stat icon={Package} label="Pending Orders" value={counts.pendingOrders} color={accent.yellow} href="/admin/orders" />
-                <Stat icon={Activity} label="Processing Today" value={counts.pendingFulfillment} color={accent.blue} href="/admin/fulfillment" />
-                <Stat icon={AlertTriangle} label="Failed (action)" value={stats?.failedNeedsAction ?? 0} color={accent.red} href="/admin/orders" />
-                <Stat icon={RotateCcw} label="Refunds (total)" value={formatCurrency(stats?.refundsAmount ?? 0)} color={accent.violet} href="/admin/orders" />
+            <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-3">
+                <Stat icon={Package} label="Pending orders" value={counts.pendingOrders} color={accent.yellow} href="/admin/orders" />
+                <Stat icon={Activity} label="Processing today" value={counts.pendingFulfillment} color={accent.blue} href="/admin/fulfillment" />
+                <Stat icon={AlertTriangle} label="Failed, needs action" value={stats?.failedNeedsAction ?? 0} color={accent.red} href="/admin/orders" />
+                <Stat icon={RotateCcw} label="Refunds in total" value={formatCurrency(stats?.refundsAmount ?? 0)} color={accent.violet} href="/admin/orders" />
                 <Stat icon={Banknote} label="Withdrawals" value={counts.pendingWithdrawals} color={accent.emerald} href="/admin/shops/withdrawals" />
-                <Stat icon={BadgeCheck} label="AFA Pending" value={counts.pendingAfa} color={accent.violet} href="/admin/afa-management" />
+                <Stat icon={BadgeCheck} label="AFA pending" value={counts.pendingAfa} color={accent.violet} href="/admin/afa-management" />
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-4 text-xs text-muted-foreground">
                 No supplier is connected yet, so orders wait for manual fulfillment.
             </p>
         </div>
