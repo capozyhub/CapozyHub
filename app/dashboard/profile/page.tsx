@@ -1,89 +1,50 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Calendar, Crown, Loader2, LogOut, Mail, MonitorX, Phone, Shield, Trash2 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import {
-    User,
-    Mail,
-    Phone,
-    Calendar,
-    Shield,
-    ShieldOff,
-    LogOut,
-    Loader2,
-    AlertCircle,
-    CheckCircle2,
-    Trash2,
-    Crown,
-    MonitorX,
-    Key,
-    Pencil,
-} from 'lucide-react'
 import { toast } from '@/lib/toast'
-import { formatDate, cn } from '@/lib/utils'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { roleConfig, UserRole } from '@/lib/roles'
-
+import { cn, formatDate } from '@/lib/utils'
+import { roleConfig, resolveRoleKey } from '@/lib/roles'
 import { isStrongPassword, PASSWORD_REQUIREMENTS_MESSAGE } from '@/lib/password-validation'
+import { RoleAvatar } from '@/components/dashboard/role-avatar'
+import { ClayButton, Notice, PasswordField, PasswordRules, TextField } from '@/components/auth/fields'
+import { FOCUS } from '@/components/auth/auth-shell'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+const daysUntil = (iso?: string | null) => {
+    if (!iso) return null
+    const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)
+    return d > 0 ? d : 0
+}
+
+const secondaryBtn = cn('neu-raised-sm neu-press flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60', FOCUS)
 
 export default function ProfilePage() {
-    const { dbUser, user, signOut, isSigningOut, refreshUser } = useAuth()
-    const router = useRouter()
-    const searchParams = useSearchParams()
+    const { dbUser, signOut, isSigningOut, refreshUser } = useAuth()
 
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-    const [formData, setFormData] = useState({
-        first_name: '',
-        last_name: '',
-        phone_number: '',
-    })
+    const [formData, setFormData] = useState({ first_name: '', last_name: '', phone_number: '' })
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-    // Calculate days remaining for agents
-    const calculateDaysRemaining = () => {
-        if (!dbUser?.agent_expires_at || dbUser?.role !== 'agent') return null
-        const now = new Date()
-        const expiresAt = new Date(dbUser.agent_expires_at)
-        const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        return daysRemaining > 0 ? daysRemaining : 0
-    }
-
-    const daysRemaining = calculateDaysRemaining()
-
-    // Password change
     const [isChangingPassword, setIsChangingPassword] = useState(false)
-    const [passwordData, setPasswordData] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-    })
+    const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
     const [passwordSaving, setPasswordSaving] = useState(false)
 
-    // Terminate sessions
     const [isTerminatingSessions, setIsTerminatingSessions] = useState(false)
+    const [confirmSessions, setConfirmSessions] = useState(false)
 
-    // Delete account
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [deletePassword, setDeletePassword] = useState('')
     const [isDeleting, setIsDeleting] = useState(false)
+
+    const role = dbUser?.role
+    const planExpiry = role === 'agent' ? dbUser?.agent_expires_at : role === 'dealer' ? (dbUser as any)?.dealer_expires_at : null
+    const planDays = daysUntil(planExpiry)
+    const roleKey = resolveRoleKey({ role })
+    const roleLabel = roleConfig[roleKey]?.label ?? 'Member'
 
     useEffect(() => {
         if (dbUser) {
@@ -95,17 +56,9 @@ export default function ProfilePage() {
         }
     }, [dbUser])
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value
-        }))
-        if (fieldErrors[e.target.name]) {
-            setFieldErrors(prev => {
-                const { [e.target.name]: _, ...rest } = prev
-                return rest
-            })
-        }
+    const setField = (name: keyof typeof formData) => (value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value }))
+        if (fieldErrors[name]) setFieldErrors(prev => { const { [name]: _, ...rest } = prev; return rest })
     }
 
     const handleSave = async () => {
@@ -119,11 +72,9 @@ export default function ProfilePage() {
                     first_name: formData.first_name,
                     last_name: formData.last_name,
                     phone_number: formData.phone_number,
-                })
+                }),
             })
-
-            const data = await res.json()
-
+            const data = await res.json().catch(() => ({}))
             if (!res.ok) {
                 if (data.details) {
                     const newErrors: Record<string, string> = {}
@@ -132,36 +83,25 @@ export default function ProfilePage() {
                         if (field) newErrors[field] = msgParts.join(': ')
                     })
                     setFieldErrors(newErrors)
+                    return
                 }
-                throw new Error(data.error || 'Failed to update profile')
+                throw new Error('save failed')
             }
-
             await refreshUser()
             setIsEditing(false)
-            toast.success('Profile updated successfully')
-        } catch (error: any) {
-            console.error('Profile Update error:', error)
-            toast.error(error.message || 'Failed to update profile')
+            toast.success('Profile saved')
+        } catch (error) {
+            console.error('Profile update error:', error)
+            toast.error('We could not save your profile. Try again.')
         } finally {
             setIsSaving(false)
         }
     }
 
     const handlePasswordChange = async () => {
-        if (passwordData.newPassword !== passwordData.confirmPassword) {
-            toast.error('Passwords do not match')
-            return
-        }
-
-        if (!isStrongPassword(passwordData.newPassword)) {
-            toast.error(PASSWORD_REQUIREMENTS_MESSAGE)
-            return
-        }
-
-        if (passwordData.currentPassword === passwordData.newPassword) {
-            toast.error('New password must be different from your current password')
-            return
-        }
+        if (passwordData.newPassword !== passwordData.confirmPassword) { toast.error('The new passwords do not match.'); return }
+        if (!isStrongPassword(passwordData.newPassword)) { toast.error(PASSWORD_REQUIREMENTS_MESSAGE); return }
+        if (passwordData.currentPassword === passwordData.newPassword) { toast.error('Choose a password different from your current one.'); return }
 
         setPasswordSaving(true)
         try {
@@ -172,508 +112,219 @@ export default function ProfilePage() {
                     currentPassword: passwordData.currentPassword,
                     newPassword: passwordData.newPassword,
                     confirmPassword: passwordData.confirmPassword,
-                })
+                }),
             })
-
             if (response.status === 429) {
                 const retryAfter = response.headers.get('Retry-After')
                 const minutes = retryAfter ? Math.max(1, Math.ceil(parseInt(retryAfter, 10) / 60)) : 10
-                toast.error(`Too many password change attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`)
+                toast.error(`Too many attempts. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`)
                 return
             }
-
-            const result = await response.json()
-
+            const result = await response.json().catch(() => ({}))
             if (!response.ok) {
-                toast.error(result.error || 'Failed to change password')
+                toast.error(typeof result.error === 'string' && result.error.length < 140 ? result.error : 'We could not change your password.')
                 return
             }
-
             setIsChangingPassword(false)
             setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
-            toast.success('Password changed successfully. Please log in again.')
-
-            // signOut navigates to /api/auth/signout which clears cookies and
-            // redirects to /auth — the setTimeout double-navigation is removed.
+            toast.success('Password changed. Sign in again with the new one.')
+            // signOut navigates to /api/auth/signout, which clears cookies and redirects to /auth.
             signOut()
-        } catch (error: any) {
-            // Catch unexpected errors and still show a meaningful message
-            toast.error(error?.message || 'An unexpected error occurred. Please try again.')
+        } catch {
+            toast.error('Something went wrong. Try again.')
         } finally {
             setPasswordSaving(false)
         }
     }
 
     const handleTerminateSessions = async () => {
+        setConfirmSessions(false)
         setIsTerminatingSessions(true)
         try {
             const { error } = await supabase.auth.signOut({ scope: 'others' })
             if (error) throw error
-
-            toast.success('All other active sessions have been terminated.')
-            toast.warning('Please change your password immediately for security reasons.', {
-                duration: 10000,
-            })
-
-            // Open password change form dynamically
+            toast.success('Every other device has been signed out.')
+            toast.warning('Change your password now if you think someone else had access.', { duration: 10000 })
             setIsChangingPassword(true)
         } catch (error) {
             console.error('Error terminating sessions:', error)
-            toast.error('Failed to terminate sessions. Please try logging out completely.')
+            toast.error('We could not sign out your other devices. Try signing out completely.')
         } finally {
             setIsTerminatingSessions(false)
         }
     }
 
     const handleDeleteAccount = async () => {
-        if (!deletePassword) {
-            toast.error('Please enter your password to confirm')
-            return
-        }
-
+        if (!deletePassword) { toast.error('Enter your password to confirm.'); return }
         setIsDeleting(true)
         try {
             const response = await fetch('/api/users/delete-account', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: deletePassword })
+                body: JSON.stringify({ password: deletePassword }),
             })
-
-            // A 429 here is the middleware limiter (which runs BEFORE the password
-            // check). Surface an actionable retry time instead of the generic
-            // "Failed to delete account" that the throw below would show.
+            // A 429 is the middleware limiter, which runs before the password check.
             if (response.status === 429) {
                 const retryAfter = response.headers.get('Retry-After')
                 const minutes = retryAfter ? Math.max(1, Math.ceil(parseInt(retryAfter, 10) / 60)) : 15
-                toast.error(`Too many attempts. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`)
+                toast.error(`Too many attempts. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`)
                 return
             }
-
-            const result = await response.json()
-
+            const result = await response.json().catch(() => ({}))
             if (!response.ok) {
-                throw new Error(result.error || 'Failed to delete account')
+                toast.error(typeof result.error === 'string' && result.error.length < 140 ? result.error : 'We could not delete your account.')
+                return
             }
-
-            toast.success('Account deleted successfully. Redirecting...')
-
-            // Wait briefly for toast to show, then redirect to login
-            setTimeout(() => {
-                window.location.href = '/auth'
-            }, 1500)
-        } catch (error: any) {
+            toast.success('Your account has been deleted.')
+            setTimeout(() => { window.location.href = '/auth' }, 1500)
+        } catch (error) {
             console.error('Delete account error:', error)
-            toast.error(error.message || 'Failed to delete account')
+            toast.error('We could not delete your account. Try again.')
         } finally {
             setIsDeleting(false)
         }
     }
 
-    const getInitials = () => {
-        return `${dbUser?.first_name?.[0] || ''}${dbUser?.last_name?.[0] || ''}`.toUpperCase()
-    }
+    const details = [
+        { icon: Mail, label: 'Email', value: dbUser?.email },
+        { icon: Phone, label: 'Mobile number', value: dbUser?.phone_number },
+        { icon: Calendar, label: 'Member since', value: dbUser?.created_at ? formatDate(dbUser.created_at) : null },
+    ]
 
     return (
-        <div className="scroll-smooth">
-            <h1 className="text-2xl font-bold mb-6">My Profile</h1>
-
-            {/* ── Row 1: Personal Info + Security (side-by-side on desktop) ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mb-6">
-
-            {/* Profile Card */}
-            <Card id="personal-info" className={cn(
-                dbUser?.role === 'agent' && "bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 border-yellow-600/30"
-            )}>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        {(() => {
-                            const userRole = (dbUser?.role || 'customer') as UserRole
-                            const config = roleConfig[userRole] || roleConfig['customer']
-                            const roleBgClass = {
-                                'admin': 'bg-[#E60000]',
-                                'sub-admin': 'bg-brand-500',
-                                'dealer': 'bg-[#7C3AED]',
-                                'agent': 'bg-[#25D366]',
-                                'subagent': 'bg-[#0D9488]',
-                                'customer': 'bg-primary',
-                            }[userRole] || 'bg-primary'
-
-                            const RoleIcon = config.icon
-
-                            return (
-                                <div
-                                    className={cn("w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-border", roleBgClass)}
-                                >
-                                    <RoleIcon className="w-10 h-10" />
-                                </div>
-                            )
-                        })()}
-                        <div>
-                            <CardTitle className="text-xl flex items-center gap-2 flex-wrap">
-                                <span className={cn(
-                                    "flex items-center gap-2",
-                                    dbUser?.role === 'agent' && "text-black font-black"
-                                )}>
-                                    {dbUser?.first_name} {dbUser?.last_name}
-                                    {dbUser?.role === 'agent' && (
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-yellow-300 to-amber-400 border border-black/10 shadow-sm">
-                                            <Crown className="w-3 h-3 text-black fill-black" />
-                                            <span className="text-[10px] font-black text-black uppercase tracking-wider">PREMIUM</span>
-                                        </div>
-                                    )}
-                                </span>
-                                {dbUser?.role === 'agent' && daysRemaining !== null && (
-                                    <Badge className={cn(
-                                        "font-bold text-xs",
-                                        daysRemaining <= 3
-                                            ? "bg-red-100 text-red-700 hover:bg-red-200"
-                                            : "bg-green-100 text-green-700 hover:bg-green-200"
-                                    )}>
-                                        {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
-                                    </Badge>
-                                )}
-                            </CardTitle>
-                            <CardDescription className={cn(
-                                dbUser?.role === 'agent' && "text-black/70 font-semibold"
-                            )}>{dbUser?.email}</CardDescription>
-                            <div className="flex items-center gap-2 mt-2">
-                                <Badge variant={dbUser?.role === 'admin' ? 'destructive' : 'secondary'}>
-                                    {dbUser?.role || 'User'}
-                                </Badge>
-                                <Badge variant={dbUser?.status === 'active' ? 'completed' : 'failed'}>
-                                    {dbUser?.status || 'Active'}
-                                </Badge>
-                            </div>
+        <div className="space-y-5">
+            <header className="neu-night flex flex-col gap-5 rounded-[2rem] p-6 text-white sm:flex-row sm:items-center sm:p-7">
+                <RoleAvatar role={roleKey} first={dbUser?.first_name} last={dbUser?.last_name} size="lg" />
+                <div className="min-w-0 flex-1">
+                    <h1 className="truncate font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                        {dbUser?.first_name} {dbUser?.last_name}
+                    </h1>
+                    <p className="mt-0.5 truncate text-sm text-silver-200">{dbUser?.email}</p>
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400">
+                        {(role === 'agent' || role === 'dealer') && <Crown className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {roleLabel}
+                        {dbUser?.status && dbUser.status !== 'active' && <span className="text-silver-200"> · {dbUser.status}</span>}
+                    </p>
+                </div>
+                {planDays !== null && (
+                    <div className="w-full sm:w-52">
+                        <div className="flex items-baseline justify-between text-sm">
+                            <span className="text-silver-200">{role === 'dealer' ? 'Dealer plan' : 'Agent plan'}</span>
+                            <span className={cn('font-semibold', planDays <= 3 && 'text-red-400')}>{planDays} {planDays === 1 ? 'day' : 'days'} left</span>
+                        </div>
+                        <div className="neu-night-in mt-2 h-2.5 overflow-hidden rounded-full" role="progressbar" aria-label="Plan time left" aria-valuemin={0} aria-valuemax={30} aria-valuenow={Math.min(30, planDays)}>
+                            <div className={cn('h-full rounded-full', planDays <= 3 ? 'bg-red-500' : 'bg-brand-500')} style={{ width: `${Math.max(6, Math.min(100, (planDays / 30) * 100))}%` }} />
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
+                )}
+            </header>
+
+            <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+                <section id="personal-info" className="neu-raised space-y-5 rounded-[2rem] p-6 sm:p-7" aria-labelledby="personal-title">
+                    <h2 id="personal-title" className="font-display text-xl font-bold tracking-tight">Your details</h2>
                     {isEditing ? (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="first_name">First Name</Label>
-                                    <Input
-                                        id="first_name"
-                                        name="first_name"
-                                        value={formData.first_name}
-                                        onChange={handleChange}
-                                        className={fieldErrors.first_name ? 'border-red-500 focus:ring-red-500' : ''}
-                                    />
-                                    {fieldErrors.first_name && <p className="text-red-500 text-xs mt-1">{fieldErrors.first_name}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="last_name">Last Name</Label>
-                                    <Input
-                                        id="last_name"
-                                        name="last_name"
-                                        value={formData.last_name}
-                                        onChange={handleChange}
-                                        className={fieldErrors.last_name ? 'border-red-500 focus:ring-red-500' : ''}
-                                    />
-                                    {fieldErrors.last_name && <p className="text-red-500 text-xs mt-1">{fieldErrors.last_name}</p>}
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone_number">Phone Number</Label>
-                                <Input
-                                    id="phone_number"
-                                    name="phone_number"
-                                    type="tel"
-                                    inputMode="tel"
-                                    autoComplete="tel"
-                                    value={formData.phone_number}
-                                    onChange={handleChange}
-                                    className={fieldErrors.phone_number ? 'border-red-500 focus:ring-red-500' : ''}
-                                />
-                                {fieldErrors.phone_number
-                                    ? <p className="text-red-500 text-xs mt-1">{fieldErrors.phone_number}</p>
-                                    : <p className="text-xs text-muted-foreground">Used for your orders and payouts. We do not verify it with a code.</p>}
-                            </div>
-                            <div className="flex gap-2">
-                                <Button onClick={handleSave} disabled={isSaving}>
-                                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Save Changes
-                                </Button>
-                                <Button variant="outline" onClick={() => setIsEditing(false)}>
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
+                        <form onSubmit={(e) => { e.preventDefault(); handleSave() }} className="space-y-4">
+                            <TextField id="first_name" label="First name" autoComplete="given-name" value={formData.first_name} onChange={setField('first_name')} error={fieldErrors.first_name} />
+                            <TextField id="last_name" label="Last name" autoComplete="family-name" value={formData.last_name} onChange={setField('last_name')} error={fieldErrors.last_name} />
+                            <TextField id="phone_number" label="Mobile number" type="tel" inputMode="tel" autoComplete="tel" value={formData.phone_number} onChange={setField('phone_number')} error={fieldErrors.phone_number} hint="Used for your orders and payouts. We do not verify it with a code." />
+                            <ClayButton type="submit" loading={isSaving}>Save changes</ClayButton>
+                            <button type="button" onClick={() => { setIsEditing(false); setFieldErrors({}) }} className={cn('mx-auto block rounded text-sm text-muted-foreground hover:text-foreground', FOCUS)}>Cancel</button>
+                        </form>
                     ) : (
                         <>
-                            <div className="space-y-3 sm:space-y-4">
-                                <div className={cn(
-                                    "flex items-center gap-3 p-3 sm:p-4 rounded-lg transition-all",
-                                    dbUser?.role === 'agent'
-                                        ? "bg-yellow-300/40 border border-yellow-600/20"
-                                        : "bg-muted/50"
-                                )}>
-                                    <User className={cn(
-                                        "w-5 h-5 flex-shrink-0",
-                                        dbUser?.role === 'agent' ? "text-black" : "text-muted-foreground"
-                                    )} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={cn(
-                                            "text-sm",
-                                            dbUser?.role === 'agent' ? "text-black/70 font-bold" : "text-muted-foreground"
-                                        )}>Full Name</p>
-                                        <p className={cn(
-                                            "font-medium break-words",
-                                            dbUser?.role === 'agent' && "text-black font-bold"
-                                        )}>
-                                            {dbUser?.first_name} {dbUser?.last_name}
-                                        </p>
+                            <dl className="space-y-3">
+                                {details.map(d => (
+                                    <div key={d.label} className="neu-inset flex items-center gap-3 rounded-2xl p-3.5">
+                                        <d.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <div className="min-w-0">
+                                            <dt className="text-sm text-muted-foreground">{d.label}</dt>
+                                            <dd className="break-words font-semibold">{d.value || 'Not set'}</dd>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className={cn(
-                                    "flex items-center gap-3 p-3 sm:p-4 rounded-lg transition-all",
-                                    dbUser?.role === 'agent'
-                                        ? "bg-yellow-300/40 border border-yellow-600/20"
-                                        : "bg-muted/50"
-                                )}>
-                                    <Mail className={cn(
-                                        "w-5 h-5 flex-shrink-0",
-                                        dbUser?.role === 'agent' ? "text-black" : "text-muted-foreground"
-                                    )} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={cn(
-                                            "text-sm",
-                                            dbUser?.role === 'agent' ? "text-black/70 font-bold" : "text-muted-foreground"
-                                        )}>Email</p>
-                                        <p className={cn(
-                                            "font-medium break-all",
-                                            dbUser?.role === 'agent' && "text-black font-bold"
-                                        )}>{dbUser?.email}</p>
-                                    </div>
-                                </div>
-                                <div className={cn(
-                                    "flex items-center gap-3 p-3 sm:p-4 rounded-lg transition-all",
-                                    dbUser?.role === 'agent'
-                                        ? "bg-yellow-300/40 border border-yellow-600/20"
-                                        : "bg-muted/50"
-                                )}>
-                                    <Phone className={cn(
-                                        "w-5 h-5 flex-shrink-0",
-                                        dbUser?.role === 'agent' ? "text-black" : "text-muted-foreground"
-                                    )} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={cn(
-                                            "text-sm",
-                                            dbUser?.role === 'agent' ? "text-black/70 font-bold" : "text-muted-foreground"
-                                        )}>Phone Number</p>
-                                        <p className={cn(
-                                            "font-medium",
-                                            dbUser?.role === 'agent' && "text-black font-bold"
-                                        )}>{dbUser?.phone_number}</p>
-                                    </div>
-                                </div>
-                                <div className={cn(
-                                    "flex items-center gap-3 p-3 sm:p-4 rounded-lg transition-all",
-                                    dbUser?.role === 'agent'
-                                        ? "bg-yellow-300/40 border border-yellow-600/20"
-                                        : "bg-muted/50"
-                                )}>
-                                    <Calendar className={cn(
-                                        "w-5 h-5 flex-shrink-0",
-                                        dbUser?.role === 'agent' ? "text-black" : "text-muted-foreground"
-                                    )} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={cn(
-                                            "text-sm",
-                                            dbUser?.role === 'agent' ? "text-black/70 font-bold" : "text-muted-foreground"
-                                        )}>Member Since</p>
-                                        <p className={cn(
-                                            "font-medium",
-                                            dbUser?.role === 'agent' && "text-black font-bold"
-                                        )}>{dbUser?.created_at ? formatDate(dbUser.created_at) : 'N/A'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <Button onClick={() => setIsEditing(true)}>
-                                Edit Profile
-                            </Button>
+                                ))}
+                            </dl>
+                            <ClayButton type="button" onClick={() => setIsEditing(true)}>Edit details</ClayButton>
                         </>
                     )}
-                </CardContent>
-            </Card>
+                </section>
 
-            {/* ── Security Card (paired with Profile on desktop) ── */}
-            <Card id="security-section" className={cn(
-                dbUser?.role === 'agent' && "bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 border-yellow-600/30"
-            )}>
-                <CardHeader>
-                    <CardTitle className={cn(
-                        "flex items-center gap-2",
-                        dbUser?.role === 'agent' && "text-black"
-                    )}>
-                        <Shield className={cn(
-                            "w-5 h-5",
-                            dbUser?.role === 'agent' && "text-black"
-                        )} />
-                        Security
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
+                <section id="security-section" className="neu-raised space-y-5 rounded-[2rem] p-6 sm:p-7" aria-labelledby="security-title">
+                    <h2 id="security-title" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
+                        <Shield className="h-5 w-5" aria-hidden="true" /> Security
+                    </h2>
                     {isChangingPassword ? (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="currentPassword">Current Password</Label>
-                                <Input
-                                    id="currentPassword"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    value={passwordData.currentPassword}
-                                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => { window.location.href = '/api/auth/signout?next=/auth/reset-password' }}
-                                    className="text-xs font-semibold text-brand-700 hover:underline"
-                                >
-                                    Forgot your current password?
-                                </button>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="newPassword">New Password</Label>
-                                <Input
-                                    id="newPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    value={passwordData.newPassword}
-                                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    value={passwordData.confirmPassword}
-                                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <Button onClick={handlePasswordChange} disabled={passwordSaving}>
-                                    {passwordSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Change Password
-                                </Button>
-                                <Button variant="outline" onClick={() => setIsChangingPassword(false)}>
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <Button variant="outline" onClick={() => setIsChangingPassword(true)} className="flex-1">
-                                Change Password
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={handleTerminateSessions}
-                                disabled={isTerminatingSessions}
-                                className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                        <form onSubmit={(e) => { e.preventDefault(); handlePasswordChange() }} className="space-y-4">
+                            <PasswordField id="currentPassword" label="Current password" autoComplete="current-password" value={passwordData.currentPassword} onChange={v => setPasswordData(p => ({ ...p, currentPassword: v }))} />
+                            <button
+                                type="button"
+                                onClick={() => { window.location.href = '/api/auth/signout?next=/auth/reset-password' }}
+                                className={cn('rounded text-sm font-semibold text-brand-800 underline underline-offset-2 dark:text-brand-400', FOCUS)}
                             >
-                                {isTerminatingSessions ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MonitorX className="w-4 h-4 mr-2" />}
-                                Terminate Other Sessions
-                            </Button>
+                                I forgot my current password
+                            </button>
+                            <PasswordField id="newPassword" label="New password" autoComplete="new-password" value={passwordData.newPassword} onChange={v => setPasswordData(p => ({ ...p, newPassword: v }))} />
+                            <PasswordRules value={passwordData.newPassword} />
+                            <PasswordField id="confirmPassword" label="Confirm new password" autoComplete="new-password" value={passwordData.confirmPassword} onChange={v => setPasswordData(p => ({ ...p, confirmPassword: v }))} />
+                            <ClayButton type="submit" loading={passwordSaving}>Change password</ClayButton>
+                            <button type="button" onClick={() => setIsChangingPassword(false)} className={cn('mx-auto block rounded text-sm text-muted-foreground hover:text-foreground', FOCUS)}>Cancel</button>
+                        </form>
+                    ) : (
+                        <div className="space-y-3">
+                            <ClayButton type="button" onClick={() => setIsChangingPassword(true)}>Change password</ClayButton>
+                            <button type="button" onClick={() => setConfirmSessions(true)} disabled={isTerminatingSessions} className={cn(secondaryBtn, 'w-full')}>
+                                {isTerminatingSessions ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MonitorX className="h-4 w-4" aria-hidden="true" />}
+                                Sign out other devices
+                            </button>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </section>
+            </div>
 
-            </div>{/* end Row 1 grid */}
+            <section className="neu-raised-sm space-y-4 rounded-3xl p-6" aria-labelledby="account-title">
+                <h2 id="account-title" className="font-display text-xl font-bold tracking-tight">Account</h2>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <button type="button" onClick={isSigningOut ? undefined : signOut} disabled={isSigningOut} className={cn(secondaryBtn, 'flex-1')}>
+                        {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <LogOut className="h-4 w-4" aria-hidden="true" />}
+                        {isSigningOut ? 'Signing out' : 'Sign out'}
+                    </button>
+                    <button type="button" onClick={() => setIsDeleteDialogOpen(true)} className={cn('clay-red flex min-h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold', FOCUS)}>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" /> Delete my account
+                    </button>
+                </div>
+            </section>
 
-            {/* Danger Zone */}
-            <Card className="border-red-200 dark:border-red-900">
-                <CardHeader>
-                    <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                    <CardDescription>
-                        Irreversible and destructive actions
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <Button
-                            variant="destructive"
-                            onClick={() => setIsDeleteDialogOpen(true)}
-                            className="flex-1"
-                        >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Account
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={isSigningOut ? undefined : signOut}
-                            disabled={isSigningOut}
-                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        >
-                            {isSigningOut
-                                ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                : <LogOut className="w-4 h-4 mr-2" />
-                            }
-                            {isSigningOut ? 'Signing out…' : 'Sign Out'}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Delete Account Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="text-red-600">Delete Account Permanently?</DialogTitle>
-                        <DialogDescription>
-                            This action cannot be undone. This will permanently delete your account and remove all your data including:
-                            <ul className="list-disc list-inside mt-2 space-y-1">
-                                <li>Your profile information</li>
-                                <li>Order history</li>
-                                <li>Transaction records</li>
-                                <li>Wallet balance</li>
-                                <li>All associated data</li>
-                            </ul>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="deletePassword">Enter your password to confirm</Label>
-                            <Input
-                                id="deletePassword"
-                                type="password"
-                                value={deletePassword}
-                                onChange={(e) => setDeletePassword(e.target.value)}
-                                placeholder="Your password"
-                                disabled={isDeleting}
-                            />
-                        </div>
-                        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-3">
-                            <p className="text-sm text-red-800 dark:text-red-200 font-medium">
-                                <AlertCircle className="w-4 h-4 inline mr-2" />
-                                Warning: This action is permanent and cannot be reversed!
-                            </p>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setIsDeleteDialogOpen(false)
-                                setDeletePassword('')
-                            }}
-                            disabled={isDeleting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleDeleteAccount}
-                            disabled={isDeleting || !deletePassword}
-                        >
-                            {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                            Delete My Account
-                        </Button>
+            <Dialog open={confirmSessions} onOpenChange={setConfirmSessions}>
+                <DialogContent className="max-w-sm rounded-[2rem]" aria-describedby={undefined}>
+                    <DialogHeader><DialogTitle className="font-display">Sign out other devices?</DialogTitle></DialogHeader>
+                    <p className="text-sm text-muted-foreground">Every other phone and browser signed in to your account will be signed out. This device stays signed in.</p>
+                    <DialogFooter className="gap-2">
+                        <button type="button" onClick={() => setConfirmSessions(false)} className="clay-silver min-h-11 rounded-full px-5 text-sm font-semibold">Cancel</button>
+                        <button type="button" onClick={handleTerminateSessions} className="clay-black min-h-11 rounded-full px-5 text-sm font-semibold">Sign them out</button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={(o) => { setIsDeleteDialogOpen(o); if (!o) setDeletePassword('') }}>
+                <DialogContent className="max-w-md rounded-[2rem]" aria-describedby="delete-desc">
+                    <DialogHeader><DialogTitle className="font-display">Delete your account for good?</DialogTitle></DialogHeader>
+                    <div id="delete-desc" className="space-y-3 text-sm text-muted-foreground">
+                        <p>This cannot be undone. It permanently removes:</p>
+                        <ul className="list-inside list-disc space-y-1">
+                            <li>Your profile and order history</li>
+                            <li>Your transaction records</li>
+                            <li>Your wallet balance</li>
+                        </ul>
+                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); handleDeleteAccount() }} className="space-y-4">
+                        <Notice>Withdraw or spend your wallet balance first. It cannot be recovered after deletion.</Notice>
+                        <PasswordField id="deletePassword" label="Enter your password to confirm" autoComplete="current-password" value={deletePassword} onChange={setDeletePassword} />
+                        <DialogFooter className="gap-2">
+                            <button type="button" onClick={() => { setIsDeleteDialogOpen(false); setDeletePassword('') }} disabled={isDeleting} className="clay-silver min-h-11 rounded-full px-5 text-sm font-semibold">Keep my account</button>
+                            <button type="submit" disabled={isDeleting || !deletePassword} className="clay-red flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60">
+                                {isDeleting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Delete my account
+                            </button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>
