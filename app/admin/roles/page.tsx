@@ -148,8 +148,10 @@ export default function RoleManagementPage() {
         return () => clearTimeout(t)
     }, [assignSearchQ, assignRole])
 
+    const [loadFailed, setLoadFailed] = useState(false)
     const fetchData = async () => {
         setLoading(true)
+        setLoadFailed(false)
         try {
             const [agentsRes, dealersRes] = await Promise.all([
                 fetch('/api/admin/agents'),
@@ -158,8 +160,11 @@ export default function RoleManagementPage() {
 
             if (agentsRes.ok) setAgents(await agentsRes.json())
             if (dealersRes.ok) setDealers(await dealersRes.json())
+            // An empty list would look like "no agents", so say so when either read failed.
+            if (!agentsRes.ok || !dealersRes.ok) { setLoadFailed(true); toast.error('We could not load all agents and dealers. Try again.') }
         } catch {
-            toast.error('Failed to load data')
+            setLoadFailed(true)
+            toast.error('We could not load agents and dealers. Try again.')
         } finally {
             setLoading(false)
         }
@@ -201,7 +206,7 @@ export default function RoleManagementPage() {
     const handleExtend = async () => {
         if (!extendUser) return
         const days = parseInt(extendDays)
-        if (isNaN(days) || days <= 0) { toast.error('Enter a valid number of days'); return }
+        if (isNaN(days) || days <= 0) { toast.error('Enter a whole number of days, like 30.'); return }
         setIsExtending(true)
         try {
             const endpoint = extendUser.role === 'dealer' ? '/api/admin/extend-dealer' : '/api/admin/extend-agent'
@@ -231,7 +236,7 @@ export default function RoleManagementPage() {
     const handleReduce = async () => {
         if (!reduceUser) return
         const days = parseInt(reduceDays)
-        if (isNaN(days) || days <= 0) { toast.error('Enter a valid number of days'); return }
+        if (isNaN(days) || days <= 0) { toast.error('Enter a whole number of days, like 7.'); return }
         setIsReducing(true)
         try {
             const endpoint = reduceUser.role === 'dealer' ? '/api/admin/extend-dealer' : '/api/admin/extend-agent'
@@ -270,7 +275,7 @@ export default function RoleManagementPage() {
             const data = await res.json()
             if (!res.ok) throw new Error(data.error)
             setAgents(prev => prev.map(a => a.id === permanentUser.id ? { ...a, agent_expires_at: null } : a))
-            toast.success(`${permanentUser.first_name} is now a Permanent Agent`)
+            toast.success(`${permanentUser.first_name} is now a permanent agent`)
             setPermanentUser(null)
         } catch (e: any) {
             toast.error(e.message)
@@ -368,6 +373,12 @@ export default function RoleManagementPage() {
 
     return (
         <div className="space-y-6 pb-20">
+            {loadFailed && (
+                <div role="alert" className="neu-inset flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400">
+                    <span>The lists below may be incomplete. We could not load everything.</span>
+                    <button type="button" onClick={fetchData} className="clay-silver min-h-9 rounded-full px-4 text-xs font-semibold">Try again</button>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
                 <div>
