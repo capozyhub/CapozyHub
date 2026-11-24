@@ -1,8 +1,7 @@
 'use client'
 
-import { Card, CardContent } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/utils"
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react"
+import { TrendingDown, TrendingUp, Wallet } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 interface WalletStatsCardProps {
     balance: number
@@ -10,40 +9,32 @@ interface WalletStatsCardProps {
     totalSpent: number
 }
 
+/** Wallet balance with lifetime totals, on a black stage. */
 export function WalletStatsCard({ balance, totalCredited, totalSpent }: WalletStatsCardProps) {
     return (
-        <Card className="overflow-hidden border-2 border-[#1A1A1A] shadow-lg mb-6">
-            <div className="bg-[#1A1A1A] p-6 text-white">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                        <Wallet className="w-6 h-6 text-brand-500" />
-                        <span className="font-semibold uppercase tracking-widest text-xs text-brand-500">Lifetime Wallet Stats</span>
-                    </div>
+        <section aria-label="Wallet summary" className="neu-night rounded-[2rem] p-6 text-white sm:p-7">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p className="flex items-center gap-2 text-sm font-semibold text-brand-400">
+                        <Wallet className="h-4 w-4" aria-hidden="true" /> Wallet balance
+                    </p>
+                    <p className="mt-1 font-display text-4xl font-bold tracking-tight tabular-nums">{formatCurrency(balance)}</p>
                 </div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <dl className="grid grid-cols-2 gap-6">
                     <div>
-                        <p className="text-sm text-muted-foreground mb-1">Active Balance</p>
-                        <p className="text-4xl font-bold tracking-tight">{formatCurrency(balance)}</p>
+                        <dt className="flex items-center gap-1.5 text-sm text-silver-200">
+                            <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> Added in total
+                        </dt>
+                        <dd className="mt-0.5 font-display text-xl font-bold tabular-nums">{formatCurrency(totalCredited)}</dd>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row gap-8 pt-4 md:pt-0 border-t md:border-t-0 border-border">
-                        <div>
-                            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-1">
-                                <TrendingUp className="w-3.5 h-3.5 text-green-500" />
-                                <span>Total Credited</span>
-                            </div>
-                            <p className="font-bold text-xl text-green-400">{formatCurrency(totalCredited)}</p>
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-1 text-muted-foreground text-xs mb-1">
-                                <TrendingDown className="w-3.5 h-3.5 text-red-500" />
-                                <span>Total Spent</span>
-                            </div>
-                            <p className="font-bold text-xl text-red-400">{formatCurrency(totalSpent)}</p>
-                        </div>
+                    <div>
+                        <dt className="flex items-center gap-1.5 text-sm text-silver-200">
+                            <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" /> Spent in total
+                        </dt>
+                        <dd className="mt-0.5 font-display text-xl font-bold tabular-nums">{formatCurrency(totalSpent)}</dd>
                     </div>
-                </div>
+                </dl>
             </div>
-        </Card>
+        </section>
     )
 }

@@ -1,36 +1,43 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowDownLeft, ArrowUpRight, Download, Loader2, Receipt, Search } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import { Search, ArrowUpRight, ArrowDownLeft, Receipt, CreditCard, Wallet as WalletIcon, RefreshCw, Loader2, Download } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { WalletTransaction } from '@/types/supabase'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
+import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { WalletStatsCard } from '@/components/dashboard/WalletStatsCard'
+import { Notice } from '@/components/auth/fields'
+import { FOCUS } from '@/components/auth/auth-shell'
+
+const ITEMS_PER_PAGE = 20
+
+const TYPE_FILTERS = [
+    { id: 'all', label: 'All' },
+    { id: 'credit', label: 'Money in' },
+    { id: 'debit', label: 'Money out' },
+]
+
+const SOURCE_FILTERS = [
+    { id: 'all', label: 'Everything' },
+    { id: 'purchase', label: 'Data purchases' },
+    { id: 'airtime', label: 'Airtime' },
+    { id: 'payment', label: 'Wallet top-ups' },
+    { id: 'admin', label: 'Adjustments' },
+    { id: 'refund', label: 'Refunds' },
+]
+
+// A spreadsheet treats a cell starting with = + - @ as a formula, so defuse those in the export.
+const csvCell = (v: unknown) => {
+    const s = String(v ?? '')
+    return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`
+}
 
 export default function TransactionsPage() {
     const { dbUser } = useAuth()
     const [transactions, setTransactions] = useState<any[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [loading, setLoading] = useState(true)
+    const [failed, setFailed] = useState(false)
     const [page, setPage] = useState(0)
     const [totalCount, setTotalCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
@@ -38,144 +45,123 @@ export default function TransactionsPage() {
     const [sourceFilter, setSourceFilter] = useState('all')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
-    const ITEMS_PER_PAGE = 20
-
     const [stats, setStats] = useState({
-        total: 0,
-        todayCredits: 0,
-        todayDebits: 0,
-        todayRefunds: 0,
+        todayIn: 0, todayOut: 0, todayRefunds: 0,
         wallet: null as { balance: number; total_credited: number; total_spent: number } | null,
     })
+    // Only the newest request may update the screen, so fast filter changes never show old rows.
+    const seq = useRef(0)
 
-    useEffect(() => {
-        if (dbUser) {
-            fetchTransactions()
-        }
-    }, [dbUser, page, typeFilter, sourceFilter, startDate, endDate])
-
-    // Local search filter (since we search description/reference)
-    const filteredTransactions = searchQuery
-        ? transactions.filter(t =>
-            t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            t.reference?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : transactions
-
-    const fetchTransactions = async () => {
+    const load = useCallback(async () => {
+        if (!dbUser?.id) return
+        const mine = ++seq.current
+        const userId = dbUser.id as any
+        setLoading(true)
+        setFailed(false)
         try {
-            setIsLoading(true)
-            const userId = dbUser?.id as any
+            const todayStart = new Date()
+            todayStart.setHours(0, 0, 0, 0)
 
-            // 1. Paginated transactions via RPC
-            const params = {
-                p_user_id: userId,
-                p_limit: ITEMS_PER_PAGE,
-                p_offset: page * ITEMS_PER_PAGE,
-                p_source_filter: sourceFilter,
-                p_type_filter: typeFilter,
-                p_start_date: startDate || null,
-                p_end_date: endDate ? `${endDate}T23:59:59` : null
-            }
-            // @ts-ignore
-            const { data, error } = await supabase.rpc('get_user_transactions_with_balance', params)
-            if (error) throw error
-            setTransactions(data || [])
-
-            // 2. Filtered count (respects active type/source/date filters for pagination)
-            let countQuery = (supabase
-                .from('wallet_transactions') as any)
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId)
+            let countQuery = (supabase.from('wallet_transactions') as any).select('*', { count: 'exact', head: true }).eq('user_id', userId)
             if (typeFilter !== 'all') countQuery = countQuery.eq('type', typeFilter)
             if (sourceFilter !== 'all') countQuery = countQuery.eq('source', sourceFilter)
             if (startDate) countQuery = countQuery.gte('created_at', startDate)
             if (endDate) countQuery = countQuery.lte('created_at', `${endDate}T23:59:59`)
-            const { count: filteredCount } = await countQuery
-            setTotalCount(filteredCount || 0)
 
-            // 3. Unfiltered total for the "Total Transactions" card
-            const { count: totalCount } = await (supabase
-                .from('wallet_transactions') as any)
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId)
+            const [pageRes, countRes, todayRes, walletRes] = await Promise.all([
+                (supabase as any).rpc('get_user_transactions_with_balance', {
+                    p_user_id: userId,
+                    p_limit: ITEMS_PER_PAGE,
+                    p_offset: page * ITEMS_PER_PAGE,
+                    p_source_filter: sourceFilter,
+                    p_type_filter: typeFilter,
+                    p_start_date: startDate || null,
+                    p_end_date: endDate ? `${endDate}T23:59:59` : null,
+                }),
+                countQuery,
+                // Today's rows can exceed 1000 for a busy reseller, so read them all.
+                fetchAllRows(() => (supabase.from('wallet_transactions') as any)
+                    .select('type, source, amount')
+                    .eq('user_id', userId).eq('status', 'completed')
+                    .gte('created_at', todayStart.toISOString())
+                    .order('created_at', { ascending: false }).order('id', { ascending: false })),
+                (supabase.from('wallets') as any).select('balance, total_credited, total_spent').eq('user_id', userId).single(),
+            ])
+            if (mine !== seq.current) return
+            if ((pageRes as any).error) throw (pageRes as any).error
 
-            // 4. Today's stats
-            const todayStart = new Date()
-            todayStart.setHours(0, 0, 0, 0)
-            const { data: todayTxns } = await (supabase
-                .from('wallet_transactions') as any)
-                .select('type, source, amount')
-                .eq('user_id', userId)
-                .eq('status', 'completed')
-                .gte('created_at', todayStart.toISOString())
-
-            const todayCredits = (todayTxns || [])
-                .filter((t: any) => t.type === 'credit')
-                .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-            const todayDebits = (todayTxns || [])
-                .filter((t: any) => t.type === 'debit' && t.source !== 'refund')
-                .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-            const todayRefunds = (todayTxns || [])
-                .filter((t: any) => t.source === 'refund')
-                .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-
-            // 5. Wallet lifetime stats
-            const { data: walletData } = await (supabase
-                .from('wallets') as any)
-                .select('balance, total_credited, total_spent')
-                .eq('user_id', userId)
-                .single()
-
+            const today = todayRes.rows
+            const sum = (rows: any[]) => rows.reduce((s, t) => s + (t.amount || 0), 0)
+            setTransactions((pageRes as any).data || [])
+            setTotalCount((countRes as any).count || 0)
             setStats({
-                total: totalCount || 0,
-                todayCredits,
-                todayDebits,
-                todayRefunds,
-                wallet: walletData || null,
+                todayIn: sum(today.filter(t => t.type === 'credit')),
+                todayOut: sum(today.filter(t => t.type === 'debit' && t.source !== 'refund')),
+                todayRefunds: sum(today.filter(t => t.source === 'refund')),
+                wallet: (walletRes as any).data || null,
             })
-        } catch (error) {
-            console.error('Error fetching transactions:', error)
+        } catch (e) {
+            if (mine !== seq.current) return
+            console.error('Error fetching transactions:', e)
+            setFailed(true)
         } finally {
-            setIsLoading(false)
+            if (mine === seq.current) setLoading(false)
         }
-    }
+    }, [dbUser?.id, page, typeFilter, sourceFilter, startDate, endDate])
 
+    useEffect(() => { load() }, [load])
 
+    const q = searchQuery.trim().toLowerCase()
+    const visible = q
+        ? transactions.filter(t => t.description?.toLowerCase().includes(q) || t.reference?.toLowerCase().includes(q))
+        : transactions
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        )
+    const resetFilters = () => {
+        setStartDate(''); setEndDate(''); setTypeFilter('all'); setSourceFilter('all'); setSearchQuery(''); setPage(0)
     }
 
     const exportCsv = () => {
-        const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-        const header = ['Date', 'Type', 'Source', 'Description', 'Amount', 'Balance After', 'Status']
-        const lines = transactions.map((t: any) => [
+        const header = ['Date', 'Type', 'Source', 'Description', 'Amount', 'Balance after', 'Status']
+        const lines = visible.map((t: any) => [
             formatDate(t.created_at), t.type, t.source, t.description, t.amount,
             t.balance_after !== undefined ? t.balance_after : '', t.status,
-        ].map(esc).join(','))
-        const csv = [header.map(esc).join(','), ...lines].join('\n')
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-        const url = URL.createObjectURL(blob)
+        ].map(csvCell).join(','))
+        const csv = [header.map(csvCell).join(','), ...lines].join('\n')
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
         const a = document.createElement('a')
-        a.href = url; a.download = `my-transactions-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+        a.href = url; a.download = `wallet-activity-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
         URL.revokeObjectURL(url)
     }
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3">
-                <h1 className="text-2xl font-bold">Transactions</h1>
-                <Button variant="outline" size="sm" onClick={exportCsv} disabled={transactions.length === 0}>
-                    <Download className="w-4 h-4 mr-1.5" /> Export
-                </Button>
-            </div>
+    const firstLoad = loading && transactions.length === 0 && !failed
+    const tiles = [
+        { label: 'In today', value: formatCurrency(stats.todayIn) },
+        { label: 'Out today', value: formatCurrency(stats.todayOut) },
+        { label: 'Refunded today', value: formatCurrency(stats.todayRefunds) },
+    ]
+    const selectClass = cn('neu-inset h-11 rounded-xl bg-transparent px-3 text-sm text-foreground', FOCUS)
 
-            {/* Lifetime Stats */}
+    return (
+        <div className="space-y-5">
+            <header className="flex items-center justify-between gap-3">
+                <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Wallet activity</h1>
+                <button
+                    type="button"
+                    onClick={exportCsv}
+                    disabled={visible.length === 0}
+                    className={cn('neu-raised-sm neu-press flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-50', FOCUS)}
+                >
+                    <Download className="h-4 w-4" aria-hidden="true" /> Export this page
+                </button>
+            </header>
+
+            {failed && (
+                <Notice>
+                    We could not load your activity.{' '}
+                    <button type="button" onClick={load} className={cn('rounded font-semibold underline underline-offset-2', FOCUS)}>Try again</button>
+                </Notice>
+            )}
+
             {stats.wallet && (
                 <WalletStatsCard
                     balance={stats.wallet.balance || 0}
@@ -184,226 +170,113 @@ export default function TransactionsPage() {
                 />
             )}
 
-            {/* Daily Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-                            <Receipt className="w-5 h-5 text-brand-700" />
-                        </div>
-                        <div>
-                            {/* @ts-ignore */}
-                            <p className="text-2xl font-bold">{stats.total || 0}</p>
-                            <p className="text-xs text-muted-foreground">Total Transactions</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <CreditCard className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                            {/* @ts-ignore */}
-                            <p className="text-2xl font-bold">{formatCurrency(stats.todayCredits || 0)}</p>
-                            <p className="text-xs text-muted-foreground">Today's Income</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                            <WalletIcon className="w-5 h-5 text-red-600" />
-                        </div>
-                        <div>
-                            {/* @ts-ignore */}
-                            <p className="text-2xl font-bold">{formatCurrency(stats.todayDebits || 0)}</p>
-                            <p className="text-xs text-muted-foreground">Today's Expenses</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <RefreshCw className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div>
-                            {/* @ts-ignore */}
-                            <p className="text-2xl font-bold">{formatCurrency(stats.todayRefunds || 0)}</p>
-                            <p className="text-xs text-muted-foreground">Today's Refunds</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {tiles.map(t => (
+                    <div key={t.label} className="neu-raised-sm rounded-2xl p-4">
+                        <p className="text-sm text-muted-foreground">{t.label}</p>
+                        <p className="mt-1 font-display text-2xl font-bold tabular-nums">{t.value}</p>
+                    </div>
+                ))}
             </div>
 
-            {/* Filters */}
-            <Card>
-                <CardContent className="p-4 space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search in this page..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(0); }}>
-                                <SelectTrigger className="w-[130px]">
-                                    <SelectValue placeholder="Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Types</SelectItem>
-                                    <SelectItem value="credit">Credits</SelectItem>
-                                    <SelectItem value="debit">Debits</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(0); }}>
-                                <SelectTrigger className="w-[150px]">
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="purchase">Data Purchase</SelectItem>
-                                    <SelectItem value="airtime">📱 Airtime</SelectItem>
-                                    <SelectItem value="payment">Wallet Funding</SelectItem>
-                                    <SelectItem value="admin">Adjustments</SelectItem>
-                                    <SelectItem value="refund">Refunds</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-4 items-end">
-                        <div className="grid grid-cols-2 gap-2 flex-1">
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">From</label>
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
-                                    className="h-9"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">To</label>
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
-                                    className="h-9"
-                                />
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setStartDate('');
-                                setEndDate('');
-                                setTypeFilter('all');
-                                setSourceFilter('all');
-                                setSearchQuery('');
-                                setPage(0);
-                            }}
-                            className="text-xs text-brand-700 hover:underline mb-2"
-                        >
-                            Reset Filters
-                        </button>
-                    </div>
-                </CardContent>
-            </Card>
+            <section className="neu-raised-sm space-y-4 rounded-3xl p-5 sm:p-6" aria-label="Filters">
+                <div className="neu-inset flex items-center gap-2 rounded-xl px-3">
+                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <input
+                        aria-label="Search the rows on this page"
+                        placeholder="Search this page by description or reference"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="h-11 w-full bg-transparent text-sm placeholder:text-muted-foreground/70 focus-visible:outline-none"
+                    />
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                    <label className="space-y-1 text-sm font-semibold">
+                        Type
+                        <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(0) }} className={cn(selectClass, 'block')}>
+                            {TYPE_FILTERS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                        </select>
+                    </label>
+                    <label className="space-y-1 text-sm font-semibold">
+                        Category
+                        <select value={sourceFilter} onChange={e => { setSourceFilter(e.target.value); setPage(0) }} className={cn(selectClass, 'block')}>
+                            {SOURCE_FILTERS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                        </select>
+                    </label>
+                    <label className="space-y-1 text-sm font-semibold">
+                        From
+                        <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(0) }} className={cn(selectClass, 'block')} />
+                    </label>
+                    <label className="space-y-1 text-sm font-semibold">
+                        To
+                        <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(0) }} className={cn(selectClass, 'block')} />
+                    </label>
+                    <button type="button" onClick={resetFilters} className={cn('min-h-11 rounded px-2 text-sm font-semibold text-brand-800 underline underline-offset-2 dark:text-brand-400', FOCUS)}>
+                        Clear filters
+                    </button>
+                </div>
+            </section>
 
-            {/* Transactions Table */}
-            <Card>
-                <CardContent className="p-0">
-                    {filteredTransactions.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Receipt className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                            <p className="text-muted-foreground">No transactions found</p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Reference</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead className="text-right">Prev Bal</TableHead>
-                                    <TableHead className="text-right">New Bal</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Date</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredTransactions.map((txn) => (
-                                    <TableRow key={txn.id}>
-                                        <TableCell>
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${txn.type === 'credit'
-                                                ? 'bg-green-100 dark:bg-green-900/30'
-                                                : 'bg-red-100 dark:bg-red-900/30'
-                                                }`}>
-                                                {txn.type === 'credit' ? (
-                                                    <ArrowDownLeft className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <ArrowUpRight className="w-4 h-4 text-red-600" />
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="max-w-xs truncate">{txn.description}</TableCell>
-                                        <TableCell>
-                                            <div className="font-mono text-sm uppercase tracking-tighter text-muted-foreground">
-                                                {txn.reference?.slice(-6) || '-'}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className={`text-right font-medium ${txn.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                                            {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                                            {txn.balance_before !== undefined ? formatCurrency(txn.balance_before) : '-'}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-xs font-semibold">
-                                            {txn.balance_after !== undefined ? formatCurrency(txn.balance_after) : '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={txn.status === 'completed' ? 'completed' : txn.status === 'failed' ? 'failed' : 'pending'} className="text-[10px] h-5 px-1.5">
-                                                {txn.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+            <section className="neu-raised-sm rounded-3xl p-3 sm:p-4" aria-label="Transactions" aria-busy={loading}>
+                {firstLoad ? (
+                    <p className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your activity
+                    </p>
+                ) : visible.length === 0 ? (
+                    <div className="py-12 text-center">
+                        <Receipt className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
+                        <p className="font-semibold">{failed ? 'Nothing to show' : 'No activity matches'}</p>
+                        {!failed && <p className="mt-1 text-sm text-muted-foreground">Try a different filter or date range.</p>}
+                    </div>
+                ) : (
+                    <ul className={cn('space-y-2', loading && 'opacity-60')}>
+                        {visible.map(txn => {
+                            const credit = txn.type === 'credit'
+                            return (
+                                <li key={txn.id} className="neu-inset flex items-center gap-3 rounded-2xl p-3">
+                                    <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full', credit ? 'clay-gold' : 'clay-black')} aria-hidden="true">
+                                        {credit ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold">{txn.description}</p>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
                                             {formatDate(txn.created_at)}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                    {/* Pagination */}
-                    {totalCount > ITEMS_PER_PAGE && (
-                        <div className="p-4 border-t flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">
-                                Showing {page * ITEMS_PER_PAGE + 1} to {Math.min((page + 1) * ITEMS_PER_PAGE, totalCount)} of {totalCount}
-                            </p>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="px-3 py-1 text-xs border rounded hover:bg-muted/50 disabled:opacity-50"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={() => setPage(p => p + 1)}
-                                    disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount}
-                                    className="px-3 py-1 text-xs border rounded hover:bg-muted/50 disabled:opacity-50"
-                                >
-                                    Next
-                                </button>
-                            </div>
+                                            {txn.reference ? ` · ref ${String(txn.reference).slice(-6).toUpperCase()}` : ''}
+                                            {txn.status && txn.status !== 'completed' ? ` · ${txn.status}` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={cn('font-display text-base font-bold tabular-nums', credit ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground')}>
+                                            {credit ? '+' : '-'}{formatCurrency(txn.amount)}
+                                        </p>
+                                        {txn.balance_after !== undefined && (
+                                            <p className="text-xs tabular-nums text-muted-foreground">Balance {formatCurrency(txn.balance_after)}</p>
+                                        )}
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                )}
+
+                {totalCount > ITEMS_PER_PAGE && (
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-border px-1 pt-3">
+                        <p className="text-sm text-muted-foreground">
+                            {page * ITEMS_PER_PAGE + 1} to {Math.min((page + 1) * ITEMS_PER_PAGE, totalCount)} of {totalCount}
+                        </p>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0 || loading}
+                                className={cn('neu-raised-sm neu-press min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-50', FOCUS)}>
+                                Previous
+                            </button>
+                            <button type="button" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount || loading}
+                                className={cn('neu-raised-sm neu-press min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-50', FOCUS)}>
+                                Next
+                            </button>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+                    </div>
+                )}
+            </section>
         </div>
     )
 }
