@@ -106,7 +106,7 @@ export function DashboardHeader({ onOpenNotifications, unreadCount }: DashboardH
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <Link href="/dashboard/complaints" className="cursor-pointer">
+                                <Link href={isAdmin ? '/admin/complaints' : '/dashboard/complaints'} className="cursor-pointer">
                                     <Headphones className="mr-2 h-4 w-4" /> Support center
                                 </Link>
                             </DropdownMenuItem>
@@ -149,9 +149,9 @@ export function DashboardHeader({ onOpenNotifications, unreadCount }: DashboardH
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <Link href="/dashboard/profile" className="cursor-pointer"><User className="mr-2 h-4 w-4" /> My profile</Link>
+                                <Link href={isAdmin ? '/admin/profile' : '/dashboard/profile'} className="cursor-pointer"><User className="mr-2 h-4 w-4" /> My profile</Link>
                             </DropdownMenuItem>
-                            {canUseApi && (
+                            {canUseApi && !isAdmin && (
                                 <DropdownMenuItem asChild>
                                     <Link href="/dashboard/api" className="cursor-pointer"><Key className="mr-2 h-4 w-4" /> Developer API</Link>
                                 </DropdownMenuItem>

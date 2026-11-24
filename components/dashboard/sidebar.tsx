@@ -11,7 +11,6 @@ import {
     Loader2,
     LogOut,
     Plus,
-    Shield,
     Store,
     X,
     type LucideIcon,
@@ -57,12 +56,13 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
     const [walletBalance, setWalletBalance] = useState(0)
     const [isShopOpen, setIsShopOpen] = useState(false)
-    const [isAdminOpen, setIsAdminOpen] = useState(false)
     const [hasShop, setHasShop] = useState<boolean | null>(null)
     // Which groups have their "More" row expanded. A group opens by itself when the current page is inside it.
     const [openMore, setOpenMore] = useState<Record<string, boolean>>({})
 
     const role = dbUser?.role
+    // Admin accounts get the admin console only: no wallet, no shop, no member pages.
+    const adminArea = isAdmin || isSubAdmin
     const canRecruit = isAdmin || role === 'agent' || role === 'dealer'
     const agentDays = role === 'agent' ? daysLeft(dbUser?.agent_expires_at) : null
     const dealerDays = role === 'dealer' ? daysLeft((dbUser as any)?.dealer_expires_at) : null
@@ -70,7 +70,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
     // Balance, kept live: the row updates the instant a top-up or purchase lands.
     useEffect(() => {
-        if (!dbUser?.id) return
+        if (!dbUser?.id || adminArea) return
         const userId = dbUser.id
 
         ;(supabase.from('wallets').select('balance').eq('user_id', userId).single() as any)
@@ -90,12 +90,11 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
             .subscribe()
 
         return () => { supabase.removeChannel(channel) }
-    }, [dbUser?.id])
+    }, [dbUser?.id, adminArea])
 
     // Keep a section open while the member is inside it.
     useEffect(() => {
         if (pathname?.startsWith('/dashboard/shop')) setIsShopOpen(true)
-        if (pathname?.startsWith('/admin')) setIsAdminOpen(true)
     }, [pathname])
 
     useEffect(() => {
@@ -108,7 +107,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
     // sessionStorage (it survives a reload, unlike module state) and scoped to the user so
     // switching accounts on a shared device can never read someone else's answer.
     useEffect(() => {
-        if (!dbUser?.id) return
+        if (!dbUser?.id || adminArea) return
         const userId = dbUser.id
         const cacheKey = `cz_has_shop_${userId}`
         let cancelled = false
@@ -133,7 +132,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
             })
 
         return () => { cancelled = true }
-    }, [dbUser?.id])
+    }, [dbUser?.id, adminArea])
 
     const roleKey = resolveRoleKey({ isAdmin, isSubAdmin, role })
     const currentRole = roleConfig[roleKey]
@@ -145,7 +144,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
     const closeOnMobile = () => { if (window.innerWidth < 1024) closeSidebar() }
 
-    const showTopUp = !(process.env.NEXT_PUBLIC_PAYMENT_MAINTENANCE_MODE === 'true' && !isAdmin) && isPageAccessible('/dashboard/wallet')
+    const showTopUp = !adminArea && !(process.env.NEXT_PUBLIC_PAYMENT_MAINTENANCE_MODE === 'true') && isPageAccessible('/dashboard/wallet')
 
     const isVisible = (item: NavItem) => {
         if (item.href === '/dashboard/recruit') return canRecruit && isPageAccessible(item.href)
@@ -236,9 +235,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
     }
 
     const shopActive = !!pathname?.startsWith('/dashboard/shop')
-    const adminActive = !!pathname?.startsWith('/admin')
     const canSeeAdminItem = (item: NavItem) => isAdmin || (isSubAdmin && item.href === '/admin/orders')
-    const adminAttention = Object.values(ADMIN_COUNT_KEYS).reduce((sum, key) => sum + (adminCounts[key] || 0), 0)
 
     return (
         <>
@@ -268,7 +265,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
                 {/* Brand */}
                 <div className={cn('flex h-[4.5rem] flex-shrink-0 items-center justify-between px-4', isCollapsed && 'lg:justify-center lg:px-0')}>
-                    <Link href="/dashboard" onClick={closeOnMobile} className={cn('flex items-center gap-3 rounded-full', FOCUS)} aria-label="Dashboard home">
+                    <Link href={adminArea ? (isSubAdmin ? '/admin/orders' : '/admin') : '/dashboard'} onClick={closeOnMobile} className={cn('flex items-center gap-3 rounded-full', FOCUS)} aria-label={adminArea ? 'Admin home' : 'Dashboard home'}>
                         <span className="neu-night flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
                             <BrandLogo width={40} height={40} className="h-10 w-10" />
                         </span>
@@ -327,21 +324,23 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                             </Link>
                         )}
 
-                        <div className="neu-inset mt-3 flex items-center justify-between rounded-2xl p-3">
-                            <div className="min-w-0">
-                                <p className="text-xs font-medium text-muted-foreground">Wallet balance</p>
-                                <p className="truncate font-display text-lg font-bold leading-tight tracking-tight text-foreground">{formatCurrency(walletBalance)}</p>
+                        {!adminArea && (
+                            <div className="neu-inset mt-3 flex items-center justify-between rounded-2xl p-3">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium text-muted-foreground">Wallet balance</p>
+                                    <p className="truncate font-display text-lg font-bold leading-tight tracking-tight text-foreground">{formatCurrency(walletBalance)}</p>
+                                </div>
+                                {showTopUp && (
+                                    <Link
+                                        href="/dashboard/wallet"
+                                        onClick={closeOnMobile}
+                                        className={cn('clay-gold flex h-9 flex-shrink-0 items-center gap-1 rounded-xl px-3 text-xs font-bold', FOCUS)}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> Top up
+                                    </Link>
+                                )}
                             </div>
-                            {showTopUp && (
-                                <Link
-                                    href="/dashboard/wallet"
-                                    onClick={closeOnMobile}
-                                    className={cn('clay-gold flex h-9 flex-shrink-0 items-center gap-1 rounded-xl px-3 text-xs font-bold', FOCUS)}
-                                >
-                                    <Plus className="h-3.5 w-3.5" /> Top up
-                                </Link>
-                            )}
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -359,7 +358,7 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
                 {/* Menu */}
                 <nav aria-label="Dashboard" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 pt-2 scrollbar-thin">
-                    {userNavGroups.map(group => {
+                    {(adminArea ? [] : userNavGroups).map(group => {
                         const items = group.items.filter(isVisible)
                         const showShop = group.id === 'grow' && (isAdmin || isSubAdmin || role === 'agent' || role === 'dealer' || role === 'customer' || role === 'subagent')
                         if (items.length === 0 && !showShop) return null
@@ -417,19 +416,9 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                         )
                     })}
 
-                    {(isAdmin || isSubAdmin) && (
-                        <div className="mt-2 space-y-1 border-t border-border pt-3">
-                            <div className="relative">
-                                <SectionToggle icon={Shield} label="Admin" active={adminActive} open={isAdminOpen} onToggle={() => setIsAdminOpen(v => !v)} />
-                                {adminAttention > 0 && !isAdminOpen && (
-                                    <span className={cn('pointer-events-none absolute right-9 top-1/2 flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white', hideCollapsed)}>
-                                        {adminAttention > 99 ? '99+' : adminAttention}
-                                    </span>
-                                )}
-                            </div>
-                            {isAdminOpen && (
-                                <div>
-                                    {adminNavGroups.map(group => {
+                    {adminArea && (
+                        <div>
+                            {adminNavGroups.map(group => {
                                         const items = group.items.filter(canSeeAdminItem)
                                         const more = (group.more ?? []).filter(canSeeAdminItem)
                                         if (items.length === 0 && more.length === 0) return null
@@ -458,15 +447,14 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
                                                 )}
                                             </div>
                                         )
-                                    })}
-                                </div>
-                            )}                        </div>
+                            })}
+                        </div>
                     )}
                 </nav>
 
                 {/* Footer */}
                 <div className="flex-shrink-0 space-y-1 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                    {communityLink && (
+                    {communityLink && !adminArea && (
                         <a
                             href={communityLink}
                             target="_blank"

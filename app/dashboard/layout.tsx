@@ -26,6 +26,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/auth')
     }
 
+    // Admin accounts live entirely in the admin console: they never see member pages.
+    // Sub-admins are scoped to orders (see middleware.ts), so they land there.
+    const { data: roleRow } = await authClient.from('users').select('role').eq('id', user.id).maybeSingle()
+    if (roleRow?.role === 'admin') redirect('/admin')
+    if (roleRow?.role === 'sub-admin') redirect('/admin/orders')
+
     // Admin settings (cached: this layout runs on EVERY dashboard page view, see
     // lib/admin-settings-cache.ts). 5-minute TTL (product decision, 2026-09-24):
     // every key here is pure display copy an admin changes rarely.

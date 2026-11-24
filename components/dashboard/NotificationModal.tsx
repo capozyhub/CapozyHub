@@ -360,7 +360,7 @@ export function NotificationModal({
                     <div className="flex items-center gap-1.5">
                         <button
                             type="button"
-                            onClick={() => { onClose(); router.push('/dashboard/notifications?tab=settings') }}
+                            onClick={() => { onClose(); router.push(`${window.location.pathname.startsWith('/admin') ? '/admin' : '/dashboard'}/notifications?tab=settings`) }}
                             title="Notification settings"
                             className="neu-raised-sm neu-press w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0"
                         >
@@ -560,7 +560,7 @@ export function NotificationModal({
                 <div className="flex-shrink-0 px-3 sm:px-4 pb-3 pt-1">
                     <button
                         type="button"
-                        onClick={() => { onClose(); router.push('/dashboard/notifications') }}
+                        onClick={() => { onClose(); router.push(window.location.pathname.startsWith('/admin') ? '/admin/notifications' : '/dashboard/notifications') }}
                         className="clay-silver w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold"
                     >
                         View full inbox <ChevronRight className="w-3.5 h-3.5" />

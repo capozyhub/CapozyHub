@@ -1055,6 +1055,7 @@ export async function middleware(request: NextRequest) {
     const authExceptions = ['/auth/update-password', '/auth/change-password-required']
     if (pathname.startsWith('/auth') && !authExceptions.some(p => pathname.startsWith(p))) {
         if (authUser) {
+            // /dashboard sends admin and sub-admin accounts on to /admin.
             return addNoCacheHeaders(NextResponse.redirect(new URL('/dashboard', request.url)))
         }
     }

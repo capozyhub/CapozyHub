@@ -149,6 +149,14 @@ export const adminNavGroups: NavGroup[] = [
         more: [{ href: '/admin/roles', label: 'Role Management', icon: Crown }],
     },
     {
+        id: 'admin-account',
+        label: 'Account',
+        items: [
+            { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+            { href: '/admin/profile', label: 'My Profile', icon: User },
+        ],
+    },
+    {
         id: 'admin-platform',
         label: 'Platform',
         items: [
