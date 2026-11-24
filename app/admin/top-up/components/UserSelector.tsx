@@ -47,11 +47,11 @@ const ROLE_ICONS: Record<string, any> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-    dealer: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    dealer: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
     agent: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     customer: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    'sub-admin': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    'sub-admin': 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
 }
 
 // ─────────────────────────────────────────────
@@ -64,7 +64,7 @@ function UserMiniCard({ user, onSelect }: { user: UserResult; onSelect: () => vo
             onClick={onSelect}
             className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors border-b border-border last:border-0"
         >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-800 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                 {initials}
             </div>
             <div className="flex-1 min-w-0">
@@ -101,11 +101,11 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
             className="flex-shrink-0 bg-card border border-border rounded-xl p-3 w-36 text-left hover:border-yellow-400 dark:hover:border-yellow-500 hover:shadow-md transition-all group"
         >
             <div className="relative mb-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-800 flex items-center justify-center text-white text-xs font-bold">
                     {initials}
                 </div>
                 {user.pending_debt_total > 0 && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-border" />
                 )}
             </div>
             <p className="text-xs font-semibold truncate">{user.first_name} {user.last_name}</p>
@@ -297,15 +297,15 @@ function SelectedUserCard({
                 {/* Gradient accent top strip */}
                 <div className="h-1.5 w-full rounded-t-2xl bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500" />
 
-                <div className="bg-gradient-to-br from-slate-50 to-brand-50/40 dark:from-slate-900 dark:to-slate-800/80 p-5 rounded-b-2xl">
+                <div className="bg-gradient-to-br from-neutral-50 to-brand-50/40 dark:from-neutral-900 dark:to-neutral-800/80 p-5 rounded-b-2xl">
                     {/* Top row: avatar + main info + balance */}
                     <div className="flex items-start gap-4">
                         {/* Avatar with optional debt glow */}
                         <div className={cn(
                             'w-16 h-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md',
                             user.pending_debt_total > 0
-                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-slate-900'
-                                : 'bg-gradient-to-br from-slate-600 to-slate-800'
+                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-neutral-900'
+                                : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
                         )}>
                             {initials}
                         </div>

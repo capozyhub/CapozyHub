@@ -2,7 +2,7 @@
 
 import * as XLSX from 'xlsx'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -61,7 +61,7 @@ import {
     ListChecks,
     X,
     UserCog,
-    PhoneOff,
+    AlertTriangle,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { Label } from '@/components/ui/label'
@@ -73,6 +73,9 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { roleConfig, UserRole } from '@/lib/roles'
+import { RoleAvatar } from '@/components/dashboard/role-avatar'
+import { Notice } from '@/components/auth/fields'
+import { FOCUS } from '@/components/auth/auth-shell'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface UserStats {
@@ -105,19 +108,18 @@ const SUSPEND_PRESETS: { key: SuspendPreset; label: string; hours: number | null
 // Segment cards: click to filter. `role`/`status`/`verified` map straight onto the API params.
 const SEGMENTS: {
     key: string; label: string; icon: any; color: string
-    role: string; status: string; verified?: string
+    role: string; status: string
     value: (s: UserStats) => number
     sub?: (s: UserStats) => string
 }[] = [
     { key: 'total',      label: 'Total',      icon: UsersIcon,  color: 'text-muted-foreground ', role: 'all',      status: 'all',       value: s => s.total },
-    { key: 'customers',  label: 'Customers',  icon: UserCircle, color: 'text-brand-700',    role: 'customer', status: 'all',       value: s => s.customers },
-    { key: 'agents',     label: 'Agents',     icon: BadgeCheck, color: 'text-emerald-600', role: 'agent',    status: 'all',       value: s => s.agents, sub: s => `${s.active_agents} active · ${s.expired_agents} expired` },
-    { key: 'dealers',    label: 'Dealers',    icon: Gem,        color: 'text-violet-600',  role: 'dealer',   status: 'all',       value: s => s.dealers },
-    { key: 'subagents',  label: 'Subagents',  icon: UserCog,    color: 'text-brand-700',    role: 'subagent', status: 'all',       value: s => s.subagents },
-    { key: 'staff',      label: 'Staff',      icon: Shield,     color: 'text-red-600',     role: 'staff',    status: 'all',       value: s => s.staff },
-    { key: 'suspended',  label: 'Suspended',  icon: Ban,        color: 'text-orange-600',  role: 'all',      status: 'suspended', value: s => s.suspended },
-    { key: 'expired',    label: 'Expired',    icon: Timer,      color: 'text-amber-600',   role: 'all',      status: 'expired',   value: s => s.expired },
-    { key: 'unverified', label: 'Unverified', icon: PhoneOff,   color: 'text-rose-600',    role: 'all',      status: 'all', verified: 'unverified', value: s => s.unverified },
+    { key: 'customers',  label: 'Customers',  icon: UserCircle, color: 'text-muted-foreground', role: 'customer', status: 'all',       value: s => s.customers },
+    { key: 'agents',     label: 'Agents',     icon: BadgeCheck, color: 'text-muted-foreground', role: 'agent',    status: 'all',       value: s => s.agents, sub: s => `${s.active_agents} active · ${s.expired_agents} expired` },
+    { key: 'dealers',    label: 'Dealers',    icon: Gem,        color: 'text-muted-foreground', role: 'dealer',   status: 'all',       value: s => s.dealers },
+    { key: 'subagents',  label: 'Subagents',  icon: UserCog,    color: 'text-muted-foreground', role: 'subagent', status: 'all',       value: s => s.subagents },
+    { key: 'staff',      label: 'Staff',      icon: Shield,     color: 'text-muted-foreground', role: 'staff',    status: 'all',       value: s => s.staff },
+    { key: 'suspended',  label: 'Suspended',  icon: Ban,        color: 'text-red-600 dark:text-red-400', role: 'all',      status: 'suspended', value: s => s.suspended },
+    { key: 'expired',    label: 'Expired',    icon: Timer,      color: 'text-muted-foreground', role: 'all',      status: 'expired',   value: s => s.expired },
 ]
 
 const walletBalanceOf = (user: any): number =>
@@ -140,12 +142,13 @@ export default function AdminUsersPage() {
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [roleFilter, setRoleFilter] = useState('all')
     const [statusFilter, setStatusFilter] = useState('all')
-    const [verifiedFilter, setVerifiedFilter] = useState('all')
     const [page, setPage] = useState(0)
     const [totalCount, setTotalCount] = useState(0)
     const [hasMore, setHasMore] = useState(true)
     const [stats, setStats] = useState<UserStats | null>(null)
     const [exporting, setExporting] = useState(false)
+    const [loadFailed, setLoadFailed] = useState(false)
+    const listSeq = useRef(0)
     const ITEMS_PER_PAGE = 50
 
     // Wallet Adjustment Dialog
@@ -177,6 +180,7 @@ export default function AdminUsersPage() {
     const [detailUser, setDetailUser] = useState<any>(null)
     const [detailData, setDetailData] = useState<any>(null)
     const [detailLoading, setDetailLoading] = useState(false)
+    const [detailFailed, setDetailFailed] = useState(false)
 
     // Bulk selection
     const [selectMode, setSelectMode] = useState(false)
@@ -205,30 +209,37 @@ export default function AdminUsersPage() {
         setPage(0)
         fetchUsers(0, true)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, roleFilter, statusFilter, verifiedFilter])
+    }, [debouncedSearch, roleFilter, statusFilter])
 
     const fetchUsers = async (pageToFetch: number, isNewSearch = false) => {
+        // Only the newest request may update the list, so a slow earlier reply cannot overwrite it.
+        const seq = ++listSeq.current
         try {
             setLoading(true)
+            setLoadFailed(false)
             const offset = pageToFetch * ITEMS_PER_PAGE
-            const url = `/api/admin/users?limit=${ITEMS_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(debouncedSearch)}&role=${roleFilter}&status=${statusFilter}&phoneVerified=${verifiedFilter}`
+            const url = `/api/admin/users?limit=${ITEMS_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(debouncedSearch)}&role=${roleFilter}&status=${statusFilter}`
 
             const response = await fetch(url)
             if (!response.ok) {
-                const result = await response.json()
-                throw new Error(result.error || 'Failed to fetch users')
+                const result = await response.json().catch(() => ({}))
+                throw new Error(typeof result.error === 'string' && result.error.length < 160 ? result.error : 'We could not load users. Try again.')
             }
             const data = await response.json()
+            if (seq !== listSeq.current) return
 
             const newUsers = data.users || []
             setUsers(prev => (isNewSearch ? newUsers : [...prev, ...newUsers]))
             setTotalCount(data.totalCount || 0)
             setHasMore(newUsers.length === ITEMS_PER_PAGE)
         } catch (error: any) {
+            if (seq !== listSeq.current) return
             console.error('Error fetching users:', error)
-            toast.error(error.message || 'Failed to load users')
+            if (isNewSearch) { setUsers([]); setTotalCount(0); setHasMore(false) }
+            setLoadFailed(true)
+            toast.error(error.message || 'We could not load users. Try again.')
         } finally {
-            setLoading(false)
+            if (seq === listSeq.current) setLoading(false)
         }
     }
 
@@ -243,10 +254,9 @@ export default function AdminUsersPage() {
     const applySegment = (seg: typeof SEGMENTS[number]) => {
         setRoleFilter(seg.role)
         setStatusFilter(seg.status)
-        setVerifiedFilter(seg.verified ?? 'all')
     }
     const segmentActive = (seg: typeof SEGMENTS[number]) =>
-        roleFilter === seg.role && statusFilter === seg.status && verifiedFilter === (seg.verified ?? 'all')
+        roleFilter === seg.role && statusFilter === seg.status
 
     // ── Status (suspend / activate) ──────────────────────────────────────────
     const postStatus = async (userId: string, body: Record<string, unknown>) => {
@@ -339,7 +349,7 @@ export default function AdminUsersPage() {
     const requestRoleChange = (user: any, newRole: string) => {
         setConfirmAction({
             title: `Make ${user.first_name || 'user'} ${newRole}?`,
-            description: `${user.first_name} ${user.last_name || ''} will immediately get ${newRole} permissions and pricing.${newRole === 'agent' ? ' Agent role starts a 3-day subscription.' : newRole === 'dealer' ? ' Dealer role starts a 1-month subscription.' : ''}`,
+            description: `${user.first_name} ${user.last_name || ''} will immediately get ${newRole} permissions and pricing.${newRole === 'agent' ? ' The agent plan starts now.' : newRole === 'dealer' ? ' The dealer plan starts now.' : ''}`,
             confirmLabel: `Make ${newRole}`,
             onConfirm: async () => {
                 const response = await fetch('/api/admin/users/role', {
@@ -414,10 +424,10 @@ export default function AdminUsersPage() {
     const requestDelete = (user: any) => {
         const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'this user'
         setConfirmAction({
-            title: `Permanently delete ${name}?`,
-            description: 'This deletes the user from Authentication AND the database — wallet, orders, and history included. This action CANNOT be undone.',
+            title: `Delete ${name} for good?`,
+            description: 'This removes the account, wallet, orders and history for good. It cannot be undone.',
             destructive: true,
-            confirmLabel: 'Delete permanently',
+            confirmLabel: 'Delete for good',
             onConfirm: async () => {
                 const response = await fetch('/api/admin/users/delete', {
                     method: 'POST',
@@ -428,7 +438,7 @@ export default function AdminUsersPage() {
                 if (!response.ok) throw new Error(result.error || 'Failed to delete user')
                 setUsers(prev => prev.filter(u => u.id !== user.id))
                 fetchStats()
-                toast.success('User permanently deleted')
+                toast.success('User deleted')
             },
         })
     }
@@ -451,13 +461,15 @@ export default function AdminUsersPage() {
         setDetailUser(user)
         setDetailData(null)
         setDetailLoading(true)
+        setDetailFailed(false)
         try {
             const res = await fetch(`/api/admin/users/${user.id}`)
             const json = await res.json()
             if (!res.ok) throw new Error(json.error || 'Failed to load details')
             setDetailData(json)
         } catch (e: any) {
-            toast.error(e.message || 'Failed to load details')
+            setDetailFailed(true)
+            toast.error(e.message || 'We could not load this user. Try again.')
         } finally {
             setDetailLoading(false)
         }
@@ -475,17 +487,17 @@ export default function AdminUsersPage() {
     const selectedUsers = users.filter(u => selected.has(u.id))
 
     // ── Export (ALL matching, not just loaded pages) ─────────────────────────
-    const exportForMNotify = async () => {
+    const exportContacts = async () => {
         setExporting(true)
         try {
-            const url = `/api/admin/users?all=true&search=${encodeURIComponent(debouncedSearch)}&role=${roleFilter}&status=${statusFilter}&phoneVerified=${verifiedFilter}`
+            const url = `/api/admin/users?all=true&search=${encodeURIComponent(debouncedSearch)}&role=${roleFilter}&status=${statusFilter}`
             const res = await fetch(url)
             const json = await res.json()
             if (!res.ok) throw new Error(json.error || 'Export fetch failed')
 
             const source: any[] = selectMode && selected.size > 0 ? selectedUsers : (json.users || [])
             const usersWithPhones = source.filter(u => u.phone_number)
-            if (usersWithPhones.length === 0) { toast.error('No users with phone numbers to export'); return }
+            if (usersWithPhones.length === 0) { toast.error('None of these users have a phone number to export.'); return }
 
             const rows = usersWithPhones.map(user => ({
                 firstname: user.first_name || 'Unknown',
@@ -501,7 +513,7 @@ export default function AdminUsersPage() {
             const workbook = XLSX.utils.book_new()
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Contacts')
             const timestamp = new Date().toISOString().split('T')[0]
-            XLSX.writeFile(workbook, `mnotify_contacts_${timestamp}.xlsx`)
+            XLSX.writeFile(workbook, `contacts_${timestamp}.xlsx`)
             toast.success(`Exported ${rows.length} contacts`)
         } catch (error: any) {
             console.error('Export error:', error)
@@ -522,13 +534,11 @@ export default function AdminUsersPage() {
     return (
         <div className="space-y-5 pb-24">
             {/* Header + search + filters */}
-            <div className="flex flex-col gap-3 sticky top-0 bg-background/95 backdrop-blur z-30 py-4 border-b">
+            <div className="flex flex-col gap-3 sticky top-0 z-30 border-b border-border bg-[var(--neu-bg)]/95 py-4 backdrop-blur">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
-                            Users Management
-                        </h1>
-                        <p className="text-sm text-muted-foreground">Manage {totalCount} matching account{totalCount === 1 ? '' : 's'}</p>
+                        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Users</h1>
+                        <p className="text-sm text-muted-foreground">{totalCount} matching account{totalCount === 1 ? '' : 's'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -540,38 +550,39 @@ export default function AdminUsersPage() {
                             {selectMode ? 'Done' : 'Select'}
                         </Button>
                         <Button
-                            onClick={exportForMNotify}
+                            onClick={exportContacts}
                             disabled={exporting}
                             variant="outline"
-                            className="gap-2 bg-brand-50 hover:bg-brand-100 text-brand-700 border-brand-300 hover:border-brand-400 rounded-xl dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800"
+                            className="gap-2 rounded-xl"
                         >
                             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Export {selectMode && selected.size > 0 ? `(${selected.size})` : 'All'}
+                            {selectMode && selected.size > 0 ? `Export ${selected.size} selected` : 'Export contacts'}
                         </Button>
                     </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                        <label htmlFor="user-search" className="sr-only">Search users</label>
                         <Input
                             id="user-search"
                             name="user-search"
-                            placeholder="Name, email or phone — any format (0551 161 7309, 23355…)"
+                            placeholder="Search by name, email or phone"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-purple-500 transition-all rounded-xl"
+                            className="neu-inset rounded-xl border-0 pl-9 shadow-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500"
                         />
                     </div>
                     <div className="grid grid-cols-2 sm:flex gap-2">
                         <Select value={roleFilter} onValueChange={setRoleFilter}>
-                            <SelectTrigger className="sm:w-40 bg-secondary/50 border-0 focus:ring-1 focus:ring-purple-500 rounded-xl">
+                            <SelectTrigger className="sm:w-40 neu-inset rounded-xl border-0 shadow-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                 <SelectValue placeholder="Role" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Roles</SelectItem>
+                                <SelectItem value="all">All roles</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="sub-admin">Sub-Admin</SelectItem>
+                                <SelectItem value="sub-admin">Sub-admin</SelectItem>
                                 <SelectItem value="dealer">Dealer</SelectItem>
                                 <SelectItem value="agent">Agent</SelectItem>
                                 <SelectItem value="subagent">Subagent</SelectItem>
@@ -579,24 +590,14 @@ export default function AdminUsersPage() {
                             </SelectContent>
                         </Select>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="sm:w-40 bg-secondary/50 border-0 focus:ring-1 focus:ring-purple-500 rounded-xl">
+                            <SelectTrigger className="sm:w-40 neu-inset rounded-xl border-0 shadow-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">All statuses</SelectItem>
                                 <SelectItem value="active">Active</SelectItem>
                                 <SelectItem value="suspended">Suspended</SelectItem>
                                 <SelectItem value="expired">Expired role</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={verifiedFilter} onValueChange={setVerifiedFilter}>
-                            <SelectTrigger className="sm:w-40 bg-secondary/50 border-0 focus:ring-1 focus:ring-purple-500 rounded-xl">
-                                <SelectValue placeholder="Phone" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Any Phone Status</SelectItem>
-                                <SelectItem value="verified">Verified</SelectItem>
-                                <SelectItem value="unverified">Unverified</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -604,23 +605,24 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Stats / filter cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
                 {SEGMENTS.map(seg => {
                     const Icon = seg.icon
                     const active = segmentActive(seg)
                     return (
                         <button
                             key={seg.key}
+                            type="button"
                             onClick={() => applySegment(seg)}
+                            aria-pressed={active}
                             className={cn(
-                                'rounded-xl border p-3 text-left transition-all active:scale-95',
-                                active
-                                    ? 'bg-muted ring-2 ring-purple-500/40 border-transparent'
-                                    : 'bg-card border-border hover:border-muted-foreground/30'
+                                'rounded-2xl p-3 text-left',
+                                active ? 'neu-inset' : 'neu-raised-sm neu-press',
+                                FOCUS,
                             )}
                         >
-                            <Icon className={cn('w-4 h-4 mb-1.5', seg.color)} />
-                            <p className="text-xl font-bold leading-none">{stats ? seg.value(stats) : '—'}</p>
+                            <Icon className={cn('w-4 h-4 mb-1.5', seg.color)} aria-hidden="true" />
+                            <p className="font-display text-xl font-bold leading-none">{stats ? seg.value(stats) : '—'}</p>
                             <p className="text-[11px] text-muted-foreground mt-1 truncate">{seg.label}</p>
                             {seg.sub && stats && (
                                 <p className="text-[10px] text-muted-foreground/70 truncate">{seg.sub(stats)}</p>
@@ -633,11 +635,17 @@ export default function AdminUsersPage() {
             {/* Content */}
             {loading && users.length === 0 ? (
                 <div className="flex justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-label="Loading users" />
+                </div>
+            ) : loadFailed && users.length === 0 ? (
+                <div className="mx-auto max-w-sm space-y-3 py-16 text-center">
+                    <Notice>We could not load users.</Notice>
+                    <Button variant="outline" onClick={() => fetchUsers(0, true)}>Try again</Button>
                 </div>
             ) : users.length === 0 ? (
-                <div className="text-center py-20 text-muted-foreground">
-                    <p>No users found matching your search.</p>
+                <div className="neu-inset mx-auto max-w-md rounded-3xl p-8 text-center">
+                    <p className="font-semibold">No users found</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Try a different name, email or number, or clear the filters.</p>
                 </div>
             ) : (
                 <>
@@ -650,10 +658,8 @@ export default function AdminUsersPage() {
                                 <Card
                                     key={user.id}
                                     className={cn(
-                                        'group relative overflow-hidden border transition-all duration-200 shadow-md bg-card dark:bg-card/50',
-                                        isSelected
-                                            ? 'border-purple-500 ring-2 ring-purple-500/30'
-                                            : 'border-purple-100 dark:border-purple-900/30 lg:hover:border-purple-500/50 lg:hover:shadow-xl lg:hover:-translate-y-1'
+                                        'group relative overflow-hidden rounded-[2rem] border-0',
+                                        isSelected ? 'neu-inset ring-2 ring-brand-500' : 'neu-raised'
                                     )}
                                 >
                                     {selectMode && (
@@ -668,29 +674,13 @@ export default function AdminUsersPage() {
                                             <Checkbox checked={isSelected} className="h-5 w-5 bg-background" />
                                         </div>
                                     )}
-                                    <div className="absolute top-0 right-0 p-4 opacity-50 font-black text-6xl text-foreground dark:text-foreground/50 -z-10 select-none pointer-events-none">
-                                        {user.first_name?.[0]}
-                                    </div>
-
                                     <CardContent className="p-5 space-y-4">
                                         {/* Header */}
                                         <div className="flex justify-between items-start">
                                             <div className="flex gap-3 items-center min-w-0">
-                                                {(() => {
-                                                    const userRole = (user.role || 'customer') as UserRole
-                                                    const config = roleConfig[userRole] || roleConfig['customer']
-                                                    const RoleIcon = config.icon
-                                                    return (
-                                                        <div
-                                                            className="h-14 w-14 flex-shrink-0 rounded-full flex items-center justify-center text-white shadow-lg ring-4 ring-white dark:ring-border"
-                                                            style={{ backgroundColor: config.color }}
-                                                        >
-                                                            <RoleIcon className="w-7 h-7" />
-                                                        </div>
-                                                    )
-                                                })()}
+                                                <RoleAvatar role={(user.role || 'customer') as UserRole} first={user.first_name} last={user.last_name} />
                                                 <div className="min-w-0">
-                                                    <h3 className="font-bold text-lg text-foreground line-clamp-1">
+                                                    <h3 className="font-display text-lg font-bold tracking-tight text-foreground line-clamp-1">
                                                         {user.first_name} {user.last_name}
                                                     </h3>
                                                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -706,18 +696,16 @@ export default function AdminUsersPage() {
                                                                 </Badge>
                                                             )
                                                         })()}
-                                                        <div className={cn(
-                                                            'h-2 w-2 rounded-full',
-                                                            user.status === 'active'
-                                                                ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
-                                                                : user.status === 'suspended' ? 'bg-orange-500' : 'bg-red-500'
-                                                        )} />
+                                                        <span className="neu-inset inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                                                            <span className={cn('h-1.5 w-1.5 rounded-full', user.status === 'active' ? 'bg-emerald-500' : user.status === 'suspended' ? 'bg-red-500' : 'bg-silver-200')} aria-hidden="true" />
+                                                            {user.status === 'active' ? 'Active' : user.status === 'suspended' ? 'Suspended' : String(user.status || 'Unknown')}
+                                                        </span>
                                                         {expiry && (
                                                             <span className={cn(
                                                                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
                                                                 expiry.expired
-                                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                                                    : 'bg-muted text-muted-foreground '
+                                                                    ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+                                                                    : 'bg-muted text-muted-foreground'
                                                             )}>
                                                                 {expiry.label}
                                                             </span>
@@ -727,15 +715,15 @@ export default function AdminUsersPage() {
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 relative z-30 text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-muted rounded-full">
-                                                        <MoreVertical className="w-5 h-5" />
+                                                    <Button variant="ghost" size="icon" aria-label={`Actions for ${user.first_name || 'user'} ${user.last_name || ''}`.trim()} className="h-10 w-10 relative z-30 text-muted-foreground hover:text-foreground rounded-full">
+                                                        <MoreVertical className="w-5 h-5" aria-hidden="true" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-52">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem onClick={() => openDetail(user)}>
                                                         <Eye className="w-4 h-4 mr-2" />
-                                                        View Details
+                                                        View details
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => {
                                                         setAdjustmentDialogUser(user)
@@ -743,31 +731,31 @@ export default function AdminUsersPage() {
                                                         setAdjustmentDescription('Admin manual credit')
                                                     }}>
                                                         <Wallet className="w-4 h-4 mr-2" />
-                                                        Credit Wallet
+                                                        Credit wallet
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => {
                                                         setAdjustmentDialogUser(user)
                                                         setAdjustmentType('debit')
                                                         setAdjustmentDescription('Admin manual debit')
                                                     }}>
-                                                        <Wallet className="w-4 h-4 mr-2 text-red-500" />
-                                                        Debit Wallet
+                                                        <Wallet className="w-4 h-4 mr-2" />
+                                                        Debit wallet
                                                     </DropdownMenuItem>
                                                     {/* Admin accounts can't be suspended/demoted/deleted (server-enforced lockout protection) */}
                                                     {user.role !== 'admin' && (user.status === 'suspended' ? (
                                                         <DropdownMenuItem onClick={() => activateUsers([user])}>
-                                                            <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                                                            Activate Account
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            Activate account
                                                         </DropdownMenuItem>
                                                     ) : (
                                                         <DropdownMenuItem onClick={() => openSuspendDialog([user])}>
-                                                            <Ban className="w-4 h-4 mr-2 text-orange-500" />
-                                                            Suspend Account…
+                                                            <Ban className="w-4 h-4 mr-2" />
+                                                            Suspend account…
                                                         </DropdownMenuItem>
                                                     ))}
                                                     {user.role !== 'admin' && (
                                                         <>
-                                                            <DropdownMenuLabel className="text-xs text-muted-foreground pt-2">Change Role</DropdownMenuLabel>
+                                                            <DropdownMenuLabel className="text-xs text-muted-foreground pt-2">Change role</DropdownMenuLabel>
                                                             {(['customer', 'agent', 'dealer', 'sub-admin', 'admin'] as const)
                                                                 .filter(r => r !== user.role)
                                                                 .map(r => (
@@ -781,20 +769,20 @@ export default function AdminUsersPage() {
                                                     <div className="h-px bg-border my-1" />
                                                     <DropdownMenuItem
                                                         onClick={() => requestResetPassword(user)}
-                                                        className="text-brand-700 focus:text-brand-700 focus:bg-brand-50"
+                                                        
                                                     >
                                                         <KeyRound className="w-4 h-4 mr-2" />
-                                                        Reset Password
+                                                        Reset password
                                                     </DropdownMenuItem>
                                                     {user.role !== 'admin' && (
                                                         <>
                                                             <div className="h-px bg-border my-1" />
                                                             <DropdownMenuItem
                                                                 onClick={() => requestDelete(user)}
-                                                                className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                                                className="text-red-600 focus:text-red-700 focus:bg-red-500/10 dark:text-red-400"
                                                             >
                                                                 <Trash2 className="w-4 h-4 mr-2" />
-                                                                Delete User
+                                                                Delete user
                                                             </DropdownMenuItem>
                                                         </>
                                                     )}
@@ -804,13 +792,13 @@ export default function AdminUsersPage() {
 
                                         {/* Suspension banner */}
                                         {suspText && (
-                                            <div className="rounded-lg bg-orange-50 dark:bg-orange-900/15 border border-orange-200 dark:border-orange-800/50 px-3 py-2">
-                                                <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 flex items-center gap-1.5">
+                                            <div className="neu-inset rounded-2xl px-3 py-2">
+                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5">
                                                     <Hourglass className="w-3.5 h-3.5 flex-shrink-0" />
                                                     {suspText}
                                                 </p>
                                                 {user.suspension_reason && (
-                                                    <p className="text-[11px] text-orange-600/80 dark:text-orange-400/70 mt-0.5 line-clamp-2">
+                                                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                                                         Reason: {user.suspension_reason}
                                                     </p>
                                                 )}
@@ -819,18 +807,17 @@ export default function AdminUsersPage() {
 
                                         {/* Details */}
                                         <div className="space-y-2">
-                                            <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
-                                                <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
+                                            <div className="neu-inset flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl">
+                                                <Mail className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                                                 <span className="truncate text-sm font-medium">{user.email}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
-                                                <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
-                                                    <Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                                <div className="neu-inset flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl">
+                                                    <Phone className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                                                     <span className="text-sm font-medium truncate">{user.phone_number || 'N/A'}</span>
-                                                    {user.phone_verified && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
                                                 </div>
-                                                <div className="flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl bg-muted/50 border border-border">
-                                                    <Calendar className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                                <div className="neu-inset flex items-center gap-2.5 text-muted-foreground p-2.5 rounded-xl">
+                                                    <Calendar className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                                                     <span className="text-sm font-medium truncate">{formatDate(user.created_at).split(',')[0]}</span>
                                                 </div>
                                             </div>
@@ -839,8 +826,8 @@ export default function AdminUsersPage() {
                                         {/* Wallet */}
                                         <div className="pt-1 flex justify-between items-center">
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-widest mb-0.5">Wallet Balance</span>
-                                                <span className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-500">
+                                                <span className="text-xs font-medium text-muted-foreground mb-0.5">Wallet balance</span>
+                                                <span className="font-display text-xl font-bold tracking-tight text-foreground">
                                                     {formatCurrency(walletBalanceOf(user))}
                                                 </span>
                                             </div>
@@ -865,10 +852,10 @@ export default function AdminUsersPage() {
                                 onClick={loadMore}
                                 disabled={loading}
                                 variant="outline"
-                                className="min-w-[200px] rounded-xl border-purple-200 hover:border-purple-500 hover:bg-purple-50"
+                                className="min-w-[200px] rounded-xl"
                             >
                                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                Load More Users ({users.length} of {totalCount})
+                                Load more ({users.length} of {totalCount})
                             </Button>
                         </div>
                     )}
@@ -877,32 +864,32 @@ export default function AdminUsersPage() {
 
             {/* Bulk action bar */}
             {selectMode && selected.size > 0 && (
-                <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl bg-card text-white dark:text-foreground shadow-2xl px-4 py-3">
+                <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 neu-night rounded-2xl px-4 py-3 text-white">
                     <span className="text-sm font-bold whitespace-nowrap">{selected.size} selected</span>
-                    <Button size="sm" className="h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white" onClick={() => openSuspendDialog(selectedUsers)}>
+                    <Button size="sm" variant="destructive" className="h-8 rounded-lg" onClick={() => openSuspendDialog(selectedUsers)}>
                         <Ban className="w-3.5 h-3.5 mr-1.5" /> Suspend
                     </Button>
-                    <Button size="sm" className="h-8 rounded-lg clay clay-green" onClick={() => activateUsers(selectedUsers)}>
+                    <Button size="sm" className="h-8 rounded-lg" onClick={() => activateUsers(selectedUsers)}>
                         <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Activate
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 rounded-lg text-white dark:text-foreground" onClick={() => setSelected(new Set())}>
-                        <X className="w-4 h-4" />
+                    <Button size="sm" variant="ghost" aria-label="Clear selection" className="h-8 rounded-lg text-white hover:text-white" onClick={() => setSelected(new Set())}>
+                        <X className="w-4 h-4" aria-hidden="true" />
                     </Button>
                 </div>
             )}
 
             {/* Wallet Adjustment Dialog */}
             <Dialog open={!!adjustmentDialogUser} onOpenChange={() => setAdjustmentDialogUser(null)}>
-                <DialogContent aria-describedby="adjustment-description">
+                <DialogContent className="rounded-[2rem]" aria-describedby="adjustment-description">
                     <DialogHeader>
-                        <DialogTitle>{adjustmentType === 'credit' ? 'Credit' : 'Debit'} User Wallet</DialogTitle>
+                        <DialogTitle>{adjustmentType === 'credit' ? 'Credit' : 'Debit'} wallet</DialogTitle>
                         <DialogDescription id="adjustment-description">
                             {adjustmentType === 'credit' ? 'Add funds to' : 'Deduct funds from'} {adjustmentDialogUser?.first_name} {adjustmentDialogUser?.last_name}&apos;s wallet.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Adjustment Type</Label>
+                            <Label htmlFor="adjustment-type">Adjustment type</Label>
                             <Select
                                 value={adjustmentType}
                                 onValueChange={(value: 'credit' | 'debit') => setAdjustmentType(value)}
@@ -917,20 +904,23 @@ export default function AdminUsersPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Amount (GHS)</Label>
+                            <Label htmlFor="adjustment-amount">Amount (GH₵)</Label>
                             <Input
                                 id="adjustment-amount"
                                 name="adjustment-amount"
                                 type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
                                 value={adjustmentAmount}
                                 onChange={(e) => setAdjustmentAmount(e.target.value)}
                                 placeholder="0.00"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Description</Label>
+                            <Label htmlFor="adjustment-description-input">Description</Label>
                             <Input
-                                id="adjustment-description"
+                                id="adjustment-description-input"
                                 name="adjustment-description"
                                 value={adjustmentDescription}
                                 onChange={(e) => setAdjustmentDescription(e.target.value)}
@@ -953,10 +943,10 @@ export default function AdminUsersPage() {
 
             {/* Suspension Dialog (single + bulk) */}
             <Dialog open={!!suspendTargets} onOpenChange={(open) => { if (!open) setSuspendTargets(null) }}>
-                <DialogContent aria-describedby="suspend-description">
+                <DialogContent className="rounded-[2rem]" aria-describedby="suspend-description">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Ban className="w-5 h-5 text-orange-500" />
+                            <Ban className="w-5 h-5" aria-hidden="true" />
                             Suspend {suspendTargets?.length === 1
                                 ? `${suspendTargets[0].first_name || ''} ${suspendTargets[0].last_name || ''}`.trim() || 'user'
                                 : `${suspendTargets?.length ?? 0} users`}
@@ -967,7 +957,7 @@ export default function AdminUsersPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <div className="space-y-2">
-                            <Label>Duration</Label>
+                            <Label>How long</Label>
                             <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
                                 {SUSPEND_PRESETS.map(p => (
                                     <button
@@ -975,10 +965,11 @@ export default function AdminUsersPage() {
                                         type="button"
                                         onClick={() => setSuspendPreset(p.key)}
                                         className={cn(
-                                            'px-2 py-2 text-xs font-semibold rounded-lg border transition-all',
+                                            'px-2 py-2 text-xs font-semibold rounded-xl border transition-all',
+                                            FOCUS,
                                             suspendPreset === p.key
-                                                ? 'bg-orange-500 text-white border-orange-500'
-                                                : 'bg-transparent border-border hover:border-orange-300'
+                                                ? 'clay-black border-transparent'
+                                                : 'neu-raised-sm border-transparent'
                                         )}
                                     >
                                         {p.label}
@@ -986,8 +977,8 @@ export default function AdminUsersPage() {
                                 ))}
                             </div>
                             {suspendPreset === 'permanent' && (
-                                <p className="text-[11px] text-orange-600 dark:text-orange-400">
-                                    Permanent — stays suspended until an admin manually reactivates.
+                                <p className="text-[11px] text-red-600 dark:text-red-400">
+                                    Permanent. The account stays suspended until an admin reactivates it.
                                 </p>
                             )}
                         </div>
@@ -1002,28 +993,29 @@ export default function AdminUsersPage() {
                             </div>
                         )}
                         <div className="space-y-2">
-                            <Label>Reason (shown to the user)</Label>
+                            <Label htmlFor="suspend-reason">Reason (the user will see this)</Label>
                             <Textarea
+                                id="suspend-reason"
                                 rows={2}
                                 value={suspendReason}
                                 onChange={(e) => setSuspendReason(e.target.value)}
                                 placeholder="e.g. Suspicious activity on the account"
                             />
                         </div>
-                        <div className="flex items-center justify-between rounded-xl border border-border p-3">
+                        <div className="neu-inset flex items-center justify-between rounded-2xl p-3">
                             <div>
                                 <p className="text-sm font-medium flex items-center gap-1.5">
-                                    <MessageSquare className="w-4 h-4 text-brand-700" /> SMS alert
+                                    <MessageSquare className="w-4 h-4" aria-hidden="true" /> SMS alert
                                 </p>
-                                <p className="text-[11px] text-muted-foreground">Text the user that their account is suspended (and until when).</p>
+                                <p className="text-[11px] text-muted-foreground">Text the user that their account is suspended, and until when. Sends once SMS is set up.</p>
                             </div>
-                            <Switch checked={suspendSms} onCheckedChange={setSuspendSms} />
+                            <Switch checked={suspendSms} onCheckedChange={setSuspendSms} aria-label="Send an SMS alert" />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setSuspendTargets(null)}>Cancel</Button>
                         <Button
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                            variant="destructive"
                             onClick={submitSuspension}
                             disabled={isSuspending}
                         >
@@ -1036,7 +1028,7 @@ export default function AdminUsersPage() {
 
             {/* Generic confirm dialog */}
             <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open && !isConfirmBusy) setConfirmAction(null) }}>
-                <DialogContent aria-describedby="confirm-description">
+                <DialogContent className="rounded-[2rem]" aria-describedby="confirm-description">
                     <DialogHeader>
                         <DialogTitle>{confirmAction?.title}</DialogTitle>
                         <DialogDescription id="confirm-description">{confirmAction?.description}</DialogDescription>
@@ -1056,14 +1048,19 @@ export default function AdminUsersPage() {
             </Dialog>
 
             {/* Detail drawer */}
-            <Sheet open={!!detailUser} onOpenChange={(open) => { if (!open) { setDetailUser(null); setDetailData(null) } }}>
+            <Sheet open={!!detailUser} onOpenChange={(open) => { if (!open) { setDetailUser(null); setDetailData(null); setDetailFailed(false) } }}>
                 <SheetContent className="w-full sm:max-w-md overflow-y-auto">
                     <SheetHeader>
                         <SheetTitle>{detailUser?.first_name} {detailUser?.last_name}</SheetTitle>
                         <SheetDescription>{detailUser?.email}</SheetDescription>
                     </SheetHeader>
                     {detailLoading ? (
-                        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>
+                        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+                    ) : detailFailed ? (
+                        <div className="mt-5 space-y-3">
+                            <Notice>We could not load this user.</Notice>
+                            <Button variant="outline" onClick={() => detailUser && openDetail(detailUser)}>Try again</Button>
+                        </div>
                     ) : detailData ? (
                         <div className="space-y-5 mt-5">
                             {/* Profile chips */}
@@ -1073,12 +1070,9 @@ export default function AdminUsersPage() {
                                     const c = roleConfig[r] || roleConfig.customer
                                     return <Badge className={cn('border-0', r === 'sub-admin' ? 'text-black' : 'text-white')} style={{ backgroundColor: c.color }}>{c.label}</Badge>
                                 })()}
-                                <Badge variant="outline" className={detailData.user.status === 'active' ? 'text-green-600 border-green-300' : 'text-orange-600 border-orange-300'}>
-                                    {detailData.user.status}
+                                <Badge variant="outline" className={detailData.user.status === 'active' ? '' : 'text-red-600 border-red-300 dark:text-red-400'}>
+                                    {detailData.user.status === 'active' ? 'Active' : detailData.user.status === 'suspended' ? 'Suspended' : detailData.user.status}
                                 </Badge>
-                                {detailData.user.phone_verified && (
-                                    <Badge variant="outline" className="text-emerald-600 border-emerald-300">Phone verified</Badge>
-                                )}
                             </div>
 
                             {detailData.user.status === 'suspended' && (
@@ -1093,17 +1087,17 @@ export default function AdminUsersPage() {
                             {/* Stats grid */}
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { label: 'Orders', value: detailData.stats.totalOrders, icon: ClipboardList, color: 'text-brand-700' },
-                                    { label: 'Completed', value: detailData.stats.completedOrders, icon: CheckCircle2, color: 'text-green-600' },
-                                    { label: 'Total Spent', value: formatCurrency(detailData.stats.totalSpent), icon: Wallet, color: 'text-emerald-600' },
-                                    { label: 'Wallet', value: formatCurrency(detailData.stats.walletBalance), icon: Wallet, color: 'text-purple-600' },
+                                    { label: 'Orders', value: detailData.stats.totalOrders, icon: ClipboardList, color: 'text-muted-foreground' },
+                                    { label: 'Completed', value: detailData.stats.completedOrders, icon: CheckCircle2, color: 'text-muted-foreground' },
+                                    { label: 'Total Spent', value: formatCurrency(detailData.stats.totalSpent), icon: Wallet, color: 'text-muted-foreground' },
+                                    { label: 'Wallet', value: formatCurrency(detailData.stats.walletBalance), icon: Wallet, color: 'text-muted-foreground' },
                                     { label: 'Complaints', value: detailData.stats.complaints, icon: MessageSquare, color: 'text-red-600' },
-                                    { label: 'Shop', value: detailData.stats.hasShop ? (detailData.stats.shopName || 'Yes') : '—', icon: Store, color: 'text-brand-700' },
-                                    { label: 'Recruited By', value: detailData.stats.recruitedBy || '—', icon: UsersIcon, color: 'text-teal-600' },
+                                    { label: 'Shop', value: detailData.stats.hasShop ? (detailData.stats.shopName || 'Yes') : '—', icon: Store, color: 'text-muted-foreground' },
+                                    { label: 'Recruited By', value: detailData.stats.recruitedBy || '—', icon: UsersIcon, color: 'text-muted-foreground' },
                                 ].map((item) => {
                                     const Icon = item.icon
                                     return (
-                                        <div key={item.label} className="rounded-xl border border-border p-3">
+                                        <div key={item.label} className="neu-inset rounded-2xl p-3">
                                             <Icon className={cn('w-4 h-4 mb-1', item.color)} />
                                             <p className="text-base font-bold leading-tight truncate">{item.value}</p>
                                             <p className="text-[11px] text-muted-foreground">{item.label}</p>
@@ -1126,18 +1120,18 @@ export default function AdminUsersPage() {
 
                             {/* Recent transactions */}
                             <div>
-                                <p className="text-xs uppercase font-bold text-muted-foreground tracking-wider mb-2">Recent Wallet Activity</p>
+                                <p className="mb-2 text-xs font-semibold text-muted-foreground">Recent wallet activity</p>
                                 {detailData.recentTransactions.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">No wallet transactions.</p>
                                 ) : (
                                     <div className="space-y-1.5">
                                         {detailData.recentTransactions.map((tx: any) => (
-                                            <div key={tx.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                                            <div key={tx.id} className="neu-inset flex items-center justify-between gap-2 rounded-2xl px-3 py-2">
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-medium truncate">{tx.description || tx.source}</p>
                                                     <p className="text-[10px] text-muted-foreground">{formatDate(tx.created_at)}</p>
                                                 </div>
-                                                <span className={cn('text-sm font-bold flex-shrink-0', tx.type === 'credit' ? 'text-green-600' : 'text-red-500')}>
+                                                <span className={cn('text-sm font-bold flex-shrink-0', tx.type === 'credit' ? 'text-foreground' : 'text-red-600 dark:text-red-400')}>
                                                     {tx.type === 'credit' ? '+' : '−'}{formatCurrency(Number(tx.amount) || 0)}
                                                 </span>
                                             </div>

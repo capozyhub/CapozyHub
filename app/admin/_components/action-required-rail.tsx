@@ -26,7 +26,7 @@ const ACTIONS: ActionDef[] = [
     { key: 'pendingWithdrawals', href: '/admin/shops/withdrawals', label: 'Withdrawals', suffix: 'Pending', icon: Banknote, color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
     { key: 'pendingComplaints', href: '/admin/complaints', label: 'Complaints', suffix: 'Issues', icon: MessageSquare, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30' },
     { key: 'pendingAfa', href: '/admin/afa-management', label: 'AFA Apps', suffix: 'Pending', icon: BadgeCheck, color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/30' },
-    { key: 'expiringAgents', href: '/admin/memberships', label: 'Agents', suffix: 'Expiring', icon: Crown, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+    { key: 'expiringAgents', href: '/admin/memberships', label: 'Agents', suffix: 'Expiring', icon: Crown, color: 'text-brand-600', bg: 'bg-brand-100 dark:bg-brand-900/30' },
 ]
 
 /** Total actions = sum of carded counts only (single source of truth). */

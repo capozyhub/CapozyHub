@@ -497,7 +497,7 @@ export default function AdminProfitsPage() {
                             </div>
                             <div className="flex justify-center gap-5 mt-3 text-xs text-muted-foreground">
                                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-600" /> Profit</div>
-                                <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-slate-400" /> Revenue</div>
+                                <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-card" /> Revenue</div>
                                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-rose-500" /> Cost</div>
                             </div>
                         </CardContent>

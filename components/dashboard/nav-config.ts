@@ -36,10 +36,8 @@ export interface NavGroup {
     id: string
     /** Sentence-case heading. Omitted for the first group so the menu starts clean. */
     label?: string
-    /** Always visible. */
+    /** Every page in the group. The sidebar folds the group away unless the current page is inside it. */
     items: NavItem[]
-    /** Less-used pages, tucked behind a "More" row so the menu stays short. They open automatically when one is the current page. */
-    more?: NavItem[]
 }
 
 /**
@@ -85,12 +83,12 @@ export const userNavGroups: NavGroup[] = [
             { href: '/dashboard/complaints', label: 'Support', icon: MessageSquare },
             { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
             { href: '/dashboard/profile', label: 'My Profile', icon: User },
+            { href: '/dashboard/api', label: 'Developer API', icon: Code2 },
         ],
-        more: [{ href: '/dashboard/api', label: 'Developer API', icon: Code2 }],
     },
 ]
 
-export const userNavItems: NavItem[] = userNavGroups.flatMap(g => [...g.items, ...(g.more ?? [])])
+export const userNavItems: NavItem[] = userNavGroups.flatMap(g => g.items)
 
 /** Storefront pages, shown under "My Store" once the member has a shop. */
 export const shopMenuItems: NavItem[] = [
@@ -104,8 +102,7 @@ export const shopMenuItems: NavItem[] = [
 ]
 
 /**
- * Admin menu: five groups, the everyday pages up front and the rarely-visited ones under
- * "More". Every page is still one click away from the menu.
+ * Admin menu: collapsible groups. The sidebar keeps open only the group that holds the current page.
  */
 export const adminNavGroups: NavGroup[] = [
     {
@@ -121,8 +118,8 @@ export const adminNavGroups: NavGroup[] = [
             { href: '/admin/airtime', label: 'Airtime & Mashup', icon: Phone },
             { href: '/admin/results-checker', label: 'Results Checker', icon: FileText },
             { href: '/admin/afa-management', label: 'AFA Registration', icon: BadgeCheck },
+            { href: '/admin/orders/bulk-update', label: 'Bulk Order Update', icon: ListChecks },
         ],
-        more: [{ href: '/admin/orders/bulk-update', label: 'Bulk Order Update', icon: ListChecks }],
     },
     {
         id: 'admin-money',
@@ -131,8 +128,6 @@ export const adminNavGroups: NavGroup[] = [
             { href: '/admin/top-up', label: 'Top-Up', icon: Wallet },
             { href: '/admin/finance', label: 'Finance', icon: Banknote },
             { href: '/admin/shops/withdrawals', label: 'Shop Withdrawals', icon: Banknote },
-        ],
-        more: [
             { href: '/admin/payments', label: 'Payments Center', icon: CreditCard },
             { href: '/admin/momo-claims', label: 'MoMo Claims', icon: Wallet },
             { href: '/admin/profits-history', label: 'Profits History', icon: Activity },
@@ -145,8 +140,8 @@ export const adminNavGroups: NavGroup[] = [
             { href: '/admin/users', label: 'Users', icon: Users },
             { href: '/admin/shops', label: 'Shops', icon: Store },
             { href: '/admin/complaints', label: 'Complaints', icon: MessageSquare },
+            { href: '/admin/roles', label: 'Role Management', icon: Crown },
         ],
-        more: [{ href: '/admin/roles', label: 'Role Management', icon: Crown }],
     },
     {
         id: 'admin-account',
@@ -163,8 +158,6 @@ export const adminNavGroups: NavGroup[] = [
             { href: '/admin/packages', label: 'Packages', icon: Package },
             { href: '/admin/announcements', label: 'Announcements', icon: Bell },
             { href: '/admin/settings', label: 'Settings', icon: Settings },
-        ],
-        more: [
             { href: '/admin/mtn-mashup', label: 'MTN Mashup', icon: Package },
             { href: '/admin/sms-broadcast', label: 'SMS Broadcast', icon: Send },
             { href: '/admin/api-keys', label: 'API Keys', icon: Key },
@@ -174,7 +167,7 @@ export const adminNavGroups: NavGroup[] = [
     },
 ]
 
-export const adminNavItems: NavItem[] = adminNavGroups.flatMap(g => [...g.items, ...(g.more ?? [])])
+export const adminNavItems: NavItem[] = adminNavGroups.flatMap(g => g.items)
 /** Where the live "needs attention" counts show up in the admin menu. */
 export const ADMIN_COUNT_KEYS: Record<string, 'pendingOrders' | 'pendingDebts' | 'pendingFulfillment' | 'pendingShops' | 'pendingWithdrawals' | 'pendingAfa' | 'pendingComplaints'> = {
     '/admin/orders': 'pendingOrders',

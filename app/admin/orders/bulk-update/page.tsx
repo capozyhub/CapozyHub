@@ -396,7 +396,7 @@ export default function BulkOrderUpdatePage() {
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-bold" disabled={isUpdating}>
                                     <XCircle className="w-3.5 h-3.5 mr-1.5" /> Fail
                                 </Button>
-                                <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 bg-purple-600 hover:bg-purple-700 text-white font-bold" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 bg-brand-600 hover:bg-brand-700 text-white font-bold" disabled={isUpdating}>
                                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refund
                                 </Button>
                             </div>
@@ -494,7 +494,7 @@ export default function BulkOrderUpdatePage() {
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowBulkRefund(false)} disabled={bulkRefundBusy}>Cancel</Button>
-                        <Button onClick={bulkRefund} disabled={bulkRefundBusy} className="bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button onClick={bulkRefund} disabled={bulkRefundBusy} className="bg-brand-600 hover:bg-brand-700 text-white">
                             {bulkRefundBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                             Confirm Refund
                         </Button>

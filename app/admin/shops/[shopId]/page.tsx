@@ -452,9 +452,9 @@ export default function AdminShopDetailPage() {
 
             {/* Stage 2: Pricing Review Panel */}
             {shop.approval_status === 'approved' && shop.pricing_status === 'pending_review' && (
-                <Card className="border-purple-200 dark:border-purple-800">
+                <Card className="border-brand-200 dark:border-brand-800">
                     <CardHeader>
-                        <CardTitle className="text-sm flex items-center gap-2 text-purple-700 dark:text-purple-400">
+                        <CardTitle className="text-sm flex items-center gap-2 text-brand-700 dark:text-brand-400">
                             <Tag className="w-4 h-4" />
                             Pricing Review — Action Required
                         </CardTitle>

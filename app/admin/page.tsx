@@ -20,7 +20,7 @@ import { ActionRequiredRail, totalActions } from './_components/action-required-
 import { QuickActions } from './_components/quick-actions'
 
 export default function AdminDashboardPage() {
-    const [range, setRange] = useState<DashRange>('7d')
+    const [range, setRange] = useState<DashRange>('today')
     const { isSubAdmin } = useAuth()
     const { counts } = useAdminCounts()
     const { stats, trends, activity, engine, degraded, isLoading, error, refresh } = useAdminDashboard(range)

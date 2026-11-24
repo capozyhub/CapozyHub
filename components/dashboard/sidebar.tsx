@@ -47,6 +47,23 @@ function daysLeft(expiresAt?: string | null): number | null {
     return days > 0 ? days : 0
 }
 
+const ALL_NAV_ITEMS = [...userNavGroups, ...adminNavGroups].flatMap(g => g.items)
+
+/** The single menu entry that owns a path: the longest matching href, so /admin/orders/bulk-update does not also light up /admin/orders. */
+function activeHrefFor(pathname: string | null): string | null {
+    if (!pathname) return null
+    return ALL_NAV_ITEMS
+        .filter(item => isNavActive(pathname, item.href))
+        .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null
+}
+
+function ownerGroupId(pathname: string | null): string | null {
+    if (!pathname) return null
+    if (pathname.startsWith('/dashboard/shop')) return 'grow'
+    const href = activeHrefFor(pathname)
+    return [...userNavGroups, ...adminNavGroups].find(g => g.items.some(item => item.href === href))?.id ?? null
+}
+
 export function DashboardSidebar({ communityLink = '' }: { communityLink?: string }) {
     const pathname = usePathname()
     const { dbUser, isAdmin, isSubAdmin, signOut, isSigningOut } = useAuth()
@@ -57,8 +74,11 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
     const [walletBalance, setWalletBalance] = useState(0)
     const [isShopOpen, setIsShopOpen] = useState(false)
     const [hasShop, setHasShop] = useState<boolean | null>(null)
-    // Which groups have their "More" row expanded. A group opens by itself when the current page is inside it.
-    const [openMore, setOpenMore] = useState<Record<string, boolean>>({})
+    // Which groups are unfolded. Only the group holding the current page starts open; the rest start folded.
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+        const owner = ownerGroupId(pathname)
+        return owner ? { [owner]: true } : {}
+    })
 
     const role = dbUser?.role
     // Admin accounts get the admin console only: no wallet, no shop, no member pages.
@@ -97,10 +117,10 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
         if (pathname?.startsWith('/dashboard/shop')) setIsShopOpen(true)
     }, [pathname])
 
+    // Navigating into a folded group (a link elsewhere, the back button) unfolds it. Other groups stay as the member left them.
     useEffect(() => {
-        if (!pathname) return
-        const owner = [...userNavGroups, ...adminNavGroups].find(g => g.more?.some(item => isNavActive(pathname, item.href)))
-        if (owner) setOpenMore(prev => (prev[owner.id] ? prev : { ...prev, [owner.id]: true }))
+        const owner = ownerGroupId(pathname)
+        if (owner) setOpenGroups(prev => (prev[owner] ? prev : { ...prev, [owner]: true }))
     }, [pathname])
 
     // Whether the member owns a shop only changes when they create one, so it is cached in
@@ -208,32 +228,29 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
         </button>
     )
 
-    const GroupLabel = ({ children }: { children: string }) => (
-        <p className={cn('px-3 pb-1 pt-4 text-xs font-semibold text-muted-foreground/80', hideCollapsed)}>{children}</p>
-    )
-
-    const MoreToggle = ({ group, count }: { group: NavGroup; count: number }) => {
-        const open = !!openMore[group.id]
-        return (
-            <button
-                type="button"
-                onClick={() => setOpenMore(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
-                aria-expanded={open}
-                title={isCollapsed ? (open ? 'Show less' : `More (${count})`) : undefined}
-                className={cn(
-                    'flex w-full items-center gap-3 rounded-2xl p-1 pr-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground',
-                    FOCUS,
-                    isCollapsed && 'lg:justify-center lg:pr-1',
-                )}
-            >
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
-                    <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+    const GroupHeader = ({ group, open, alert }: { group: NavGroup; open: boolean; alert: number }) => (
+        <button
+            type="button"
+            onClick={() => setOpenGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
+            aria-expanded={open}
+            aria-controls={`group-${group.id}`}
+            className={cn(
+                'mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs font-semibold text-muted-foreground/90 transition-colors hover:bg-foreground/5 hover:text-foreground',
+                FOCUS,
+                hideCollapsed,
+            )}
+        >
+            <span className="flex-1 truncate">{group.label}</span>
+            {!open && alert > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {alert > 9 ? '9+' : alert}
+                    <span className="sr-only"> need attention</span>
                 </span>
-                <span className={cn('flex-1', hideCollapsed)}>{open ? 'Show less' : `More (${count})`}</span>
-            </button>
-        )
-    }
-
+            )}
+            <ChevronDown className={cn('h-3.5 w-3.5 flex-shrink-0 transition-transform motion-reduce:transition-none', open && 'rotate-180')} aria-hidden="true" />
+        </button>
+    )
+    const activeHref = activeHrefFor(pathname)
     const shopActive = !!pathname?.startsWith('/dashboard/shop')
     const canSeeAdminItem = (item: NavItem) => isAdmin || (isSubAdmin && item.href === '/admin/orders')
 
@@ -358,99 +375,69 @@ export function DashboardSidebar({ communityLink = '' }: { communityLink?: strin
 
                 {/* Menu */}
                 <nav aria-label="Dashboard" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 pt-2 scrollbar-thin">
-                    {(adminArea ? [] : userNavGroups).map(group => {
-                        const items = group.items.filter(isVisible)
-                        const showShop = group.id === 'grow' && (isAdmin || isSubAdmin || role === 'agent' || role === 'dealer' || role === 'customer' || role === 'subagent')
+                    {(adminArea ? adminNavGroups : userNavGroups).map(group => {
+                        const items = group.items.filter(adminArea ? canSeeAdminItem : isVisible)
+                        const showShop = !adminArea && group.id === 'grow' && !!role
                         if (items.length === 0 && !showShop) return null
+                        // The first group has no heading and is always visible.
+                        const open = !group.label || !!openGroups[group.id]
+                        const alert = adminArea
+                            ? items.reduce((sum, item) => { const key = ADMIN_COUNT_KEYS[item.href]; return sum + (key ? adminCounts[key] || 0 : 0) }, 0)
+                            : 0
                         return (
                             <div key={group.id} className="space-y-0.5">
-                                {group.label && <GroupLabel>{group.label}</GroupLabel>}
-                                {group.id === 'grow' && showShop && (
-                                    hasShop === false ? (
-                                        <NavRow item={{ href: '/dashboard/shop/setup', icon: Store }} label="My Store" active={shopActive} />
-                                    ) : (
-                                        <div>
-                                            <SectionToggle icon={Store} label="My Store" active={shopActive} open={isShopOpen} onToggle={() => setIsShopOpen(v => !v)} />
-                                            {isShopOpen && (
-                                                <div className={cn('ml-[1.35rem] mt-1 space-y-0.5 border-l border-border pl-3', hideCollapsed)}>
-                                                    {shopMenuItems.map(item => {
-                                                        const active = pathname === item.href
-                                                        return (
-                                                            <Link
-                                                                key={item.href}
-                                                                href={item.href}
-                                                                onClick={closeOnMobile}
-                                                                aria-current={active ? 'page' : undefined}
-                                                                className={cn(
-                                                                    'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors',
-                                                                    FOCUS,
-                                                                    active ? 'neu-inset font-semibold text-foreground' : 'font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
-                                                                )}
-                                                            >
-                                                                <item.icon className={cn('h-4 w-4 flex-shrink-0', active && 'text-brand-700 dark:text-brand-500')} />
-                                                                {item.label}
-                                                            </Link>
-                                                        )
-                                                    })}
+                                {group.label && <GroupHeader group={group} open={open} alert={alert} />}
+                                {(open || isCollapsed) && (
+                                    <div id={`group-${group.id}`} className={cn('space-y-0.5', !open && 'hidden lg:block')}>
+                                        {showShop && (
+                                            hasShop === false ? (
+                                                <NavRow item={{ href: '/dashboard/shop/setup', icon: Store }} label="My Store" active={shopActive} />
+                                            ) : (
+                                                <div>
+                                                    <SectionToggle icon={Store} label="My Store" active={shopActive} open={isShopOpen} onToggle={() => setIsShopOpen(v => !v)} />
+                                                    {isShopOpen && (
+                                                        <div className={cn('ml-[1.35rem] mt-1 space-y-0.5 border-l border-border pl-3', hideCollapsed)}>
+                                                            {shopMenuItems.map(item => {
+                                                                const active = pathname === item.href
+                                                                return (
+                                                                    <Link
+                                                                        key={item.href}
+                                                                        href={item.href}
+                                                                        onClick={closeOnMobile}
+                                                                        aria-current={active ? 'page' : undefined}
+                                                                        className={cn(
+                                                                            'flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors',
+                                                                            FOCUS,
+                                                                            active ? 'neu-inset font-semibold text-foreground' : 'font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
+                                                                        )}
+                                                                    >
+                                                                        <item.icon className={cn('h-4 w-4 flex-shrink-0', active && 'text-brand-700 dark:text-brand-500')} />
+                                                                        {item.label}
+                                                                    </Link>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    )
+                                            )
+                                        )}
+                                        {items.map(item => {
+                                            const countKey = adminArea ? ADMIN_COUNT_KEYS[item.href] : undefined
+                                            return (
+                                                <NavRow
+                                                    key={item.href}
+                                                    item={item}
+                                                    label={item.label}
+                                                    active={item.href === activeHref}
+                                                    badge={countKey ? adminCounts[countKey] : 0}
+                                                />
+                                            )
+                                        })}
+                                    </div>
                                 )}
-                                {items.map(item => (
-                                    <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
-                                ))}
-                                {(() => {
-                                    const more = (group.more ?? []).filter(isVisible)
-                                    if (more.length === 0) return null
-                                    return (
-                                        <>
-                                            <MoreToggle group={group} count={more.length} />
-                                            {openMore[group.id] && more.map(item => (
-                                                <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
-                                            ))}
-                                        </>
-                                    )
-                                })()}
                             </div>
                         )
-                    })}
-
-                    {adminArea && (
-                        <div>
-                            {adminNavGroups.map(group => {
-                                        const items = group.items.filter(canSeeAdminItem)
-                                        const more = (group.more ?? []).filter(canSeeAdminItem)
-                                        if (items.length === 0 && more.length === 0) return null
-                                        return (
-                                            <div key={group.id} className="space-y-0.5">
-                                                {group.label && <GroupLabel>{group.label}</GroupLabel>}
-                                                {items.map(item => {
-                                                    const countKey = ADMIN_COUNT_KEYS[item.href]
-                                                    return (
-                                                        <NavRow
-                                                            key={item.href}
-                                                            item={item}
-                                                            label={item.label}
-                                                            active={isNavActive(pathname, item.href)}
-                                                            badge={countKey ? adminCounts[countKey] : 0}
-                                                        />
-                                                    )
-                                                })}
-                                                {more.length > 0 && (
-                                                    <>
-                                                        <MoreToggle group={group} count={more.length} />
-                                                        {openMore[group.id] && more.map(item => (
-                                                            <NavRow key={item.href} item={item} label={item.label} active={isNavActive(pathname, item.href)} />
-                                                        ))}
-                                                    </>
-                                                )}
-                                            </div>
-                                        )
-                            })}
-                        </div>
-                    )}
-                </nav>
+                    })}                </nav>
 
                 {/* Footer */}
                 <div className="flex-shrink-0 space-y-1 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

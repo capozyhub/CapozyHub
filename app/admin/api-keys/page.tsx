@@ -127,7 +127,7 @@ const STATUS = {
     },
     active: {
         icon: CheckCircle2,
-        color: 'text-emerald-600 dark:text-emerald-400',
+        color: 'text-emerald-700 dark:text-emerald-400',
         bg: 'bg-emerald-50 dark:bg-emerald-500/10',
         border: 'border-emerald-200 dark:border-emerald-500/30',
         dot: 'bg-emerald-400',
@@ -160,8 +160,8 @@ function StatCard({
     pulse?: boolean
 }) {
     const accents: Record<Accent, { iconBg: string; iconText: string; text: string }> = {
-        violet:  { iconBg: 'bg-violet-500/10',  iconText: 'text-violet-600 dark:text-violet-400',   text: 'text-violet-600 dark:text-violet-400' },
-        emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-600 dark:text-emerald-400', text: 'text-emerald-600 dark:text-emerald-400' },
+        violet:  { iconBg: 'bg-brand-500/10',  iconText: 'text-brand-800 dark:text-brand-400',   text: 'text-brand-800 dark:text-brand-400' },
+        emerald: { iconBg: 'bg-emerald-500/10', iconText: 'text-emerald-700 dark:text-emerald-400', text: 'text-emerald-700 dark:text-emerald-400' },
         red:     { iconBg: 'bg-red-500/10',     iconText: 'text-red-600 dark:text-red-400',         text: 'text-red-600 dark:text-red-400' },
         amber:   { iconBg: 'bg-amber-500/10',   iconText: 'text-amber-600 dark:text-amber-400',     text: 'text-amber-500' },
         sky:     { iconBg: 'bg-brand-500/10',     iconText: 'text-brand-700 dark:text-brand-400',         text: 'text-brand-700 dark:text-brand-400' },
@@ -170,7 +170,7 @@ function StatCard({
     }
     const a = accents[accent]
     return (
-        <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 min-w-0">
+        <div className="neu-raised-sm rounded-3xl p-3 sm:p-4 min-w-0">
             <div className="flex items-start gap-2 sm:gap-2.5">
                 {Icon && (
                     <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center flex-shrink-0', a.iconBg)}>
@@ -180,7 +180,7 @@ function StatCard({
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                         {pulse && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />}
-                        <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+                        <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
                     </div>
                     <p className={cn('text-sm sm:text-base lg:text-lg font-semibold mt-0.5 tabular-nums whitespace-nowrap', a.text)}>{value}</p>
                     {sub && <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
@@ -212,7 +212,7 @@ function RateLimitEditor({
                     placeholder={label}
                     value={values[key]}
                     onChange={e => setValues(v => ({ ...v, [key]: Math.max(1, parseInt(e.target.value) || 1) }))}
-                    className="w-20 px-3 py-1.5 rounded-lg border border-border bg-card text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    className="w-20 px-3 py-1.5 rounded-lg border border-border bg-card text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
                 <span className="text-xs text-muted-foreground">{hint}</span>
             </div>
@@ -236,7 +236,7 @@ function RateLimitEditor({
     return (
         <div className="mt-4 pt-4 border-t border-border space-y-4">
             <div className="flex items-center gap-2 mb-3">
-                <Sliders className="w-4 h-4 text-violet-500" />
+                <Sliders className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                 <h4 className="text-sm font-semibold text-foreground">Per-Key Rate Limits <span className="text-xs text-muted-foreground font-normal">(req / min)</span></h4>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -250,7 +250,7 @@ function RateLimitEditor({
                     size="sm"
                     onClick={save}
                     disabled={saving}
-                    className="h-8 text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+                    className="h-8 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white gap-1.5"
                 >
                     {saving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                     {saving ? 'Saving…' : 'Save Limits'}
@@ -307,13 +307,13 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {tile('Spent', `GH₵ ${data.total_spent.toFixed(2)}`, 'text-violet-600 dark:text-violet-400')}
+            {tile('Spent', `GH₵ ${data.total_spent.toFixed(2)}`, 'text-brand-800 dark:text-brand-400')}
             {tile('Orders', data.total_orders.toLocaleString())}
-            {tile('Success', data.success_orders.toLocaleString(), 'text-emerald-600 dark:text-emerald-400')}
+            {tile('Success', data.success_orders.toLocaleString(), 'text-emerald-700 dark:text-emerald-400')}
             {tile('Failed', data.failed_orders.toLocaleString(), 'text-red-600 dark:text-red-400')}
             {tile('Pending', data.pending_orders.toLocaleString(), 'text-amber-500')}
             {tile('Success Rate', `${data.success_rate}%`,
-                data.success_rate >= 90 ? 'text-emerald-600 dark:text-emerald-400'
+                data.success_rate >= 90 ? 'text-emerald-700 dark:text-emerald-400'
                 : data.success_rate >= 70 ? 'text-amber-500' : 'text-red-600 dark:text-red-400')}
             {tile('Reqs (24h)', data.requests_24h.toLocaleString(), 'text-brand-700 dark:text-brand-400')}
             {tile('Avg Latency', `${data.avg_response_ms}ms`)}
@@ -342,7 +342,7 @@ function KeyRow({ item, onAction }: {
         setExpanded(p => (p === panel ? null : panel))
 
     return (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden transition-shadow hover:shadow-sm">
+        <div className="neu-raised-sm rounded-3xl overflow-hidden transition-shadow hover:shadow-sm">
             {/* Main row */}
             <div className="flex flex-col gap-3 p-3 sm:p-4 lg:p-5 lg:flex-row lg:items-center">
 
@@ -454,7 +454,7 @@ function KeyRow({ item, onAction }: {
                         type="button"
                         variant="outline"
                         onClick={() => toggle('activity')}
-                        className={cn('h-8 text-xs gap-1.5', expanded === 'activity' && 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400')}
+                        className={cn('h-8 text-xs gap-1.5', expanded === 'activity' && 'bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-700 text-brand-800 dark:text-brand-400')}
                     >
                         <BarChart2 className="w-3 h-3" />
                         <span className="hidden sm:inline">Activity</span>
@@ -465,7 +465,7 @@ function KeyRow({ item, onAction }: {
                         type="button"
                         variant="outline"
                         onClick={() => toggle('limits')}
-                        className={cn('h-8 text-xs gap-1.5', expanded === 'limits' && 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400')}
+                        className={cn('h-8 text-xs gap-1.5', expanded === 'limits' && 'bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-700 text-brand-800 dark:text-brand-400')}
                     >
                         <Sliders className="w-3 h-3" />
                         <span className="hidden sm:inline">Limits</span>
@@ -484,7 +484,7 @@ function KeyRow({ item, onAction }: {
             {expanded === 'activity' && item.user && (
                 <div className="px-4 sm:px-5 py-4 sm:py-5 border-t border-border bg-muted/50 dark:bg-muted/20">
                     <div className="flex items-center gap-2 mb-3">
-                        <BarChart2 className="w-4 h-4 text-violet-500" />
+                        <BarChart2 className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                         <h4 className="text-sm font-semibold text-foreground">User Activity</h4>
                         <span className="text-xs text-muted-foreground font-normal hidden sm:inline">API order + request totals</span>
                     </div>
@@ -521,14 +521,14 @@ function LogsTab() {
     useEffect(() => { fetchLogs(1) }, [fetchLogs])
 
     const statusColor = (code: number) => {
-        if (code < 300) return 'text-emerald-600 dark:text-emerald-400'
+        if (code < 300) return 'text-emerald-700 dark:text-emerald-400'
         if (code < 400) return 'text-brand-700 dark:text-brand-400'
         if (code < 500) return 'text-amber-600 dark:text-amber-400'
         return 'text-red-600 dark:text-red-400'
     }
 
     const methodColor = (method: string) => {
-        if (method === 'GET') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+        if (method === 'GET') return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
         if (method === 'POST') return 'bg-brand-500/10 text-brand-700 dark:text-brand-400 border-brand-500/20'
         return 'bg-muted text-muted-foreground border-border '
     }
@@ -722,7 +722,7 @@ export default function AdminApiKeysPage() {
             {/* ── Header ─────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-brand-600 flex items-center justify-center shadow-lg shadow-violet-500/20 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl clay-gold flex items-center justify-center shadow-lg shadow-brand-500/20 flex-shrink-0">
                         <Key className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -784,7 +784,7 @@ export default function AdminApiKeysPage() {
                             <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] sm:text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Top API User (24h)</p>
+                            <p className="text-[10px] sm:text-[11px] font-semibold text-foreground uppercase tracking-wider">Top API User (24h)</p>
                             <p className="text-sm font-semibold text-foreground truncate">{stats.top_user.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{stats.top_user.email}</p>
                         </div>
@@ -799,7 +799,7 @@ export default function AdminApiKeysPage() {
             {/* ── Feature Controls ────────────────────────────────────────── */}
             <div className="rounded-2xl border border-border dark:border-border/60 bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
-                    <Settings className="w-4 h-4 text-violet-500" />
+                    <Settings className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                     <h3 className="text-sm font-semibold text-foreground">Feature Controls</h3>
                     <span className="text-xs text-muted-foreground font-normal">Global API access settings</span>
                 </div>
@@ -831,7 +831,7 @@ export default function AdminApiKeysPage() {
                                 <label key={role} className={cn(
                                     'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all',
                                     allowedRoles.includes(role)
-                                        ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/30 text-violet-700 dark:text-violet-400'
+                                        ? 'bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400'
                                         : 'bg-muted/50 border-border text-muted-foreground'
                                 )}>
                                     <input
@@ -857,7 +857,7 @@ export default function AdminApiKeysPage() {
                         size="sm"
                         onClick={saveSettings}
                         disabled={settingsSaving}
-                        className="h-8 text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+                        className="h-8 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white gap-1.5"
                     >
                         {settingsSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                         {settingsSaving ? 'Saving…' : 'Save Settings'}
@@ -909,7 +909,7 @@ export default function AdminApiKeysPage() {
                                 placeholder="Search by name, email, phone or key prefix…"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/40 text-foreground placeholder:text-muted-foreground"
+                                className="w-full pl-10 pr-9 py-2.5 neu-raised-sm rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 text-foreground placeholder:text-muted-foreground"
                             />
                             {searchQuery && (
                                 <button
@@ -951,7 +951,7 @@ export default function AdminApiKeysPage() {
                                         value={roleFilter}
                                         onChange={e => setRoleFilter(e.target.value)}
                                         aria-label="Filter by role"
-                                        className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-border bg-card text-xs font-semibold text-foreground/80 focus:outline-none focus:ring-2 focus:ring-violet-500/40 cursor-pointer w-full"
+                                        className="appearance-none pl-3 pr-8 py-2 neu-raised-sm rounded-2xl text-xs font-semibold text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer w-full"
                                     >
                                         <option value="">All Roles</option>
                                         <option value="agent">Agent</option>
@@ -969,7 +969,7 @@ export default function AdminApiKeysPage() {
                                         value={sortBy}
                                         onChange={e => setSortBy(e.target.value as SortBy)}
                                         aria-label="Sort by"
-                                        className="appearance-none pl-3 pr-8 py-2 rounded-xl border border-border bg-card text-xs font-semibold text-foreground/80 focus:outline-none focus:ring-2 focus:ring-violet-500/40 cursor-pointer w-full"
+                                        className="appearance-none pl-3 pr-8 py-2 neu-raised-sm rounded-2xl text-xs font-semibold text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer w-full"
                                     >
                                         <option value="recent">Newest</option>
                                         <option value="oldest">Oldest</option>
@@ -988,7 +988,7 @@ export default function AdminApiKeysPage() {
                             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
                         </div>
                     ) : filteredKeys.length === 0 ? (
-                        <div className="text-center py-16 rounded-2xl border border-border bg-card">
+                        <div className="text-center py-16 neu-raised-sm rounded-3xl">
                             <Shield className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
                             <p className="text-sm font-semibold text-muted-foreground ">No API Keys Found</p>
                             <p className="text-xs text-muted-foreground mt-1">

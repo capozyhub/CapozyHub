@@ -331,7 +331,7 @@ export default function ProfitLogsClient() {
                                             </td>
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-2 items-start">
-                                                    <Badge variant="outline" className={`uppercase text-[10px] tracking-wider px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                                                    <Badge variant="outline" className={`uppercase text-[10px] tracking-wider px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
                                                         {log.channel === 'main' ? 'Main Platform' : 'Shop System'} · {log.role_at_time || 'Guest'}
                                                     </Badge>
                                                     

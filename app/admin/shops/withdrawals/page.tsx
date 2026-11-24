@@ -154,7 +154,7 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                 <span className={cn(
                     'inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5',
                     row.payment_type === 'bank'
-                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                        ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
                         : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
                 )}>
                     {row.payment_type === 'bank'

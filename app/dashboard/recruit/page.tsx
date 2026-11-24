@@ -269,13 +269,13 @@ export default function RecruitPage() {
     if (!authLoading && !isEligible) {
         return (
             <div className="space-y-5">
-                <Card>
+                <Card className="neu-raised rounded-[2rem] border-0">
                     <CardContent className="p-6 sm:p-8 flex flex-col items-center text-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                            <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+                        <div className="clay-gold w-12 h-12 rounded-full flex items-center justify-center">
+                            <ShieldAlert className="w-6 h-6" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-lg font-bold">Sub-Agent Program</h1>
+                            <h1 className="font-display text-xl font-bold tracking-tight">Sub-agent program</h1>
                             <p className="text-sm text-muted-foreground max-w-sm">
                                 Recruiting sub-agents is part of our Sub-Agent Program, available to agents and dealers.
                                 Upgrade your role to start building your own team.
@@ -328,10 +328,10 @@ export default function RecruitPage() {
                     Add sub-agent
                 </Button>
             ) : (
-                <Card>
+                <Card className="neu-raised rounded-[2rem] border-0">
                     <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <UserPlus className="w-4 h-4 text-emerald-600" />
+                            <UserPlus className="w-4 h-4" />
                             Recruit a sub-agent
                         </CardTitle>
                     </CardHeader>

@@ -79,7 +79,7 @@ function getProgressProps(user: any, days: number | null) {
     const colorClass =
         days <= 7 ? 'fill-red-500' :
         days <= 14 ? 'fill-amber-400' :
-        user.role === 'dealer' ? 'fill-violet-400' : 'fill-brand-400'
+        user.role === 'dealer' ? 'fill-brand-400' : 'fill-brand-400'
     return { width: `${pct}%`, colorClass }
 }
 
@@ -359,10 +359,10 @@ export default function RoleManagementPage() {
 
     const statCards = [
         { label: 'Total Agents', value: stats.totalAgents, Icon: Crown, iconColor: 'text-amber-500', numColor: 'text-foreground', bg: 'bg-amber-500' },
-        { label: 'Active Agents', value: stats.activeAgents, Icon: ShieldCheck, iconColor: 'text-emerald-500', numColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500' },
+        { label: 'Active Agents', value: stats.activeAgents, Icon: ShieldCheck, iconColor: 'text-emerald-500', numColor: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-500' },
         { label: 'Expiring ≤7d', value: stats.agentExpiring, Icon: AlertTriangle, iconColor: 'text-orange-500', numColor: stats.agentExpiring > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground', bg: 'bg-orange-500' },
-        { label: 'Total Dealers', value: stats.totalDealers, Icon: Gem, iconColor: 'text-violet-500', numColor: 'text-foreground', bg: 'bg-violet-500' },
-        { label: 'Active Dealers', value: stats.activeDealers, Icon: TrendingUp, iconColor: 'text-violet-500', numColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500' },
+        { label: 'Total Dealers', value: stats.totalDealers, Icon: Gem, iconColor: 'text-brand-700 dark:text-brand-500', numColor: 'text-foreground', bg: 'bg-brand-500' },
+        { label: 'Active Dealers', value: stats.activeDealers, Icon: TrendingUp, iconColor: 'text-brand-700 dark:text-brand-500', numColor: 'text-brand-800 dark:text-brand-400', bg: 'bg-brand-500' },
         { label: 'Expiring ≤14d', value: stats.dealerExpiring, Icon: Timer, iconColor: 'text-red-500', numColor: stats.dealerExpiring > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground', bg: 'bg-red-500' },
     ]
 
@@ -459,7 +459,7 @@ export default function RoleManagementPage() {
                                             </span>
                                         ) : (
                                             <span className="flex items-center justify-center gap-1">
-                                                <Gem className="w-3 h-3 text-violet-500" /> Dealer
+                                                <Gem className="w-3 h-3 text-brand-700 dark:text-brand-500" /> Dealer
                                             </span>
                                         )}
                                     </button>
@@ -492,7 +492,7 @@ export default function RoleManagementPage() {
                             )}
 
                             {assignRole === 'dealer' && (
-                                <div className="text-[11px] text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/40 rounded-md px-3 py-2">
+                                <div className="text-[11px] text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/40 rounded-md px-3 py-2">
                                     Dealer assignment requires a Lifetime Agent (6-month fixed term).
                                 </div>
                             )}
@@ -553,7 +553,7 @@ export default function RoleManagementPage() {
                                 className={cn(
                                     'w-full h-9 text-sm font-medium',
                                     assignRole === 'dealer'
-                                        ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                                        ? 'bg-brand-600 hover:bg-brand-700 text-white'
                                         : 'bg-amber-500 hover:bg-amber-600 text-white'
                                 )}
                                 onClick={handleAssign}
@@ -674,7 +674,7 @@ export default function RoleManagementPage() {
                                                             <div className="flex items-center gap-2.5">
                                                                 <div className={cn(
                                                                     'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0',
-                                                                    user.role === 'dealer' ? 'bg-violet-500' : 'bg-amber-500'
+                                                                    user.role === 'dealer' ? 'bg-brand-500' : 'bg-amber-500'
                                                                 )}>
                                                                     {(user.first_name?.[0] || user.email?.[0] || '?').toUpperCase()}
                                                                 </div>
@@ -696,7 +696,7 @@ export default function RoleManagementPage() {
                                                         </td>
                                                         <td className="px-5 py-3.5">
                                                             {user.role === 'dealer' ? (
-                                                                <Badge className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/60 text-[10px] font-medium gap-0.5">
+                                                                <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-[10px] font-medium gap-0.5">
                                                                     <Gem className="w-2.5 h-2.5" /> Dealer
                                                                 </Badge>
                                                             ) : (
@@ -812,7 +812,7 @@ export default function RoleManagementPage() {
                                                     <div className="flex items-center gap-2.5 min-w-0">
                                                         <div className={cn(
                                                             'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0',
-                                                            user.role === 'dealer' ? 'bg-violet-500' : 'bg-amber-500'
+                                                            user.role === 'dealer' ? 'bg-brand-500' : 'bg-amber-500'
                                                         )}>
                                                             {(user.first_name?.[0] || '?').toUpperCase()}
                                                         </div>
@@ -825,7 +825,7 @@ export default function RoleManagementPage() {
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                                         {user.role === 'dealer' ? (
-                                                            <Badge className="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/60 text-[10px] gap-0.5">
+                                                            <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-[10px] gap-0.5">
                                                                 <Gem className="w-2.5 h-2.5" /> Dealer
                                                             </Badge>
                                                         ) : (
@@ -918,7 +918,7 @@ export default function RoleManagementPage() {
                             <Badge className={cn(
                                 'text-[10px] ml-1',
                                 extendUser?.role === 'dealer'
-                                    ? 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800/60'
+                                    ? 'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:border-brand-800/60'
                                     : 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/60'
                             )}>
                                 {extendUser?.role}
@@ -1027,7 +1027,7 @@ export default function RoleManagementPage() {
             <Dialog open={!!expireUser} onOpenChange={() => setExpireUser(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="text-base font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                        <DialogTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
                             <Timer className="w-5 h-5" /> Expire Dealer Now
                         </DialogTitle>
                         <DialogDescription className="text-sm">

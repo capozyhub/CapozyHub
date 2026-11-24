@@ -39,7 +39,7 @@ function SettingsPanel({ title, description, icon: Icon, children }: {
     children: React.ReactNode
 }) {
     return (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="neu-raised-sm rounded-3xl overflow-hidden">
             <div className="flex items-start gap-3 px-5 py-4 border-b border-border">
                 {Icon && (
                     <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -59,7 +59,7 @@ function SettingsPanel({ title, description, icon: Icon, children }: {
 function SettingField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{label}</Label>
+            <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
             {children}
             {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
         </div>
@@ -83,7 +83,7 @@ function ToggleRow({
             checked
                 ? color === 'emerald'
                     ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'
-                    : 'bg-violet-50/60 dark:bg-violet-500/5 border-violet-200/80 dark:border-violet-500/20'
+                    : 'bg-brand-50/60 dark:bg-brand-500/5 border-brand-200/80 dark:border-brand-500/20'
                 : 'bg-muted/50 dark:bg-muted/30 border-border dark:border-border/60'
         )}>
             <div className="min-w-0 mr-3 flex-1">
@@ -538,7 +538,7 @@ export default function AdminSettingsPage() {
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-neutral-700 to-neutral-900 dark:from-neutral-600 dark:to-neutral-800 flex items-center justify-center shadow-lg flex-shrink-0">
                         <Settings className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -676,7 +676,7 @@ export default function AdminSettingsPage() {
                             color="emerald"
                         />
                         <div className="pt-2">
-                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
+                            <p className="text-xs font-semibold text-muted-foreground mb-3">
                                 Max profit per registration (GHS) — saved separately from the fields above
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

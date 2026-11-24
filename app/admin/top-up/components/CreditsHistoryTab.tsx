@@ -26,7 +26,7 @@ const ROLE_COLORS: Record<string, string> = {
     agent: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     customer: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    'sub-admin': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    'sub-admin': 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
 }
 
 interface Transaction {

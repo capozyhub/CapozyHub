@@ -363,7 +363,7 @@ export default function AdminPackagesPage() {
                                                         </p>
                                                     )}
                                                     {(pkg as any).dealer_price > 0 && (
-                                                        <p className="text-sm font-medium text-violet-600">
+                                                        <p className="text-sm font-medium text-brand-800 dark:text-brand-400">
                                                             Dealer: {formatCurrency((pkg as any).dealer_price)}
                                                         </p>
                                                     )}
@@ -480,13 +480,13 @@ export default function AdminPackagesPage() {
                                 <p className="text-[10px] text-muted-foreground">Optional: Set specifically for agents</p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-violet-700">Dealer Price (GHS)</Label>
+                                <Label className="text-brand-700">Dealer Price (GHS)</Label>
                                 <Input
                                     type="number"
                                     value={formData.dealer_price}
                                     onChange={(e) => setFormData(prev => ({ ...prev, dealer_price: parseFloat(e.target.value) || 0 }))}
                                     placeholder="0.00"
-                                    className="border-violet-200 focus-visible:ring-violet-400"
+                                    className="border-brand-200 focus-visible:ring-brand-400"
                                 />
                                 <p className="text-[10px] text-muted-foreground">Optional: Dealers pay this (falls back to agent price if 0)</p>
                             </div>

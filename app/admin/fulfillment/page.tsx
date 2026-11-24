@@ -697,7 +697,7 @@ export default function FulfillmentPage() {
                 <CardContent className="p-4 md:p-5 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3">
                         <div className={cn('p-2 rounded-lg shrink-0', rexamartActiveCount > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted')}>
-                            <Server className={cn('w-4 h-4 md:w-5 md:h-5', rexamartActiveCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')} />
+                            <Server className={cn('w-4 h-4 md:w-5 md:h-5', rexamartActiveCount > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')} />
                         </div>
                         <div>
                             <p className="text-sm md:text-base font-bold text-foreground">
@@ -878,7 +878,7 @@ export default function FulfillmentPage() {
             {/* Cron Jobs */}
             <div className="grid grid-cols-2 gap-3 md:gap-4">
                 {/* Auto-Complete Data Cron Card */}
-                <Card className={cn(cardSurface, 'border-l-4 border-l-violet-500')}>
+                <Card className={cn(cardSurface, 'border-l-4 border-l-brand-500')}>
                     <CardContent className="p-3 md:p-5">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
@@ -891,7 +891,7 @@ export default function FulfillmentPage() {
                                         <p className="text-[10px] text-muted-foreground hidden md:block mt-0.5">Marks processing orders older than threshold as completed.</p>
                                     </div>
                                 </div>
-                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', cronEnabled ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-muted text-muted-foreground')}>
+                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', cronEnabled ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-muted text-muted-foreground')}>
                                     {cronEnabled ? `On·${cronThreshold}m` : 'Off'}
                                 </div>
                             </div>
@@ -1262,7 +1262,7 @@ export default function FulfillmentPage() {
                                                                     : (order.shop_name || 'N/A')}
                                                             </p>
                                                             {order.source === 'api' && (
-                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-violet-100 text-violet-700 hover:bg-violet-100 border-violet-200">
+                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                                     API
                                                                 </Badge>
                                                             )}
@@ -1354,7 +1354,7 @@ export default function FulfillmentPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="h-7 px-2.5 text-[11px] text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200 dark:border-purple-900"
+                                                        className="h-7 px-2.5 text-[11px] text-brand-600 hover:text-brand-700 hover:bg-brand-50 border-brand-200 dark:border-brand-900"
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             setMomoOrderId(order.id)

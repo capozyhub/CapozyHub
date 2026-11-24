@@ -392,7 +392,7 @@ export default function AdminShopSettingsPage() {
                             [
                                 { role: 'customer' as Role, label: 'Customer', color: 'text-brand-700' },
                                 { role: 'agent' as Role, label: 'Agent', color: 'text-emerald-600' },
-                                { role: 'dealer' as Role, label: 'Dealer', color: 'text-violet-600' },
+                                { role: 'dealer' as Role, label: 'Dealer', color: 'text-brand-800 dark:text-brand-400' },
                             ]
                         ).map(({ role, label, color }) => (
                             <div key={role} className="space-y-3 p-4 rounded-xl border bg-muted/20">
@@ -455,8 +455,8 @@ export default function AdminShopSettingsPage() {
                         title="Dealer"
                         subtitle="Applies to shops owned by active dealers"
                         icon={Gem}
-                        iconColor="text-violet-600"
-                        borderColor="border-violet-200 dark:border-violet-800"
+                        iconColor="text-brand-800 dark:text-brand-400"
+                        borderColor="border-brand-200 dark:border-brand-800"
                         config={settings.dealer}
                         onChange={(key, value) => updateRoleConfig('dealer', key, value)}
                     />

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     Phone, RefreshCw, Loader2, CheckCircle, XCircle, Clock, Settings2, Save,
     AlertTriangle, Search, Calendar, TrendingUp, Coins,
@@ -28,7 +28,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { cn, normalizeWhatsAppNumber } from '@/lib/utils'
+import { cn, formatCurrency, normalizeWhatsAppNumber } from '@/lib/utils'
+import { Notice } from '@/components/auth/fields'
+import { FOCUS } from '@/components/auth/auth-shell'
 import { toast } from '@/lib/toast'
 import {
     format,
@@ -165,7 +167,7 @@ const STATUS_STYLES: Record<string, string> = {
     processing: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900',
     completed:  'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900',
     failed:     'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900',
-    refunded:   'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900',
+    refunded:   'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-950/40 dark:text-brand-300 dark:border-brand-900',
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -242,10 +244,9 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
         <div
             onClick={selectionMode ? () => onToggleSelect?.(order) : undefined}
             className={cn(
-                'rounded-2xl border bg-card p-4 shadow-sm transition-all',
+                'neu-raised-sm rounded-3xl p-4 transition-all',
                 selectionMode && 'cursor-pointer select-none active:scale-[0.99]',
-                selected ? 'border-emerald-400 ring-2 ring-emerald-400/40 dark:border-emerald-500'
-                    : 'border-border',
+                selected && 'ring-2 ring-brand-500',
             )}
         >
             {/* Header */}
@@ -253,11 +254,11 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                 <div className="flex items-center gap-2.5 min-w-0">
                     {selectionMode && (
                         <span className={cn('w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors',
-                            selected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-border')}>
+                            selected ? 'bg-brand-500 border-brand-500 text-black' : 'border-border')}>
                             {selected && <Check className="w-3.5 h-3.5" />}
                         </span>
                     )}
-                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
+                    <div className="neu-inset w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
                         <NetworkLogo id={order.network} />
                     </div>
                     <div className="min-w-0">
@@ -271,9 +272,9 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total paid</p>
+                    <p className="text-[11px] text-muted-foreground">Total paid</p>
                     <p className="text-base font-bold tabular-nums text-foreground leading-tight">
-                        {isFailed ? '—' : `GHS ${order.total_paid.toFixed(2)}`}
+                        {isFailed ? '—' : formatCurrency(order.total_paid)}
                     </p>
                 </div>
             </div>
@@ -282,7 +283,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
             {(order.type === 'mashup' || order.bundle_preference || order.shop_name || corrupt) && (
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     {order.type === 'mashup' && (
-                        <Badge variant="outline" className="text-xs font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900 gap-1">
+                        <Badge variant="outline" className="text-xs font-medium gap-1">
                             <Zap className="w-3 h-3" /> Mashup
                         </Badge>
                     )}
@@ -292,7 +293,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                         </Badge>
                     )}
                     {order.shop_name && (
-                        <Badge variant="outline" className="text-xs font-medium bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900 max-w-[10rem] truncate">
+                        <Badge variant="outline" className="text-xs font-medium max-w-[10rem] truncate">
                             Shop: {order.shop_name}
                         </Badge>
                     )}
@@ -306,20 +307,20 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
 
             {/* Customer / Beneficiary */}
             <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
-                <div className="rounded-lg border border-border p-2.5 min-w-0">
+                <div className="neu-inset rounded-2xl p-2.5 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Initiator</p>
                     <p className="font-medium text-foreground truncate">{order.users?.first_name} {order.users?.last_name}</p>
                     <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
                         <Mail className="w-3 h-3 shrink-0" /> <span className="truncate">{order.users?.email}</span>
                     </p>
                 </div>
-                <div className="rounded-lg border border-border p-2.5 min-w-0">
+                <div className="neu-inset rounded-2xl p-2.5 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Beneficiary</p>
                     <div className="flex items-center justify-between gap-1 min-w-0">
                         <span className="font-mono font-medium text-foreground truncate">{order.beneficiary_phone}</span>
                         <button
-                            onClick={() => { navigator.clipboard.writeText(normalizeWhatsAppNumber(order.beneficiary_phone)); toast.success('Copied') }}
-                            className="shrink-0 text-muted-foreground hover:text-foreground/80 dark:hover:text-foreground transition-colors"
+                            onClick={() => { navigator.clipboard?.writeText(normalizeWhatsAppNumber(order.beneficiary_phone)).then(() => toast.success('Number copied'), () => toast.error('Could not copy. Select the number and copy it by hand.')) }}
+                            className={cn("shrink-0 rounded text-muted-foreground hover:text-foreground transition-colors p-1", FOCUS)}
                             aria-label="Copy beneficiary number"
                         >
                             <Copy className="w-3.5 h-3.5" />
@@ -329,10 +330,10 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
             </div>
 
             {/* Earnings strip */}
-            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-3 text-xs rounded-lg bg-muted/50 dark:bg-muted/40 px-3 py-2">
+            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-3 text-xs rounded-xl bg-muted/60 px-3 py-2">
                 <span className="text-muted-foreground">Net <span className="font-semibold tabular-nums text-foreground">{order.airtime_amount.toFixed(2)}</span></span>
                 <span className="text-muted-foreground/70 ">·</span>
-                <span className="text-muted-foreground">Admin <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
+                <span className="text-muted-foreground">Admin <span className="font-semibold tabular-nums text-foreground">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
                 {order.shop_id && (<><span className="text-muted-foreground/70 ">·</span>
                     <span className="text-muted-foreground">Shop <span className="font-semibold tabular-nums text-foreground/80 ">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
                 <span className="text-muted-foreground/70 ">·</span>
@@ -348,7 +349,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                         </Badge>
                     )}
                     {attempts > 1 && (
-                        <Badge variant="outline" className="text-xs font-medium text-amber-600 border-amber-200 dark:text-amber-300 dark:border-amber-900 gap-1">
+                        <Badge variant="outline" className="text-xs font-medium gap-1">
                             <Repeat2 className="w-3 h-3" /> Attempt {attempts}
                         </Badge>
                     )}
@@ -369,7 +370,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                         )}
                         {canRefund(order) && (
                             <Button size="sm" variant="outline" disabled={busy}
-                                className="flex-1 h-9 text-xs gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300"
+                                className="flex-1 h-9 text-xs gap-1.5"
                                 onClick={() => onRefund(order)}>
                                 <RefreshCw className="w-3.5 h-3.5" /> Refund
                             </Button>
@@ -395,7 +396,7 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
     const handleSubmit = async () => {
         if (!order || !targetStatus) return
         if (targetStatus === 'failed' && !note.trim()) {
-            toast.error('A reason note is required when marking as failed')
+            toast.error('Add a reason before marking this order failed.')
             return
         }
         setLoading(true)
@@ -406,17 +407,17 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
                 body: JSON.stringify({ orderId: order.id, status: targetStatus, fulfillmentNote: note }),
             })
             const d = await res.json()
-            if (!res.ok) { toast.error(d.error || 'Failed to update order'); return }
-            toast.success(`Order marked as ${targetStatus}`)
+            if (!res.ok) { toast.error(d.error || 'We could not update this order. Try again.'); return }
+            toast.success(`Order marked ${targetStatus}`)
             onSuccess()
             onClose()
-        } catch { toast.error('An error occurred') }
+        } catch { toast.error('We could not update this order. Check your connection and try again.') }
         finally { setLoading(false) }
     }
 
     return (
         <Dialog open={!!order} onOpenChange={(o) => { if (!o) onClose() }}>
-            <DialogContent className="rounded-2xl max-w-sm">
+            <DialogContent className="rounded-[2rem] max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="text-base font-semibold">Manual override</DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground font-mono">
@@ -426,14 +427,14 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
 
                 {order && (
                     <>
-                        <div className="rounded-xl border border-border p-3 space-y-2 text-sm">
+                        <div className="neu-inset rounded-2xl p-3 space-y-2 text-sm">
                             <div className="flex justify-between items-center gap-2">
                                 <span className="text-muted-foreground">Customer</span>
                                 <span className="font-medium text-foreground truncate">{order.users?.first_name} {order.users?.last_name}</span>
                             </div>
                             <div className="flex justify-between items-center gap-2">
                                 <span className="text-muted-foreground">Amount</span>
-                                <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">GHS {order.airtime_amount.toFixed(2)}</span>
+                                <span className="font-semibold tabular-nums text-foreground">{formatCurrency(order.airtime_amount)}</span>
                             </div>
                             <div className="flex justify-between items-center gap-2">
                                 <span className="text-muted-foreground">Network</span>
@@ -449,25 +450,25 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
 
                         {transitions.length === 0 ? (
                             <div className="text-center py-4 space-y-2">
-                                <CheckCircle className="w-9 h-9 text-emerald-500 mx-auto" />
+                                <CheckCircle className="w-9 h-9 text-muted-foreground mx-auto" />
                                 <p className="text-sm text-muted-foreground">This order is finalised and cannot be changed.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 <div>
-                                    <Label className="text-xs font-medium text-muted-foreground mb-2 block">New status</Label>
+                                    <Label className="text-xs font-medium text-muted-foreground mb-2 block">Change status to</Label>
                                     <div className="flex gap-2">
                                         {transitions.map(s => (
                                             <button
                                                 key={s}
+                                                type="button"
+                                                aria-pressed={targetStatus === s}
                                                 onClick={() => setTargetStatus(s)}
                                                 className={cn(
                                                     'flex-1 h-9 rounded-lg text-sm font-medium capitalize border transition-colors',
                                                     targetStatus === s
-                                                        ? s === 'completed' ? 'bg-emerald-600 border-emerald-600 text-white'
-                                                            : s === 'failed' ? 'bg-red-600 border-red-600 text-white'
-                                                                : 'bg-brand-600 border-brand-600 text-black'
-                                                        : 'border-border text-muted-foreground hover:border-border dark:hover:border-border',
+                                                        ? s === 'failed' ? 'bg-red-600 border-red-600 text-white' : 'clay-gold border-transparent'
+                                                        : 'border-border text-muted-foreground hover:text-foreground',
                                                 )}
                                             >{s}</button>
                                         ))}
@@ -479,12 +480,13 @@ function ActionModal({ order, onClose, onSuccess }: { order: Order | null; onClo
                                         <Input
                                             value={note}
                                             onChange={e => setNote(e.target.value)}
-                                            placeholder="Reason…"
+                                            placeholder="Why did it fail?"
+                                            aria-label="Reason for failure"
                                             className="h-9 text-sm"
                                             autoFocus
                                         />
                                         <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 leading-snug">
-                                            This will not auto-refund. Use manual credit if needed.
+                                            This does not refund the customer. Use Refund on the order if they should get their money back.
                                         </p>
                                     </div>
                                 )}
@@ -521,13 +523,13 @@ function NetworkFeeSection({
     setSettings: React.Dispatch<React.SetStateAction<AirtimeSettings>>
 }) {
     return (
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="neu-raised-sm rounded-3xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border">
-                <h2 className="text-sm font-semibold text-foreground">
-                    {productType === 'airtime' ? 'Airtime' : 'Mashup'} fee configuration
+                <h2 className="font-display text-base font-bold tracking-tight text-foreground">
+                    {productType === 'airtime' ? 'Airtime' : 'Mashup'} fees
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                    Per-network, per-role markup rates — affects {productType} orders only
+                    Markup per network and role. Applies to {productType} orders only.
                 </p>
             </div>
             <div className="divide-y divide-border">
@@ -539,19 +541,20 @@ function NetworkFeeSection({
                         <div key={net} className="px-4 py-4">
                             <div className="flex items-center justify-between gap-2 mb-3">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center border border-border shrink-0">
+                                    <div className="neu-inset w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
                                         <NetworkLogo id={net} />
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="text-sm font-semibold text-foreground truncate">{net}</h3>
-                                        <span className={cn('text-xs', isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
-                                            {isEnabled ? 'Operational' : 'Disabled'}
+                                        <span className={cn('text-xs', isEnabled ? 'text-foreground' : 'text-muted-foreground')}>
+                                            {isEnabled ? 'On' : 'Off'}
                                         </span>
                                     </div>
                                 </div>
                                 <Switch
                                     checked={isEnabled}
                                     onCheckedChange={v => setSettings(s => ({ ...s, [enabledKey]: v ? 'true' : 'false' }))}
+                                    aria-label={`${net} ${productType} on or off`}
                                 />
                             </div>
 
@@ -563,11 +566,12 @@ function NetworkFeeSection({
                                     return (
                                         <div key={role} className="space-y-1.5 min-w-0">
                                             <div className="flex justify-between items-center gap-1">
-                                                <Label className="text-xs font-medium text-muted-foreground truncate">{ROLE_LABELS[role]}</Label>
-                                                <span className="text-xs text-muted-foreground tabular-nums shrink-0">GHS {preview}</span>
+                                                <Label htmlFor={`${productType}-${net}-${role}-fee`} className="text-xs font-medium text-muted-foreground truncate">{ROLE_LABELS[role]}</Label>
+                                                <span className="text-xs text-muted-foreground tabular-nums shrink-0">GH₵10 costs GH₵{preview}</span>
                                             </div>
                                             <div className="relative">
                                                 <Input
+                                                    id={`${productType}-${net}-${role}-fee`}
                                                     type="number"
                                                     value={settings[feeKey]}
                                                     onChange={e => setSettings(s => ({ ...s, [feeKey]: e.target.value }))}
@@ -607,7 +611,7 @@ function LimitsAndTogglesSection({
     const sfKey = `storefront_${productType}_enabled` as keyof AirtimeSettings
 
     return (
-        <div className="rounded-2xl border border-border bg-card shadow-sm p-4 space-y-5">
+        <div className="neu-raised-sm rounded-3xl shadow-sm p-4 space-y-5">
             <div>
                 <h2 className="text-sm font-semibold text-foreground">
                     {productType === 'airtime' ? 'Airtime' : 'Mashup'} controls
@@ -618,17 +622,17 @@ function LimitsAndTogglesSection({
             {/* Visibility toggles */}
             <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Visibility</p>
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
+                <div className="neu-inset flex items-center justify-between gap-2 rounded-2xl p-3">
                     <div className="min-w-0">
                         <Label className="text-sm font-medium text-foreground">Dashboard</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">Show on user main dashboard</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">Show on the member dashboard</p>
                     </div>
                     <Switch
                         checked={settings[dashKey] !== 'false'}
                         onCheckedChange={v => setSettings(s => ({ ...s, [dashKey]: v ? 'true' : 'false' }))}
                     />
                 </div>
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-border p-3">
+                <div className="neu-inset flex items-center justify-between gap-2 rounded-2xl p-3">
                     <div className="min-w-0">
                         <Label className="text-sm font-medium text-foreground">Storefront</Label>
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">Allow shop storefronts to sell {productType}</p>
@@ -642,7 +646,7 @@ function LimitsAndTogglesSection({
 
             {/* Per-role limits */}
             <div className="space-y-3">
-                <p className="text-xs font-medium text-muted-foreground">Per-role transaction limits (GHS)</p>
+                <p className="text-xs font-medium text-muted-foreground">Order limits per role (GH₵)</p>
                 {ROLES.map(role => {
                     const minKey = `${productType}_min_amount_${role}` as keyof AirtimeSettings
                     const maxKey = `${productType}_max_amount_${role}` as keyof AirtimeSettings
@@ -684,10 +688,10 @@ function LimitsAndTogglesSection({
                 Save {productType === 'airtime' ? 'airtime' : 'mashup'} settings
             </Button>
 
-            <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3 flex gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
-                    Fee and limit changes take effect immediately for all users.
+            <div className="neu-inset rounded-2xl p-3 flex gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <p className="text-xs text-foreground leading-snug">
+                    Fee and limit changes apply to every user as soon as you save.
                 </p>
             </div>
         </div>
@@ -700,12 +704,12 @@ function StatCard({ icon, label, value, sub, accent, className }: {
     icon: React.ReactNode; label: string; value: string; sub?: React.ReactNode; accent?: string; className?: string
 }) {
     return (
-        <div className={cn('rounded-2xl border border-border bg-card p-4 shadow-sm min-w-0', className)}>
+        <div className={cn('neu-raised-sm rounded-3xl p-4 shadow-sm min-w-0', className)}>
             <div className="flex items-center gap-2 mb-2 text-muted-foreground">
                 {icon}
                 <span className="text-xs font-medium truncate">{label}</span>
             </div>
-            <p className={cn('text-lg font-semibold tabular-nums truncate', accent || 'text-foreground')}>{value}</p>
+            <p className={cn('font-display text-lg font-bold tabular-nums tracking-tight truncate', accent || 'text-foreground')}>{value}</p>
             {sub && <div className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</div>}
         </div>
     )
@@ -721,6 +725,9 @@ export default function AdminAirtimePage() {
     // Orders state
     const [orders, setOrders] = useState<Order[]>([])
     const [ordersLoading, setOrdersLoading] = useState(true)
+    const [ordersFailed, setOrdersFailed] = useState(false)
+    const ordersSeq = useRef(0)
+    const statsSeq = useRef(0)
     const [statusFilter, setStatusFilter] = useState('all')
     const [networkFilter, setNetworkFilter] = useState('all')
     const [typeFilter, setTypeFilter] = useState<'all' | 'airtime' | 'mashup'>('all')
@@ -763,6 +770,8 @@ export default function AdminAirtimePage() {
         storefront_airtime_enabled: 'false', storefront_mashup_enabled: 'false',
     })
     const [settingsLoading, setSettingsLoading] = useState(true)
+    // Until the saved settings have loaded, the form holds placeholder defaults. Saving then would overwrite the real fees.
+    const [settingsLoaded, setSettingsLoaded] = useState(false)
     const [savingSettings, setSavingSettings] = useState(false)
 
     // Batches state
@@ -773,19 +782,25 @@ export default function AdminAirtimePage() {
     // ── Data loaders ──────────────────────────────────────────────────────────
 
     const loadOrders = useCallback(async () => {
+        const seq = ++ordersSeq.current
         setOrdersLoading(true)
+        setOrdersFailed(false)
         try {
             const params = new URLSearchParams({ limit: '500' })
             const res = await fetch(`/api/admin/airtime/orders?${params}`)
-            if (res.ok) {
-                const d = await res.json()
-                setOrders(d.orders || [])
-                setLoadedCount(typeof d.total === 'number' ? d.total : (d.orders?.length ?? 0))
-            } else {
-                toast.error('Failed to load orders')
-            }
-        } catch (e) { console.error(e); toast.error('Failed to load orders') }
-        setOrdersLoading(false)
+            if (!res.ok) throw new Error('load failed')
+            const d = await res.json()
+            if (seq !== ordersSeq.current) return
+            setOrders(d.orders || [])
+            setLoadedCount(typeof d.total === 'number' ? d.total : (d.orders?.length ?? 0))
+        } catch (e) {
+            if (seq !== ordersSeq.current) return
+            console.error(e)
+            setOrdersFailed(true)
+            toast.error('We could not load orders. Try again.')
+        } finally {
+            if (seq === ordersSeq.current) setOrdersLoading(false)
+        }
     }, [])
 
     // Server-side aggregate over the FULL dataset (not the 500-row list window).
@@ -796,14 +811,15 @@ export default function AdminAirtimePage() {
         if (typeFilter !== 'all') params.set('type', typeFilter)
         if (start) params.set('start', start)
         if (end) params.set('end', end)
+        const seq = ++statsSeq.current
         try {
             const res = await fetch(`/api/admin/airtime/stats?${params}`)
-            if (res.ok) { const d = await res.json(); setServerStats(d.stats || null) }
+            if (res.ok) { const d = await res.json(); if (seq === statsSeq.current) setServerStats(d.stats || null) }
         } catch (e) { console.error(e) }
     }, [networkFilter, typeFilter, timePeriod, customStart, customEnd])
 
     const handleBulk = useCallback(async (action: 'refund' | 'complete', ids: string[]) => {
-        if (ids.length === 0) { toast.error('No eligible orders selected'); return }
+        if (ids.length === 0) { toast.error('None of the selected orders can take this action.'); return }
         setBulkRunning(true)
         setBulkProgress({ done: 0, total: ids.length })
         try {
@@ -812,13 +828,13 @@ export default function AdminAirtimePage() {
                 body: JSON.stringify({ action, orderIds: ids }),
             })
             const d = await res.json().catch(() => ({}))
-            if (!res.ok) { toast.error(d.error || 'Bulk action failed'); return }
+            if (!res.ok) { toast.error(d.error || 'The bulk action failed. Try again.'); return }
             const s = d.summary || { ok: 0, failed: 0, skipped: 0 }
             const label = action === 'refund' ? 'Refund' : 'Complete'
-            const msg = `${label}: ${s.ok} ok · ${s.failed} failed · ${s.skipped} skipped`
+            const msg = `${label}: ${s.ok} done, ${s.failed} failed, ${s.skipped} skipped`
             if (s.failed > 0) toast.error(msg); else toast.success(msg)
             setSelectedIds(new Set()); setSelectionMode(false)
-        } catch { toast.error('Network error during bulk action') }
+        } catch { toast.error('We lost the connection during the bulk action. Check the orders before trying again.') }
         finally { setBulkRunning(false); setBulkProgress(null); loadOrders(); loadStats() }
     }, [loadOrders, loadStats])
 
@@ -826,9 +842,9 @@ export default function AdminAirtimePage() {
         setSettingsLoading(true)
         try {
             const res = await fetch('/api/admin/airtime/settings')
-            if (res.ok) { const d = await res.json(); setSettings(s => ({ ...s, ...d.settings })) }
-            else toast.error('Failed to load settings')
-        } catch (e) { console.error(e); toast.error('Failed to load settings') }
+            if (res.ok) { const d = await res.json(); setSettings(s => ({ ...s, ...d.settings })); setSettingsLoaded(true) }
+            else toast.error('We could not load the saved settings. Try again before changing anything.')
+        } catch (e) { console.error(e); toast.error('We could not load the saved settings. Try again before changing anything.') }
         setSettingsLoading(false)
     }, [])
 
@@ -837,8 +853,8 @@ export default function AdminAirtimePage() {
         try {
             const res = await fetch('/api/admin/airtime/batches?limit=50')
             if (res.ok) { const d = await res.json(); setBatches(d.batches || []) }
-            else toast.error('Failed to load batches')
-        } catch (e) { console.error(e); toast.error('Failed to load batches') }
+            else toast.error('We could not load batches. Try again.')
+        } catch (e) { console.error(e); toast.error('We could not load batches. Try again.') }
         setBatchesLoading(false)
     }, [])
 
@@ -850,6 +866,7 @@ export default function AdminAirtimePage() {
     // ── Settings save ─────────────────────────────────────────────────────────
 
     const saveSettings = async () => {
+        if (!settingsLoaded) { toast.error('Load the saved settings first, so you do not overwrite them with defaults.'); return }
         setSavingSettings(true)
         try {
             const res = await fetch('/api/admin/airtime/settings', {
@@ -857,9 +874,9 @@ export default function AdminAirtimePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings),
             })
-            if (res.ok) { toast.success('Settings saved successfully!'); loadSettings() }
-            else { const d = await res.json(); toast.error(d.error || 'Failed to save') }
-        } catch { toast.error('An error occurred') }
+            if (res.ok) { toast.success('Settings saved.'); loadSettings() }
+            else { const d = await res.json().catch(() => ({})); toast.error(d.error || 'We could not save the settings. Try again.') }
+        } catch { toast.error('We could not save the settings. Check your connection and try again.') }
         setSavingSettings(false)
     }
 
@@ -867,7 +884,7 @@ export default function AdminAirtimePage() {
 
     const createBatch = async () => {
         const pendingIds = filteredOrders.filter(o => o.status === 'pending').map(o => o.id)
-        if (pendingIds.length === 0) { toast.error('No pending orders to batch'); return }
+        if (pendingIds.length === 0) { toast.error('There are no pending orders in this view to batch.'); return }
         setCreatingBatch(true)
         try {
             const res = await fetch('/api/admin/airtime/batches', {
@@ -876,12 +893,12 @@ export default function AdminAirtimePage() {
                 body: JSON.stringify({ orderIds: pendingIds }),
             })
             const d = await res.json()
-            if (!res.ok) { toast.error(d.error || 'Failed to create batch'); return }
-            toast.success(`Batch created — ${pendingIds.length} orders marked as processing`)
+            if (!res.ok) { toast.error(d.error || 'We could not create the batch. Try again.'); return }
+            toast.success(`Batch created. ${pendingIds.length} orders are now processing.`)
             loadBatches()
             loadOrders()
-        } catch { toast.error('An error occurred') }
-        setCreatingBatch(false)
+        } catch { toast.error('We could not create the batch. Check your connection and try again.') }
+        finally { setCreatingBatch(false) }
     }
 
     const completeBatch = async (batch: AirtimeBatch) => {
@@ -892,11 +909,11 @@ export default function AdminAirtimePage() {
                 body: JSON.stringify({ batchId: batch.id, status: 'completed' }),
             })
             const d = await res.json()
-            if (!res.ok) { toast.error(d.error || 'Failed to update batch'); return }
-            toast.success(`Batch completed — ${d.completedCount} orders fulfilled`)
+            if (!res.ok) { toast.error(d.error || 'We could not update the batch. Try again.'); return }
+            toast.success(`Batch done. ${d.completedCount} orders fulfilled.`)
             loadBatches()
             loadOrders()
-        } catch { toast.error('An error occurred') }
+        } catch { toast.error('We could not update the batch. Check your connection and try again.') }
     }
 
     // ── Filtering ─────────────────────────────────────────────────────────────
@@ -985,7 +1002,7 @@ export default function AdminAirtimePage() {
     // ── CSV Export ────────────────────────────────────────────────────────────
 
     const exportCSV = () => {
-        if (filteredOrders.length === 0) { toast.error('No orders to export'); return }
+        if (filteredOrders.length === 0) { toast.error('There are no orders in this view to export.'); return }
         const headers = ['Reference', 'Type', 'Network', 'Status', 'Beneficiary', 'Customer', 'Amount (GHS)', 'Admin Profit (GHS)', 'Shop Profit (GHS)', 'Total Paid (GHS)', 'Provider', 'Attempts', 'Role', 'Date']
         const rows = filteredOrders.map(o => {
             return [
@@ -1013,7 +1030,7 @@ export default function AdminAirtimePage() {
         a.download = `airtime_mashup_${timePeriod.toLowerCase().replace(/\s/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.csv`
         a.click()
         URL.revokeObjectURL(url)
-        toast.success(`Exported ${filteredOrders.length} orders`)
+        toast.success(`Exported ${filteredOrders.length} orders.`)
     }
 
     const statusTabs = ['all', 'pending', 'processing', 'completed', 'failed']
@@ -1021,17 +1038,17 @@ export default function AdminAirtimePage() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-5 min-h-screen pb-24">
+        <div className="mx-auto max-w-7xl space-y-5 pb-24">
 
             {/* ── Header ────────────────────────────────────────────────────── */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <Phone className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <h1 className="font-display text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <Phone className="w-5 h-5 shrink-0" aria-hidden="true" />
                         Airtime &amp; Mashup
                     </h1>
                     <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                        Revenue and manual fulfillment
+                        Airtime and mashup orders. You fulfil them by hand, then mark them done here.
                     </p>
                 </div>
 
@@ -1066,16 +1083,17 @@ export default function AdminAirtimePage() {
                     )}
 
                     {/* Tab switcher */}
-                    <div className="flex items-center bg-muted rounded-lg p-0.5">
+                    <div className="neu-inset flex items-center rounded-full p-1">
                         {(['orders', 'batches', 'settings'] as const).map(tab => (
                             <button
                                 key={tab}
+                                type="button"
+                                aria-pressed={activeTab === tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={cn(
-                                    'px-3 h-8 rounded-md text-sm font-medium capitalize transition-colors flex items-center gap-1.5',
-                                    activeTab === tab
-                                        ? 'bg-card shadow-sm text-foreground'
-                                        : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70',
+                                    'px-3 h-9 rounded-full text-sm font-semibold capitalize transition-colors flex items-center gap-1.5',
+                                    FOCUS,
+                                    activeTab === tab ? 'clay-gold' : 'text-muted-foreground hover:text-foreground',
                                 )}
                             >
                                 {tab === 'settings' ? <><Settings2 className="w-4 h-4" /> Settings</> : tab}
@@ -1090,29 +1108,28 @@ export default function AdminAirtimePage() {
                 <StatCard
                     icon={<Coins className="w-4 h-4" />}
                     label="Admin earnings"
-                    value={`GHS ${cardStats.adminMarkup.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    value={formatCurrency(cardStats.adminMarkup)}
                     sub="Markup on completed orders"
-                    accent="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
                     icon={<TrendingUp className="w-4 h-4" />}
                     label="Gross sales"
-                    value={`GHS ${cardStats.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    sub={<span><span className="text-brand-700">{cardStats.airtimeCount} airtime</span> · <span className="text-amber-500">{cardStats.mashupCount} mashup</span></span>}
+                    value={formatCurrency(cardStats.grossSales)}
+                    sub={`${cardStats.airtimeCount} airtime · ${cardStats.mashupCount} mashup`}
                 />
                 <StatCard
                     icon={<LayoutDashboard className="w-4 h-4" />}
                     label="Shop profit"
-                    value={`GHS ${cardStats.shopProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    sub="Owner earnings"
+                    value={formatCurrency(cardStats.shopProfit)}
+                    sub="Earned by shop owners"
                 />
                 <StatCard
                     className="col-span-2 sm:col-span-1"
                     icon={<Clock className="w-4 h-4" />}
                     label="Pending"
                     value={`${cardStats.pendingCount} order${cardStats.pendingCount !== 1 ? 's' : ''}`}
-                    sub={`GHS ${cardStats.pendingValue.toFixed(2)} at risk`}
-                    accent={cardStats.pendingCount > 0 ? 'text-amber-500' : 'text-muted-foreground'}
+                    sub={`${formatCurrency(cardStats.pendingValue)} waiting to be fulfilled`}
+                    accent={cardStats.pendingCount > 0 ? 'text-foreground' : 'text-muted-foreground'}
                 />
             </div>
 
@@ -1120,15 +1137,16 @@ export default function AdminAirtimePage() {
             {activeTab === 'orders' && (
                 <div className="space-y-4">
                     {/* Filter bar */}
-                    <div className="rounded-xl border border-border bg-card shadow-sm p-3 space-y-3">
+                    <div className="neu-raised-sm rounded-3xl p-3 space-y-3">
                         <div className="flex flex-col lg:flex-row gap-2">
                             <div className="relative flex-1 min-w-0">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                                 <Input
-                                    placeholder="Search reference, phone, or customer…"
+                                    aria-label="Search orders"
+                                    placeholder="Search by reference, number or customer"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="pl-9 h-9 text-sm"
+                                    className="pl-9 h-10 text-sm"
                                 />
                             </div>
                             <div className="flex gap-2 w-full lg:w-auto">
@@ -1164,25 +1182,27 @@ export default function AdminAirtimePage() {
                             {statusTabs.map(s => (
                                 <button
                                     key={s}
+                                    type="button"
+                                    aria-pressed={statusFilter === s}
                                     onClick={() => setStatusFilter(s)}
                                     className={cn(
-                                        'px-3 h-8 rounded-lg text-xs font-medium capitalize border transition-colors',
-                                        statusFilter === s
-                                            ? 'bg-card border-slate-900 text-white dark:text-foreground dark:border-white'
-                                            : 'bg-card border-border text-muted-foreground hover:border-border dark:hover:border-border',
+                                        'px-3 h-9 rounded-full text-xs font-semibold capitalize transition-colors',
+                                        FOCUS,
+                                        statusFilter === s ? 'clay-black' : 'neu-raised-sm text-muted-foreground hover:text-foreground',
                                     )}
                                 >{s}</button>
                             ))}
-                            <span className="w-px self-stretch bg-muted mx-1" />
+                            <span className="w-px self-stretch bg-border mx-1" aria-hidden="true" />
                             {(['all', 'airtime', 'mashup'] as const).map(t => (
                                 <button
                                     key={t}
+                                    type="button"
+                                    aria-pressed={typeFilter === t}
                                     onClick={() => setTypeFilter(t)}
                                     className={cn(
-                                        'px-3 h-8 rounded-lg text-xs font-medium capitalize border transition-colors',
-                                        typeFilter === t
-                                            ? 'bg-card border-slate-900 text-white dark:text-foreground dark:border-white'
-                                            : 'bg-card border-border text-muted-foreground hover:border-border dark:hover:border-border',
+                                        'px-3 h-9 rounded-full text-xs font-semibold capitalize transition-colors',
+                                        FOCUS,
+                                        typeFilter === t ? 'clay-black' : 'neu-raised-sm text-muted-foreground hover:text-foreground',
                                     )}
                                 >{t === 'all' ? 'All types' : t}</button>
                             ))}
@@ -1192,24 +1212,29 @@ export default function AdminAirtimePage() {
                     {/* Results */}
                     {ordersLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-3">
-                            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-muted-foreground">Loading orders…</p>
+                            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-hidden="true" />
+                            <p className="text-sm text-muted-foreground">Loading orders</p>
+                        </div>
+                    ) : ordersFailed ? (
+                        <div className="mx-auto max-w-sm space-y-3 py-16 text-center">
+                            <Notice>We could not load orders.</Notice>
+                            <Button variant="outline" onClick={loadOrders}>Try again</Button>
                         </div>
                     ) : filteredOrders.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border py-24 text-center">
+                        <div className="neu-inset rounded-3xl py-20 text-center">
                             <Filter className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
                             <p className="text-sm font-semibold text-foreground">No orders found</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
                                 {timePeriod !== 'All'
-                                    ? `No matches in "${timePeriod}" — try "All" if you're looking for an older order.`
-                                    : 'Adjust your filters to see more'}
+                                    ? `Nothing in "${timePeriod}". Try "All" to look for an older order.`
+                                    : 'Change the filters to see more.'}
                             </p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {loadedCount > orders.length && (
                                 <p className="text-xs text-muted-foreground text-center">
-                                    Showing the latest {orders.length} of {loadedCount} orders — the stat cards above reflect the full period.
+                                    Showing the latest {orders.length} of {loadedCount} orders. The cards above cover the whole period.
                                 </p>
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -1244,29 +1269,28 @@ export default function AdminAirtimePage() {
                 const completeIds = selectedOrders.filter(o => o.status === 'pending' || o.status === 'processing').map(o => o.id)
                 return (
                     <div className="fixed bottom-3 inset-x-0 z-40 px-4 pointer-events-none">
-                        <div className="max-w-3xl mx-auto pointer-events-auto rounded-2xl border border-border bg-card/95 backdrop-blur shadow-xl p-3">
+                        <div className="max-w-3xl mx-auto pointer-events-auto neu-raised rounded-3xl p-3">
                             {bulkProgress ? (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="font-medium text-foreground">Processing… {bulkProgress.done}/{bulkProgress.total}</span>
-                                        <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                        <span className="font-medium text-foreground" role="status">Working: {bulkProgress.done} of {bulkProgress.total}</span>
+                                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                                     </div>
                                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.round((bulkProgress.done / Math.max(1, bulkProgress.total)) * 100)}%` }} />
+                                        <div className="h-full bg-brand-500 transition-all" style={{ width: `${Math.round((bulkProgress.done / Math.max(1, bulkProgress.total)) * 100)}%` }} />
                                     </div>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <div className="text-sm min-w-0 flex-1">
                                         <span className="font-semibold text-foreground">{selectedIds.size} selected</span>
-                                        <span className="text-muted-foreground"></span>
                                     </div>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set(filteredOrders.map(o => o.id)))}>Select all</Button>
                                     <Button size="sm" variant="ghost" className="h-9" onClick={() => setSelectedIds(new Set())}>Clear</Button>
-                                    <Button size="sm" variant="outline" className="h-9 gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300" disabled={bulkRunning || completeIds.length === 0} onClick={() => handleBulk('complete', completeIds)}>
+                                    <Button size="sm" variant="outline" className="h-9 gap-1.5" disabled={bulkRunning || completeIds.length === 0} onClick={() => handleBulk('complete', completeIds)}>
                                         <CheckCircle className="w-3.5 h-3.5" /> Complete ({completeIds.length})
                                     </Button>
-                                    <Button size="sm" variant="outline" className="h-9 gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300" disabled={bulkRunning || refundIds.length === 0} onClick={() => setRefundBulkConfirm(refundIds)}>
+                                    <Button size="sm" variant="outline" className="h-9 gap-1.5" disabled={bulkRunning || refundIds.length === 0} onClick={() => setRefundBulkConfirm(refundIds)}>
                                         <RefreshCw className="w-3.5 h-3.5" /> Refund ({refundIds.length})
                                     </Button>
                                 </div>
@@ -1279,35 +1303,35 @@ export default function AdminAirtimePage() {
             {/* ══ BATCHES TAB ═════════════════════════════════════════════ */}
             {activeTab === 'batches' && (
                 <div className="space-y-4">
-                    <div className="rounded-xl border border-border bg-card shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="neu-raised-sm rounded-3xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="min-w-0">
                             <h2 className="text-sm font-semibold text-foreground">Fulfillment batches</h2>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Group pending orders for bulk fulfillment
+                                Group the pending orders in view and work through them together.
                             </p>
                         </div>
                         <div className="flex gap-2 shrink-0">
                             <Button variant="outline" size="sm" onClick={loadBatches} disabled={batchesLoading} className="h-9">
                                 <RefreshCw className={cn('w-4 h-4 mr-2', batchesLoading && 'animate-spin')} /> Refresh
                             </Button>
-                            <Button size="sm" onClick={createBatch} disabled={creatingBatch} className="h-9">
+                            <Button size="sm" onClick={createBatch} disabled={creatingBatch || filteredOrders.every(o => o.status !== 'pending')} className="h-9">
                                 {creatingBatch ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Database className="w-4 h-4 mr-2" />}
-                                Batch {orders.filter(o => o.status === 'pending').length} pending
+                                Batch {filteredOrders.filter(o => o.status === 'pending').length} pending
                             </Button>
                         </div>
                     </div>
 
                     {batchesLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
-                            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-muted-foreground">Loading batches…</p>
+                            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-hidden="true" />
+                            <p className="text-sm text-muted-foreground">Loading batches</p>
                         </div>
                     ) : batches.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border py-20 text-center">
+                        <div className="neu-inset rounded-3xl py-20 text-center">
                             <Database className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
                             <p className="text-sm font-semibold text-foreground">No batches yet</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
-                                Use the &ldquo;Batch pending&rdquo; button on the Orders tab to create one
+                                Press &ldquo;Batch pending&rdquo; to make one from the orders in view.
                             </p>
                         </div>
                     ) : (
@@ -1321,13 +1345,13 @@ export default function AdminAirtimePage() {
                                     : 0
 
                                 return (
-                                    <div key={batch.id} className="rounded-xl border border-border bg-card shadow-sm p-4">
+                                    <div key={batch.id} className="neu-raised-sm rounded-3xl p-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                                                     <span className="text-sm font-semibold text-foreground truncate">{batch.batch_name}</span>
                                                     <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium uppercase border whitespace-nowrap',
-                                                        STATUS_STYLES[batch.status] || 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900',
+                                                        STATUS_STYLES[batch.status] || 'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-950/40 dark:text-brand-300 dark:border-brand-900',
                                                     )}>
                                                         {batch.status}
                                                     </span>
@@ -1344,7 +1368,7 @@ export default function AdminAirtimePage() {
                                                 {batch.order_count > 0 && (
                                                     <div className="mt-2.5 h-1.5 bg-muted rounded-full overflow-hidden">
                                                         <div
-                                                            className={cn('h-full rounded-full transition-all', isComplete ? 'bg-emerald-500' : isPartial ? 'bg-amber-500' : 'bg-brand-500')}
+                                                            className={cn('h-full rounded-full transition-all', isComplete ? 'bg-foreground' : isPartial ? 'bg-brand-600' : 'bg-brand-500')}
                                                             style={{ width: `${completion}%` }}
                                                         />
                                                     </div>
@@ -1370,25 +1394,31 @@ export default function AdminAirtimePage() {
                 <div className="space-y-4">
                     {settingsLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-3">
-                            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                            <p className="text-sm text-muted-foreground">Loading configuration…</p>
+                            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-hidden="true" />
+                            <p className="text-sm text-muted-foreground">Loading settings</p>
+                        </div>
+                    ) : !settingsLoaded ? (
+                        <div className="mx-auto max-w-sm space-y-3 py-16 text-center">
+                            <Notice>We could not load the saved settings. Saving is off so the current fees are not overwritten.</Notice>
+                            <Button variant="outline" onClick={loadSettings}>Try again</Button>
                         </div>
                     ) : (
                         <>
                             {/* Inner settings tab switcher */}
-                            <div className="flex items-center bg-muted rounded-lg p-0.5 w-fit">
+                            <div className="neu-inset flex w-fit items-center rounded-full p-1">
                                 {(['airtime', 'mashup'] as const).map(t => (
                                     <button
                                         key={t}
+                                        type="button"
+                                        aria-pressed={activeSettingsTab === t}
                                         onClick={() => setActiveSettingsTab(t)}
                                         className={cn(
-                                            'px-4 h-8 rounded-md text-sm font-medium capitalize transition-colors',
-                                            activeSettingsTab === t
-                                                ? 'bg-card shadow-sm text-foreground'
-                                                : 'text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70',
+                                            'px-4 h-9 rounded-full text-sm font-semibold capitalize transition-colors',
+                                            FOCUS,
+                                            activeSettingsTab === t ? 'clay-gold' : 'text-muted-foreground hover:text-foreground',
                                         )}
                                     >
-                                        {t} settings
+                                        {t}
                                     </button>
                                 ))}
                             </div>

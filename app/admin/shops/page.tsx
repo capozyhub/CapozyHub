@@ -40,7 +40,7 @@ const roleColors: Record<string, string> = {
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
     'sub-admin': 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
     agent: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-    dealer: 'bg-violet-100 text-violet-800 dark:bg-violet-900/20 dark:text-violet-400',
+    dealer: 'bg-brand-100 text-brand-800 dark:bg-brand-900/20 dark:text-brand-400',
     customer: 'bg-muted text-muted-foreground ',
 }
 
@@ -226,7 +226,7 @@ export default function AdminShopsPage() {
                                                     <span className={cn(
                                                         'inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full',
                                                         shop.pricing_status === 'approved' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400' :
-                                                            shop.pricing_status === 'pending_review' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' :
+                                                            shop.pricing_status === 'pending_review' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400' :
                                                                 shop.pricing_status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
                                                                     'bg-muted text-muted-foreground '
                                                     )}>
@@ -284,7 +284,7 @@ export default function AdminShopsPage() {
                                             {/* Stage 2: Pricing pending review — show Review Pricing */}
                                             {shop.approval_status === 'approved' && shop.pricing_status === 'pending_review' && (
                                                 <Link href={`/admin/shops/${shop.id}`}>
-                                                    <Button size="sm" className="h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white gap-1">
+                                                    <Button size="sm" className="h-8 text-xs bg-brand-600 hover:bg-brand-700 text-white gap-1">
                                                         <Tag className="w-3 h-3" />
                                                         Review Pricing
                                                     </Button>

@@ -90,7 +90,7 @@ function parseCsv(text: string): Array<{ first_name: string; last_name: string; 
 function RoleBadge({ role }: { role: string }) {
     const color = role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
         : role === 'sub-admin'     ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-        : role === 'dealer'        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
+        : role === 'dealer'        ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
         : role === 'agent'         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
         : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
     return <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', color)}>{role}</span>
@@ -156,7 +156,7 @@ function MessageComposer({
                         type="button"
                         title={v.desc}
                         onClick={() => insertAtCursor(v.label)}
-                        className="text-[10px] font-mono px-2 py-0.5 rounded border border-dashed border-violet-400 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
+                        className="text-[10px] font-mono px-2 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                     >
                         {v.label}
                     </button>
@@ -194,7 +194,7 @@ function LivePreview({ message, sampleName }: { message: string; sampleName: str
                 <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs font-semibold text-muted-foreground">Live Preview</span>
                 {/\[(FirstName|LastName|Phone)\]/i.test(message) && (
-                    <span className="ml-auto text-[10px] text-violet-500 font-medium">✦ Personalized</span>
+                    <span className="ml-auto text-[10px] text-brand-700 dark:text-brand-500 font-medium">✦ Personalized</span>
                 )}
             </div>
             <div className="p-4 min-h-[80px]">
@@ -604,7 +604,7 @@ export default function AdminSMSBroadcastPage() {
 
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-brand-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-600 flex items-center justify-center shadow-lg flex-shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -637,7 +637,7 @@ export default function AdminSMSBroadcastPage() {
                             <Card>
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-base">
-                                        <MessageSquare className="w-4 h-4 text-violet-500" />
+                                        <MessageSquare className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                                         Compose Message
                                     </CardTitle>
                                     <CardDescription>Use [FirstName], [LastName], or [Phone] for personalization</CardDescription>
@@ -655,7 +655,7 @@ export default function AdminSMSBroadcastPage() {
                             <LivePreview message={message} sampleName="Kwame" />
 
                             {/* Send summary + button */}
-                            <Card className="border-violet-200 dark:border-violet-500/20 bg-violet-50/40 dark:bg-violet-500/5">
+                            <Card className="border-brand-200 dark:border-brand-500/20 bg-brand-50/40 dark:bg-brand-500/5">
                                 <CardContent className="pt-4 space-y-3">
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="rounded-xl bg-card p-2 border">
@@ -677,7 +677,7 @@ export default function AdminSMSBroadcastPage() {
                                             'flex items-center gap-2 p-2 rounded-lg text-xs font-medium',
                                             lastResult.failed === 0
                                                 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                                                : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                                                : 'bg-amber-50 dark:bg-amber-500/10 text-foreground'
                                         )}>
                                             {lastResult.failed === 0 ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
                                             Last batch: {lastResult.sent}/{lastResult.total} delivered
@@ -688,7 +688,7 @@ export default function AdminSMSBroadcastPage() {
                                     <Button
                                         id="btn-send-sms"
                                         onClick={handleSend}
-                                        className="w-full gap-2 bg-gradient-to-r from-violet-600 to-brand-600 hover:from-violet-700 hover:to-brand-700 text-white font-bold h-11"
+                                        className="w-full gap-2 bg-gradient-to-r from-brand-600 to-brand-600 hover:from-brand-700 hover:to-brand-700 text-white font-bold h-11"
                                         disabled={sending || recipientCount === 0 || !message.trim()}
                                     >
                                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -707,7 +707,7 @@ export default function AdminSMSBroadcastPage() {
                                     className={cn(
                                         'flex-1 flex items-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all',
                                         audience === 'users'
-                                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                                            ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-800 dark:text-brand-400'
                                             : 'border-border text-muted-foreground hover:border-border'
                                     )}
                                 >
@@ -718,7 +718,7 @@ export default function AdminSMSBroadcastPage() {
                                     className={cn(
                                         'flex-1 flex items-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all',
                                         audience === 'group'
-                                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                                            ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-brand-800 dark:text-brand-400'
                                             : 'border-border text-muted-foreground hover:border-border'
                                     )}
                                 >
@@ -731,7 +731,7 @@ export default function AdminSMSBroadcastPage() {
                                 <Card className="h-fit">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm flex items-center gap-2">
-                                            <Users className="w-4 h-4 text-violet-500" /> Select Recipients
+                                            <Users className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Select Recipients
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
@@ -831,7 +831,7 @@ export default function AdminSMSBroadcastPage() {
                                 <Card className="h-fit">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm flex items-center gap-2">
-                                            <Folder className="w-4 h-4 text-violet-500" /> Choose Contact Group
+                                            <Folder className="w-4 h-4 text-brand-700 dark:text-brand-500" /> Choose Contact Group
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
@@ -854,7 +854,7 @@ export default function AdminSMSBroadcastPage() {
                                                         className={cn(
                                                             'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
                                                             selectedGroupId === g.id
-                                                                ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10'
+                                                                ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10'
                                                                 : 'border-border hover:border-border'
                                                         )}>
                                                         <input
@@ -863,7 +863,7 @@ export default function AdminSMSBroadcastPage() {
                                                             value={g.id}
                                                             checked={selectedGroupId === g.id}
                                                             onChange={() => setSelectedGroupId(g.id)}
-                                                            className="accent-violet-600"
+                                                            className="accent-brand-600"
                                                         />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-semibold truncate">{g.name}</p>
@@ -877,7 +877,7 @@ export default function AdminSMSBroadcastPage() {
                                             </div>
                                         )}
                                         {selectedGroupId && groupContacts.length > 0 && (
-                                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium text-center">
+                                            <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium text-center">
                                                 ✓ {groupContacts.length} contacts will receive this message
                                             </p>
                                         )}
@@ -919,7 +919,7 @@ export default function AdminSMSBroadcastPage() {
                                             className={cn(
                                                 'flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all group',
                                                 cgOpenGroupId === g.id
-                                                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10'
+                                                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10'
                                                     : 'border-transparent hover:border-border dark:hover:border-border hover:bg-muted/50'
                                             )}
                                             onClick={() => {
@@ -928,7 +928,7 @@ export default function AdminSMSBroadcastPage() {
                                             }}
                                         >
                                             {cgOpenGroupId === g.id
-                                                ? <FolderOpen className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                                                ? <FolderOpen className="w-4 h-4 text-brand-700 dark:text-brand-500 flex-shrink-0" />
                                                 : <Folder className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-semibold truncate">{g.name}</p>
@@ -959,7 +959,7 @@ export default function AdminSMSBroadcastPage() {
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <CardTitle className="text-sm flex items-center gap-2">
-                                                    <FolderOpen className="w-4 h-4 text-violet-500" />
+                                                    <FolderOpen className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                                                     {cgGroups.find(g => g.id === cgOpenGroupId)?.name}
                                                 </CardTitle>
                                                 <CardDescription className="text-xs">
@@ -1077,12 +1077,12 @@ export default function AdminSMSBroadcastPage() {
                         ) : (
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                 {templates.map(t => (
-                                    <div key={t.id} className="rounded-2xl border bg-card p-4 space-y-3 hover:border-violet-300 dark:hover:border-violet-500/40 transition-all group">
+                                    <div key={t.id} className="rounded-2xl border bg-card p-4 space-y-3 hover:border-brand-300 dark:hover:border-brand-500/40 transition-all group">
                                         <div className="flex items-start justify-between gap-2">
                                             <p className="text-sm font-bold leading-tight">{t.name}</p>
                                             <div className="flex gap-1 flex-shrink-0">
                                                 <button
-                                                    className="p-1 rounded text-muted-foreground hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
+                                                    className="p-1 rounded text-muted-foreground hover:text-brand-800 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                                                     onClick={() => openEditTemplate(t)}
                                                     title="Edit"
                                                 >
@@ -1275,7 +1275,7 @@ export default function AdminSMSBroadcastPage() {
                                 <div className="flex gap-1.5 flex-wrap">
                                     {VARIABLES.map(v => (
                                         <button key={v.label} type="button"
-                                            className="font-mono px-1.5 py-0.5 rounded border border-dashed border-violet-400 text-violet-600 dark:text-violet-400 text-[10px] hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                                            className="font-mono px-1.5 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 text-[10px] hover:bg-brand-50 dark:hover:bg-brand-500/10"
                                             onClick={() => setTplBody(b => b + v.label)}>
                                             {v.label}
                                         </button>

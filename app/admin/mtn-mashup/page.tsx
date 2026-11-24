@@ -215,7 +215,7 @@ export default function AdminMtnMashupPage() {
         s === 'completed' ? 'bg-green-100 text-green-700'
         : s === 'processing' ? 'bg-blue-100 text-blue-700'
         : s === 'failed' ? 'bg-red-100 text-red-700'
-        : s === 'refunded' ? 'bg-purple-100 text-purple-700'
+        : s === 'refunded' ? 'bg-brand-100 text-brand-700'
         : 'bg-yellow-100 text-yellow-700'
 
     return (
@@ -255,7 +255,7 @@ export default function AdminMtnMashupPage() {
                                         <div className="text-sm space-y-0.5">
                                             <p>Price: <b>{formatCurrency(pkg.price)}</b></p>
                                             <p className="text-green-700">Agent: {formatCurrency(pkg.agent_price ?? 0)}</p>
-                                            <p className="text-violet-700">Dealer: {formatCurrency(pkg.dealer_price ?? 0)}</p>
+                                            <p className="text-brand-700">Dealer: {formatCurrency(pkg.dealer_price ?? 0)}</p>
                                             <p className="text-muted-foreground">Cost: {formatCurrency(pkg.cost_price ?? 0)}</p>
                                         </div>
                                         <div className="flex gap-2 pt-1">
@@ -396,7 +396,7 @@ export default function AdminMtnMashupPage() {
                                 <p className="text-[10px] text-muted-foreground">Optional; falls back to selling price if 0</p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-violet-700">Dealer Price (GHS)</Label>
+                                <Label className="text-brand-700">Dealer Price (GHS)</Label>
                                 <Input type="number" value={formData.dealer_price} onChange={e => setFormData(p => ({ ...p, dealer_price: parseFloat(e.target.value) || 0 }))} />
                                 <p className="text-[10px] text-muted-foreground">Optional; falls back to agent/selling price if 0</p>
                             </div>

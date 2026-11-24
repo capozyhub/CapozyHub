@@ -435,9 +435,9 @@ export default function AdminResultsCheckerPage() {
                                                     <p className="text-[9px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
                                                     <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(t.agent_price)}</p>
                                                 </div>
-                                                <div className="p-2 bg-purple-50 dark:bg-purple-900/10 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-purple-500 uppercase mb-0.5">Dealer</p>
-                                                    <p className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">{formatCurrency(t.dealer_price)}</p>
+                                                <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
+                                                    <p className="text-[9px] font-bold text-brand-500 uppercase mb-0.5">Dealer</p>
+                                                    <p className="text-xs font-black text-brand-600 dark:text-brand-400 truncate">{formatCurrency(t.dealer_price)}</p>
                                                 </div>
                                             </div>
                                         </div>

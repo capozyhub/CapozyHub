@@ -96,7 +96,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
     processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Clock },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
     cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
-    refunded: { label: 'Refunded', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', icon: Ban },
+    refunded: { label: 'Refunded', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400', icon: Ban },
 }
 
 // One-click copy helper (shows a brief checkmark)
@@ -750,7 +750,7 @@ export default function AdminAfaManagementPage() {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="w-full gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                                                className="w-full gap-1.5 border-brand-300 text-brand-700 hover:bg-brand-50 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/20"
                                                 disabled={refundingId === selectedApp.id}
                                                 onClick={() => handleRefund(selectedApp)}
                                             >
@@ -803,7 +803,7 @@ export default function AdminAfaManagementPage() {
                         <>
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
-                                    <Ban className="w-5 h-5 text-purple-500" />
+                                    <Ban className="w-5 h-5 text-brand-500" />
                                     Confirm Refund
                                 </DialogTitle>
                                 <DialogDescription>
@@ -823,7 +823,7 @@ export default function AdminAfaManagementPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="flex-1 gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                                    className="flex-1 gap-1.5 border-brand-300 text-brand-700 hover:bg-brand-50 dark:border-brand-800 dark:text-brand-400 dark:hover:bg-brand-900/20"
                                     disabled={refundingId === refundConfirmApp.id}
                                     onClick={() => handleRefund(refundConfirmApp, true)}
                                 >
