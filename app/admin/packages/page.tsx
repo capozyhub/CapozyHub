@@ -49,6 +49,7 @@ import {
     TabsTrigger,
 } from '@/components/ui/tabs'
 import { BulkPricingTab } from './BulkPricingTab'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const NETWORKS = ['MTN', 'Telecel', 'AT-iShare', 'AT-BigTime'] as const
 
@@ -77,6 +78,7 @@ const defaultFormData: PackageFormData = {
 }
 
 export default function AdminPackagesPage() {
+    const { ask, dialog } = useConfirm()
     const [packages, setPackages] = useState<DataPackage[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -204,7 +206,7 @@ export default function AdminPackagesPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this package?')) return
+        if (!(await ask({ title: 'Delete this package?', description: 'It will disappear from the store for everyone.', confirmLabel: 'Delete package', destructive: true }))) return
 
         setDeletingId(id)
         try {
@@ -288,6 +290,7 @@ export default function AdminPackagesPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
             <div>
                 <h1 className="text-2xl font-bold">Data Packages</h1>
                 <p className="text-muted-foreground">Manage available data packages</p>
@@ -477,7 +480,7 @@ export default function AdminPackagesPage() {
                                     onChange={(e) => setFormData(prev => ({ ...prev, agent_price: parseFloat(e.target.value) || 0 }))}
                                     placeholder="0.00"
                                 />
-                                <p className="text-[10px] text-muted-foreground">Optional: Set specifically for agents</p>
+                                <p className="text-xs text-muted-foreground">Optional: Set specifically for agents</p>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-brand-700">Dealer Price (GHS)</Label>
@@ -488,7 +491,7 @@ export default function AdminPackagesPage() {
                                     placeholder="0.00"
                                     className="border-brand-200 focus-visible:ring-brand-400"
                                 />
-                                <p className="text-[10px] text-muted-foreground">Optional: Dealers pay this (falls back to agent price if 0)</p>
+                                <p className="text-xs text-muted-foreground">Optional: Dealers pay this (falls back to agent price if 0)</p>
                             </div>
                             <div className="space-y-2">
                                 <Label>Cost Price (GHS)</Label>

@@ -400,7 +400,7 @@ export default function AdminShopSettingsPage() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-xs font-medium">Profile Auto-Approve</p>
-                                        <p className="text-[10px] text-muted-foreground">Shop creation approved instantly</p>
+                                        <p className="text-xs text-muted-foreground">Shop creation approved instantly</p>
                                     </div>
                                     <Switch
                                         checked={(settings as any)[`auto_approve_profile_${role}`]}
@@ -410,7 +410,7 @@ export default function AdminShopSettingsPage() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-xs font-medium">Pricing Auto-Approve</p>
-                                        <p className="text-[10px] text-muted-foreground">Pricing goes live instantly</p>
+                                        <p className="text-xs text-muted-foreground">Pricing goes live instantly</p>
                                     </div>
                                     <Switch
                                         checked={(settings as any)[`auto_approve_pricing_${role}`]}

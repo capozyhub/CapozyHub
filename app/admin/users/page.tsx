@@ -625,7 +625,7 @@ export default function AdminUsersPage() {
                             <p className="font-display text-xl font-bold leading-none">{stats ? seg.value(stats) : '—'}</p>
                             <p className="text-[11px] text-muted-foreground mt-1 truncate">{seg.label}</p>
                             {seg.sub && stats && (
-                                <p className="text-[10px] text-muted-foreground/70 truncate">{seg.sub(stats)}</p>
+                                <p className="text-xs text-muted-foreground/70 truncate">{seg.sub(stats)}</p>
                             )}
                         </button>
                     )
@@ -696,13 +696,13 @@ export default function AdminUsersPage() {
                                                                 </Badge>
                                                             )
                                                         })()}
-                                                        <span className="neu-inset inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                                                        <span className="neu-inset inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold">
                                                             <span className={cn('h-1.5 w-1.5 rounded-full', user.status === 'active' ? 'bg-emerald-500' : user.status === 'suspended' ? 'bg-red-500' : 'bg-silver-200')} aria-hidden="true" />
                                                             {user.status === 'active' ? 'Active' : user.status === 'suspended' ? 'Suspended' : String(user.status || 'Unknown')}
                                                         </span>
                                                         {expiry && (
                                                             <span className={cn(
-                                                                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                                                                'text-xs font-semibold px-1.5 py-0.5 rounded-full',
                                                                 expiry.expired
                                                                     ? 'bg-red-500/10 text-red-700 dark:text-red-400'
                                                                     : 'bg-muted text-muted-foreground'
@@ -1129,7 +1129,7 @@ export default function AdminUsersPage() {
                                             <div key={tx.id} className="neu-inset flex items-center justify-between gap-2 rounded-2xl px-3 py-2">
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-medium truncate">{tx.description || tx.source}</p>
-                                                    <p className="text-[10px] text-muted-foreground">{formatDate(tx.created_at)}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatDate(tx.created_at)}</p>
                                                 </div>
                                                 <span className={cn('text-sm font-bold flex-shrink-0', tx.type === 'credit' ? 'text-foreground' : 'text-red-600 dark:text-red-400')}>
                                                     {tx.type === 'credit' ? '+' : '−'}{formatCurrency(Number(tx.amount) || 0)}

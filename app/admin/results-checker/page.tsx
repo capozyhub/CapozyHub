@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast'
 import {
     FileText, Loader2, Save, RefreshCw, Archive, Settings2, ShieldCheck, Copy, Database, ListOrdered, FileUp, Plus, Search, Filter, Edit2, TrendingUp, AlertCircle, X, ChevronDown, ChevronUp
 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface RCType { id: string; name: string; customer_price: number; agent_price: number; dealer_price: number; cost_price: number; is_active: boolean; display_order: number; stock: { available: number; reserved: number; sold: number; invalid: number; total: number } }
 interface RCInventory { id: string; pin: string; serial_number: string; status: string; batch_id: string; created_at: string; type: { name: string } }
@@ -26,6 +27,7 @@ const SETTING_KEYS = [
 ]
 
 export default function AdminResultsCheckerPage() {
+    const { ask, dialog } = useConfirm()
     const { user, isLoading: authLoading } = useAuth()
     const router = useRouter()
 
@@ -253,6 +255,7 @@ export default function AdminResultsCheckerPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-5 sm:space-y-6">
+            {dialog}
 
             {/* ── Page Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -280,7 +283,7 @@ export default function AdminResultsCheckerPage() {
                     </h2>
                     <div className="flex items-center gap-2">
                         <button onClick={handleSaveSettings} disabled={savingSettings}
-                            className="px-4 py-2 bg-card text-white dark:text-foreground rounded-xl text-xs font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 flex-shrink-0">
+                            className="clay-black px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 flex-shrink-0">
                             {savingSettings ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
                         </button>
                         <button
@@ -404,12 +407,12 @@ export default function AdminResultsCheckerPage() {
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-emerald-600 transition-colors uppercase truncate">{t.name}</h3>
                                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase ${t.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                                                    <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase ${t.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${t.is_active ? 'bg-emerald-500' : 'bg-foreground/10'}`} />
                                                         {t.is_active ? 'Live' : 'Archived'}
                                                     </span>
                                                     {bulkTiers.length > 0 && (
-                                                        <span className="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md">Bulk</span>
+                                                        <span className="text-[11px] font-bold uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md">Bulk</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -424,19 +427,19 @@ export default function AdminResultsCheckerPage() {
                                         <div className="px-4 py-3 border-b border-border">
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 <div className="p-2 bg-muted/50 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-0.5">Cost</p>
+                                                    <p className="text-[11px] font-bold text-muted-foreground uppercase mb-0.5">Cost</p>
                                                     <p className="text-xs font-bold text-foreground/80 truncate">{formatCurrency(t.cost_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-brand-400 uppercase mb-0.5">Customer</p>
+                                                    <p className="text-[11px] font-bold text-brand-400 uppercase mb-0.5">Customer</p>
                                                     <p className="text-xs font-bold text-brand-700 dark:text-brand-400 truncate">{formatCurrency(t.customer_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
+                                                    <p className="text-[11px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
                                                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(t.agent_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
-                                                    <p className="text-[9px] font-bold text-brand-500 uppercase mb-0.5">Dealer</p>
+                                                    <p className="text-[11px] font-bold text-brand-500 uppercase mb-0.5">Dealer</p>
                                                     <p className="text-xs font-bold text-brand-600 dark:text-brand-400 truncate">{formatCurrency(t.dealer_price)}</p>
                                                 </div>
                                             </div>
@@ -452,7 +455,7 @@ export default function AdminResultsCheckerPage() {
                                                     { label: 'Invalid', val: t.stock.invalid, cls: 'text-red-500 dark:text-red-400' },
                                                 ].map(({ label, val, cls }) => (
                                                     <div key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/50">
-                                                        <span className={`text-[10px] font-bold ${cls}`}>{label}</span>
+                                                        <span className={`text-xs font-bold ${cls}`}>{label}</span>
                                                         <span className="text-sm font-bold text-foreground">{val}</span>
                                                     </div>
                                                 ))}
@@ -460,7 +463,7 @@ export default function AdminResultsCheckerPage() {
 
                                             {bulkTiers.length > 0 && (
                                                 <div className="border-t border-border pt-2.5 mt-2.5 space-y-1.5">
-                                                    <p className="text-[9px] font-bold text-muted-foreground">Bulk Tiers</p>
+                                                    <p className="text-[11px] font-bold text-muted-foreground">Bulk Tiers</p>
                                                     {bulkTiers.map((tier: any, i: number) => (
                                                         <div key={i} className="flex justify-between items-center text-xs px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
                                                             <span className="font-bold text-amber-700 dark:text-amber-400">{tier.min_qty}{tier.max_qty >= 99999 ? '+' : `–${tier.max_qty}`} vouchers</span>
@@ -473,7 +476,7 @@ export default function AdminResultsCheckerPage() {
 
                                         {/* Footer */}
                                         <div className="px-4 py-2 bg-muted/50 dark:bg-muted/20 border-t border-border">
-                                            <span className="text-[10px] font-bold text-muted-foreground">Total Stock: {t.stock.total}</span>
+                                            <span className="text-xs font-bold text-muted-foreground">Total Stock: {t.stock.total}</span>
                                         </div>
                                     </div>
                                 )
@@ -582,7 +585,7 @@ export default function AdminResultsCheckerPage() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground">
+                                <thead className="bg-muted/50 text-xs uppercase font-bold text-muted-foreground">
                                     <tr>
                                         <th className="px-4 py-3">Type</th>
                                         <th className="px-4 py-3">PIN (Masked)</th>
@@ -603,7 +606,7 @@ export default function AdminResultsCheckerPage() {
                                             <td className="px-4 py-3 font-mono text-sm">{inv.pin.slice(0, 4)}••••••••</td>
                                             <td className="px-4 py-3 font-mono text-sm">{inv.serial_number}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${
                                                     inv.status === 'available' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                                     inv.status === 'reserved' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                                                     inv.status === 'invalid' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
@@ -614,7 +617,7 @@ export default function AdminResultsCheckerPage() {
                                                 {(inv.status === 'available' || inv.status === 'invalid') && (
                                                     <button
                                                         onClick={async () => {
-                                                            if (!confirm('Delete this voucher?')) return
+                                                            if (!(await ask({ title: 'Delete this voucher?', confirmLabel: 'Delete voucher', destructive: true }))) return
                                                             try {
                                                                 const res = await fetch(`/api/admin/results-checker/inventory?id=${inv.id}`, { method: 'DELETE' })
                                                                 if (res.ok) { toast.success('Voucher deleted'); fetchData() }
@@ -669,8 +672,8 @@ export default function AdminResultsCheckerPage() {
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div className="space-y-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{order.reference_code}</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{order.status}</span>
+                                                <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{order.reference_code}</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{order.status}</span>
                                             </div>
                                             <p className="font-bold text-foreground text-sm">{order.quantity}× {order.type_name}</p>
                                             <p className="text-xs text-muted-foreground font-medium">
@@ -678,7 +681,7 @@ export default function AdminResultsCheckerPage() {
                                                 {(order as any).shop_name && <span className="ml-2">🏪 {(order as any).shop_name}</span>}
                                                 {order.customer_phone && <span className="ml-2">· {order.customer_phone}</span>}
                                             </p>
-                                            <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleString()}</p>
+                                            <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString()}</p>
                                         </div>
                                         <div className="flex sm:flex-col items-center sm:items-end gap-3 flex-shrink-0">
                                             <span className="text-lg font-bold text-emerald-600">{formatCurrency(order.total_paid)}</span>
@@ -713,7 +716,7 @@ export default function AdminResultsCheckerPage() {
                                 <div className="p-4 sm:p-5 border-b border-border flex items-start justify-between gap-3 flex-shrink-0">
                                     <div>
                                         <h3 className="font-bold text-foreground text-base uppercase tracking-tight">Voucher Details</h3>
-                                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{viewingOrder.order.reference_code}</p>
+                                        <p className="text-xs text-muted-foreground font-mono mt-0.5">{viewingOrder.order.reference_code}</p>
                                         <p className="text-xs text-muted-foreground mt-0.5">Customer: <span className="font-bold text-foreground/80">{viewingOrder.order.user_name || viewingOrder.order.customer_name || 'Guest'}</span></p>
                                         {viewingOrder.order.customer_email && <p className="text-xs text-muted-foreground">Email: <span className="font-medium">{viewingOrder.order.customer_email}</span></p>}
                                         {viewingOrder.order.customer_phone && <p className="text-xs text-muted-foreground">Phone: <span className="font-medium">{viewingOrder.order.customer_phone}</span></p>}
@@ -729,13 +732,13 @@ export default function AdminResultsCheckerPage() {
                                     ) : viewingOrder.vouchers.map((v: any, idx: number) => (
                                         <div key={v.id} className="bg-muted/50 rounded-2xl p-4 border border-border">
                                             <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-bold text-muted-foreground">Voucher {idx + 1}</span>
-                                                {v.expiry_date && <span className="text-[10px] text-amber-600 font-bold">Expires: {v.expiry_date}</span>}
+                                                <span className="text-xs font-bold text-muted-foreground">Voucher {idx + 1}</span>
+                                                {v.expiry_date && <span className="text-xs text-amber-600 font-bold">Expires: {v.expiry_date}</span>}
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
                                                     <div className="min-w-0">
-                                                        <p className="text-[9px] text-muted-foreground font-bold uppercase mb-0.5">PIN</p>
+                                                        <p className="text-[11px] text-muted-foreground font-bold uppercase mb-0.5">PIN</p>
                                                         <p className="font-mono font-bold text-foreground text-sm">{v.pin}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.pin); toast.success('PIN copied!') }}
@@ -746,7 +749,7 @@ export default function AdminResultsCheckerPage() {
                                                 </div>
                                                 <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
                                                     <div className="min-w-0">
-                                                        <p className="text-[9px] text-muted-foreground font-bold uppercase mb-0.5">Serial</p>
+                                                        <p className="text-[11px] text-muted-foreground font-bold uppercase mb-0.5">Serial</p>
                                                         <p className="font-mono font-bold text-foreground text-sm">{v.serial_number}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.serial_number); toast.success('Serial copied!') }}
@@ -770,7 +773,7 @@ export default function AdminResultsCheckerPage() {
                 <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-muted/50 border-b border-border text-[10px] uppercase font-bold text-muted-foreground">
+                            <thead className="bg-muted/50 border-b border-border text-xs uppercase font-bold text-muted-foreground">
                                 <tr>
                                     <th className="px-4 py-3">Date</th>
                                     <th className="px-4 py-3">User / Shop</th>
@@ -795,13 +798,13 @@ export default function AdminResultsCheckerPage() {
                                             <p className="text-sm text-foreground/80 truncate" title={c.description}>{c.description}</p>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{c.status}</span>
+                                            <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{c.status}</span>
                                         </td>
                                         <td className="px-4 py-3">
                                             {c.status === 'open' && (
                                                 <button
                                                     onClick={() => handleResolveComplaint(c.id)}
-                                                    className="px-3 py-1.5 bg-card text-white dark:text-foreground rounded-lg text-xs font-bold hover:opacity-80 transition-all">
+                                                    className="clay-black px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-80 transition-all">
                                                     Resolve
                                                 </button>
                                             )}
@@ -900,7 +903,7 @@ export default function AdminResultsCheckerPage() {
                                     {((editingType as any).bulk_pricing || []).map((tier: any, i: number) => (
                                         <div key={i} className="grid grid-cols-4 gap-2 items-end">
                                             <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground mb-1">Min Qty</p>
+                                                <p className="text-xs font-bold text-muted-foreground mb-1">Min Qty</p>
                                                 <input type="number" min="1" title="Min Qty" value={tier.min_qty}
                                                     onChange={e => {
                                                         const tiers = [...(editingType as any).bulk_pricing]
@@ -910,7 +913,7 @@ export default function AdminResultsCheckerPage() {
                                                     className="w-full px-2 py-2 rounded-lg border border-border bg-muted/50 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground mb-1">Max Qty</p>
+                                                <p className="text-xs font-bold text-muted-foreground mb-1">Max Qty</p>
                                                 <input type="number" min="1" title="Max Qty" value={tier.max_qty}
                                                     onChange={e => {
                                                         const tiers = [...(editingType as any).bulk_pricing]
@@ -920,7 +923,7 @@ export default function AdminResultsCheckerPage() {
                                                     className="w-full px-2 py-2 rounded-lg border border-border bg-muted/50 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground mb-1">Price (GH₵)</p>
+                                                <p className="text-xs font-bold text-muted-foreground mb-1">Price (GH₵)</p>
                                                 <input type="number" min="0" step="0.5" title="Bulk Price" value={tier.unit_price}
                                                     onChange={e => {
                                                         const tiers = [...(editingType as any).bulk_pricing]

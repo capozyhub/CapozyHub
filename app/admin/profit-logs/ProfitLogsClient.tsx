@@ -326,12 +326,12 @@ export default function ProfitLogsClient() {
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-1">
                                                     <span className="font-bold text-foreground/80 whitespace-nowrap">{formatDate(log.created_at)}</span>
-                                                    <code className="text-[10px] text-muted-foreground">ID: {log.transaction_id.split('-')[0]}...</code>
+                                                    <code className="text-xs text-muted-foreground">ID: {log.transaction_id.split('-')[0]}...</code>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-2 items-start">
-                                                    <Badge variant="outline" className={`uppercase text-[10px]  px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
+                                                    <Badge variant="outline" className={`uppercase text-xs  px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
                                                         {log.channel === 'main' ? 'Main Platform' : 'Shop System'} · {log.role_at_time || 'Guest'}
                                                     </Badge>
                                                     
@@ -362,7 +362,7 @@ export default function ProfitLogsClient() {
                                                     <span className={`text-base font-bold px-2 py-0.5 rounded-full ${log.is_loss ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                         {log.is_loss ? '' : '+'}{formatCurrency(log.profit)}
                                                     </span>
-                                                    <span className="text-[10px] text-muted-foreground mt-1 max-w-[120px] leading-tight" title={log.calculation_note}>
+                                                    <span className="text-xs text-muted-foreground mt-1 max-w-[120px] leading-tight" title={log.calculation_note}>
                                                         {log.calculation_note.split('|')[0]}
                                                     </span>
                                                 </div>

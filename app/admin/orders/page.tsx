@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, Fragment, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -171,7 +171,8 @@ export default function AdminOrdersPage() {
             setOrders(freshOrders)
         } catch (error: any) {
             console.error('Error fetching orders:', error)
-            toast.error(error.message || 'Failed to load orders')
+            // Live refreshes (force) run on every focus and database event, so they stay quiet instead of stacking toasts.
+            if (!force) toast.error(error.message || 'We could not load orders. Try again.')
         }
     }
 
@@ -442,7 +443,7 @@ export default function AdminOrdersPage() {
                 const outcome = result.outcome as string | undefined
                 const messages: Record<string, string> = {
                     insufficient_balance: `Insufficient wallet balance to fund this retry${result.required != null && result.available != null
-                            ? ` â€” needs GHS ${Number(result.required).toFixed(2)}, wallet has GHS ${Number(result.available).toFixed(2)}`
+                            ? ` â€” needs GH₵${Number(result.required).toFixed(2)}, wallet has GH₵${Number(result.available).toFixed(2)}`
                             : ''
                         }.`,
                     retry_locked: `This order is locked from further retries after 3 attempts${result.until ? ` â€” try again after ${new Date(result.until).toLocaleString()}` : ', try again later'
@@ -465,7 +466,7 @@ export default function AdminOrdersPage() {
             const data = result.data
             toast.success(
                 data?.message ||
-                (data?.chargedAmount ? `Retry dispatched â€” GHS ${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
+                (data?.chargedAmount ? `Retry dispatched â€” GH₵${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
             )
             setRetryTarget(null)
             fetchOrders(true)
@@ -870,7 +871,7 @@ export default function AdminOrdersPage() {
                         <div className="flex gap-2 mt-1">
                             <Badge variant="outline" className="w-fit">{displayNetwork}</Badge>
                             {batch.filename.includes('capozy_') && !batch.filename.includes('capozy_orders_') && (
-                                <Badge variant="secondary" className="w-fit text-[10px] bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 border-brand-200">
+                                <Badge variant="secondary" className="w-fit text-xs bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 border-brand-200">
                                     Only {batch.filename.split('_')[1]}
                                 </Badge>
                             )}
@@ -911,20 +912,20 @@ export default function AdminOrdersPage() {
                                 <div key={order.id} className="text-xs p-2 bg-background rounded border flex items-center justify-between">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-1">
-                                            <span className="font-bold text-[10px]">{order.users?.first_name} {order.users?.last_name}</span>
+                                            <span className="font-bold text-xs">{order.users?.first_name} {order.users?.last_name}</span>
                                             {order.shop_name && (
-                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
+                                                <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                     Shop: {order.shop_name}
                                                 </Badge>
                                             )}
                                         </div>
                                         <span className="font-mono text-xs">{order.phone_number}</span>
-                                        <span className="text-[10px] text-muted-foreground">{order.network} {order.size}</span>
+                                        <span className="text-xs text-muted-foreground">{order.network} {order.size}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {getStatusBadge(order)}
                                         {order.payment_status === 'refunded' && order.status !== 'failed' && order.status !== 'refunded' ? (
-                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground">
+                                            <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground">
                                                 No actions
                                             </Badge>
                                         ) : (
@@ -1072,16 +1073,16 @@ export default function AdminOrdersPage() {
         const retryTag = getRetryTag(order)
         return (
             <span className="inline-flex items-center gap-1 flex-wrap">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${styles[status] || styles.pending}`}>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${styles[status] || styles.pending}`}>
                     {status === 'in_review' ? 'Review' : status}
                 </span>
                 {shouldShowRefundOverlay(order) && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${REFUND_OVERLAY_BADGE_CLASS}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${REFUND_OVERLAY_BADGE_CLASS}`}>
                         Refunded
                     </span>
                 )}
                 {retryTag && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${retryTag.badge}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${retryTag.badge}`}>
                         {retryTag.label}
                     </span>
                 )}
@@ -1101,7 +1102,7 @@ export default function AdminOrdersPage() {
         }
         const s = map[rm]
         if (!s) return null
-        return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${s.cls}`}>{s.label}</span>
+        return <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${s.cls}`}>{s.label}</span>
     }
 
     return (
@@ -1216,7 +1217,7 @@ export default function AdminOrdersPage() {
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <p className="text-sm font-semibold">{order.users?.first_name} {order.users?.last_name}</p>
                                                     {order.shop_name && (
-                                                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
+                                                        <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                             Shop: {order.shop_name}
                                                         </Badge>
                                                     )}
@@ -1319,7 +1320,7 @@ export default function AdminOrdersPage() {
                                     variant={historyNetworkFilter === (network === 'All' ? 'all' : network) ? 'default' : 'outline'}
                                     size="sm"
                                     onClick={() => setHistoryNetworkFilter(network === 'All' ? 'all' : network)}
-                                    className={`transition-all duration-150 active:scale-95 text-[10px] h-8 ${historyNetworkFilter === (network === 'All' ? 'all' : network)
+                                    className={`transition-all duration-150 active:scale-95 text-xs h-8 ${historyNetworkFilter === (network === 'All' ? 'all' : network)
                                         ? network === 'MTN'
                                             ? 'bg-foreground/10 hover:bg-yellow-600 text-black'
                                             : network === 'Telecel'
@@ -1476,7 +1477,7 @@ export default function AdminOrdersPage() {
                     <DialogHeader>
                         <DialogTitle>Refund order</DialogTitle>
                         <DialogDescription>
-                            {refundOrder?.reference_code ? `Ref ${refundOrder.reference_code} Â· ` : ''}GHS {Number(refundOrder?.price ?? 0).toFixed(2)}
+                            {refundOrder?.reference_code ? `Ref ${refundOrder.reference_code} Â· ` : ''}GH₵{Number(refundOrder?.price ?? 0).toFixed(2)}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
@@ -1498,7 +1499,7 @@ export default function AdminOrdersPage() {
                                 </Select>
                             </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground">The buyer&apos;s wallet will be credited GHS {Number(refundOrder?.price ?? 0).toFixed(2)}.</p>
+                            <p className="text-sm text-muted-foreground">The buyer&apos;s wallet will be credited GH₵{Number(refundOrder?.price ?? 0).toFixed(2)}.</p>
                         )}
                         <textarea
                             value={refundReason}

@@ -183,7 +183,7 @@ function StatCard({
                         <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
                     </div>
                     <p className={cn('text-sm sm:text-base lg:text-lg font-semibold mt-0.5 tabular-nums whitespace-nowrap', a.text)}>{value}</p>
-                    {sub && <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
+                    {sub && <p className="text-xs sm:text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
                 </div>
             </div>
         </div>
@@ -300,7 +300,7 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
 
     const tile = (label: string, value: string | number, color = 'text-foreground') => (
         <div className="rounded-xl bg-card border border-border p-2.5 sm:p-3 min-w-0">
-            <p className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground truncate">{label}</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">{label}</p>
             <p className={cn('text-sm sm:text-base font-semibold mt-0.5 tabular-nums whitespace-nowrap', color)}>{value}</p>
         </div>
     )
@@ -355,22 +355,22 @@ function KeyRow({ item, onAction }: {
                         <p className="font-semibold text-foreground truncate text-sm">{item.user?.name || 'Unknown User'}</p>
                         <p className="text-xs text-muted-foreground truncate">{item.user?.email || '—'}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <code className="text-[10px] font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
+                            <code className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                                 {item.prefix}••••••••
                             </code>
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-muted border-border text-muted-foreground">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md border bg-muted border-border text-muted-foreground">
                                 <Key className="w-2.5 h-2.5" /> Standard
                             </span>
                             {item.has_webhook && (
                                 <span
                                     title="This key has a webhook URL configured"
-                                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md border bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400"
                                 >
                                     <Webhook className="w-2.5 h-2.5" />
                                     Webhook
                                 </span>
                             )}
-                            <span className="text-[10px] text-muted-foreground capitalize">{item.user?.role || '—'}</span>
+                            <span className="text-xs text-muted-foreground capitalize">{item.user?.role || '—'}</span>
                         </div>
                     </div>
 
@@ -556,32 +556,32 @@ function LogsTab() {
                         {/* Table header */}
                         <div className="grid grid-cols-[64px_1fr_1fr_72px_72px_110px] gap-2 px-4 py-2.5 bg-muted/50 border-b border-border">
                             {['Method', 'Action', 'User / Key', 'Status', 'Time', 'When'].map(h => (
-                                <span key={h} className="text-[10px] font-semibold text-muted-foreground">{h}</span>
+                                <span key={h} className="text-xs font-semibold text-muted-foreground">{h}</span>
                             ))}
                         </div>
                         {/* Rows */}
                         <div className="divide-y divide-border">
                             {logs.map(log => (
                                 <div key={log.id} className="grid grid-cols-[64px_1fr_1fr_72px_72px_110px] gap-2 items-center px-4 py-3 hover:bg-muted/80 dark:hover:bg-muted/30 transition-colors">
-                                    <span className={cn('inline-flex w-fit px-2 py-0.5 rounded-md text-[10px] font-semibold border font-mono', methodColor(log.method))}>
+                                    <span className={cn('inline-flex w-fit px-2 py-0.5 rounded-md text-xs font-semibold border font-mono', methodColor(log.method))}>
                                         {log.method}
                                     </span>
                                     <div className="min-w-0">
                                         <span className="text-xs font-semibold text-foreground/80 block truncate">
                                             {getFriendlyLabel(log.endpoint)}
                                         </span>
-                                        <code className="text-[10px] text-muted-foreground font-mono truncate block">{log.endpoint}</code>
+                                        <code className="text-xs text-muted-foreground font-mono truncate block">{log.endpoint}</code>
                                     </div>
                                     <div className="min-w-0">
                                         {log.user ? (
                                             <>
                                                 <span className="text-xs font-medium text-foreground/80 truncate block">{log.user.name}</span>
-                                                <span className="text-[10px] text-muted-foreground truncate block">{log.user.email}</span>
+                                                <span className="text-xs text-muted-foreground truncate block">{log.user.email}</span>
                                             </>
                                         ) : log.key_prefix ? (
-                                            <span className="text-[10px] text-muted-foreground font-mono">{log.key_prefix}••••</span>
+                                            <span className="text-xs text-muted-foreground font-mono">{log.key_prefix}••••</span>
                                         ) : (
-                                            <span className="text-[10px] text-muted-foreground/70">—</span>
+                                            <span className="text-xs text-muted-foreground/70">—</span>
                                         )}
                                     </div>
                                     <span className={cn('text-sm font-semibold font-mono', statusColor(log.status_code))}>
@@ -784,13 +784,13 @@ export default function AdminApiKeysPage() {
                             <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] sm:text-[11px] font-semibold text-foreground">Top API User (24h)</p>
+                            <p className="text-xs sm:text-[11px] font-semibold text-foreground">Top API User (24h)</p>
                             <p className="text-sm font-semibold text-foreground truncate">{stats.top_user.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{stats.top_user.email}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
                             <p className="text-lg sm:text-xl font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{stats.top_user.requests.toLocaleString()}</p>
-                            <p className="text-[10px] text-muted-foreground">requests</p>
+                            <p className="text-xs text-muted-foreground">requests</p>
                         </div>
                     </div>
                 </div>
@@ -887,7 +887,7 @@ export default function AdminApiKeysPage() {
                             <Icon className="w-4 h-4" />
                             {t.label}
                             {t.id === 'keys' && pendingCount > 0 && (
-                                <span className="bg-amber-500 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                                <span className="bg-amber-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                                     {pendingCount}
                                 </span>
                             )}

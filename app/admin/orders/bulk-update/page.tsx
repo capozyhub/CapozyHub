@@ -260,11 +260,11 @@ export default function BulkOrderUpdatePage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Network</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Network</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', ...NETWORKS].map(n => (
                                         <Button key={n} variant={network === n ? 'default' : 'outline'} size="sm"
-                                            className="h-7 text-[10px] px-2.5" onClick={() => setNetwork(n)}>
+                                            className="h-7 text-xs px-2.5" onClick={() => setNetwork(n)}>
                                             {n}
                                         </Button>
                                     ))}
@@ -272,11 +272,11 @@ export default function BulkOrderUpdatePage() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Status</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Status</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {BROWSE_STATUSES.map(s => (
                                         <Button key={s} variant={status === s ? 'default' : 'outline'} size="sm"
-                                            className="h-7 text-[10px] px-2.5" onClick={() => setStatus(s)}>
+                                            className="h-7 text-xs px-2.5" onClick={() => setStatus(s)}>
                                             {s}
                                         </Button>
                                     ))}
@@ -285,11 +285,11 @@ export default function BulkOrderUpdatePage() {
 
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] uppercase font-bold text-muted-foreground">From</label>
+                                    <label className="text-xs uppercase font-bold text-muted-foreground">From</label>
                                     <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 text-xs" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] uppercase font-bold text-muted-foreground">To</label>
+                                    <label className="text-xs uppercase font-bold text-muted-foreground">To</label>
                                     <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 text-xs" />
                                 </div>
                             </div>
@@ -302,11 +302,11 @@ export default function BulkOrderUpdatePage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="flex gap-1.5">
-                                <Button variant={uploadMode === 'paste' ? 'default' : 'outline'} size="sm" className="h-7 text-[10px] flex-1"
+                                <Button variant={uploadMode === 'paste' ? 'default' : 'outline'} size="sm" className="h-7 text-xs flex-1"
                                     onClick={() => setUploadMode('paste')}>
                                     <FileText className="w-3 h-3 mr-1" /> Paste
                                 </Button>
-                                <Button variant={uploadMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-[10px] flex-1"
+                                <Button variant={uploadMode === 'file' ? 'default' : 'outline'} size="sm" className="h-7 text-xs flex-1"
                                     onClick={() => setUploadMode('file')}>
                                     <Upload className="w-3 h-3 mr-1" /> CSV / Excel
                                 </Button>
@@ -320,12 +320,12 @@ export default function BulkOrderUpdatePage() {
                                         placeholder={'One beneficiary per line — size is optional:\n0551617309\t1\n0551617309\t4\n0509542032'}
                                         className="text-xs h-28 font-mono"
                                     />
-                                    <p className="text-[10px] text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground">
                                         BeneficiaryNumber, or BeneficiaryNumber and Size — comma or tab separated. Size only narrows
                                         the match to that data size (e.g. 1 = 1GB); leave it out to pull every order for that number.
                                     </p>
                                     {pasteText.trim() && (
-                                        <p className="text-[10px] text-muted-foreground">{parsedPasteRows.length} row(s) parsed</p>
+                                        <p className="text-xs text-muted-foreground">{parsedPasteRows.length} row(s) parsed</p>
                                     )}
                                 </>
                             ) : (
@@ -335,12 +335,12 @@ export default function BulkOrderUpdatePage() {
                                         type="file"
                                         accept=".csv,.xlsx,.xls"
                                         onChange={e => setFile(e.target.files?.[0] || null)}
-                                        className="text-xs w-full file:mr-2 file:h-7 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:text-[10px] file:font-bold"
+                                        className="text-xs w-full file:mr-2 file:h-7 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:text-xs file:font-bold"
                                     />
-                                    <p className="text-[10px] text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground">
                                         Columns: beneficiary number, size (size column optional; with or without a header row).
                                     </p>
-                                    {file && <p className="text-[10px] font-medium">{file.name}</p>}
+                                    {file && <p className="text-xs font-medium">{file.name}</p>}
                                 </>
                             )}
                         </CardContent>
@@ -377,8 +377,8 @@ export default function BulkOrderUpdatePage() {
                     {selectedIds.size > 0 && (
                         <div className="sticky top-20 z-30 flex items-center justify-between bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg flex-wrap gap-2">
                             <div className="flex items-center gap-2">
-                                <Badge variant="default" className="rounded-full px-2 text-[10px]">{selectedIds.size}</Badge>
-                                <span className="text-[10px] md:text-xs font-bold uppercase">Selected</span>
+                                <Badge variant="default" className="rounded-full px-2 text-xs">{selectedIds.size}</Badge>
+                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
                             </div>
                             <div className="flex gap-2 md:gap-3 flex-wrap justify-end">
                                 <Button size="sm" onClick={() => bulkUpdateStatus('pending')}
@@ -409,10 +409,10 @@ export default function BulkOrderUpdatePage() {
                                 Results {orders.length > 0 && <span className="text-muted-foreground font-normal text-sm">({orders.length})</span>}
                             </CardTitle>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={exportSelected} disabled={selectedIds.size === 0}>
+                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={exportSelected} disabled={selectedIds.size === 0}>
                                     <Download className="w-3 h-3 mr-1" /> Export
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={toggleSelectAll} disabled={orders.length === 0}>
+                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={toggleSelectAll} disabled={orders.length === 0}>
                                     {allSelected ? 'Unselect All' : 'Select All'}
                                 </Button>
                             </div>
@@ -446,31 +446,31 @@ export default function BulkOrderUpdatePage() {
                                             <Checkbox checked={selectedIds.has(order.id)} className="scale-110 pointer-events-none" />
                                             <div className="flex-1 grid grid-cols-2 md:grid-cols-5 items-center gap-x-2 gap-y-2 p-1">
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] uppercase font-medium text-muted-foreground">Beneficiary</p>
+                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Beneficiary</p>
                                                     <p className="text-[12px] font-medium text-primary">{order.phone_number}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] uppercase font-medium text-muted-foreground">Ref</p>
+                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Ref</p>
                                                     <p className="text-[12px] font-medium truncate">{order.reference_code || order.id.slice(0, 8)}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] uppercase font-medium text-muted-foreground">Bundle</p>
+                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
+                                                        <Badge variant="outline" className="text-xs px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
                                                         <span className="text-[12px] font-medium">{order.size}</span>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] uppercase font-medium text-muted-foreground">Status</p>
+                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Status</p>
                                                     <div className="flex items-center gap-1 flex-wrap">
-                                                        <Badge className={cn('text-[10px] px-1.5 py-0.5 font-bold', getStatusBadgeClass(order.status))}>{order.status}</Badge>
+                                                        <Badge className={cn('text-xs px-1.5 py-0.5 font-bold', getStatusBadgeClass(order.status))}>{order.status}</Badge>
                                                         {shouldShowRefundOverlay(order) && (
-                                                            <Badge className={cn('text-[9px] px-1.5 py-0.5 font-bold', REFUND_OVERLAY_BADGE_CLASS)}>Refunded</Badge>
+                                                            <Badge className={cn('text-[11px] px-1.5 py-0.5 font-bold', REFUND_OVERLAY_BADGE_CLASS)}>Refunded</Badge>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] uppercase font-medium text-muted-foreground">Date</p>
+                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Date</p>
                                                     <p className="text-[12px]">{new Date(order.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>

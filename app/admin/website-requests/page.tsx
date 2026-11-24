@@ -140,7 +140,7 @@ export default function AdminWebsiteRequestsPage() {
                                     {row.request_type === 'full_request' ? categoryLabel(row.category) : 'Call request'}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
-                                    {row.request_type === 'full_request' && row.budget_ghs ? `GHS ${row.budget_ghs} · ` : ''}
+                                    {row.request_type === 'full_request' && row.budget_ghs ? `GH₵${row.budget_ghs} · ` : ''}
                                     {formatDate(row.created_at)}
                                 </p>
                             </div>
@@ -183,7 +183,7 @@ export default function AdminWebsiteRequestsPage() {
                                 {active.request_type === 'full_request' && (
                                     <>
                                         <p>
-                                            <span className="font-semibold">Budget guide:</span> GHS {active.budget_ghs}
+                                            <span className="font-semibold">Budget guide:</span> GH₵{active.budget_ghs}
                                             <span className="ml-1 text-xs text-muted-foreground">(client&apos;s estimate, not a quote)</span>
                                         </p>
                                         <p><span className="font-semibold">Timeline:</span> {timelineLabel(active.timeline)}</p>

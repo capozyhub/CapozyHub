@@ -70,16 +70,16 @@ function UserMiniCard({ user, onSelect }: { user: UserResult; onSelect: () => vo
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm truncate">{user.first_name} {user.last_name}</span>
-                    <Badge className={cn('text-[10px] px-1.5 py-0', ROLE_COLORS[user.role])}>{user.role}</Badge>
+                    <Badge className={cn('text-xs px-1.5 py-0', ROLE_COLORS[user.role])}>{user.role}</Badge>
                     {user.pending_debt_total > 0 && (
-                        <Badge className="text-[10px] px-1.5 py-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        <Badge className="text-xs px-1.5 py-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
                             Owes {formatCurrency(user.pending_debt_total)}
                         </Badge>
                     )}
                 </div>
                 <div className="text-xs text-muted-foreground">{user.phone_number}</div>
                 {user.last_admin_topup_at && (
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Clock className="w-3 h-3" />
                         Last: {formatCurrency(user.last_admin_topup_amount || 0)} · {formatDistanceToNow(new Date(user.last_admin_topup_at), { addSuffix: true })}
                     </div>
@@ -110,7 +110,7 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
             </div>
             <p className="text-xs font-semibold truncate">{user.first_name} {user.last_name}</p>
             {user.topup_count && (
-                <p className="text-[10px] text-muted-foreground">{user.topup_count} top-ups</p>
+                <p className="text-xs text-muted-foreground">{user.topup_count} top-ups</p>
             )}
             <p className="text-xs font-bold text-emerald-600 mt-1">{formatCurrency(user.wallet_balance)}</p>
         </button>
@@ -205,11 +205,11 @@ function AddToListPopover({
                     <span className={cn('font-medium flex-1 text-left', isInList(list) && 'text-emerald-600 dark:text-emerald-400')}>
                         {list.name}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{list.users.length}</span>
+                    <span className="text-xs text-muted-foreground">{list.users.length}</span>
                 </button>
             ))}
             <div className="border-t border-border pt-2 space-y-1.5">
-                <p className="text-[10px] text-muted-foreground font-semibold">Create new list</p>
+                <p className="text-xs text-muted-foreground font-semibold">Create new list</p>
                 <div className="flex gap-1.5">
                     <Input
                         value={newListName}
@@ -223,7 +223,7 @@ function AddToListPopover({
                     </Button>
                 </div>
             </div>
-            <button onClick={onClose} className="w-full text-center text-[10px] text-muted-foreground hover:text-foreground pt-1">
+            <button onClick={onClose} className="w-full text-center text-xs text-muted-foreground hover:text-foreground pt-1">
                 Close
             </button>
         </div>
@@ -268,7 +268,7 @@ function SelectedUserCard({
         <div className="space-y-3">
             {/* Debt Alert */}
             {user.pending_debt_total > 0 && (
-                <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 animate-pulse">
+                <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
                     <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-red-700 dark:text-red-400">⚠️ DEBT ALERT</p>
@@ -314,7 +314,7 @@ function SelectedUserCard({
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <span className="text-lg font-bold tracking-tight">{user.first_name} {user.last_name}</span>
-                                <Badge className={cn('text-[10px] font-bold px-2', ROLE_COLORS[user.role])}>
+                                <Badge className={cn('text-xs font-bold px-2', ROLE_COLORS[user.role])}>
                                     <RoleIcon className="w-2.5 h-2.5 mr-1" />
                                     {user.role}
                                 </Badge>
@@ -334,14 +334,14 @@ function SelectedUserCard({
                                 <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">
                                     {formatCurrency(user.wallet_balance)}
                                 </p>
-                                <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5 font-semibold">Balance</p>
+                                <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-0.5 font-semibold">Balance</p>
                             </div>
                             {user.pending_debt_total > 0 && (
                                 <div className="mt-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-1.5 text-right">
                                     <p className="text-sm font-bold text-amber-600 dark:text-amber-400 leading-none">
                                         {formatCurrency(user.pending_debt_total)}
                                     </p>
-                                    <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70 font-semibold">Owes</p>
+                                    <p className="text-xs text-amber-600/70 dark:text-amber-400/70 font-semibold">Owes</p>
                                 </div>
                             )}
                         </div>

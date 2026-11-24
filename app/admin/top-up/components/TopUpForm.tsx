@@ -122,9 +122,9 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
 
     const getButtonLabel = () => {
         if (!selectedUser || amountNum <= 0) return 'Select a user and enter an amount'
-        if (deductFromDebt && deductNum > 0) return `Credit GHS ${netCredit.toFixed(2)} · Settle GHS ${deductNum.toFixed(2)} Debt`
-        if (paymentStatus === 'unpaid') return `Credit GHS ${amountNum.toFixed(2)} — Mark as Debt`
-        return `Credit GHS ${amountNum.toFixed(2)} — Paid`
+        if (deductFromDebt && deductNum > 0) return `Credit GH₵${netCredit.toFixed(2)} · Settle GH₵${deductNum.toFixed(2)} Debt`
+        if (paymentStatus === 'unpaid') return `Credit GH₵${amountNum.toFixed(2)} — Mark as Debt`
+        return `Credit GH₵${amountNum.toFixed(2)} — Paid`
     }
 
     const handleSubmit = async () => {
@@ -154,7 +154,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                 }
                 return
             }
-            toast.success(`✅ GHS ${netCredit.toFixed(2)} credited to ${selectedUser!.first_name} ${selectedUser!.last_name}`)
+            toast.success(`✅ GH₵${netCredit.toFixed(2)} credited to ${selectedUser!.first_name} ${selectedUser!.last_name}`)
             // Reset form
             setAmount('')
             setDeductAmount('')
@@ -209,7 +209,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                 {showSameAmountWarning && (
                     <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2.5 text-xs">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        🔁 You topped up this user <strong>GHS {amountNum}</strong> recently. Double-check this isn&apos;t a duplicate.
+                        🔁 You topped up this user <strong>GH₵{amountNum}</strong> recently. Double-check this isn&apos;t a duplicate.
                     </div>
                 )}
             </div>
@@ -295,13 +295,13 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                             </div>
                             {amountNum > 0 && deductNum > 0 && (
                                 <div className="text-xs space-y-1 bg-card rounded-lg p-3 font-mono">
-                                    <div className="flex justify-between"><span>Cash received:</span><span className="font-bold">GHS {amountNum.toFixed(2)}</span></div>
-                                    <div className="flex justify-between text-red-600"><span>Debt deducted:</span><span className="font-bold">−GHS {deductNum.toFixed(2)}</span></div>
+                                    <div className="flex justify-between"><span>Cash received:</span><span className="font-bold">GH₵{amountNum.toFixed(2)}</span></div>
+                                    <div className="flex justify-between text-red-600"><span>Debt deducted:</span><span className="font-bold">−GH₵{deductNum.toFixed(2)}</span></div>
                                     <div className="border-t border-border my-1" />
-                                    <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet credit:</span><span>GHS {netCredit.toFixed(2)}</span></div>
+                                    <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet credit:</span><span>GH₵{netCredit.toFixed(2)}</span></div>
                                     <div className={cn('flex justify-between', debtRemaining === 0 ? 'text-green-600' : 'text-amber-600')}>
                                         <span>Debt remaining:</span>
-                                        <span className="font-bold">{debtRemaining === 0 ? '✅ Fully settled' : `GHS ${debtRemaining.toFixed(2)}`}</span>
+                                        <span className="font-bold">{debtRemaining === 0 ? '✅ Fully settled' : `GH₵${debtRemaining.toFixed(2)}`}</span>
                                     </div>
                                 </div>
                             )}
@@ -362,12 +362,12 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                                 <div className="bg-muted/50 rounded-lg p-3 font-mono space-y-1">
                                     {deductFromDebt && deductNum > 0 ? (
                                         <>
-                                            <p>✅ Credit <strong>GHS {netCredit.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
-                                            <p className="text-muted-foreground text-xs">(GHS {amountNum.toFixed(2)} cash − GHS {deductNum.toFixed(2)} debt deducted)</p>
-                                            <p>✅ Mark GHS {deductNum.toFixed(2)} debt as: {debtRemaining === 0 ? 'Settled' : 'Partially Settled'}</p>
+                                            <p>✅ Credit <strong>GH₵{netCredit.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
+                                            <p className="text-muted-foreground text-xs">(GH₵{amountNum.toFixed(2)} cash − GH₵{deductNum.toFixed(2)} debt deducted)</p>
+                                            <p>✅ Mark GH₵{deductNum.toFixed(2)} debt as: {debtRemaining === 0 ? 'Settled' : 'Partially Settled'}</p>
                                         </>
                                     ) : (
-                                        <p>✅ Credit <strong>GHS {amountNum.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
+                                        <p>✅ Credit <strong>GH₵{amountNum.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
                                     )}
                                     {paymentStatus === 'unpaid' && <p>💳 Mark as: Unpaid (debt created)</p>}
                                     <p className="text-muted-foreground text-xs">📱 SMS will be sent to {selectedUser.phone_number}</p>

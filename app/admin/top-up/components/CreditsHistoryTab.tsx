@@ -136,16 +136,16 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm">{tx.first_name} {tx.last_name}</span>
-                        <Badge className={cn('text-[10px] px-1.5 py-0', ROLE_COLORS[tx.role] || ROLE_COLORS.customer)}>
+                        <Badge className={cn('text-xs px-1.5 py-0', ROLE_COLORS[tx.role] || ROLE_COLORS.customer)}>
                             {tx.role}
                         </Badge>
                         {isUnpaid && (
-                            <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <Badge className="text-xs px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                                 Unpaid debt
                             </Badge>
                         )}
                         {hasLinkedDebt && !isUnpaid && (
-                            <Badge className="text-[10px] px-1.5 py-0 bg-green-100 text-green-700">Settled</Badge>
+                            <Badge className="text-xs px-1.5 py-0 bg-green-100 text-green-700">Settled</Badge>
                         )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{tx.phone_number}</p>
@@ -157,10 +157,10 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
                     <p className={cn('font-bold text-base', isUnpaid ? 'text-amber-600' : 'text-emerald-600')}>
                         +{formatCurrency(tx.amount)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                         {format(new Date(tx.created_at), 'dd MMM, HH:mm')}
                     </p>
                 </div>
@@ -259,7 +259,7 @@ export function CreditsHistoryTab() {
                         <div key={card.label} className="bg-card border border-border rounded-xl p-3 text-center">
                             <card.icon className={cn('w-4 h-4 mx-auto mb-1', card.color)} />
                             <p className={cn('text-base font-bold', card.color)}>{card.value}</p>
-                            <p className="text-[10px] text-muted-foreground">{card.label}</p>
+                            <p className="text-xs text-muted-foreground">{card.label}</p>
                         </div>
                     ))}
                 </div>

@@ -279,7 +279,7 @@ export default function AdminAfaManagementPage() {
                 `Occupation       : ${app.occupation || 'Farmer'}`,
                 `Notes            : ${app.notes || 'None'}`,
                 '',
-                `Payment Amount   : GHS ${app.payment_amount?.toFixed(2) ?? '—'}`,
+                `Payment Amount   : GH₵${app.payment_amount?.toFixed(2) ?? '—'}`,
                 `Status           : ${app.status.toUpperCase()}`,
                 `Submitted On     : ${format(new Date(app.created_at), 'dd MMM yyyy, hh:mm a')}`,
                 '',
@@ -521,12 +521,12 @@ export default function AdminAfaManagementPage() {
                                                         <div className="flex items-center gap-1.5 mt-0.5">
                                                             <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                             {app.shop_profiles?.shop_name && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
+                                                                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
                                                                     {app.shop_profiles.shop_name}
                                                                 </span>
                                                             )}
                                                             {app.source === 'api' && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80">
+                                                                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground/80">
                                                                     API
                                                                 </span>
                                                             )}
@@ -539,14 +539,14 @@ export default function AdminAfaManagementPage() {
                                                         {app.location}, {app.region}
                                                     </TableCell>
                                                     <TableCell className="text-sm font-medium">
-                                                        {app.payment_amount != null ? `GHS ${app.payment_amount.toFixed(2)}` : '—'}
+                                                        {app.payment_amount != null ? `GH₵${app.payment_amount.toFixed(2)}` : '—'}
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                                         {format(new Date(app.created_at), 'dd MMM yyyy')}
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-1.5">
-                                                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cfg.color}`}>
+                                                            <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase px-2 py-0.5 rounded-full ${cfg.color}`}>
                                                                 <StatusIcon className="w-3 h-3" />
                                                                 {cfg.label}
                                                             </span>
@@ -584,18 +584,18 @@ export default function AdminAfaManagementPage() {
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                     {app.shop_profiles?.shop_name && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
+                                                        <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
                                                             {app.shop_profiles.shop_name}
                                                         </span>
                                                     )}
                                                     {app.source === 'api' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80">
+                                                        <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground/80">
                                                             API
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-1">
-                                                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${cfg.color}`}>
+                                                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase px-1.5 py-0.5 rounded-full ${cfg.color}`}>
                                                         <StatusIcon className="w-2.5 h-2.5" />
                                                         {cfg.label}
                                                     </span>
@@ -644,7 +644,7 @@ export default function AdminAfaManagementPage() {
                                     </span>
                                     {selectedApp.payment_amount != null && (
                                         <span className="text-sm font-semibold text-muted-foreground">
-                                            Fee Paid: GHS {selectedApp.payment_amount.toFixed(2)}
+                                            Fee Paid: GH₵{selectedApp.payment_amount.toFixed(2)}
                                         </span>
                                     )}
                                 </div>
@@ -668,9 +668,9 @@ export default function AdminAfaManagementPage() {
 
                                 {selectedApp.shop_id && selectedApp.selling_price != null && (
                                     <div className="rounded-xl border bg-muted/30 dark:bg-muted/10 px-4 py-2 mt-2 text-xs space-y-1">
-                                        <div className="flex justify-between"><span className="text-muted-foreground">Cost</span><span>GHS {selectedApp.cost_price?.toFixed(2) ?? '—'}</span></div>
-                                        <div className="flex justify-between"><span className="text-muted-foreground">Selling price</span><span>GHS {selectedApp.selling_price?.toFixed(2) ?? '—'}</span></div>
-                                        <div className="flex justify-between"><span className="text-muted-foreground">Shop profit</span><span>GHS {selectedApp.profit?.toFixed(2) ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-muted-foreground">Cost</span><span>GH₵{selectedApp.cost_price?.toFixed(2) ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-muted-foreground">Selling price</span><span>GH₵{selectedApp.selling_price?.toFixed(2) ?? '—'}</span></div>
+                                        <div className="flex justify-between"><span className="text-muted-foreground">Shop profit</span><span>GH₵{selectedApp.profit?.toFixed(2) ?? '—'}</span></div>
                                     </div>
                                 )}
 

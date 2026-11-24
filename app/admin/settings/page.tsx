@@ -95,7 +95,7 @@ function ToggleRow({
                         : 'text-muted-foreground'
                 )}>{label}</p>
                 {description && (
-                    <p className={cn('text-muted-foreground leading-tight', compact ? 'text-[10px] mt-0.5' : 'text-xs mt-0.5')}>
+                    <p className={cn('text-muted-foreground leading-tight', compact ? 'text-xs mt-0.5' : 'text-xs mt-0.5')}>
                         {description}
                     </p>
                 )}
@@ -763,15 +763,15 @@ export default function AdminSettingsPage() {
                             {landingDataPackages.map((pkg, i) => (
                                 <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Network</Label>}
+                                        {i === 0 && <Label className="text-xs font-bold text-muted-foreground">Network</Label>}
                                         <Input placeholder="e.g. MTN" value={pkg.network} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], network: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Volume</Label>}
+                                        {i === 0 && <Label className="text-xs font-bold text-muted-foreground">Volume</Label>}
                                         <Input placeholder="e.g. 1GB" value={pkg.volume} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], volume: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Price (GHS)</Label>}
+                                        {i === 0 && <Label className="text-xs font-bold text-muted-foreground">Price (GHS)</Label>}
                                         <Input placeholder="e.g. 4.30" value={pkg.price} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], price: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setLandingDataPackages(landingDataPackages.filter((_, idx) => idx !== i))}>

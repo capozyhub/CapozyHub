@@ -38,6 +38,7 @@ import {
     Select, SelectContent, SelectItem,
     SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface MomoTransaction {
     id: string
@@ -105,6 +106,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 }
 
 export default function MomoClaimsAdminPage() {
+    const { ask, dialog } = useConfirm()
     const { isAdmin, isSubAdmin } = useAuth()
     const [transactions, setTransactions] = useState<MomoTransaction[]>([])
     const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, claimed: 0, voided: 0, flagged: 0, totalCredited: 0 })
@@ -173,7 +175,7 @@ export default function MomoClaimsAdminPage() {
     }
 
     const handleDeleteRef = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this reference? The user will need to generate a new one.')) return
+        if (!(await ask({ title: 'Delete this reference?', description: 'The user will need to generate a new one.', confirmLabel: 'Delete reference', destructive: true }))) return
         try {
             const res = await fetch('/api/admin/momo-references', {
                 method: 'DELETE',
@@ -272,7 +274,7 @@ export default function MomoClaimsAdminPage() {
     }, [isAdmin, isSubAdmin, fetchData, fetchReferences])
 
     const handleVoid = async (txn: MomoTransaction) => {
-        if (!confirm(`Void transaction ${txn.transaction_id}? The user will no longer be able to claim it.`)) return
+        if (!(await ask({ title: `Void transaction ${txn.transaction_id}?`, description: 'The user will no longer be able to claim it.', confirmLabel: 'Void it', destructive: true }))) return
         setActionLoading(txn.id)
         try {
             const res = await fetch('/api/admin/momo-claims', {
@@ -379,6 +381,7 @@ export default function MomoClaimsAdminPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -505,13 +508,13 @@ export default function MomoClaimsAdminPage() {
                                     <div key={txn.id} className="p-4 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <code className="text-xs font-bold text-foreground/80">{txn.transaction_id}</code>
-                                            <Badge variant="outline" className={`text-[10px] gap-1 ${sc.color}`}>
+                                            <Badge variant="outline" className={`text-xs gap-1 ${sc.color}`}>
                                                 <StatusIcon className="w-3 h-3" /> {sc.label}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-foreground">{txn.sender_name}</span>
-                                            <Badge variant="outline" className={`text-[10px] ${NETWORK_COLORS[txn.sender_network] || NETWORK_COLORS.Unknown}`}>
+                                            <Badge variant="outline" className={`text-xs ${NETWORK_COLORS[txn.sender_network] || NETWORK_COLORS.Unknown}`}>
                                                 {txn.sender_network}
                                             </Badge>
                                         </div>
@@ -596,7 +599,7 @@ export default function MomoClaimsAdminPage() {
                                                 <td className="px-4 py-3 text-xs text-muted-foreground">
                                                     {txn.claimer_name || '—'}
                                                     {txn.claimed_at && (
-                                                        <div className="text-[10px] text-muted-foreground/70">{formatDate(txn.claimed_at)}</div>
+                                                        <div className="text-xs text-muted-foreground/70">{formatDate(txn.claimed_at)}</div>
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(txn.created_at)}</td>

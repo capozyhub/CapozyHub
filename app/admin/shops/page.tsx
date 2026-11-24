@@ -243,7 +243,7 @@ export default function AdminShopsPage() {
                                                     /shop/{shop.shop_slug} · {owner?.first_name} {owner?.last_name} · {shop.owner_phone}
                                                 </p>
                                                 {owner?.role && (
-                                                    <span className={cn('inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', roleColors[owner.role] || roleColors.customer)}>
+                                                    <span className={cn('inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full capitalize', roleColors[owner.role] || roleColors.customer)}>
                                                         <Crown className="w-2.5 h-2.5 mr-1" />
                                                         {owner.role}
                                                     </span>

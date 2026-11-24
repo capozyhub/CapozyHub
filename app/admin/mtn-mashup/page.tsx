@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Pencil, Trash2, Loader2, Copy, Check, Clock, RotateCcw, CheckCircle2, XCircle } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { DataPackage } from '@/types/supabase'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface MashupOrder {
     id: string
@@ -52,6 +53,7 @@ const defaultFormData: FormData = {
 const ORDER_STATUSES = ['All', 'pending', 'processing', 'completed', 'failed']
 
 export default function AdminMtnMashupPage() {
+    const { ask, dialog } = useConfirm()
     // Packages
     const [packages, setPackages] = useState<DataPackage[]>([])
     const [isLoadingPkgs, setIsLoadingPkgs] = useState(true)
@@ -131,7 +133,7 @@ export default function AdminMtnMashupPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Delete this Mashup package?')) return
+        if (!(await ask({ title: 'Delete this mashup package?', confirmLabel: 'Delete package', destructive: true }))) return
         setDeletingId(id)
         try {
             const res = await fetch(`/api/admin/mtn-mashup/packages?id=${id}`, { method: 'DELETE' })
@@ -220,6 +222,7 @@ export default function AdminMtnMashupPage() {
 
     return (
         <div className="p-4 md:p-6 space-y-6">
+            {dialog}
             <div>
                 <h1 className="text-2xl font-bold">Special MTN Mashup</h1>
                 <p className="text-sm text-muted-foreground">Configure curated MTN packages and process orders manually.</p>
@@ -247,7 +250,7 @@ export default function AdminMtnMashupPage() {
                                     <CardContent className="p-4 space-y-2">
                                         <div className="flex items-start justify-between">
                                             <p className="font-bold">{pkg.size}</p>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${pkg.is_available ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${pkg.is_available ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
                                                 {pkg.is_available ? 'Available' : 'Hidden'}
                                             </span>
                                         </div>
@@ -298,7 +301,7 @@ export default function AdminMtnMashupPage() {
                         <div className="sticky top-20 z-30 flex items-center justify-between flex-wrap gap-2 bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg">
                             <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-primary text-primary-foreground text-xs font-bold">{selectedOrders.size}</span>
-                                <span className="text-[10px] md:text-xs font-bold uppercase">Selected</span>
+                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
                             </div>
                             <div className="flex gap-2 flex-wrap justify-end">
                                 <Button size="sm" onClick={() => bulkUpdateStatus('pending')} className="h-9 text-xs px-3 bg-amber-500 hover:bg-amber-600 text-black font-bold" disabled={isBulkUpdating}>
@@ -393,12 +396,12 @@ export default function AdminMtnMashupPage() {
                             <div className="space-y-2">
                                 <Label>Agent Price (GHS)</Label>
                                 <Input type="number" value={formData.agent_price} onChange={e => setFormData(p => ({ ...p, agent_price: parseFloat(e.target.value) || 0 }))} />
-                                <p className="text-[10px] text-muted-foreground">Optional; falls back to selling price if 0</p>
+                                <p className="text-xs text-muted-foreground">Optional; falls back to selling price if 0</p>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-brand-700">Dealer Price (GHS)</Label>
                                 <Input type="number" value={formData.dealer_price} onChange={e => setFormData(p => ({ ...p, dealer_price: parseFloat(e.target.value) || 0 }))} />
-                                <p className="text-[10px] text-muted-foreground">Optional; falls back to agent/selling price if 0</p>
+                                <p className="text-xs text-muted-foreground">Optional; falls back to agent/selling price if 0</p>
                             </div>
                         </div>
                         <div className="space-y-2">

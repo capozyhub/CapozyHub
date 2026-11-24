@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ function RoleBadge({ role }: { role: string }) {
         : role === 'dealer'        ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
         : role === 'agent'         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
         : 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
-    return <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', color)}>{role}</span>
+    return <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded-full', color)}>{role}</span>
 }
 
 // ─── Message Composer ─────────────────────────────────────────────────────────
@@ -156,7 +157,7 @@ function MessageComposer({
                         type="button"
                         title={v.desc}
                         onClick={() => insertAtCursor(v.label)}
-                        className="text-[10px] font-mono px-2 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+                        className="text-xs font-mono px-2 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                     >
                         {v.label}
                     </button>
@@ -194,7 +195,7 @@ function LivePreview({ message, sampleName }: { message: string; sampleName: str
                 <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs font-semibold text-muted-foreground">Live Preview</span>
                 {/\[(FirstName|LastName|Phone)\]/i.test(message) && (
-                    <span className="ml-auto text-[10px] text-brand-700 dark:text-brand-500 font-medium">✦ Personalized</span>
+                    <span className="ml-auto text-xs text-brand-700 dark:text-brand-500 font-medium">✦ Personalized</span>
                 )}
             </div>
             <div className="p-4 min-h-[80px]">
@@ -215,6 +216,7 @@ function LivePreview({ message, sampleName }: { message: string; sampleName: str
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function AdminSMSBroadcastPage() {
+    const { ask, dialog } = useConfirm()
 
     // ── Shared state ──────────────────────────────────────────────────────────
     const [templates, setTemplates]   = useState<SmsTemplate[]>([])
@@ -584,7 +586,7 @@ export default function AdminSMSBroadcastPage() {
     }
 
     const handleDeleteTemplate = async (t: SmsTemplate) => {
-        if (!confirm(`Delete template "${t.name}"?`)) return
+        if (!(await ask({ title: `Delete the template "${t.name}"?`, confirmLabel: 'Delete template', destructive: true }))) return
         try {
             const res = await fetch(`/api/admin/sms-templates/${t.id}`, { method: 'DELETE' })
             const data = await res.json()
@@ -601,6 +603,7 @@ export default function AdminSMSBroadcastPage() {
     // ─────────────────────────────────────────────────────────────────────────
     return (
         <div className="space-y-6 max-w-6xl">
+            {dialog}
 
             {/* Header */}
             <div className="flex items-center gap-4">
@@ -660,15 +663,15 @@ export default function AdminSMSBroadcastPage() {
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="rounded-xl bg-card p-2 border">
                                             <p className="text-xl font-bold">{recipientCount}</p>
-                                            <p className="text-[10px] text-muted-foreground">Recipients</p>
+                                            <p className="text-xs text-muted-foreground">Recipients</p>
                                         </div>
                                         <div className="rounded-xl bg-card p-2 border">
                                             <p className="text-xl font-bold">{Math.ceil(message.length / 160) || 1}</p>
-                                            <p className="text-[10px] text-muted-foreground">SMS Units</p>
+                                            <p className="text-xs text-muted-foreground">SMS Units</p>
                                         </div>
                                         <div className="rounded-xl bg-card p-2 border">
                                             <p className="text-xl font-bold">{recipientCount * (Math.ceil(message.length / 160) || 1)}</p>
-                                            <p className="text-[10px] text-muted-foreground">Total Units</p>
+                                            <p className="text-xs text-muted-foreground">Total Units</p>
                                         </div>
                                     </div>
 
@@ -932,7 +935,7 @@ export default function AdminSMSBroadcastPage() {
                                                 : <Folder className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-semibold truncate">{g.name}</p>
-                                                <p className="text-[10px] text-muted-foreground">{g.contact_count} contacts</p>
+                                                <p className="text-xs text-muted-foreground">{g.contact_count} contacts</p>
                                             </div>
                                             <button
                                                 className="opacity-0 group-hover:opacity-100 p-0.5 text-destructive hover:bg-destructive/10 rounded transition-all"
@@ -981,7 +984,7 @@ export default function AdminSMSBroadcastPage() {
                                                         }
                                                     </Button>
                                                     <label className={cn(
-                                                        'flex items-center gap-1 text-[10px] font-medium cursor-pointer px-2 py-1 rounded-lg border transition-colors select-none',
+                                                        'flex items-center gap-1 text-xs font-medium cursor-pointer px-2 py-1 rounded-lg border transition-colors select-none',
                                                         enrichNames
                                                             ? 'border-emerald-400 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                                                             : 'border-border text-muted-foreground hover:border-border'
@@ -1106,11 +1109,11 @@ export default function AdminSMSBroadcastPage() {
                                         </div>
                                         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{t.body}</p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-muted-foreground">{t.body.length} chars</span>
+                                            <span className="text-xs text-muted-foreground">{t.body.length} chars</span>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-6 text-[10px] px-2"
+                                                className="h-6 text-xs px-2"
                                                 onClick={() => {
                                                     setMessage(t.body)
                                                     setActiveTab('broadcast')
@@ -1275,7 +1278,7 @@ export default function AdminSMSBroadcastPage() {
                                 <div className="flex gap-1.5 flex-wrap">
                                     {VARIABLES.map(v => (
                                         <button key={v.label} type="button"
-                                            className="font-mono px-1.5 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 text-[10px] hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                                            className="font-mono px-1.5 py-0.5 rounded border border-dashed border-brand-400 text-brand-800 dark:text-brand-400 text-xs hover:bg-brand-50 dark:hover:bg-brand-500/10"
                                             onClick={() => setTplBody(b => b + v.label)}>
                                             {v.label}
                                         </button>

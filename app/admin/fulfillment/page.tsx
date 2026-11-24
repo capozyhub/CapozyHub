@@ -374,7 +374,10 @@ export default function FulfillmentPage() {
         }
     }
 
+    // Only the newest request may write the list, so a slow earlier reply (or a live refresh) cannot overwrite a newer filter.
+    const ordersSeq = useRef(0)
     const fetchOrders = async (isNewFilter = false, silent = false) => {
+        const seq = ++ordersSeq.current
         if (!silent) setIsLoadingOrders(true)
         try {
             const { start, end } = getDateRange()
@@ -391,6 +394,7 @@ export default function FulfillmentPage() {
             }
 
             const data = await response.json()
+            if (seq !== ordersSeq.current) return
             const fetchedOrders = data.orders || []
             setOrders(fetchedOrders)
             setOrdersCount(fetchedOrders.length)
@@ -555,7 +559,7 @@ export default function FulfillmentPage() {
         const outcome = result?.outcome as string | undefined
         const messages: Record<string, string> = {
             insufficient_balance: `Insufficient wallet balance to fund this retry${result?.required != null && result?.available != null
-                    ? ` — needs GHS ${Number(result.required).toFixed(2)}, wallet has GHS ${Number(result.available).toFixed(2)}`
+                    ? ` — needs GH₵${Number(result.required).toFixed(2)}, wallet has GH₵${Number(result.available).toFixed(2)}`
                     : ''
                 }.`,
             retry_locked: `This order is locked from further retries after 3 attempts${result?.until ? ` — try again after ${new Date(result.until).toLocaleString()}` : ', try again later'
@@ -595,7 +599,7 @@ export default function FulfillmentPage() {
             const data = result.data
             toast.success(
                 data?.message ||
-                (data?.chargedAmount ? `Retry dispatched — GHS ${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
+                (data?.chargedAmount ? `Retry dispatched — GH₵${Number(data.chargedAmount).toFixed(2)} charged` : 'Order retry dispatched')
             )
             setRetryTarget(null)
             await fetchOrders(true)
@@ -660,7 +664,7 @@ export default function FulfillmentPage() {
                 <div>
                     <div className="flex items-center gap-2.5">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Fulfillment Center</h1>
-                        <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${isLive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${isLive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-foreground/10'}`} />
                             {isLive ? 'Live' : 'Offline'}
                         </span>
@@ -685,7 +689,7 @@ export default function FulfillmentPage() {
                         Refresh
                     </Button>
                     <div className="flex items-center gap-2 bg-background border px-3 h-9 md:h-10 rounded-full shadow-sm">
-                        <span className="text-[10px] md:text-xs font-semibold">Auto-Fulfillment</span>
+                        <span className="text-xs md:text-xs font-semibold">Auto-Fulfillment</span>
                         <Switch checked={settings.is_global_enabled} onCheckedChange={toggleGlobal} disabled={isSavingSettings} className="scale-75 md:scale-90" />
                     </div>
                 </div>
@@ -769,14 +773,14 @@ export default function FulfillmentPage() {
                                     <Button
                                         variant={rexamartNetworks[net] ? 'outline' : 'default'}
                                         size="sm"
-                                        className="h-6 text-[10px] px-2"
+                                        className="h-6 text-xs px-2"
                                         onClick={() => toggleRexamartNetwork(net)}
                                         disabled={isSavingRexamart}
                                     >
                                         {rexamartNetworks[net] ? 'Disconnect' : 'Connect'}
                                     </Button>
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                     <div className={cn('w-1.5 h-1.5 rounded-full', rexamartNetworks[net] ? 'bg-emerald-500' : 'bg-foreground/10 dark:bg-zinc-600')} />
                                     {rexamartNetworks[net] ? 'Active' : 'Off'}
                                 </div>
@@ -787,7 +791,7 @@ export default function FulfillmentPage() {
                                 <span className="font-semibold text-xs">AFA (Ghana Card)</span>
                                 <Switch checked={rexamartAfaEnabled} onCheckedChange={toggleRexamartAfa} disabled={isSavingRexamart} className="scale-75" />
                             </div>
-                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <div className={cn('w-1.5 h-1.5 rounded-full', rexamartAfaEnabled ? 'bg-emerald-500' : 'bg-foreground/10 dark:bg-zinc-600')} />
                                 {rexamartAfaEnabled ? 'Active' : 'Off'}
                             </div>
@@ -823,7 +827,7 @@ export default function FulfillmentPage() {
                                     <div key={r.number} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between')}>
                                         <span className="font-mono text-xs">{r.number}</span>
                                         <span className={cn(
-                                            'text-[10px] font-bold uppercase px-1.5 py-0.5 rounded',
+                                            'text-xs font-bold uppercase px-1.5 py-0.5 rounded',
                                             r.verified ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400'
                                         )}>
                                             {r.status.replace(/_/g, ' ')}
@@ -852,7 +856,7 @@ export default function FulfillmentPage() {
                                     key={s || 'all'}
                                     variant={disputeStatusFilter === s ? 'default' : 'outline'}
                                     size="sm"
-                                    className="h-6 text-[10px] px-2"
+                                    className="h-6 text-xs px-2"
                                     onClick={() => { setDisputeStatusFilter(s); fetchDisputes(s) }}
                                 >
                                     {s === '' ? 'All' : s.replace(/_/g, ' ')}
@@ -864,8 +868,8 @@ export default function FulfillmentPage() {
                                 <p className="text-[11px] text-muted-foreground py-4 text-center">{isLoadingDisputes ? 'Loading…' : 'No disputes'}</p>
                             ) : disputes.map(d => (
                                 <div key={d.reportReference} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between gap-2')}>
-                                    <span className="font-mono text-[10px] truncate">{d.reportReference}</span>
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                                    <span className="font-mono text-xs truncate">{d.reportReference}</span>
+                                    <span className="text-xs font-bold uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                                         {d.disputeStatus}
                                     </span>
                                 </div>
@@ -888,10 +892,10 @@ export default function FulfillmentPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs md:text-sm font-semibold text-foreground leading-tight">Auto-Complete</p>
-                                        <p className="text-[10px] text-muted-foreground hidden md:block mt-0.5">Marks processing orders older than threshold as completed.</p>
+                                        <p className="text-xs text-muted-foreground hidden md:block mt-0.5">Marks processing orders older than threshold as completed.</p>
                                     </div>
                                 </div>
-                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', cronEnabled ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-muted text-muted-foreground')}>
+                                <div className={cn('shrink-0 text-xs font-semibold px-2 py-1 rounded-full', cronEnabled ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-muted text-muted-foreground')}>
                                     {cronEnabled ? `On·${cronThreshold}m` : 'Off'}
                                 </div>
                             </div>
@@ -915,7 +919,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 text-[10px] md:text-xs px-2"
+                                    className="h-7 text-xs md:text-xs px-2"
                                     disabled={isSavingCron}
                                     onClick={() => {
                                         const val = parseInt(cronThresholdInput, 10)
@@ -941,10 +945,10 @@ export default function FulfillmentPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs md:text-sm font-semibold text-foreground leading-tight">Auto-Refulfill</p>
-                                        <p className="text-[10px] text-muted-foreground hidden md:block mt-0.5">Retries pending orders, skips within cooldown.</p>
+                                        <p className="text-xs text-muted-foreground hidden md:block mt-0.5">Retries pending orders, skips within cooldown.</p>
                                     </div>
                                 </div>
-                                <div className={cn('shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full', autoRefulfillEnabled ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-muted text-muted-foreground')}>
+                                <div className={cn('shrink-0 text-xs font-semibold px-2 py-1 rounded-full', autoRefulfillEnabled ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-muted text-muted-foreground')}>
                                     {autoRefulfillEnabled ? `On·${autoRefulfillThreshold}m` : 'Off'}
                                 </div>
                             </div>
@@ -968,7 +972,7 @@ export default function FulfillmentPage() {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 text-[10px] md:text-xs px-2"
+                                    className="h-7 text-xs md:text-xs px-2"
                                     disabled={isSavingAutoRefulfill}
                                     onClick={() => {
                                         const val = parseInt(autoRefulfillThresholdInput, 10)
@@ -1008,7 +1012,7 @@ export default function FulfillmentPage() {
 
                             {/* Date Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Date Range</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Date Range</label>
                                 <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
                                     {DATE_FILTER_PRESETS.map(range => (
                                         <Button
@@ -1040,14 +1044,14 @@ export default function FulfillmentPage() {
 
                             {/* Status Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Status</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Status</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', 'Pending', 'Queued', 'Processing', 'Completed', 'Failed', 'Refunded'].map(s => (
                                         <Button
                                             key={s}
                                             variant={statusFilter === (s === 'All' ? 'All' : s.toLowerCase()) ? "default" : "outline"}
                                             size="sm"
-                                            className="h-7 text-[10px] px-2.5"
+                                            className="h-7 text-xs px-2.5"
                                             onClick={() => setStatusFilter(s === 'All' ? 'All' : s.toLowerCase())}
                                         >
                                             {s}
@@ -1058,14 +1062,14 @@ export default function FulfillmentPage() {
 
                             {/* Channel (origin) Filter — client-side */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Channel</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Channel</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {CHANNELS.map(c => (
                                         <Button
                                             key={c.key}
                                             variant={channelFilter === c.key ? "default" : "outline"}
                                             size="sm"
-                                            className="h-7 text-[10px] px-2.5"
+                                            className="h-7 text-xs px-2.5"
                                             onClick={() => setChannelFilter(c.key)}
                                         >
                                             {c.label}
@@ -1076,14 +1080,14 @@ export default function FulfillmentPage() {
 
                             {/* Network Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Network</label>
+                                <label className="text-xs uppercase font-bold text-muted-foreground">Network</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', ...NETWORKS].map(n => (
                                         <Button
                                             key={n}
                                             variant={networkFilter === n ? "default" : "outline"}
                                             size="sm"
-                                            className="h-7 text-[10px] px-2.5"
+                                            className="h-7 text-xs px-2.5"
                                             onClick={() => setNetworkFilter(n)}
                                         >
                                             {n}
@@ -1104,14 +1108,14 @@ export default function FulfillmentPage() {
                                         { label: 'Selected', value: selectedOrders.size, color: accent.slate },
                                     ].map(stat => (
                                         <div key={stat.label} className={cn(mutedSurface, 'p-2 md:p-2.5')}>
-                                            <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase">{stat.label}</p>
+                                            <p className="text-[11px] md:text-xs text-muted-foreground font-bold uppercase">{stat.label}</p>
                                             <p className="text-lg md:text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
                                         </div>
                                     ))}
                                     <div className={cn(mutedSurface, 'p-2 md:p-2.5')}>
-                                        <p className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase">Total Cost</p>
+                                        <p className="text-[11px] md:text-xs text-muted-foreground font-bold uppercase">Total Cost</p>
                                         <p className="text-sm md:text-base font-bold truncate" style={{ color: accent.emerald }}>
-                                            GHS {visibleOrders.reduce((acc, curr) => acc + (curr.price || 0), 0).toFixed(2)}
+                                            GH₵{visibleOrders.reduce((acc, curr) => acc + (curr.price || 0), 0).toFixed(2)}
                                         </p>
                                     </div>
                                 </div>
@@ -1137,8 +1141,8 @@ export default function FulfillmentPage() {
                     {selectedOrders.size > 0 && (
                         <div className="sticky top-20 z-30 flex items-center justify-between bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-4 flex-wrap gap-2 mx-2">
                             <div className="flex items-center gap-2">
-                                <Badge variant="default" className="rounded-full px-2 text-[10px]">{selectedOrders.size}</Badge>
-                                <span className="text-[10px] md:text-xs font-bold uppercase">Selected</span>
+                                <Badge variant="default" className="rounded-full px-2 text-xs">{selectedOrders.size}</Badge>
+                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
                             </div>
                             <div className="flex gap-2 md:gap-3 flex-wrap justify-end">
                                 <Button
@@ -1189,10 +1193,10 @@ export default function FulfillmentPage() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                             <CardTitle className="text-lg font-bold">Order History</CardTitle>
                             <div className="flex gap-2">
-                                <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => setSelectedOrders(new Set())} disabled={selectedOrders.size === 0}>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedOrders(new Set())} disabled={selectedOrders.size === 0}>
                                     Clear
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setSelectedOrders(new Set(visibleOrders.map(o => o.id)))} disabled={visibleOrders.length === 0}>
+                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedOrders(new Set(visibleOrders.map(o => o.id)))} disabled={visibleOrders.length === 0}>
                                     Select Page
                                 </Button>
                             </div>
@@ -1239,18 +1243,18 @@ export default function FulfillmentPage() {
                                                 purchaser/shop name truncates instead of forcing the row to overflow. */}
                                             <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-6 items-center gap-x-2 gap-y-3 md:gap-4 p-1">
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Beneficiary</p>
+                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Beneficiary</p>
                                                     <p className="text-[13px] md:text-sm font-medium text-primary">{order.phone_number}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Bundle</p>
+                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
+                                                        <Badge variant="outline" className="text-xs px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
                                                         <span className="text-[13px] md:text-xs font-medium">{order.size}</span>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Purchaser</p>
+                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Purchaser</p>
                                                     <div className="text-[11px] md:text-xs">
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {/* Shop-attributed orders with no buyer account (USSD shop
@@ -1262,7 +1266,7 @@ export default function FulfillmentPage() {
                                                                     : (order.shop_name || 'N/A')}
                                                             </p>
                                                             {order.source === 'api' && (
-                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
+                                                                <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                                     API
                                                                 </Badge>
                                                             )}
@@ -1270,18 +1274,18 @@ export default function FulfillmentPage() {
                                                                 user (website shop rows attribute users = the owner) —
                                                                 otherwise it would duplicate the purchaser line. */}
                                                             {order.shop_name && order.users?.first_name && (
-                                                                <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
+                                                                <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-brand-100 text-brand-700 hover:bg-brand-100 border-brand-200">
                                                                     Shop: {order.shop_name}
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="text-muted-foreground opacity-70 text-[10px] font-bold uppercase">
+                                                        <p className="text-muted-foreground opacity-70 text-xs font-bold uppercase">
                                                             {order.users?.role || (order.shop_name ? 'Shop' : order.source?.startsWith('ussd') ? 'Guest' : 'User')}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Status</p>
+                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Status</p>
                                                     <div>
                                                         {(() => {
                                                             // "Background Queue Fulfillment Success" is a provider processing sub-state
@@ -1293,7 +1297,7 @@ export default function FulfillmentPage() {
                                                             return (
                                                                 <div className="flex items-center gap-1 flex-wrap">
                                                                     <span className={cn(
-                                                                        "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium  h-5 px-2",
+                                                                        "inline-flex items-center rounded-md text-xs md:text-[11px] font-medium  h-5 px-2",
                                                                         isBgQueue
                                                                             ? "border border-border text-muted-foreground bg-muted dark:bg-yellow-900/20"
                                                                             : getStatusBadgeClass(order.status)
@@ -1302,7 +1306,7 @@ export default function FulfillmentPage() {
                                                                     </span>
                                                                     {shouldShowRefundOverlay(order) && (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium  h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-xs md:text-[11px] font-medium  h-5 px-2",
                                                                             REFUND_OVERLAY_BADGE_CLASS
                                                                         )}>
                                                                             Refunded
@@ -1310,14 +1314,14 @@ export default function FulfillmentPage() {
                                                                     )}
                                                                     {selfCompletedTag ? (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] font-medium  h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-xs font-medium  h-5 px-2",
                                                                             selfCompletedTag.badge
                                                                         )}>
                                                                             {selfCompletedTag.label}
                                                                         </span>
                                                                     ) : retryTag && (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] font-medium  h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-xs font-medium  h-5 px-2",
                                                                             retryTag.badge
                                                                         )}>
                                                                             {retryTag.label}
@@ -1327,7 +1331,7 @@ export default function FulfillmentPage() {
                                                                         <Button
                                                                             size="sm"
                                                                             variant="outline"
-                                                                            className="h-5 px-2 text-[10px] font-bold"
+                                                                            className="h-5 px-2 text-xs font-bold"
                                                                             onClick={(e) => { e.stopPropagation(); handleRetry(order) }}
                                                                         >
                                                                             <RotateCcw className="w-3 h-3 mr-1" /> Retry
@@ -1339,7 +1343,7 @@ export default function FulfillmentPage() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Time</p>
+                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Time</p>
                                                     <p className="text-[11px] md:text-[12px] font-bold opacity-80">
                                                         {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(order.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                                     </p>
@@ -1372,7 +1376,7 @@ export default function FulfillmentPage() {
                                     {/* Footer Info */}
                                     {orders.length > 0 && (
                                         <div className="pt-4 flex items-center justify-center">
-                                            <p className="text-[10px] text-muted-foreground font-bold">
+                                            <p className="text-xs text-muted-foreground font-bold">
                                                 Showing {visibleOrders.length} orders in this period
                                             </p>
                                         </div>

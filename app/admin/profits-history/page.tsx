@@ -484,7 +484,7 @@ export default function AdminProfitsPage() {
                                         />
                                         <CartesianGrid vertical={false} stroke="currentColor" className="text-muted/20" />
                                         <Tooltip
-                                            formatter={(value: any, name: any) => [`GHS ${Number(value).toFixed(2)}`, name]}
+                                            formatter={(value: any, name: any) => [`GH₵${Number(value).toFixed(2)}`, name]}
                                             labelFormatter={(val) => new Date(val).toDateString()}
                                             contentStyle={{ borderRadius: '10px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                             itemStyle={{ color: 'hsl(var(--foreground))' }}
@@ -526,7 +526,7 @@ export default function AdminProfitsPage() {
                                                         <Cell key={`cell-${index}`} fill={SPLIT_COLORS[index]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip formatter={(value: any) => `GHS ${Number(value).toFixed(2)}`} />
+                                                <Tooltip formatter={(value: any) => `GH₵${Number(value).toFixed(2)}`} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                         <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">

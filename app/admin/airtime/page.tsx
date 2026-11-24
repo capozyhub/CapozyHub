@@ -1491,7 +1491,7 @@ export default function AdminAirtimePage() {
                     <DialogHeader>
                         <DialogTitle>Refund airtime order?</DialogTitle>
                         <DialogDescription>
-                            {refundAirtimeOrder ? `GHS ${Number(refundAirtimeOrder.total_paid).toFixed(2)} · ${refundAirtimeOrder.reference_code}` : ''}
+                            {refundAirtimeOrder ? `GH₵${Number(refundAirtimeOrder.total_paid).toFixed(2)} · ${refundAirtimeOrder.reference_code}` : ''}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-2 text-sm text-muted-foreground">

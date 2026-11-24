@@ -96,7 +96,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                     onDebtChange()
                 }, 1200)
             } else {
-                toast.success(`Partial payment of GHS ${payAmt.toFixed(2)} recorded. GHS ${data.remaining.toFixed(2)} still owed.`)
+                toast.success(`Partial payment of GH₵${payAmt.toFixed(2)} recorded. GH₵${data.remaining.toFixed(2)} still owed.`)
                 fetchSettlements()
                 onDebtChange()
             }
@@ -185,7 +185,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                         <span className="font-bold">{s.first_name} {s.last_name}</span>
                                         <Badge className={STATUS_STYLES[s.status]}>{STATUS_LABELS[s.status]}</Badge>
                                         {daysOverdue > 7 && (
-                                            <Badge className="bg-red-100 text-red-700 text-[10px]">{daysOverdue}d overdue</Badge>
+                                            <Badge className="bg-red-100 text-red-700 text-xs">{daysOverdue}d overdue</Badge>
                                         )}
                                     </div>
                                     <p className="text-sm text-muted-foreground">{s.phone_number}</p>

@@ -593,7 +593,7 @@ export default function RoleManagementPage() {
                                         className={cn(
                                             'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
                                             roleFilter === val
-                                                ? 'bg-card text-white dark:text-foreground'
+                                                ? 'clay-black'
                                                 : 'bg-muted text-muted-foreground hover:bg-muted dark:hover:bg-muted'
                                         )}
                                     >
@@ -614,7 +614,7 @@ export default function RoleManagementPage() {
                                         className={cn(
                                             'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
                                             statusFilter === val
-                                                ? (activeClass || 'bg-card text-white dark:text-foreground')
+                                                ? (activeClass || 'clay-black')
                                                 : 'bg-muted text-muted-foreground hover:bg-muted dark:hover:bg-muted'
                                         )}
                                     >
@@ -673,7 +673,7 @@ export default function RoleManagementPage() {
                                                         <td className="px-5 py-3.5">
                                                             <div className="flex items-center gap-2.5">
                                                                 <div className={cn(
-                                                                    'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0',
+                                                                    'w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0',
                                                                     user.role === 'dealer' ? 'bg-brand-500' : 'bg-amber-500'
                                                                 )}>
                                                                     {(user.first_name?.[0] || user.email?.[0] || '?').toUpperCase()}
@@ -684,7 +684,7 @@ export default function RoleManagementPage() {
                                                                             {user.first_name} {user.last_name}
                                                                         </p>
                                                                         {user.auto_upgrade_enabled && (
-                                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700/40">
+                                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700/40">
                                                                                 <Zap className="w-2.5 h-2.5 fill-current" />
                                                                                 AUTO
                                                                             </span>
@@ -696,29 +696,29 @@ export default function RoleManagementPage() {
                                                         </td>
                                                         <td className="px-5 py-3.5">
                                                             {user.role === 'dealer' ? (
-                                                                <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-[10px] font-medium gap-0.5">
+                                                                <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-xs font-medium gap-0.5">
                                                                     <Gem className="w-2.5 h-2.5" /> Dealer
                                                                 </Badge>
                                                             ) : (
-                                                                <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-[10px] font-medium gap-0.5">
+                                                                <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-xs font-medium gap-0.5">
                                                                     <Crown className="w-2.5 h-2.5" /> Agent
                                                                 </Badge>
                                                             )}
                                                         </td>
                                                         <td className="px-5 py-3.5">
                                                             {status === 'permanent' && (
-                                                                <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px] font-medium gap-0.5">
+                                                                <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-xs font-medium gap-0.5">
                                                                     <ShieldCheck className="w-2.5 h-2.5" /> Lifetime
                                                                 </Badge>
                                                             )}
                                                             {status === 'active' && (
-                                                                <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 text-[10px] font-medium">Active</Badge>
+                                                                <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 text-xs font-medium">Active</Badge>
                                                             )}
                                                             {status === 'expiring' && (
-                                                                <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-[10px] font-medium">Expiring</Badge>
+                                                                <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-xs font-medium">Expiring</Badge>
                                                             )}
                                                             {status === 'expired' && (
-                                                                <Badge className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60 text-[10px] font-medium">Expired</Badge>
+                                                                <Badge className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60 text-xs font-medium">Expired</Badge>
                                                             )}
                                                         </td>
                                                         <td className="px-5 py-3.5">
@@ -825,18 +825,18 @@ export default function RoleManagementPage() {
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                                         {user.role === 'dealer' ? (
-                                                            <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-[10px] gap-0.5">
+                                                            <Badge className="bg-brand-500/20 text-brand-800 dark:text-brand-400 border-brand-200 dark:border-brand-800/60 text-xs gap-0.5">
                                                                 <Gem className="w-2.5 h-2.5" /> Dealer
                                                             </Badge>
                                                         ) : (
-                                                            <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-[10px] gap-0.5">
+                                                            <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-xs gap-0.5">
                                                                 <Crown className="w-2.5 h-2.5" /> Agent
                                                             </Badge>
                                                         )}
-                                                        {status === 'permanent' && <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-[10px]">Lifetime</Badge>}
-                                                        {status === 'active' && <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 text-[10px]">Active</Badge>}
-                                                        {status === 'expiring' && <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-[10px]">Expiring</Badge>}
-                                                        {status === 'expired' && <Badge className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60 text-[10px]">Expired</Badge>}
+                                                        {status === 'permanent' && <Badge className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800/60 text-xs">Lifetime</Badge>}
+                                                        {status === 'active' && <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 text-xs">Active</Badge>}
+                                                        {status === 'expiring' && <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 text-xs">Expiring</Badge>}
+                                                        {status === 'expired' && <Badge className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60 text-xs">Expired</Badge>}
                                                     </div>
                                                 </div>
 
@@ -916,7 +916,7 @@ export default function RoleManagementPage() {
                         <DialogDescription className="text-sm flex items-center gap-2">
                             Add days for <strong>{extendUser?.first_name} {extendUser?.last_name}</strong>
                             <Badge className={cn(
-                                'text-[10px] ml-1',
+                                'text-xs ml-1',
                                 extendUser?.role === 'dealer'
                                     ? 'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-900/30 dark:text-brand-300 dark:border-brand-800/60'
                                     : 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/60'
