@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { cn, formatCurrency } from '@/lib/utils'
 import { RegisterForm } from '@/components/dashboard/afa-orders/RegisterForm'
 import { OrdersPanel } from '@/components/dashboard/afa-orders/OrdersPanel'
@@ -29,17 +30,19 @@ export default function AfaOrdersPage() {
     const loadWallet = useCallback(async () => {
         if (!userId) return
         const { data } = await supabase.from('wallets').select('balance').eq('user_id', userId).single()
-        setBalance(Number((data as any)?.balance ?? 0))
+        // A failed read must not show a made-up GH₵0.00.
+        if (data) setBalance(Number((data as any).balance ?? 0))
     }, [userId])
 
     const loadOrders = useCallback(async () => {
         if (!userId) return
         setOrdersLoading(true)
-        const { data } = await (supabase.from('afa_orders') as any)
+        const { rows } = await fetchAllRows(() => (supabase.from('afa_orders') as any)
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-        setOrders(data ?? [])
+            .order('id', { ascending: false }))
+        setOrders(rows)
         setOrdersLoading(false)
     }, [userId])
 

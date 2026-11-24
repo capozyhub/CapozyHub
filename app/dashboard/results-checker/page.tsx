@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { toast } from '@/lib/toast'
 import type { RCOrder, RCType } from '@/components/dashboard/results-checker/meta'
 import { ShopView } from '@/components/dashboard/results-checker/ShopView'
@@ -45,20 +46,22 @@ export default function ResultsCheckerPage() {
     const loadWallet = useCallback(async () => {
         if (!userId) return
         const { data } = await (supabase as any).from('wallets').select('balance').eq('user_id', userId).single()
-        setBalance(Number(data?.balance ?? 0))
+        // A failed read must not show a made-up GH₵0.00.
+        if (data) setBalance(Number(data.balance ?? 0))
     }, [userId])
 
     const loadOrders = useCallback(async () => {
         if (!userId) return
         setOrdersLoading(true)
-        const { data, error } = await (supabase as any)
+        // Every voucher you bought stays reachable (serials and PINs), so read past the 1000-row cap.
+        const { rows, failed } = await fetchAllRows(() => (supabase as any)
             .from('results_checker_orders')
             .select('id, reference_code, type_name, quantity, unit_price, total_paid, status, created_at, inventory_ids, results_checker_complaints(id, status)')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(50)
-        if (error) toast.error('We could not load your vouchers.')
-        else setOrders(data ?? [])
+            .order('id', { ascending: false }))
+        if (failed && rows.length === 0) toast.error('We could not load your vouchers.')
+        else setOrders(rows)
         setOrdersLoading(false)
     }, [userId])
 

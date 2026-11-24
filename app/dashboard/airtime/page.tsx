@@ -30,7 +30,7 @@ export default function AirtimePage() {
     const loadWallet = useCallback(async () => {
         if (!userId) return
         const { data } = await supabase.from('wallets').select('balance').eq('user_id', userId).single()
-        setBalance(Number((data as any)?.balance ?? 0))
+        if (data) setBalance(Number((data as any).balance ?? 0))
     }, [userId])
 
     useEffect(() => { loadWallet() }, [loadWallet])
