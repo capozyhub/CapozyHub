@@ -1,47 +1,32 @@
 import { Metadata } from 'next'
+import { BRAND } from '@/lib/brand'
+
+const SHOP_URL = `https://${BRAND.shopHost}`
+const TITLE = `${BRAND.name} Stores: find a shop`
+const DESCRIPTION = `Find a ${BRAND.name} reseller shop and buy MTN, Telecel and AirtelTigo data, airtime, WAEC and BECE results checker vouchers and AFA registration online in Ghana.`
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://shop.capozygh.com'),
-    title: 'Capozy Hub Stores — Find a Shop | Buy Cheap Data Bundles Ghana',
-    description: 'Discover and shop from Capozy Hub reseller stores. Buy affordable MTN, Telecel, and AirtelTigo data bundles, airtime, and mashup online in Ghana. Instantly purchase WAEC & BECE Results Checker vouchers, complete MTN AFA Registrations, and integrate our powerful Developer API. Fast, secure, and reliable digital solutions — Capozy Hub, Powering Digital Services in Ghana.',
+    metadataBase: new URL(SHOP_URL),
+    title: TITLE,
+    description: DESCRIPTION,
     keywords: [
-        'data bundle shop Ghana', 'find data shop', 'Capozy Hub Stores',
-        'Capozy Hub', 'data reseller shops Ghana', 'buy cheap data Ghana',
-        'cheap data bundles Ghana', 'online data store Ghana', 'buy airtime Ghana',
+        'data bundle shop Ghana', 'find data shop', `${BRAND.name} Stores`, BRAND.name,
+        'data reseller shops Ghana', 'buy data Ghana', 'buy airtime Ghana',
         'MTN data shop', 'Telecel data shop', 'AirtelTigo data shop',
-        'buy result checker', 'buy waec results checker', 'bece results checker online',
-        'buy mashup bundles', 'developer api ghana', 'mtn afa registration ghana'
+        'buy waec results checker', 'bece results checker online', 'mtn afa registration ghana',
     ],
-    alternates: {
-        canonical: 'https://shop.capozygh.com',
-    },
+    alternates: { canonical: SHOP_URL },
     openGraph: {
-        title: 'Capozy Hub Stores — Find a Shop | Buy Cheap Data Bundles Ghana',
-        description: 'Discover and shop from Capozy Hub reseller stores. Buy affordable data, airtime, mashup, and results checker vouchers. Powering Digital Services in Ghana.',
-        images: [
-            {
-                url: '/logo.png',
-                width: 1200,
-                height: 630,
-                alt: 'Capozy Hub Stores',
-            }
-        ],
+        title: TITLE,
+        description: DESCRIPTION,
+        images: [{ url: '/logo.png', width: 1200, height: 630, alt: `${BRAND.name} Stores` }],
         type: 'website',
-        url: 'https://shop.capozygh.com',
-        siteName: 'Capozy Hub Stores',
+        url: SHOP_URL,
+        siteName: `${BRAND.name} Stores`,
     },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Capozy Hub Stores — Find a Shop | Buy Cheap Data Bundles Ghana',
-        description: 'Discover and shop from Capozy Hub reseller stores. Buy affordable data, airtime, mashup, and results checker vouchers. Powering Digital Services in Ghana.',
-        images: ['/logo.png'],
-    },
+    twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/logo.png'] },
 }
 
-export default function ShopDomainLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
+export default function ShopDomainLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
