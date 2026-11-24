@@ -538,11 +538,11 @@ export default function AdminSettingsPage() {
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-neutral-700 to-neutral-900 dark:from-neutral-600 dark:to-neutral-800 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl clay-gold dark:from-neutral-600 dark:to-neutral-800 flex items-center justify-center shadow-lg flex-shrink-0">
                         <Settings className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-foreground tracking-tight">System Settings</h1>
+                        <h1 className="text-xl font-bold text-foreground tracking-tight">System Settings</h1>
                         <p className="text-sm text-muted-foreground mt-0.5">Configure detailed platform parameters</p>
                     </div>
                 </div>
@@ -763,15 +763,15 @@ export default function AdminSettingsPage() {
                             {landingDataPackages.map((pkg, i) => (
                                 <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Network</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Network</Label>}
                                         <Input placeholder="e.g. MTN" value={pkg.network} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], network: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Volume</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Volume</Label>}
                                         <Input placeholder="e.g. 1GB" value={pkg.volume} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], volume: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Price (GHS)</Label>}
+                                        {i === 0 && <Label className="text-[10px] font-bold text-muted-foreground">Price (GHS)</Label>}
                                         <Input placeholder="e.g. 4.30" value={pkg.price} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], price: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setLandingDataPackages(landingDataPackages.filter((_, idx) => idx !== i))}>

@@ -33,7 +33,7 @@ type Network = MomoNetwork
 
 // Telco brand colours are kept on purpose: people recognise their network at a glance.
 const NETWORK_CHIP: Record<Network, string> = {
-    'MTN MoMo': 'bg-yellow-400 text-black',
+    'MTN MoMo': 'bg-foreground/10 text-black',
     'Telecel Cash': 'bg-red-600 text-white',
     'AirtelTigo Money': 'bg-blue-600 text-white',
 }
@@ -73,7 +73,7 @@ interface BankEntry { id: string; name: string }
 const STATUS: Record<string, { label: string; tone: string; icon: typeof Clock; spin?: boolean }> = {
     pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
     shop_owner_pending: { label: 'In review', tone: 'text-amber-700 dark:text-amber-400', icon: Clock },
-    paystack_pending: { label: 'Sending', tone: 'text-sky-700 dark:text-sky-400', icon: Loader2, spin: true },
+    paystack_pending: { label: 'Sending', tone: 'text-foreground dark:text-muted-foreground', icon: Loader2, spin: true },
     completed: { label: 'Paid', tone: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
     failed: { label: 'Failed', tone: 'text-red-700 dark:text-red-400', icon: AlertCircle },
     reversed: { label: 'Returned to wallet', tone: 'text-red-700 dark:text-red-400', icon: XCircle },

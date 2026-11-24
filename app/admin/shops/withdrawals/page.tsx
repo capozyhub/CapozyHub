@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -56,7 +56,7 @@ type ActiveTab = 'queue' | 'history' | 'accountability'
 function statusLabel(status: WithdrawalRow['status']): string {
     const map: Record<WithdrawalRow['status'], string> = {
         pending: 'Pending',
-        paystack_pending: 'Paystack Pending',
+        paystack_pending: 'With Paystack',
         completed: 'Completed',
         failed: 'Failed',
         reversed: 'Reversed',
@@ -112,17 +112,15 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                 'border-l-4 border-b transition-colors cursor-pointer',
                 'hover:bg-muted/40',
                 borderAccentCls(row.status),
-                old && 'animate-pulse',
             )}
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onRowClick() }}
         >
             {/* Checkbox */}
-            <td
-                className="px-3 py-4"
-                onClick={e => { e.stopPropagation(); onToggle() }}
-            >
-                {selected
-                    ? <CheckSquare className="w-4 h-4 text-emerald-600" />
-                    : <Square className="w-4 h-4 text-muted-foreground" />}
+            <td className="px-3 py-4">
+                <button type="button" onClick={e => { e.stopPropagation(); onToggle() }} aria-pressed={selected} aria-label={`Select ${row.shop.shop_name}`} className="flex items-center">
+                    {selected ? <CheckSquare className="w-4 h-4" aria-hidden="true" /> : <Square className="w-4 h-4 text-muted-foreground" aria-hidden="true" />}
+                </button>
             </td>
 
             {/* Date */}
@@ -134,8 +132,9 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
             {/* Shop */}
             <td className="px-4 py-4" onClick={onRowClick}>
                 <p className="font-semibold text-sm">{row.shop.shop_name}</p>
-                <p className="text-[10px] text-muted-foreground font-medium">{row.shop.owner_name}</p>
-                <p className="text-[10px] text-muted-foreground">{row.shop.owner_phone}</p>
+                {old && <p className="text-xs font-semibold text-red-600 dark:text-red-400">Waiting over 24 hours</p>}
+                <p className="text-xs text-muted-foreground font-medium">{row.shop.owner_name}</p>
+                <p className="text-xs text-muted-foreground">{row.shop.owner_phone}</p>
             </td>
 
             {/* Account */}
@@ -143,7 +142,7 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                 <p className="font-medium text-sm">
                     {row.account_name ?? '—'}
                     {row.name_unverified && (
-                        <span className="ml-1.5 inline-flex items-center gap-0.5 text-[9px] font-bold uppercase bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
                             <AlertTriangle className="w-2.5 h-2.5" /> Unverified
                         </span>
                     )}
@@ -152,7 +151,7 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                     {row.payment_type === 'bank' ? row.account_number : row.momo_number}
                 </p>
                 <span className={cn(
-                    'inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5',
+                    'inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-full mt-0.5',
                     row.payment_type === 'bank'
                         ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
                         : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -164,16 +163,16 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
             </td>
 
             {/* Net */}
-            <td className="px-4 py-4 text-right font-black text-emerald-600 dark:text-emerald-400 text-lg" onClick={onRowClick}>
+            <td className="px-4 py-4 text-right font-bold text-foreground text-lg" onClick={onRowClick}>
                 {formatCurrency(row.net_amount ?? 0)}
-                <p className="text-[10px] text-muted-foreground font-normal">
+                <p className="text-xs text-muted-foreground font-normal">
                     -{formatCurrency(row.fee ?? 0)} fee
                 </p>
             </td>
 
             {/* Status */}
             <td className="px-4 py-4 text-center" onClick={onRowClick}>
-                <span className={cn('text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider', statusBadgeCls(row.status))}>
+                <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full ', statusBadgeCls(row.status))}>
                     {statusLabel(row.status)}
                 </span>
             </td>
@@ -183,7 +182,7 @@ function QueueRow({ row, selected, onToggle, onRowClick, onPay, inFlight }: Queu
                 {QUEUE_STATUSES.has(row.status) && (
                     <Button
                         size="sm"
-                        className="h-8 font-bold text-xs gap-1 clay clay-green"
+                        className="h-8 font-bold text-xs gap-1"
                         onClick={e => { e.stopPropagation(); onPay() }}
                         disabled={inFlight}
                     >
@@ -201,9 +200,8 @@ function QueueMobileCard({ row, selected, onToggle, onRowClick, onPay, inFlight 
         <div
             onClick={onRowClick}
             className={cn(
-                'rounded-xl border-l-4 border bg-card shadow-sm overflow-hidden cursor-pointer',
+                'neu-raised-sm rounded-3xl border-l-4 overflow-hidden cursor-pointer',
                 borderAccentCls(row.status),
-                old && 'animate-pulse',
             )}
         >
             <div className="p-4 space-y-3">
@@ -214,43 +212,44 @@ function QueueMobileCard({ row, selected, onToggle, onRowClick, onPay, inFlight 
                             className="flex-shrink-0"
                         >
                             {selected
-                                ? <CheckSquare className="w-4 h-4 text-emerald-600" />
-                                : <Square className="w-4 h-4 text-muted-foreground" />}
+                                ? <CheckSquare className="w-4 h-4" aria-label="Selected" />
+                                : <Square className="w-4 h-4 text-muted-foreground" aria-label="Not selected" />}
                         </span>
                         <div>
                             <p className="font-bold text-sm">{row.shop.shop_name}</p>
                             <p className="text-xs text-muted-foreground">{row.shop.owner_name}</p>
+                            {old && <p className="text-xs font-semibold text-red-600 dark:text-red-400">Waiting over 24 hours</p>}
                         </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider', statusBadgeCls(row.status))}>
+                        <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full ', statusBadgeCls(row.status))}>
                             {statusLabel(row.status)}
                         </span>
                     </div>
                 </div>
 
                 <div>
-                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    <p className="font-display text-2xl font-bold tabular-nums">
                         {formatCurrency(row.net_amount ?? 0)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium mt-0.5">
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
                         Gross {formatCurrency(row.amount)} · Fee {formatCurrency(row.fee ?? 0)}
                     </p>
                 </div>
 
-                <div className="bg-muted/50 rounded-lg p-2.5 space-y-1.5 text-xs">
+                <div className="neu-inset rounded-2xl p-2.5 space-y-1.5 text-xs">
                     <div className="flex justify-between">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">Account</span>
+                        <span className="text-xs font-bold text-muted-foreground">Account</span>
                         <span className="font-medium flex items-center gap-1">
                             {row.account_name ?? '—'}
                             {row.name_unverified && <AlertTriangle className="w-3 h-3 text-amber-500" />}
                         </span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                        <span className="text-xs font-bold text-muted-foreground">
                             {row.payment_type === 'bank' ? 'Account No.' : 'MoMo'}
                         </span>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                        <span className="font-mono text-foreground">
                             {row.payment_type === 'bank' ? row.account_number : row.momo_number}
                         </span>
                     </div>
@@ -259,11 +258,11 @@ function QueueMobileCard({ row, selected, onToggle, onRowClick, onPay, inFlight 
                 {QUEUE_STATUSES.has(row.status) && (
                     <Button
                         size="sm"
-                        className="w-full h-9 font-bold gap-2 clay clay-green"
+                        className="w-full h-9 font-bold gap-2"
                         onClick={e => { e.stopPropagation(); onPay() }}
                         disabled={inFlight}
                     >
-                        <Banknote className="w-4 h-4" /> Pay Now
+                        <Banknote className="w-4 h-4" /> Pay now
                     </Button>
                 )}
             </div>
@@ -284,7 +283,7 @@ function HistoryRow({ row, onRowClick }: { row: WithdrawalRow; onRowClick: () =>
             </td>
             <td className="px-4 py-4">
                 <p className="font-semibold text-sm">{row.shop.shop_name}</p>
-                <p className="text-[10px] text-muted-foreground">{row.shop.owner_name}</p>
+                <p className="text-xs text-muted-foreground">{row.shop.owner_name}</p>
             </td>
             <td className="px-4 py-4">
                 <p className="font-medium text-sm">{row.account_name ?? '—'}</p>
@@ -294,7 +293,7 @@ function HistoryRow({ row, onRowClick }: { row: WithdrawalRow; onRowClick: () =>
             </td>
             <td className="px-4 py-4 text-center">
                 {row.payout_provider ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                         {row.payout_provider}
                     </span>
                 ) : <span className="text-muted-foreground text-xs">—</span>}
@@ -303,7 +302,7 @@ function HistoryRow({ row, onRowClick }: { row: WithdrawalRow; onRowClick: () =>
                 {formatCurrency(row.net_amount ?? 0)}
             </td>
             <td className="px-4 py-4 text-center">
-                <span className={cn('text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider', statusBadgeCls(row.status))}>
+                <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full ', statusBadgeCls(row.status))}>
                     {statusLabel(row.status)}
                 </span>
             </td>
@@ -315,28 +314,28 @@ function HistoryMobileCard({ row, onRowClick }: { row: WithdrawalRow; onRowClick
     return (
         <div
             onClick={onRowClick}
-            className={cn('rounded-xl border-l-4 border bg-card shadow-sm p-4 cursor-pointer space-y-2', borderAccentCls(row.status))}
+            className={cn('neu-raised-sm rounded-3xl border-l-4 p-4 cursor-pointer space-y-2', borderAccentCls(row.status))}
         >
             <div className="flex justify-between items-start">
                 <div>
                     <p className="font-bold text-sm">{row.shop.shop_name}</p>
                     <p className="text-xs text-muted-foreground">{row.shop.owner_name}</p>
                 </div>
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider', statusBadgeCls(row.status))}>
+                <span className={cn('text-xs font-bold px-2 py-0.5 rounded-full ', statusBadgeCls(row.status))}>
                     {statusLabel(row.status)}
                 </span>
             </div>
             <div className="flex justify-between items-center">
-                <span className="text-lg font-black text-foreground tabular-nums">
+                <span className="text-lg font-bold text-foreground tabular-nums">
                     {formatCurrency(row.net_amount ?? 0)}
                 </span>
                 {row.payout_provider && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                         {row.payout_provider}
                     </span>
                 )}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
                 {new Date(row.created_at).toLocaleString()}
             </p>
         </div>
@@ -356,29 +355,29 @@ function StatCards({ rows, total }: { rows: WithdrawalRow[]; total: number }) {
 
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="rounded-xl shadow-lg bg-gradient-to-br from-emerald-600 to-emerald-800 p-4 relative overflow-hidden text-white border border-white/10">
-                <TrendingUp className="w-5 h-5 absolute top-4 right-4 opacity-50" />
-                <p className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Total Records</p>
-                <p className="text-2xl font-black mt-1">{total}</p>
-                <p className="text-xs text-white/60 mt-1">Across all pages</p>
+            <div className="neu-raised-sm relative overflow-hidden rounded-3xl p-4">
+                <TrendingUp className="w-5 h-5 absolute top-4 right-4 text-muted-foreground opacity-60" />
+                <p className="text-xs font-medium text-muted-foreground">Total requests</p>
+                <p className="font-display text-2xl font-bold tracking-tight mt-1">{total}</p>
+                <p className="text-xs text-muted-foreground mt-1">On every page</p>
             </div>
-            <div className="rounded-xl shadow-lg bg-gradient-to-br from-amber-500 to-amber-700 p-4 relative overflow-hidden text-white border border-white/10">
-                <Clock className="w-5 h-5 absolute top-4 right-4 opacity-50" />
-                <p className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Pending (this page)</p>
-                <p className="text-2xl font-black mt-1">{pendingCount}</p>
-                <p className="text-xs text-white/60 mt-1">Awaiting payment</p>
+            <div className="neu-raised-sm relative overflow-hidden rounded-3xl p-4">
+                <Clock className="w-5 h-5 absolute top-4 right-4 text-muted-foreground opacity-60" />
+                <p className="text-xs font-medium text-muted-foreground">Pending on this page</p>
+                <p className="font-display text-2xl font-bold tracking-tight mt-1">{pendingCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">Not paid yet</p>
             </div>
-            <div className="rounded-xl shadow-lg bg-gradient-to-br from-orange-500 to-red-600 p-4 relative overflow-hidden text-white border border-white/10">
-                <AlertCircle className="w-5 h-5 absolute top-4 right-4 opacity-50" />
-                <p className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Pending Payout</p>
-                <p className="text-2xl font-black mt-1">{formatCurrency(pendingAmount)}</p>
-                <p className="text-xs text-white/60 mt-1">Net, this page</p>
+            <div className="neu-raised-sm relative overflow-hidden rounded-3xl p-4">
+                <AlertCircle className="w-5 h-5 absolute top-4 right-4 text-muted-foreground opacity-60" />
+                <p className="text-xs font-medium text-muted-foreground">Waiting to be paid</p>
+                <p className="font-display text-2xl font-bold tracking-tight mt-1">{formatCurrency(pendingAmount)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Net, this page</p>
             </div>
-            <div className="rounded-xl shadow-lg bg-gradient-to-br from-brand-600 to-brand-800 p-4 relative overflow-hidden text-black border border-white/10">
-                <Banknote className="w-5 h-5 absolute top-4 right-4 opacity-50" />
-                <p className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Page Net Total</p>
-                <p className="text-2xl font-black mt-1">{formatCurrency(totalOnPage)}</p>
-                <p className="text-xs text-white/60 mt-1">{failedCount} failed</p>
+            <div className="neu-raised-sm relative overflow-hidden rounded-3xl p-4">
+                <Banknote className="w-5 h-5 absolute top-4 right-4 text-muted-foreground opacity-60" />
+                <p className="text-xs font-medium text-muted-foreground">Net on this page</p>
+                <p className="font-display text-2xl font-bold tracking-tight mt-1">{formatCurrency(totalOnPage)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{failedCount} failed</p>
             </div>
         </div>
     )
@@ -391,6 +390,8 @@ function StatCards({ rows, total }: { rows: WithdrawalRow[]; total: number }) {
 export default function AdminWithdrawalsPage() {
     const { dbUser, isAdmin } = useAuth()
     const router = useRouter()
+
+    useEffect(() => { if (dbUser && !isAdmin) router.replace('/dashboard') }, [dbUser, isAdmin, router])
 
     // ── Tab state ────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState<ActiveTab>('queue')
@@ -457,44 +458,41 @@ export default function AdminWithdrawalsPage() {
     }, [rows])
 
     // ── Admin guard (after all hooks) ───────────────────────────────────────
-    if (dbUser && !isAdmin) {
-        router.replace('/dashboard')
-        return null
-    }
+    if (dbUser && !isAdmin) return null
 
     return (
         <div className="space-y-6 pb-32">
             {/* ── Header ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <Link href="/admin/shops">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Link href="/admin/shops" aria-label="Back to shops">
+                        <Button variant="ghost" size="icon" className="h-9 w-9" tabIndex={-1}>
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Banknote className="w-6 h-6 text-emerald-600" />
-                        Shop Finance
+                    <h1 className="font-display text-2xl font-bold tracking-tight flex items-center gap-2">
+                        <Banknote className="w-6 h-6" aria-hidden="true" />
+                        Shop payouts
                     </h1>
                 </div>
 
                 {/* 3-way segmented control */}
-                <div className="flex p-1 bg-muted rounded-xl gap-1 overflow-x-auto">
+                <div className="neu-inset flex gap-1 overflow-x-auto rounded-full p-1">
                     <Button
                         variant={activeTab === 'queue' ? 'default' : 'ghost'}
                         onClick={() => switchTab('queue')}
                         className={cn(
-                            'h-9 rounded-lg px-4 text-xs font-bold transition-all whitespace-nowrap',
+                            'h-9 rounded-full px-4 text-sm font-semibold transition-all whitespace-nowrap',
                             activeTab !== 'queue' && 'text-muted-foreground hover:text-foreground',
                         )}
                     >
-                        <ListChecks className="w-3.5 h-3.5 mr-2" /> Payout Queue
+                        <ListChecks className="w-3.5 h-3.5 mr-2" /> To pay
                     </Button>
                     <Button
                         variant={activeTab === 'history' ? 'default' : 'ghost'}
                         onClick={() => switchTab('history')}
                         className={cn(
-                            'h-9 rounded-lg px-4 text-xs font-bold transition-all whitespace-nowrap',
+                            'h-9 rounded-full px-4 text-sm font-semibold transition-all whitespace-nowrap',
                             activeTab !== 'history' && 'text-muted-foreground hover:text-foreground',
                         )}
                     >
@@ -504,11 +502,11 @@ export default function AdminWithdrawalsPage() {
                         variant={activeTab === 'accountability' ? 'default' : 'ghost'}
                         onClick={() => switchTab('accountability')}
                         className={cn(
-                            'h-9 rounded-lg px-4 text-xs font-bold transition-all whitespace-nowrap',
+                            'h-9 rounded-full px-4 text-sm font-semibold transition-all whitespace-nowrap',
                             activeTab !== 'accountability' && 'text-muted-foreground hover:text-foreground',
                         )}
                     >
-                        <BarChart3 className="w-3.5 h-3.5 mr-2" /> Profit Accountability
+                        <BarChart3 className="w-3.5 h-3.5 mr-2" /> Profit accountability
                     </Button>
                 </div>
             </div>
@@ -525,17 +523,17 @@ export default function AdminWithdrawalsPage() {
                     {activeTab === 'queue' && <StatCards rows={rows} total={total} />}
 
                     {/* Filters bar */}
-                    <Card className="bg-muted/30 border-none shadow-none">
+                    <Card className="neu-inset rounded-3xl border-none shadow-none">
                         <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end">
                             {/* Search */}
                             <div className="flex-1 space-y-1.5">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                <p className="text-xs font-bold text-muted-foreground ml-1">
                                     Search
                                 </p>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Account, MoMo number, shop…"
+                                        placeholder="Account name, MoMo number or shop" aria-label="Search withdrawals"
                                         value={filters.search}
                                         onChange={e => setFilters(f => ({ ...f, search: e.target.value, page: 1 }))}
                                         className="pl-9 h-10"
@@ -545,7 +543,7 @@ export default function AdminWithdrawalsPage() {
 
                             {/* Provider (both tabs) */}
                             <div className="w-full md:w-44 space-y-1.5">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                <p className="text-xs font-bold text-muted-foreground ml-1">
                                     Provider
                                 </p>
                                 <Select
@@ -553,10 +551,10 @@ export default function AdminWithdrawalsPage() {
                                     onValueChange={v => setFilters(f => ({ ...f, provider: v, page: 1 }))}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder="All Providers" />
+                                        <SelectValue placeholder="All providers" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">All Providers</SelectItem>
+                                        <SelectItem value="all">All providers</SelectItem>
                                         <SelectItem value="paystack">Paystack</SelectItem>
                                         <SelectItem value="manual">Manual</SelectItem>
                                     </SelectContent>
@@ -566,7 +564,7 @@ export default function AdminWithdrawalsPage() {
                             {/* Shop filter (derived from rows) */}
                             {shopOptions.length > 0 && (
                                 <div className="w-full md:w-56 space-y-1.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                    <p className="text-xs font-bold text-muted-foreground ml-1">
                                         Shop
                                     </p>
                                     <Select
@@ -574,10 +572,10 @@ export default function AdminWithdrawalsPage() {
                                         onValueChange={v => setFilters(f => ({ ...f, shopOwnerId: v, page: 1 }))}
                                     >
                                         <SelectTrigger className="h-10">
-                                            <SelectValue placeholder="All Shops" />
+                                            <SelectValue placeholder="All shops" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All Shops</SelectItem>
+                                            <SelectItem value="all">All shops</SelectItem>
                                             {shopOptions.map(s => (
                                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                             ))}
@@ -593,7 +591,7 @@ export default function AdminWithdrawalsPage() {
                                 className="h-10 w-10 flex-shrink-0"
                                 onClick={() => refresh()}
                                 disabled={loading}
-                                title="Refresh"
+                                title="Refresh" aria-label="Refresh"
                             >
                                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
                             </Button>
@@ -601,7 +599,7 @@ export default function AdminWithdrawalsPage() {
                     </Card>
 
                     {/* Content area */}
-                    <Card>
+                    <Card className="neu-raised rounded-[2rem] border-0 overflow-hidden">
                         <CardContent className="p-0">
                             {/* Loading skeleton */}
                             {loading && (
@@ -616,10 +614,10 @@ export default function AdminWithdrawalsPage() {
                             {/* Error state */}
                             {!loading && error && (
                                 <div className="flex flex-col items-center justify-center py-14 gap-3 text-destructive">
-                                    <AlertCircle className="w-10 h-10 opacity-40" />
+                                    <AlertCircle className="w-10 h-10 opacity-40" aria-hidden="true" />
                                     <p className="font-semibold">{error}</p>
                                     <Button variant="outline" size="sm" onClick={() => refresh()}>
-                                        <RefreshCw className="w-3.5 h-3.5 mr-2" /> Retry
+                                        <RefreshCw className="w-3.5 h-3.5 mr-2" /> Try again
                                     </Button>
                                 </div>
                             )}
@@ -630,8 +628,8 @@ export default function AdminWithdrawalsPage() {
                                     <Banknote className="w-12 h-12 opacity-20" />
                                     <p className="text-sm">
                                         {activeTab === 'queue'
-                                            ? 'No pending withdrawals.'
-                                            : 'No completed withdrawals found.'}
+                                            ? 'Nothing waiting to be paid.'
+                                            : 'No past payouts match these filters.'}
                                     </p>
                                 </div>
                             )}
@@ -643,18 +641,18 @@ export default function AdminWithdrawalsPage() {
                                     <div className="hidden lg:block overflow-x-auto">
                                         <table className="w-full text-sm">
                                             <thead className="bg-card border-b text-muted-foreground">
-                                                <tr className="text-xs uppercase tracking-wider">
+                                                <tr className="text-xs">
                                                     <th className="px-3 py-3">
-                                                        <button onClick={toggleAll} className="flex items-center">
+                                                        <button type="button" onClick={toggleAll} className="flex items-center" aria-label={allEligibleSelected ? 'Clear selection' : 'Select all'}>
                                                             {allEligibleSelected
-                                                                ? <CheckSquare className="w-4 h-4 text-emerald-600" />
+                                                                ? <CheckSquare className="w-4 h-4" aria-label="Selected" />
                                                                 : <Square className="w-4 h-4" />}
                                                         </button>
                                                     </th>
                                                     <th className="text-left px-4 py-3 font-medium">Date</th>
                                                     <th className="text-left px-4 py-3 font-medium">Shop</th>
                                                     <th className="text-left px-4 py-3 font-medium">Account</th>
-                                                    <th className="text-right px-4 py-3 font-medium">Net Payout</th>
+                                                    <th className="text-right px-4 py-3 font-medium">Net payout</th>
                                                     <th className="text-center px-4 py-3 font-medium">Status</th>
                                                     <th className="text-right px-4 py-3 font-medium">Action</th>
                                                 </tr>
@@ -699,12 +697,12 @@ export default function AdminWithdrawalsPage() {
                                     <div className="hidden lg:block overflow-x-auto">
                                         <table className="w-full text-sm">
                                             <thead className="bg-card border-b text-muted-foreground">
-                                                <tr className="text-xs uppercase tracking-wider">
+                                                <tr className="text-xs">
                                                     <th className="text-left px-4 py-3 font-medium">Date</th>
                                                     <th className="text-left px-4 py-3 font-medium">Shop</th>
                                                     <th className="text-left px-4 py-3 font-medium">Account</th>
                                                     <th className="text-center px-4 py-3 font-medium">Provider</th>
-                                                    <th className="text-right px-4 py-3 font-medium">Net Payout</th>
+                                                    <th className="text-right px-4 py-3 font-medium">Net payout</th>
                                                     <th className="text-center px-4 py-3 font-medium">Status</th>
                                                 </tr>
                                             </thead>

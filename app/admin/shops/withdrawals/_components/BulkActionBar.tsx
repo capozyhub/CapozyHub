@@ -128,7 +128,7 @@ export function BulkActionBar({
             )}
             Pay all via Paystack
             {hasBank && (
-              <span className="ml-1 text-[10px] font-normal opacity-70">(MoMo only)</span>
+              <span className="ml-1 text-xs font-normal opacity-70">(MoMo only)</span>
             )}
           </Button>
           {hasBank && (

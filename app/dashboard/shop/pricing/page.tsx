@@ -65,7 +65,7 @@ interface ShopProfile {
 
 // Telco brand colours are kept on purpose: people recognise their network at a glance.
 const NETWORK_DOT: Record<string, string> = {
-    MTN: 'bg-yellow-400',
+    MTN: 'bg-foreground/10',
     Telecel: 'bg-red-500',
     'AT-iShare': 'bg-blue-600',
     'AT-BigTime': 'bg-blue-800',

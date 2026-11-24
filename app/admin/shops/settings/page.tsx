@@ -396,7 +396,7 @@ export default function AdminShopSettingsPage() {
                             ]
                         ).map(({ role, label, color }) => (
                             <div key={role} className="space-y-3 p-4 rounded-xl border bg-muted/20">
-                                <p className={`text-xs font-bold uppercase tracking-wider ${color}`}>{label}</p>
+                                <p className={`text-xs font-bold  ${color}`}>{label}</p>
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-xs font-medium">Profile Auto-Approve</p>
@@ -425,7 +425,7 @@ export default function AdminShopSettingsPage() {
 
             {/* Role-Specific Fee Configuration */}
             <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                     Fee Configuration by Role
                 </h2>
                 <p className="text-xs text-muted-foreground mb-4">

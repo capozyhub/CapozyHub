@@ -127,7 +127,7 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
                 {/* Avatar */}
                 <div className={cn(
                     'w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-sm',
-                    isUnpaid ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                    isUnpaid ? 'clay-gold' : 'clay-gold'
                 )}>
                     {initials}
                 </div>
@@ -154,7 +154,7 @@ function TransactionRow({ tx, onDebtAdded }: { tx: Transaction; onDebtAdded: () 
 
                 {/* Amount + time */}
                 <div className="text-right flex-shrink-0">
-                    <p className={cn('font-black text-base', isUnpaid ? 'text-amber-600' : 'text-emerald-600')}>
+                    <p className={cn('font-bold text-base', isUnpaid ? 'text-amber-600' : 'text-emerald-600')}>
                         +{formatCurrency(tx.amount)}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
@@ -258,7 +258,7 @@ export function CreditsHistoryTab() {
                     ].map(card => (
                         <div key={card.label} className="bg-card border border-border rounded-xl p-3 text-center">
                             <card.icon className={cn('w-4 h-4 mx-auto mb-1', card.color)} />
-                            <p className={cn('text-base font-black', card.color)}>{card.value}</p>
+                            <p className={cn('text-base font-bold', card.color)}>{card.value}</p>
                             <p className="text-[10px] text-muted-foreground">{card.label}</p>
                         </div>
                     ))}

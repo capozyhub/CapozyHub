@@ -403,15 +403,15 @@ export default function ShopCustomersPage() {
                         <div className="space-y-4">
                             <div className="neu-inset grid grid-cols-3 gap-2 rounded-2xl p-3 text-center">
                                 <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Orders</p>
+                                    <p className="text-[10px] font-semibold text-muted-foreground">Orders</p>
                                     <p className="text-sm font-bold">{editing.total_orders}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Spent</p>
+                                    <p className="text-[10px] font-semibold text-muted-foreground">Spent</p>
                                     <p className="text-sm font-bold">{formatCurrency(editing.total_spent)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Since</p>
+                                    <p className="text-[10px] font-semibold text-muted-foreground">Since</p>
                                     <p className="text-sm font-bold">{editing.first_order_at ? new Date(editing.first_order_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</p>
                                 </div>
                             </div>

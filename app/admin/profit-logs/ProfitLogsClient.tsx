@@ -285,8 +285,8 @@ export default function ProfitLogsClient() {
                     </div>
                     {!loading && logs.length > 0 && (
                         <div className="text-right">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Filtered Profit</p>
-                            <p className={`text-xl font-black ${calculateTotals() >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            <p className="text-xs font-bold text-muted-foreground mb-1">Total Filtered Profit</p>
+                            <p className={`text-xl font-bold ${calculateTotals() >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                 {calculateTotals() >= 0 ? '+' : ''}{formatCurrency(calculateTotals())}
                             </p>
                         </div>
@@ -296,7 +296,7 @@ export default function ProfitLogsClient() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b bg-card text-muted-foreground uppercase tracking-wider text-[11px] h-12">
+                                <tr className="border-b bg-card text-muted-foreground text-[11px] h-12">
                                     <th className="px-6 font-bold text-left whitespace-nowrap">Transaction Timeline</th>
                                     <th className="px-6 font-bold text-left">Source / Entity</th>
                                     <th className="px-6 font-bold text-right">Selling/Paid</th>
@@ -331,7 +331,7 @@ export default function ProfitLogsClient() {
                                             </td>
                                             <td className="py-4 px-6 align-top">
                                                 <div className="flex flex-col gap-2 items-start">
-                                                    <Badge variant="outline" className={`uppercase text-[10px] tracking-wider px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
+                                                    <Badge variant="outline" className={`uppercase text-[10px]  px-2 py-0 border ${log.channel === 'main' ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
                                                         {log.channel === 'main' ? 'Main Platform' : 'Shop System'} · {log.role_at_time || 'Guest'}
                                                     </Badge>
                                                     
@@ -351,7 +351,7 @@ export default function ProfitLogsClient() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-6 text-right font-black text-foreground align-top">
+                                            <td className="py-4 px-6 text-right font-bold text-foreground align-top">
                                                 {formatCurrency(log.channel === 'main' ? log.selling_price : log.amount_paid_to_admin)}
                                             </td>
                                             <td className="py-4 px-6 text-right font-bold text-muted-foreground align-top">
@@ -359,7 +359,7 @@ export default function ProfitLogsClient() {
                                             </td>
                                             <td className="py-4 px-6 text-right align-top">
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <span className={`text-base font-black px-2 py-0.5 rounded-full ${log.is_loss ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                    <span className={`text-base font-bold px-2 py-0.5 rounded-full ${log.is_loss ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                         {log.is_loss ? '' : '+'}{formatCurrency(log.profit)}
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground mt-1 max-w-[120px] leading-tight" title={log.calculation_note}>
@@ -392,7 +392,7 @@ export default function ProfitLogsClient() {
                     </div>
                 )}
                 {logs.length > 0 && !hasMore && (
-                    <div className="p-4 border-t bg-muted/50 text-center text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    <div className="p-4 border-t bg-muted/50 text-center text-xs font-bold text-muted-foreground">
                         End of ledgers
                     </div>
                 )}

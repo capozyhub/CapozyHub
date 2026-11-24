@@ -257,7 +257,7 @@ export default function AdminResultsCheckerPage() {
             {/* ── Page Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
                         <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 flex-shrink-0" /> Results Checker
                     </h1>
                     <p className="text-muted-foreground text-sm mt-0.5">Manage vouchers, inventory, and global storefront settings.</p>
@@ -275,7 +275,7 @@ export default function AdminResultsCheckerPage() {
             {/* ── Global Settings ── */}
             <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3 bg-muted/50 dark:bg-muted/30">
-                    <h2 className="text-sm font-black text-foreground flex items-center gap-2 uppercase tracking-tight">
+                    <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-tight">
                         <Settings2 className="w-4 h-4 text-muted-foreground" /> Global Settings
                     </h2>
                     <div className="flex items-center gap-2">
@@ -402,10 +402,10 @@ export default function AdminResultsCheckerPage() {
                                         {/* Card Header */}
                                         <div className="px-4 py-3.5 border-b border-border flex justify-between items-start gap-2">
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="text-sm font-black text-foreground tracking-tight group-hover:text-emerald-600 transition-colors uppercase truncate">{t.name}</h3>
+                                                <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-emerald-600 transition-colors uppercase truncate">{t.name}</h3>
                                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase ${t.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${t.is_active ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${t.is_active ? 'bg-emerald-500' : 'bg-foreground/10'}`} />
                                                         {t.is_active ? 'Live' : 'Archived'}
                                                     </span>
                                                     {bulkTiers.length > 0 && (
@@ -425,19 +425,19 @@ export default function AdminResultsCheckerPage() {
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 <div className="p-2 bg-muted/50 rounded-xl text-center">
                                                     <p className="text-[9px] font-bold text-muted-foreground uppercase mb-0.5">Cost</p>
-                                                    <p className="text-xs font-black text-foreground/80 truncate">{formatCurrency(t.cost_price)}</p>
+                                                    <p className="text-xs font-bold text-foreground/80 truncate">{formatCurrency(t.cost_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
                                                     <p className="text-[9px] font-bold text-brand-400 uppercase mb-0.5">Customer</p>
-                                                    <p className="text-xs font-black text-brand-700 dark:text-brand-400 truncate">{formatCurrency(t.customer_price)}</p>
+                                                    <p className="text-xs font-bold text-brand-700 dark:text-brand-400 truncate">{formatCurrency(t.customer_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl text-center">
                                                     <p className="text-[9px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
-                                                    <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(t.agent_price)}</p>
+                                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(t.agent_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
                                                     <p className="text-[9px] font-bold text-brand-500 uppercase mb-0.5">Dealer</p>
-                                                    <p className="text-xs font-black text-brand-600 dark:text-brand-400 truncate">{formatCurrency(t.dealer_price)}</p>
+                                                    <p className="text-xs font-bold text-brand-600 dark:text-brand-400 truncate">{formatCurrency(t.dealer_price)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -451,20 +451,20 @@ export default function AdminResultsCheckerPage() {
                                                     { label: 'Sold', val: t.stock.sold, cls: 'text-brand-700 dark:text-brand-400' },
                                                     { label: 'Invalid', val: t.stock.invalid, cls: 'text-red-500 dark:text-red-400' },
                                                 ].map(({ label, val, cls }) => (
-                                                    <div key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/50 ">
+                                                    <div key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/50">
                                                         <span className={`text-[10px] font-bold ${cls}`}>{label}</span>
-                                                        <span className="text-sm font-black text-foreground">{val}</span>
+                                                        <span className="text-sm font-bold text-foreground">{val}</span>
                                                     </div>
                                                 ))}
                                             </div>
 
                                             {bulkTiers.length > 0 && (
                                                 <div className="border-t border-border pt-2.5 mt-2.5 space-y-1.5">
-                                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wide">Bulk Tiers</p>
+                                                    <p className="text-[9px] font-bold text-muted-foreground">Bulk Tiers</p>
                                                     {bulkTiers.map((tier: any, i: number) => (
                                                         <div key={i} className="flex justify-between items-center text-xs px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
                                                             <span className="font-bold text-amber-700 dark:text-amber-400">{tier.min_qty}{tier.max_qty >= 99999 ? '+' : `–${tier.max_qty}`} vouchers</span>
-                                                            <span className="font-black text-amber-800 dark:text-amber-300">{formatCurrency(tier.unit_price)}/ea</span>
+                                                            <span className="font-bold text-amber-800 dark:text-amber-300">{formatCurrency(tier.unit_price)}/ea</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -497,7 +497,7 @@ export default function AdminResultsCheckerPage() {
             {activeTab === 'inventory' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <div className="lg:col-span-1 bg-card p-4 sm:p-5 rounded-2xl border border-border shadow-sm self-start">
-                        <h3 className="font-black text-base text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
+                        <h3 className="font-bold text-base text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
                             <FileUp className="w-4 h-4 text-muted-foreground" /> Upload Vouchers
                         </h3>
 
@@ -538,7 +538,7 @@ export default function AdminResultsCheckerPage() {
                             )}
 
                             <button onClick={handleUpload} disabled={uploading}
-                                className="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 clay clay-green">
+                                className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 clay clay-green">
                                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />} Process Upload
                             </button>
 
@@ -561,7 +561,7 @@ export default function AdminResultsCheckerPage() {
 
                     <div className="lg:col-span-2 bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-border space-y-3">
-                            <p className="font-black text-sm text-foreground uppercase tracking-tight">Recent Additions (100)</p>
+                            <p className="font-bold text-sm text-foreground uppercase tracking-tight">Recent Additions (100)</p>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <input type="text" placeholder="Search PIN or Serial..." value={invSearch} onChange={e => setInvSearch(e.target.value)}
                                     className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 min-w-0" />
@@ -582,7 +582,7 @@ export default function AdminResultsCheckerPage() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-muted/50 text-[10px] uppercase font-black text-muted-foreground">
+                                <thead className="bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground">
                                     <tr>
                                         <th className="px-4 py-3">Type</th>
                                         <th className="px-4 py-3">PIN (Masked)</th>
@@ -681,7 +681,7 @@ export default function AdminResultsCheckerPage() {
                                             <p className="text-[10px] text-muted-foreground">{new Date(order.created_at).toLocaleString()}</p>
                                         </div>
                                         <div className="flex sm:flex-col items-center sm:items-end gap-3 flex-shrink-0">
-                                            <span className="text-lg font-black text-emerald-600">{formatCurrency(order.total_paid)}</span>
+                                            <span className="text-lg font-bold text-emerald-600">{formatCurrency(order.total_paid)}</span>
                                             <button
                                                 onClick={async () => {
                                                     setLoadingVouchers(true)
@@ -712,9 +712,9 @@ export default function AdminResultsCheckerPage() {
                             <div className="bg-card rounded-3xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                                 <div className="p-4 sm:p-5 border-b border-border flex items-start justify-between gap-3 flex-shrink-0">
                                     <div>
-                                        <h3 className="font-black text-foreground text-base uppercase tracking-tight">Voucher Details</h3>
+                                        <h3 className="font-bold text-foreground text-base uppercase tracking-tight">Voucher Details</h3>
                                         <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{viewingOrder.order.reference_code}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">Customer: <span className="font-bold text-foreground/80 ">{viewingOrder.order.user_name || viewingOrder.order.customer_name || 'Guest'}</span></p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">Customer: <span className="font-bold text-foreground/80">{viewingOrder.order.user_name || viewingOrder.order.customer_name || 'Guest'}</span></p>
                                         {viewingOrder.order.customer_email && <p className="text-xs text-muted-foreground">Email: <span className="font-medium">{viewingOrder.order.customer_email}</span></p>}
                                         {viewingOrder.order.customer_phone && <p className="text-xs text-muted-foreground">Phone: <span className="font-medium">{viewingOrder.order.customer_phone}</span></p>}
                                     </div>
@@ -729,14 +729,14 @@ export default function AdminResultsCheckerPage() {
                                     ) : viewingOrder.vouchers.map((v: any, idx: number) => (
                                         <div key={v.id} className="bg-muted/50 rounded-2xl p-4 border border-border">
                                             <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Voucher {idx + 1}</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground">Voucher {idx + 1}</span>
                                                 {v.expiry_date && <span className="text-[10px] text-amber-600 font-bold">Expires: {v.expiry_date}</span>}
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
                                                     <div className="min-w-0">
                                                         <p className="text-[9px] text-muted-foreground font-bold uppercase mb-0.5">PIN</p>
-                                                        <p className="font-mono font-black text-foreground tracking-widest text-sm">{v.pin}</p>
+                                                        <p className="font-mono font-bold text-foreground text-sm">{v.pin}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.pin); toast.success('PIN copied!') }}
                                                         title="Copy PIN"
@@ -747,7 +747,7 @@ export default function AdminResultsCheckerPage() {
                                                 <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
                                                     <div className="min-w-0">
                                                         <p className="text-[9px] text-muted-foreground font-bold uppercase mb-0.5">Serial</p>
-                                                        <p className="font-mono font-black text-foreground tracking-widest text-sm">{v.serial_number}</p>
+                                                        <p className="font-mono font-bold text-foreground text-sm">{v.serial_number}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.serial_number); toast.success('Serial copied!') }}
                                                         title="Copy Serial"
@@ -770,7 +770,7 @@ export default function AdminResultsCheckerPage() {
                 <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-muted/50 border-b border-border text-[10px] uppercase font-black text-muted-foreground">
+                            <thead className="bg-muted/50 border-b border-border text-[10px] uppercase font-bold text-muted-foreground">
                                 <tr>
                                     <th className="px-4 py-3">Date</th>
                                     <th className="px-4 py-3">User / Shop</th>
@@ -821,7 +821,7 @@ export default function AdminResultsCheckerPage() {
 
                         {/* Modal Header — sticky */}
                         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border flex-shrink-0">
-                            <h3 className="text-lg font-black text-foreground">
+                            <h3 className="text-lg font-bold text-foreground">
                                 {editingType.id ? 'Edit Exam Type' : 'Add Exam Type'}
                             </h3>
                             <button onClick={() => setIsTypeModalOpen(false)}
@@ -881,7 +881,7 @@ export default function AdminResultsCheckerPage() {
                             {/* Bulk Pricing Tiers */}
                             <div className="border border-dashed border-border rounded-xl p-4 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Bulk Pricing Tiers</p>
+                                    <p className="text-xs font-bold text-muted-foreground">Bulk Pricing Tiers</p>
                                     <button
                                         type="button"
                                         onClick={() => {

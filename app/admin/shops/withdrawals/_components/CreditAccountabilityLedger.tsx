@@ -113,7 +113,7 @@ function CopyBtn({ value, label }: { value: string; label?: string }) {
 function InfoLine({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between items-start gap-3 py-1.5">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex-shrink-0 mt-0.5">
+      <span className="text-xs font-bold text-muted-foreground flex-shrink-0 mt-0.5">
         {label}
       </span>
       <span className="text-xs font-medium text-right break-all">{children}</span>
@@ -130,10 +130,10 @@ function RollupCards({ rollups }: { rollups: Rollups }) {
       <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 flex items-center gap-3">
         <ShieldCheck className="w-7 h-7 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
             Clean (Green)
           </p>
-          <p className="text-xl font-black tabular-nums text-emerald-700 dark:text-emerald-300">
+          <p className="text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
             {formatCurrency(rollups.green_total)}
           </p>
         </div>
@@ -143,10 +143,10 @@ function RollupCards({ rollups }: { rollups: Rollups }) {
       <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex items-center gap-3">
         <TrendingDown className="w-7 h-7 text-amber-600 dark:text-amber-400 flex-shrink-0" />
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+          <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
             Amber
           </p>
-          <p className="text-xl font-black tabular-nums text-amber-700 dark:text-amber-300">
+          <p className="text-xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
             {formatCurrency(rollups.amber_total)}
           </p>
         </div>
@@ -156,13 +156,13 @@ function RollupCards({ rollups }: { rollups: Rollups }) {
       <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30 px-4 py-3 flex items-center gap-3">
         <ShieldAlert className="w-7 h-7 text-red-600 dark:text-red-400 flex-shrink-0" />
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400">
+          <p className="text-xs font-bold text-red-700 dark:text-red-400">
             Suspicious (Red)
           </p>
-          <p className="text-xl font-black tabular-nums text-red-700 dark:text-red-300">
+          <p className="text-xl font-bold tabular-nums text-red-700 dark:text-red-300">
             {formatCurrency(rollups.red_total)}
           </p>
-          <p className="text-[10px] text-red-600 dark:text-red-400 font-semibold">
+          <p className="text-xs text-red-600 dark:text-red-400 font-semibold">
             {rollups.red_count} {rollups.red_count === 1 ? 'record' : 'records'}
           </p>
         </div>
@@ -242,7 +242,7 @@ function CreditRowItem({ row }: { row: CreditRow }) {
         {/* Risk pill */}
         <span
           className={cn(
-            'mt-0.5 flex-shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
+            'mt-0.5 flex-shrink-0 text-xs font-bold  px-2 py-0.5 rounded-full',
             RISK_PILL_CLS[row.risk_status],
           )}
         >
@@ -253,7 +253,7 @@ function CreditRowItem({ row }: { row: CreditRow }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
             <p className="text-sm font-bold truncate">{row.shop_name}</p>
-            <p className="text-sm font-black tabular-nums flex-shrink-0">
+            <p className="text-sm font-bold tabular-nums flex-shrink-0">
               {formatCurrency(row.amount)}
             </p>
           </div>

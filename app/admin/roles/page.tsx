@@ -404,7 +404,7 @@ export default function RoleManagementPage() {
                             <Icon className={cn('w-3.5 h-3.5 shrink-0', iconColor)} />
                         </div>
                         <div className={cn('text-2xl font-bold tabular-nums', numColor)}>
-                            {loading ? <span className="text-muted-foreground/70 ">—</span> : value}
+                            {loading ? <span className="text-muted-foreground/70">—</span> : value}
                         </div>
                     </div>
                 ))}
@@ -631,11 +631,11 @@ export default function RoleManagementPage() {
                     <CardContent className="p-0 flex-1">
                         {loading ? (
                             <div className="flex items-center justify-center py-24">
-                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70 " />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70" />
                             </div>
                         ) : displayedUsers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-24 space-y-3">
-                                <Users className="w-10 h-10 text-foreground " />
+                                <Users className="w-10 h-10 text-foreground" />
                                 <p className="text-sm text-muted-foreground">No users match your filters.</p>
                                 <Button
                                     variant="ghost"

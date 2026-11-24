@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ToneText } from '@/components/terms/tone-text'
-import { renderBrand, PLATFORM_BRAND } from '@/lib/terms'
+import { renderBrand, PLATFORM_BRAND, DEFAULT_TERMS_SECTIONS, sectionsForAudience } from '@/lib/terms'
 import { Plus, Trash2, Save, Eye, ShieldCheck } from 'lucide-react'
 
 interface Section { id: string; title: string; body: string; badge?: string; scope?: 'all' | 'dashboard'; storefront?: string }
@@ -27,6 +27,8 @@ export default function AdminTermsPage() {
   const [requires, setRequires] = useState(true)
   const [changelog, setChangelog] = useState('')
   const [sections, setSections] = useState<Section[]>([])
+  // Who the live preview is written for: members see everything, shop buyers (guests) a shorter version.
+  const [audience, setAudience] = useState<'members' | 'buyers'>('members')
 
   const loadInto = (v: Version) => {
     setVersion(v.version)
@@ -45,7 +47,20 @@ export default function AdminTermsPage() {
       if (j?.success) {
         setVersions(j.data)
         const cur = j.data.find((v: Version) => v.is_current) || j.data[0]
-        if (cur) loadInto(cur)
+        if (cur) {
+          loadInto(cur)
+        } else {
+          // Nothing published yet: start from the starter agreement the site is showing now,
+          // so publishing does not mean retyping it.
+          const today = new Date()
+          setVersion(today.toISOString().slice(0, 10))
+          setEffectiveDate(today.toISOString().slice(0, 10))
+          setEffectiveLabel(today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+          setRequires(true)
+          setChangelog('First Capozy Hub terms')
+          setSections(DEFAULT_TERMS_SECTIONS)
+          setMsg({ ok: true, text: 'Nothing is published yet. The starter terms are loaded below. Review them, then publish.' })
+        }
       }
     } finally { setLoading(false) }
   }
@@ -88,11 +103,11 @@ export default function AdminTermsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white">
+        <div className="w-11 h-11 rounded-2xl clay-gold flex items-center justify-center text-white">
           <ShieldCheck className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-xl font-black tracking-tight text-foreground">Terms Manager</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Terms Manager</h1>
           <p className="text-xs text-muted-foreground">Edit and publish the agreement — no redeploy needed.</p>
         </div>
       </div>
@@ -109,13 +124,13 @@ export default function AdminTermsPage() {
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Editor */}
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border p-4 space-y-3 bg-card ">
+            <div className="rounded-2xl border border-border p-4 space-y-3 bg-card">
               <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs font-bold text-muted-foreground ">Version (YYYY-MM-DD)
+                <label className="text-xs font-bold text-muted-foreground">Version (YYYY-MM-DD)
                   <input value={version} onChange={(e) => setVersion(e.target.value)}
                     className="mt-1 w-full h-9 rounded-lg border border-border bg-transparent px-2 text-sm" placeholder="2026-07-03" />
                 </label>
-                <label className="text-xs font-bold text-muted-foreground ">Effective date
+                <label className="text-xs font-bold text-muted-foreground">Effective date
                   <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)}
                     className="mt-1 w-full h-9 rounded-lg border border-border bg-transparent px-2 text-sm" />
                 </label>
@@ -124,7 +139,7 @@ export default function AdminTermsPage() {
                 <input value={effectiveLabel} onChange={(e) => setEffectiveLabel(e.target.value)}
                   className="mt-1 w-full h-9 rounded-lg border border-border bg-transparent px-2 text-sm" placeholder="July 3, 2026" />
               </label>
-              <label className="flex items-center gap-2 text-xs font-bold text-foreground/80 ">
+              <label className="flex items-center gap-2 text-xs font-bold text-foreground/80">
                 <input type="checkbox" checked={requires} onChange={(e) => setRequires(e.target.checked)} className="w-4 h-4 accent-amber-500" />
                 Requires re-acceptance (force every user to re-accept — leave OFF for a minor fix)
               </label>
@@ -137,7 +152,7 @@ export default function AdminTermsPage() {
 
             <div className="space-y-3">
               {sections.map((s, i) => (
-                <div key={i} className="rounded-2xl border border-border p-3 space-y-2 bg-card ">
+                <div key={i} className="rounded-2xl border border-border p-3 space-y-2 bg-card">
                   <div className="flex gap-2">
                     <input value={s.title} onChange={(e) => updateSection(i, { title: e.target.value })}
                       className="flex-1 h-9 rounded-lg border border-border bg-transparent px-2 text-sm font-bold" placeholder="Section title" />
@@ -151,7 +166,7 @@ export default function AdminTermsPage() {
                     className="w-full h-8 rounded-lg border border-border bg-transparent px-2 text-[11px] text-muted-foreground" placeholder="id (stable slug)" />
                   <textarea value={s.body} onChange={(e) => updateSection(i, { body: e.target.value })} rows={4}
                     className="w-full rounded-lg border border-border bg-transparent px-2 py-1.5 text-sm" placeholder="Body text with [[tone: …]] markup" />
-                  <label className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground ">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
                     <input type="checkbox" checked={s.scope !== 'dashboard'} onChange={(e) => updateSection(i, { scope: e.target.checked ? 'all' : 'dashboard' })} className="w-3.5 h-3.5 accent-emerald-500" />
                     Show on shop storefronts
                   </label>
@@ -168,7 +183,7 @@ export default function AdminTermsPage() {
             </div>
 
             <button onClick={publish} disabled={saving}
-              className="w-full h-12 rounded-xl bg-brand-500 text-black font-black flex items-center justify-center gap-2 disabled:opacity-50">
+              className="w-full h-12 rounded-xl bg-brand-500 text-black font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               <Save className="w-4 h-4" /> {saving ? 'Publishing…' : 'Publish'}
             </button>
           </div>
@@ -176,28 +191,45 @@ export default function AdminTermsPage() {
           {/* Live preview */}
           <div className="space-y-4">
             <div className="rounded-2xl border border-border overflow-hidden bg-card sticky top-20">
-              <div className="bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 px-5 py-4 text-white flex items-center gap-2">
+              <div className="clay-gold px-5 py-4 text-white flex items-center gap-2">
                 <Eye className="w-4 h-4" />
                 <div>
-                  <p className="font-black text-sm">Live preview</p>
+                  <p className="font-bold text-sm">Live preview</p>
                   <p className="text-[11px] text-white/90">Effective {effectiveLabel || effectiveDate} · v{version}</p>
                 </div>
               </div>
+              <div role="group" aria-label="Preview as" className="flex gap-1.5 border-b border-border px-5 py-3">
+                {([['members', 'Members'], ['buyers', 'Shop buyers']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={audience === key}
+                    onClick={() => setAudience(key)}
+                    className={`h-8 rounded-full px-3 text-xs font-bold ${audience === key ? 'bg-brand-500 text-black' : 'border border-border text-muted-foreground'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-4">
-                {sections.map((s, i) => (
-                  <div key={i}>
-                    <h3 className="text-sm font-black text-foreground mb-1">
-                      {i + 1}. {renderBrand(s.title, PLATFORM_BRAND)}
-                      {s.badge ? <span className="ml-2 text-[9px] font-black uppercase text-yellow-600 border border-yellow-600 rounded px-1.5 py-0.5">{s.badge}</span> : null}
-                      {s.scope === 'dashboard' ? <span className="ml-2 text-[9px] font-bold uppercase text-muted-foreground border border-border rounded px-1.5 py-0.5">dashboard only</span> : null}
+                {sectionsForAudience(sections, { storefront: audience === 'buyers', brand: audience === 'buyers' ? 'Your Shop' : PLATFORM_BRAND }).map((s, i) => (
+                  <div key={s.id}>
+                    <h3 className="text-sm font-bold text-foreground mb-1">
+                      {i + 1}. {s.title}
+                      {s.badge ? <span className="ml-2 text-[9px] font-bold uppercase text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.badge}</span> : null}
                     </h3>
-                    <p className="text-[13px] leading-relaxed text-foreground/80 "><ToneText text={renderBrand(s.body, PLATFORM_BRAND)} /></p>
+                    <p className="text-[13px] leading-relaxed text-foreground/80"><ToneText text={s.body} /></p>
                   </div>
                 ))}
+                {audience === 'buyers' && sections.some(s => s.scope === 'dashboard') && (
+                  <p className="text-xs text-muted-foreground">
+                    {sections.filter(s => s.scope === 'dashboard').length} members-only {sections.filter(s => s.scope === 'dashboard').length === 1 ? 'section is' : 'sections are'} hidden from shop buyers.
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border p-4 bg-card ">
+            <div className="rounded-2xl border border-border p-4 bg-card">
               <p className="text-xs font-bold text-muted-foreground mb-2">Published versions</p>
               <ul className="space-y-1.5">
                 {versions.map((v) => (
@@ -206,7 +238,7 @@ export default function AdminTermsPage() {
                       <span className="font-mono">{v.version}</span>
                       <span className="flex items-center gap-2">
                         {v.requires_reacceptance ? <span className="text-amber-600">re-accept</span> : <span className="text-muted-foreground">minor</span>}
-                        {v.is_current ? <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded px-1.5 py-0.5">current</span> : null}
+                        {v.is_current ? <span className="text-[10px] font-bold uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded px-1.5 py-0.5">current</span> : null}
                       </span>
                     </button>
                   </li>

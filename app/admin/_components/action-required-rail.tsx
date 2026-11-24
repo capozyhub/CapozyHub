@@ -50,7 +50,7 @@ export function ActionRequiredRail({ counts }: { counts: AdminCounts }) {
                                     <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider truncate">{a.label}</p>
+                                    <p className="text-[10px] font-bold uppercase text-muted-foreground truncate">{a.label}</p>
                                     <p className="text-sm font-bold text-foreground">{counts[a.key]} {a.suffix}</p>
                                 </div>
                             </div>

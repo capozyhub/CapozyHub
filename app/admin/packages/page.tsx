@@ -316,7 +316,7 @@ export default function AdminPackagesPage() {
                     <div key={network} className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                <span className={`px-3 py-1 rounded-full text-white text-sm ${network === 'MTN' ? 'bg-yellow-500' :
+                                <span className={`px-3 py-1 rounded-full text-white text-sm ${network === 'MTN' ? 'bg-foreground/10' :
                                     network === 'Telecel' ? 'bg-red-600' :
                                         'bg-brand-600'
                                     }`}>

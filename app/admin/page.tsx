@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-black tracking-tight text-foreground">Admin Dashboard</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
                     <p className="text-sm text-muted-foreground">Platform performance &amp; operations at a glance.</p>
                 </div>
                 <div className="flex items-center gap-3">

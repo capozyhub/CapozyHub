@@ -14,7 +14,7 @@ function Stat({ icon: Icon, label, value, color, href }: { icon: typeof Package;
                 <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{label}</p>
+                <p className="text-[10px] font-semibold text-muted-foreground truncate">{label}</p>
                 <p className="text-base font-bold text-foreground">{value}</p>
             </div>
         </div>

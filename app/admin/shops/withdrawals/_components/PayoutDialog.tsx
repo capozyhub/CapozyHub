@@ -89,7 +89,7 @@ export function PayoutDialog({
         <div className="space-y-4">
           {/* Net amount — primary */}
           <div className="text-center">
-            <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+            <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {formatCurrency(net)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -136,7 +136,7 @@ export function PayoutDialog({
 
           {/* Provider selector */}
           <div>
-            <p className="text-[11px] font-bold uppercase text-muted-foreground mb-1.5">
+            <p className="text-[11px] font-bold text-muted-foreground mb-1.5">
               Pay with
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -172,7 +172,7 @@ export function PayoutDialog({
           <Button
             onClick={pay}
             disabled={paying}
-            className="font-bold gap-2 clay clay-green"
+            className="font-bold gap-2"
           >
             {paying
               ? <Loader2 className="w-4 h-4 animate-spin" />

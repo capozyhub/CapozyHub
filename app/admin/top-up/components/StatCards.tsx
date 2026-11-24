@@ -24,8 +24,8 @@ export function StatCards({ stats }: { stats: PageStats }) {
             label: 'Total Wallet Balance',
             value: formatCurrency(stats.totalWalletBalance),
             icon: Wallet,
-            color: 'bg-yellow-500',
-            textColor: 'text-yellow-100',
+            color: 'bg-foreground/10',
+            textColor: 'text-silver-200',
         },
         {
             label: 'Total Users',
@@ -52,8 +52,8 @@ export function StatCards({ stats }: { stats: PageStats }) {
             label: 'Customers',
             value: String(stats.totalCustomers),
             icon: User,
-            color: 'bg-teal-500',
-            textColor: 'text-teal-100',
+            color: 'bg-foreground/10',
+            textColor: 'text-silver-200',
         },
         {
             label: "Top-Ups Today",
@@ -96,10 +96,10 @@ export function StatCards({ stats }: { stats: PageStats }) {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="min-w-0">
-                                    <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${card.textColor} truncate`}>
+                                    <p className={`text-[10px] font-semibold  mb-1 ${card.textColor} truncate`}>
                                         {card.label}
                                     </p>
-                                    <p className="text-lg sm:text-xl font-black text-white truncate">{card.value}</p>
+                                    <p className="text-lg sm:text-xl font-bold text-white truncate">{card.value}</p>
                                 </div>
                                 <div className="w-9 h-9 rounded-xl bg-card/20 flex-shrink-0 flex items-center justify-center">
                                     <card.icon className="w-4 h-4 text-white" />

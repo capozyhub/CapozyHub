@@ -387,7 +387,7 @@ export default function BulkOrderUpdatePage() {
                                     title={hasProcessingSelected ? 'Cannot revert processing orders to pending' : ''}>
                                     <Clock className="w-3.5 h-3.5 mr-1.5" /> Pending
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-foreground/10 hover:bg-yellow-600 text-black font-bold" disabled={isUpdating}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Processing
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-bold clay clay-green" disabled={isUpdating}>
@@ -456,7 +456,7 @@ export default function BulkOrderUpdatePage() {
                                                 <div className="space-y-0.5">
                                                     <p className="text-[10px] uppercase font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-black leading-none py-1 bg-secondary/50">{order.network}</Badge>
+                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
                                                         <span className="text-[12px] font-medium">{order.size}</span>
                                                     </div>
                                                 </div>

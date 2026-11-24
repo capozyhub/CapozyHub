@@ -604,11 +604,11 @@ export default function AdminSMSBroadcastPage() {
 
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <div className="w-12 h-12 rounded-2xl clay-gold flex items-center justify-center shadow-lg flex-shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-black tracking-tight">SMS Centre</h1>
+                    <h1 className="text-xl font-bold tracking-tight">SMS Centre</h1>
                     <p className="text-sm text-muted-foreground">Broadcast messages and manage contacts</p>
                 </div>
             </div>
@@ -659,15 +659,15 @@ export default function AdminSMSBroadcastPage() {
                                 <CardContent className="pt-4 space-y-3">
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="rounded-xl bg-card p-2 border">
-                                            <p className="text-xl font-black">{recipientCount}</p>
+                                            <p className="text-xl font-bold">{recipientCount}</p>
                                             <p className="text-[10px] text-muted-foreground">Recipients</p>
                                         </div>
                                         <div className="rounded-xl bg-card p-2 border">
-                                            <p className="text-xl font-black">{Math.ceil(message.length / 160) || 1}</p>
+                                            <p className="text-xl font-bold">{Math.ceil(message.length / 160) || 1}</p>
                                             <p className="text-[10px] text-muted-foreground">SMS Units</p>
                                         </div>
                                         <div className="rounded-xl bg-card p-2 border">
-                                            <p className="text-xl font-black">{recipientCount * (Math.ceil(message.length / 160) || 1)}</p>
+                                            <p className="text-xl font-bold">{recipientCount * (Math.ceil(message.length / 160) || 1)}</p>
                                             <p className="text-[10px] text-muted-foreground">Total Units</p>
                                         </div>
                                     </div>
@@ -688,7 +688,7 @@ export default function AdminSMSBroadcastPage() {
                                     <Button
                                         id="btn-send-sms"
                                         onClick={handleSend}
-                                        className="w-full gap-2 bg-gradient-to-r from-brand-600 to-brand-600 hover:from-brand-700 hover:to-brand-700 text-white font-bold h-11"
+                                        className="w-full gap-2 clay-gold hover:from-brand-700 hover:to-brand-700 text-white font-bold h-11"
                                         disabled={sending || recipientCount === 0 || !message.trim()}
                                     >
                                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

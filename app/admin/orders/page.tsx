@@ -1063,7 +1063,7 @@ export default function AdminOrdersPage() {
         const styles: Record<string, string> = {
             pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
             queued: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
-            processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+            processing: 'bg-muted text-foreground dark:bg-blue-900/30 dark:text-muted-foreground',
             completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
             refunded: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
@@ -1172,7 +1172,7 @@ export default function AdminOrdersPage() {
                                             onClick={() => setAvailableNetworkFilter(network === 'All' ? 'all' : network)}
                                             className={`transition-all duration-150 active:scale-95 ${availableNetworkFilter === (network === 'All' ? 'all' : network)
                                                 ? network === 'MTN'
-                                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
+                                                    ? 'bg-foreground/10 hover:bg-yellow-600 text-black'
                                                     : network === 'Telecel'
                                                         ? 'bg-red-600 hover:bg-red-700 text-white'
                                                         : network === 'AT-iShare' || network === 'AT-BigTime'
@@ -1321,7 +1321,7 @@ export default function AdminOrdersPage() {
                                     onClick={() => setHistoryNetworkFilter(network === 'All' ? 'all' : network)}
                                     className={`transition-all duration-150 active:scale-95 text-[10px] h-8 ${historyNetworkFilter === (network === 'All' ? 'all' : network)
                                         ? network === 'MTN'
-                                            ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
+                                            ? 'bg-foreground/10 hover:bg-yellow-600 text-black'
                                             : network === 'Telecel'
                                                 ? 'bg-red-600 hover:bg-red-700 text-white'
                                                 : network === 'AT-iShare' || network === 'AT-BigTime'

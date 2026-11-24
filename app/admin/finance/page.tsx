@@ -116,7 +116,7 @@ export default function AdminFinancePage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         Wallet Analytics
                     </h1>
                     <p className="text-muted-foreground">
@@ -126,7 +126,7 @@ export default function AdminFinancePage() {
                 <div className="flex items-center gap-3">
                     <div className="w-[180px]">
                         <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setPage(0) }}>
-                            <SelectTrigger className="bg-card ">
+                            <SelectTrigger className="bg-card">
                                 <SelectValue placeholder="Filter by Role" />
                             </SelectTrigger>
                             <SelectContent>
@@ -143,7 +143,7 @@ export default function AdminFinancePage() {
 
             {/* Big Stats Card */}
             <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 border-none shadow-lg text-white">
+                <Card className="clay-gold border-none shadow-lg text-white">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-emerald-100 flex items-center gap-2">
                             <Wallet className="h-4 w-4" />

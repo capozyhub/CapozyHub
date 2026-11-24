@@ -147,7 +147,7 @@ export function SystemControlCenter() {
                     const display = raw && raw.trim() !== '' ? `${meta.prefix || ''}${raw}${meta.suffix || ''}` : '—'
                     return (
                         <div key={key} className={cn(mutedSurface, 'p-2.5')}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{meta.label}</p>
+                            <p className="text-[10px] font-semibold text-muted-foreground truncate">{meta.label}</p>
                             <p className="text-sm font-bold text-foreground">{loading ? '…' : display}</p>
                         </div>
                     )

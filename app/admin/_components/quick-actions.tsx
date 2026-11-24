@@ -38,7 +38,7 @@ export function QuickActions({ isSubAdmin }: { isSubAdmin: boolean }) {
                             className={cn(mutedSurface, 'p-3 flex flex-col items-center gap-1.5 text-center hover:border-border dark:hover:border-white/20 transition-colors')}
                         >
                             <Icon className="w-5 h-5" style={{ color: a.color }} />
-                            <span className="text-xs font-medium text-foreground/80 ">{a.label}</span>
+                            <span className="text-xs font-medium text-foreground/80">{a.label}</span>
                         </Link>
                     )
                 })}

@@ -197,7 +197,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                 <div className="text-right">
                                     <p className="text-xs text-muted-foreground">Owed / Settled</p>
                                     <p className="font-bold">{formatCurrency(s.amount_owed)} / {formatCurrency(s.amount_settled)}</p>
-                                    <p className={cn('text-sm font-black', remaining > 0 ? 'text-amber-600' : 'text-green-600')}>
+                                    <p className={cn('text-sm font-bold', remaining > 0 ? 'text-amber-600' : 'text-green-600')}>
                                         Rem: {formatCurrency(remaining)}
                                     </p>
                                 </div>

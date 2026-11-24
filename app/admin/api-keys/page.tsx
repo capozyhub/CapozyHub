@@ -202,7 +202,7 @@ function RateLimitEditor({
 
     const field = (key: keyof RateLimits, label: string, hint: string) => (
         <div>
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">{label}</label>
+            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">{label}</label>
             <div className="flex items-center gap-2">
                 <input
                     type="number"
@@ -300,7 +300,7 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
 
     const tile = (label: string, value: string | number, color = 'text-foreground') => (
         <div className="rounded-xl bg-card border border-border p-2.5 sm:p-3 min-w-0">
-            <p className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+            <p className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground truncate">{label}</p>
             <p className={cn('text-sm sm:text-base font-semibold mt-0.5 tabular-nums whitespace-nowrap', color)}>{value}</p>
         </div>
     )
@@ -388,7 +388,7 @@ function KeyRow({ item, onAction }: {
                 {/* Stats + status pill (desktop) */}
                 <div className="hidden lg:flex items-center gap-4 flex-shrink-0 text-right">
                     <div>
-                        <div className="flex items-center justify-end gap-1 text-sm font-semibold text-foreground/80 ">
+                        <div className="flex items-center justify-end gap-1 text-sm font-semibold text-foreground/80">
                             <Activity className="w-3.5 h-3.5 text-muted-foreground" />
                             {item.requests_24h}
                             <span className="text-xs font-normal text-muted-foreground">req/24h</span>
@@ -414,7 +414,7 @@ function KeyRow({ item, onAction }: {
                 <div className="flex lg:hidden items-center justify-between text-xs px-0.5">
                     <span className="flex items-center gap-1 text-muted-foreground">
                         <Activity className="w-3 h-3" />
-                        <span className="font-semibold text-foreground/80 ">{item.requests_24h}</span> req/24h
+                        <span className="font-semibold text-foreground/80">{item.requests_24h}</span> req/24h
                     </span>
                     <span className="text-muted-foreground">
                         {item.last_used_at
@@ -556,7 +556,7 @@ function LogsTab() {
                         {/* Table header */}
                         <div className="grid grid-cols-[64px_1fr_1fr_72px_72px_110px] gap-2 px-4 py-2.5 bg-muted/50 border-b border-border">
                             {['Method', 'Action', 'User / Key', 'Status', 'Time', 'When'].map(h => (
-                                <span key={h} className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</span>
+                                <span key={h} className="text-[10px] font-semibold text-muted-foreground">{h}</span>
                             ))}
                         </div>
                         {/* Rows */}
@@ -581,7 +581,7 @@ function LogsTab() {
                                         ) : log.key_prefix ? (
                                             <span className="text-[10px] text-muted-foreground font-mono">{log.key_prefix}••••</span>
                                         ) : (
-                                            <span className="text-[10px] text-muted-foreground/70 ">—</span>
+                                            <span className="text-[10px] text-muted-foreground/70">—</span>
                                         )}
                                     </div>
                                     <span className={cn('text-sm font-semibold font-mono', statusColor(log.status_code))}>
@@ -778,13 +778,13 @@ export default function AdminApiKeysPage() {
             </div>
 
             {stats?.top_user && (
-                <div className="rounded-2xl border border-amber-200/60 dark:border-amber-700/40 bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20 p-3 sm:p-4">
+                <div className="rounded-2xl border border-amber-200/60 dark:border-amber-700/40 clay-gold dark:from-amber-950/20 dark:to-orange-950/20 p-3 sm:p-4">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                             <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] sm:text-[11px] font-semibold text-foreground uppercase tracking-wider">Top API User (24h)</p>
+                            <p className="text-[10px] sm:text-[11px] font-semibold text-foreground">Top API User (24h)</p>
                             <p className="text-sm font-semibold text-foreground truncate">{stats.top_user.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{stats.top_user.email}</p>
                         </div>
@@ -825,7 +825,7 @@ export default function AdminApiKeysPage() {
 
                     {/* Role allowlist */}
                     <div className="flex flex-col gap-2">
-                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Allowed Roles</p>
+                        <p className="text-[11px] font-semibold text-muted-foreground">Allowed Roles</p>
                         <div className="flex flex-wrap gap-2">
                             {(['agent', 'dealer', 'subagent', 'customer', 'sub-admin', 'admin'] as const).map(role => (
                                 <label key={role} className={cn(
@@ -990,7 +990,7 @@ export default function AdminApiKeysPage() {
                     ) : filteredKeys.length === 0 ? (
                         <div className="text-center py-16 neu-raised-sm rounded-3xl">
                             <Shield className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
-                            <p className="text-sm font-semibold text-muted-foreground ">No API Keys Found</p>
+                            <p className="text-sm font-semibold text-muted-foreground">No API Keys Found</p>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {statusFilter ? `No ${statusFilter} keys.` : 'No developers have generated API keys yet.'}
                             </p>

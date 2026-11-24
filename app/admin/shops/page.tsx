@@ -30,7 +30,7 @@ interface Shop {
 }
 
 const statusConfig = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
+    pending: { label: 'Pending', color: 'bg-muted text-foreground dark:bg-yellow-900/20 dark:text-muted-foreground', icon: Clock },
     approved: { label: 'Active', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
     rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
     suspended: { label: 'Suspended', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400', icon: AlertCircle },
@@ -39,7 +39,7 @@ const statusConfig = {
 const roleColors: Record<string, string> = {
     admin: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
     'sub-admin': 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
-    agent: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    agent: 'bg-muted text-foreground dark:bg-yellow-900/20 dark:text-muted-foreground',
     dealer: 'bg-brand-100 text-brand-800 dark:bg-brand-900/20 dark:text-brand-400',
     customer: 'bg-muted text-muted-foreground ',
 }

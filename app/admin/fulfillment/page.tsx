@@ -661,7 +661,7 @@ export default function FulfillmentPage() {
                     <div className="flex items-center gap-2.5">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Fulfillment Center</h1>
                         <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${isLive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-foreground/10'}`} />
                             {isLive ? 'Live' : 'Offline'}
                         </span>
                     </div>
@@ -777,7 +777,7 @@ export default function FulfillmentPage() {
                                     </Button>
                                 </div>
                                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                    <div className={cn('w-1.5 h-1.5 rounded-full', rexamartNetworks[net] ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600')} />
+                                    <div className={cn('w-1.5 h-1.5 rounded-full', rexamartNetworks[net] ? 'bg-emerald-500' : 'bg-foreground/10 dark:bg-zinc-600')} />
                                     {rexamartNetworks[net] ? 'Active' : 'Off'}
                                 </div>
                             </div>
@@ -788,7 +788,7 @@ export default function FulfillmentPage() {
                                 <Switch checked={rexamartAfaEnabled} onCheckedChange={toggleRexamartAfa} disabled={isSavingRexamart} className="scale-75" />
                             </div>
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <div className={cn('w-1.5 h-1.5 rounded-full', rexamartAfaEnabled ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600')} />
+                                <div className={cn('w-1.5 h-1.5 rounded-full', rexamartAfaEnabled ? 'bg-emerald-500' : 'bg-foreground/10 dark:bg-zinc-600')} />
                                 {rexamartAfaEnabled ? 'Active' : 'Off'}
                             </div>
                         </div>
@@ -1245,7 +1245,7 @@ export default function FulfillmentPage() {
                                                 <div className="space-y-0.5">
                                                     <p className="text-[10px] md:text-[11px] uppercase font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-black leading-none py-1 bg-secondary/50">{order.network}</Badge>
+                                                        <Badge variant="outline" className="text-[10px] px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
                                                         <span className="text-[13px] md:text-xs font-medium">{order.size}</span>
                                                     </div>
                                                 </div>
@@ -1293,16 +1293,16 @@ export default function FulfillmentPage() {
                                                             return (
                                                                 <div className="flex items-center gap-1 flex-wrap">
                                                                     <span className={cn(
-                                                                        "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium uppercase tracking-wider h-5 px-2",
+                                                                        "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium  h-5 px-2",
                                                                         isBgQueue
-                                                                            ? "border border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20"
+                                                                            ? "border border-border text-muted-foreground bg-muted dark:bg-yellow-900/20"
                                                                             : getStatusBadgeClass(order.status)
                                                                     )}>
                                                                         {isBgQueue ? 'Queued Processing' : order.status}
                                                                     </span>
                                                                     {shouldShowRefundOverlay(order) && (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium uppercase tracking-wider h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-[10px] md:text-[11px] font-medium  h-5 px-2",
                                                                             REFUND_OVERLAY_BADGE_CLASS
                                                                         )}>
                                                                             Refunded
@@ -1310,14 +1310,14 @@ export default function FulfillmentPage() {
                                                                     )}
                                                                     {selfCompletedTag ? (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] font-medium tracking-wide h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-[10px] font-medium  h-5 px-2",
                                                                             selfCompletedTag.badge
                                                                         )}>
                                                                             {selfCompletedTag.label}
                                                                         </span>
                                                                     ) : retryTag && (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-[10px] font-medium tracking-wide h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-[10px] font-medium  h-5 px-2",
                                                                             retryTag.badge
                                                                         )}>
                                                                             {retryTag.label}
@@ -1372,7 +1372,7 @@ export default function FulfillmentPage() {
                                     {/* Footer Info */}
                                     {orders.length > 0 && (
                                         <div className="pt-4 flex items-center justify-center">
-                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                                            <p className="text-[10px] text-muted-foreground font-bold">
                                                 Showing {visibleOrders.length} orders in this period
                                             </p>
                                         </div>

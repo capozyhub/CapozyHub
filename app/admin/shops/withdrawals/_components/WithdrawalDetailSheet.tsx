@@ -101,7 +101,7 @@ function InfoRow({
 }) {
     return (
         <div className={cn('flex justify-between items-start gap-3 py-2', className)}>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex-shrink-0">
+            <span className="text-[11px] font-bold text-muted-foreground flex-shrink-0">
                 {label}
             </span>
             <span className="text-sm font-medium text-right break-all">{children}</span>
@@ -352,11 +352,11 @@ export function WithdrawalDetailSheet({
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
                     {/* ── Amount block ── */}
-                    <div className="rounded-xl border p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/10 border-emerald-200 dark:border-emerald-800/40">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <div className="rounded-xl border p-4 clay-gold dark:from-emerald-950/30 dark:to-emerald-900/10 border-emerald-200 dark:border-emerald-800/40">
+                        <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
                             Net Payout
                         </p>
-                        <p className="text-4xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums mt-1">
+                        <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-1">
                             {formatCurrency(row.net_amount ?? 0)}
                         </p>
                         <p className="text-xs text-emerald-600/70 dark:text-emerald-500/60 mt-1">
@@ -369,7 +369,7 @@ export function WithdrawalDetailSheet({
                     <div className="flex items-center gap-2">
                         <StatusDot status={row.status} />
                         <span className={cn(
-                            'text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider',
+                            'text-xs font-bold px-2.5 py-1 rounded-full ',
                             row.status === 'completed'
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                 : row.status === 'failed' || row.status === 'reversed'
@@ -389,7 +389,7 @@ export function WithdrawalDetailSheet({
 
                     {/* ── Account block ── */}
                     <section>
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        <p className="text-[11px] font-bold text-muted-foreground mb-2">
                             {isBank ? 'Bank Account' : 'MoMo Account'}
                         </p>
                         <div className="rounded-xl border divide-y bg-background">
@@ -397,7 +397,7 @@ export function WithdrawalDetailSheet({
                                 <span className={cn(row.name_unverified && 'text-amber-600 dark:text-amber-400')}>
                                     {row.account_name ?? '—'}
                                     {row.name_unverified && (
-                                        <span className="ml-1.5 text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                                        <span className="ml-1.5 text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
                                             Unverified
                                         </span>
                                     )}
@@ -435,7 +435,7 @@ export function WithdrawalDetailSheet({
                     {/* ── Provider references ── */}
                     {(row.paystack_transfer_code || row.paystack_transfer_reference) && (
                         <section>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            <p className="text-[11px] font-bold text-muted-foreground mb-2">
                                 Provider References
                             </p>
                             <div className="rounded-xl border divide-y bg-background">
@@ -470,7 +470,7 @@ export function WithdrawalDetailSheet({
                         what the owner HAD when requesting = snapshot + gross amount. */}
                     {row.balance_snapshot != null && (
                         <section>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            <p className="text-[11px] font-bold text-muted-foreground mb-2">
                                 Balance at Request
                             </p>
                             <div className="rounded-xl border bg-background px-4 py-2">
@@ -487,7 +487,7 @@ export function WithdrawalDetailSheet({
                     {/* ── Failure reason ── */}
                     {row.failure_reason && (
                         <div className="rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/20 p-4">
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 mb-1">
+                            <p className="text-[11px] font-bold text-red-600 dark:text-red-400 mb-1">
                                 Failure Reason
                             </p>
                             <p className="text-sm text-red-700 dark:text-red-300">{row.failure_reason}</p>
@@ -496,7 +496,7 @@ export function WithdrawalDetailSheet({
 
                     {/* ── Shop owner ── */}
                     <section>
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        <p className="text-[11px] font-bold text-muted-foreground mb-2">
                             Shop Owner
                         </p>
                         <div className="rounded-xl border divide-y bg-background">
@@ -537,7 +537,7 @@ export function WithdrawalDetailSheet({
 
                     {/* ── Status timeline ── */}
                     <section>
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                        <p className="text-[11px] font-bold text-muted-foreground mb-3">
                             Status Timeline
                         </p>
                         <Timeline steps={timelineSteps} />

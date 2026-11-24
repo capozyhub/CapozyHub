@@ -64,7 +64,7 @@ function UserMiniCard({ user, onSelect }: { user: UserResult; onSelect: () => vo
             onClick={onSelect}
             className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors border-b border-border last:border-0"
         >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-800 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-9 h-9 rounded-full clay-gold flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
                 {initials}
             </div>
             <div className="flex-1 min-w-0">
@@ -98,10 +98,10 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
     return (
         <button
             onClick={() => onSelect()}
-            className="flex-shrink-0 bg-card border border-border rounded-xl p-3 w-36 text-left hover:border-yellow-400 dark:hover:border-yellow-500 hover:shadow-md transition-all group"
+            className="flex-shrink-0 bg-card border border-border rounded-xl p-3 w-36 text-left hover:border-border dark:hover:border-border hover:shadow-md transition-all group"
         >
             <div className="relative mb-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-800 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-8 h-8 rounded-full clay-gold flex items-center justify-center text-white text-xs font-bold">
                     {initials}
                 </div>
                 {user.pending_debt_total > 0 && (
@@ -185,7 +185,7 @@ function AddToListPopover({
 
     return (
         <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card border border-border rounded-xl shadow-2xl p-3 space-y-2">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add to List</p>
+            <p className="text-xs font-bold text-muted-foreground">Add to List</p>
             {lists.length === 0 && (
                 <p className="text-xs text-muted-foreground py-1">No lists yet. Create one below.</p>
             )}
@@ -295,17 +295,17 @@ function SelectedUserCard({
             {/* ─── Premium User Card ─── */}
             <div className="relative rounded-2xl border border-border shadow-lg">
                 {/* Gradient accent top strip */}
-                <div className="h-1.5 w-full rounded-t-2xl bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500" />
+                <div className="h-1.5 w-full rounded-t-2xl clay-gold" />
 
-                <div className="bg-gradient-to-br from-neutral-50 to-brand-50/40 dark:from-neutral-900 dark:to-neutral-800/80 p-5 rounded-b-2xl">
+                <div className="clay-gold dark:from-neutral-900 dark:to-neutral-800/80 p-5 rounded-b-2xl">
                     {/* Top row: avatar + main info + balance */}
                     <div className="flex items-start gap-4">
                         {/* Avatar with optional debt glow */}
                         <div className={cn(
-                            'w-16 h-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md',
+                            'w-16 h-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md',
                             user.pending_debt_total > 0
-                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-neutral-900'
-                                : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
+                                ? 'clay-gold ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-neutral-900'
+                                : 'clay-gold'
                         )}>
                             {initials}
                         </div>
@@ -313,7 +313,7 @@ function SelectedUserCard({
                         {/* Name + details */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="text-lg font-black tracking-tight">{user.first_name} {user.last_name}</span>
+                                <span className="text-lg font-bold tracking-tight">{user.first_name} {user.last_name}</span>
                                 <Badge className={cn('text-[10px] font-bold px-2', ROLE_COLORS[user.role])}>
                                     <RoleIcon className="w-2.5 h-2.5 mr-1" />
                                     {user.role}
@@ -331,7 +331,7 @@ function SelectedUserCard({
                         {/* Balance pill */}
                         <div className="flex-shrink-0 text-right">
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2">
-                                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">
                                     {formatCurrency(user.wallet_balance)}
                                 </p>
                                 <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5 font-semibold">Balance</p>
@@ -357,7 +357,7 @@ function SelectedUserCard({
                                 onClick={() => setShowListPicker(prev => !prev)}
                                 className="h-8 text-xs gap-1.5 border-border"
                             >
-                                <Star className={cn('w-3.5 h-3.5', showListPicker && 'fill-yellow-400 text-yellow-500')} />
+                                <Star className={cn('w-3.5 h-3.5', showListPicker && 'fill-yellow-400 text-muted-foreground')} />
                                 Add to List
                                 <ChevronDown className={cn('w-3 h-3 transition-transform', showListPicker && 'rotate-180')} />
                             </Button>
@@ -484,8 +484,8 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                             className={cn(
                                 'flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-all',
                                 activeListTab === 'frequent'
-                                    ? 'bg-yellow-500 text-white border-yellow-500'
-                                    : 'bg-card border-border text-muted-foreground hover:border-yellow-400'
+                                    ? 'bg-foreground/10 text-white border-border'
+                                    : 'bg-card border-border text-muted-foreground hover:border-border'
                             )}
                         >
                             <Zap className="w-3 h-3" /> Frequent

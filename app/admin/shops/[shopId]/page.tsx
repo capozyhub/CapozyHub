@@ -73,7 +73,7 @@ function networkSortOrder(network: string): number {
 }
 
 const statusConfig = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+    pending: { label: 'Pending', color: 'bg-muted text-foreground', icon: Clock },
     approved: { label: 'Active', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
     rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
     suspended: { label: 'Suspended', color: 'bg-orange-100 text-orange-700', icon: AlertCircle },
@@ -437,12 +437,12 @@ export default function AdminShopDetailPage() {
 
             {/* Profit Wallet */}
             <Card className="overflow-hidden border-0 shadow-md">
-                <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-5 text-white">
+                <div className="clay-gold p-5 text-white">
                     <div className="flex items-center gap-2 mb-2">
                         <Wallet className="w-4 h-4 text-emerald-200" />
                         <p className="text-emerald-100 text-sm font-medium">Profit Wallet</p>
                     </div>
-                    <p className="text-3xl font-black">{formatCurrency(wallet?.balance || 0)}</p>
+                    <p className="text-3xl font-bold">{formatCurrency(wallet?.balance || 0)}</p>
                     <div className="flex gap-4 mt-2 text-xs text-emerald-200">
                         <span>Earned: {formatCurrency(wallet?.total_earned || 0)}</span>
                         <span>Withdrawn: {formatCurrency(wallet?.total_withdrawn || 0)}</span>

@@ -164,7 +164,7 @@ const NetworkLogo = ({ id, className }: { id: string; className?: string }) => {
 
 const STATUS_STYLES: Record<string, string> = {
     pending:    'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900',
-    processing: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900',
+    processing: 'bg-muted text-foreground border-border dark:bg-blue-950/40 dark:text-silver-200 dark:border-border',
     completed:  'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900',
     failed:     'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900',
     refunded:   'bg-brand-100 text-brand-700 border-brand-200 dark:bg-brand-950/40 dark:text-brand-300 dark:border-brand-900',
@@ -288,7 +288,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
                         </Badge>
                     )}
                     {order.bundle_preference && (
-                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border ">
+                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border">
                             {order.bundle_preference === 'balanced' ? 'Balanced' : order.bundle_preference === 'data' ? 'Data' : 'Voice'}
                         </Badge>
                     )}
@@ -332,11 +332,11 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
             {/* Earnings strip */}
             <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-3 text-xs rounded-xl bg-muted/60 px-3 py-2">
                 <span className="text-muted-foreground">Net <span className="font-semibold tabular-nums text-foreground">{order.airtime_amount.toFixed(2)}</span></span>
-                <span className="text-muted-foreground/70 ">·</span>
+                <span className="text-muted-foreground/70">·</span>
                 <span className="text-muted-foreground">Admin <span className="font-semibold tabular-nums text-foreground">{isFailed || corrupt ? '—' : adminMarkup.toFixed(2)}</span></span>
-                {order.shop_id && (<><span className="text-muted-foreground/70 ">·</span>
-                    <span className="text-muted-foreground">Shop <span className="font-semibold tabular-nums text-foreground/80 ">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
-                <span className="text-muted-foreground/70 ">·</span>
+                {order.shop_id && (<><span className="text-muted-foreground/70">·</span>
+                    <span className="text-muted-foreground">Shop <span className="font-semibold tabular-nums text-foreground/80">{isFailed || corrupt ? '—' : shop.toFixed(2)}</span></span></>)}
+                <span className="text-muted-foreground/70">·</span>
                 <span className="text-muted-foreground tabular-nums">{order.fee_rate.toFixed(1)}%</span>
             </div>
 
@@ -344,7 +344,7 @@ function OrderCard({ order, onAction, onRefund, busy, selectionMode, selected, o
             {(provider || attempts > 1) && (
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     {provider && (
-                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border ">
+                        <Badge variant="outline" className="text-xs font-medium text-muted-foreground border-border">
                             {provider}
                         </Badge>
                     )}
@@ -1222,7 +1222,7 @@ export default function AdminAirtimePage() {
                         </div>
                     ) : filteredOrders.length === 0 ? (
                         <div className="neu-inset rounded-3xl py-20 text-center">
-                            <Filter className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+                            <Filter className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70" />
                             <p className="text-sm font-semibold text-foreground">No orders found</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
                                 {timePeriod !== 'All'
@@ -1328,7 +1328,7 @@ export default function AdminAirtimePage() {
                         </div>
                     ) : batches.length === 0 ? (
                         <div className="neu-inset rounded-3xl py-20 text-center">
-                            <Database className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70 " />
+                            <Database className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70" />
                             <p className="text-sm font-semibold text-foreground">No batches yet</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
                                 Press &ldquo;Batch pending&rdquo; to make one from the orders in view.

@@ -213,10 +213,10 @@ export default function AdminMtnMashupPage() {
 
     const statusClass = (s: string) =>
         s === 'completed' ? 'bg-green-100 text-green-700'
-        : s === 'processing' ? 'bg-blue-100 text-blue-700'
+        : s === 'processing' ? 'bg-muted text-foreground'
         : s === 'failed' ? 'bg-red-100 text-red-700'
         : s === 'refunded' ? 'bg-brand-100 text-brand-700'
-        : 'bg-yellow-100 text-yellow-700'
+        : 'bg-muted text-foreground'
 
     return (
         <div className="p-4 md:p-6 space-y-6">

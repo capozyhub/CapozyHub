@@ -92,8 +92,8 @@ type AfarOrder = {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
-    processing: { label: 'Processing', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400', icon: Clock },
+    pending: { label: 'Pending', color: 'bg-muted text-foreground dark:bg-yellow-900/20 dark:text-muted-foreground', icon: Clock },
+    processing: { label: 'Processing', color: 'bg-muted text-foreground dark:bg-blue-900/20 dark:text-muted-foreground', icon: Clock },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
     cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
     refunded: { label: 'Refunded', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400', icon: Ban },
@@ -111,7 +111,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-center justify-between py-2 border-b last:border-0">
             <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                <p className="text-xs font-medium text-muted-foreground">{label}</p>
                 <p className="text-sm font-medium mt-0.5">{value || '—'}</p>
             </div>
             <button
@@ -357,8 +357,8 @@ export default function AdminAfaManagementPage() {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
                     { label: 'Total', value: stats.total, icon: LayoutList, color: 'text-brand-700', bg: 'bg-brand-50 dark:bg-brand-900/20' },
-                    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
-                    { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted dark:bg-yellow-900/20' },
+                    { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted dark:bg-blue-900/20' },
                     { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
                     { label: 'Cancelled', value: stats.cancelled, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
                 ].map(s => (
@@ -521,12 +521,12 @@ export default function AdminAfaManagementPage() {
                                                         <div className="flex items-center gap-1.5 mt-0.5">
                                                             <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                             {app.shop_profiles?.shop_name && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
                                                                     {app.shop_profiles.shop_name}
                                                                 </span>
                                                             )}
                                                             {app.source === 'api' && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80 ">
+                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80">
                                                                     API
                                                                 </span>
                                                             )}
@@ -584,12 +584,12 @@ export default function AdminAfaManagementPage() {
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                     {app.shop_profiles?.shop_name && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
                                                             {app.shop_profiles.shop_name}
                                                         </span>
                                                     )}
                                                     {app.source === 'api' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80 ">
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-muted text-foreground/80">
                                                             API
                                                         </span>
                                                     )}
@@ -628,7 +628,7 @@ export default function AdminAfaManagementPage() {
                             <>
                                 <DialogHeader>
                                     <DialogTitle className="flex items-center gap-2">
-                                        <ShieldCheck className="w-5 h-5 text-yellow-500" />
+                                        <ShieldCheck className="w-5 h-5 text-muted-foreground" />
                                         Application Details
                                     </DialogTitle>
                                     <DialogDescription>
@@ -676,7 +676,7 @@ export default function AdminAfaManagementPage() {
 
                                 {/* ─── Download Button ─── */}
                                 <Button
-                                    className="w-full gap-2 bg-yellow-500 hover:bg-yellow-600 text-white"
+                                    className="w-full gap-2 bg-foreground/10 hover:bg-yellow-600 text-white"
                                     onClick={() => handleDownload(selectedApp)}
                                     disabled={downloading}
                                 >
@@ -689,12 +689,12 @@ export default function AdminAfaManagementPage() {
 
                                 {/* ─── Status Controls ─── */}
                                 <div className="space-y-2">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Update Status</p>
+                                    <p className="text-xs text-muted-foreground font-medium">Update Status</p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="gap-1.5 border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-800 dark:text-yellow-400 dark:hover:bg-yellow-900/20"
+                                            className="gap-1.5 border-border text-foreground hover:bg-muted dark:border-border dark:text-muted-foreground dark:hover:bg-yellow-900/20"
                                             disabled={isUpdating || selectedApp.status === 'pending' || selectedApp.status === 'refunded'}
                                             onClick={() => updateStatus(selectedApp.id, 'pending')}
                                         >

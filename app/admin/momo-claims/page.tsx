@@ -91,7 +91,7 @@ const NETWORK_OPTIONS = [
 ]
 
 const NETWORK_COLORS: Record<string, string> = {
-    MTN: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    MTN: 'bg-muted text-foreground border-border',
     Telecel: 'bg-red-100 text-red-800 border-red-300',
     AirtelTigo: 'bg-brand-100 text-brand-800 border-brand-300',
     Unknown: 'bg-muted text-foreground/80 border-border',
@@ -421,7 +421,7 @@ export default function MomoClaimsAdminPage() {
                     ].map((s) => (
                         <Card key={s.label} className={`${s.bg} border-0`}>
                             <CardContent className="p-4">
-                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{s.label}</p>
+                                <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
                                 <p className={`text-xl font-bold mt-1 ${s.color}`}>{s.value}</p>
                             </CardContent>
                         </Card>
@@ -504,7 +504,7 @@ export default function MomoClaimsAdminPage() {
                                 return (
                                     <div key={txn.id} className="p-4 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <code className="text-xs font-bold text-foreground/80 ">{txn.transaction_id}</code>
+                                            <code className="text-xs font-bold text-foreground/80">{txn.transaction_id}</code>
                                             <Badge variant="outline" className={`text-[10px] gap-1 ${sc.color}`}>
                                                 <StatusIcon className="w-3 h-3" /> {sc.label}
                                             </Badge>
@@ -740,7 +740,7 @@ export default function MomoClaimsAdminPage() {
                                         {references.map((r: any) => (
                                             <tr key={r.id} className="hover:bg-muted/20 transition-colors">
                                                 <td className="px-4 py-3">
-                                                    <span className="font-mono font-bold tracking-widest text-base bg-muted px-2 py-1 rounded">
+                                                    <span className="font-mono font-bold text-base bg-muted px-2 py-1 rounded">
                                                         {r.reference_code}
                                                     </span>
                                                 </td>

@@ -86,7 +86,7 @@ export default function AdminTopUpPage() {
         <div className="space-y-6 pb-20">
             {/* Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                     💳 Manual Credit Centre
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">
@@ -111,7 +111,7 @@ export default function AdminTopUpPage() {
                         className={cn(
                             'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'topup'
-                                ? 'bg-card shadow-md text-yellow-600 dark:text-yellow-400'
+                                ? 'bg-card shadow-md text-muted-foreground dark:text-muted-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -130,7 +130,7 @@ export default function AdminTopUpPage() {
                         <Scale className="w-4 h-4" />
                         Settlements
                         {settlementCount > 0 && (
-                            <span className="ml-1 bg-red-500 text-white text-[10px] font-black rounded-full px-1.5 py-0.5 min-w-[18px] text-center animate-pulse">
+                            <span className="ml-1 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center animate-pulse">
                                 {settlementCount}
                             </span>
                         )}
@@ -162,8 +162,8 @@ export default function AdminTopUpPage() {
                                 className={cn(
                                     'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
                                     roleFilter === f.value
-                                        ? 'bg-yellow-500 text-white border-yellow-500 shadow'
-                                        : 'bg-card border-border hover:border-yellow-400 text-muted-foreground'
+                                        ? 'bg-foreground/10 text-white border-border shadow'
+                                        : 'bg-card border-border hover:border-border text-muted-foreground'
                                 )}
                             >
                                 {f.label}

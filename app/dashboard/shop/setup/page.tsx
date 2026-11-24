@@ -760,7 +760,7 @@ export default function ShopSetupPage() {
                                                 : 'New shops start closed. Set your prices after this and the shop opens by itself once they are approved.'}
                                         </p>
                                     </div>
-                                    <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest', savedIsActive ? 'clay-gold' : 'clay-black')}>
+                                    <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ', savedIsActive ? 'clay-gold' : 'clay-black')}>
                                         {savedIsActive ? 'Open' : 'Closed'}
                                     </span>
                                 </div>
@@ -801,7 +801,7 @@ export default function ShopSetupPage() {
                         {/* Step 3 */}
                         {activeStep === 2 && (
                             <Field id="community_link" label="Group or channel link" optional error={fieldErrors.community_link}
-                                action={platform && <span className="clay-black rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">{platform}</span>}
+                                action={platform && <span className="clay-black rounded-full px-2.5 py-1 text-[10px] font-bold text-white">{platform}</span>}
                                 hint="A WhatsApp group, Telegram channel, Facebook group or similar. It must start with https://">
                                 <SetupInput id="community_link" type="url" inputMode="url" value={form.community_link} maxLength={500} autoCapitalize="none" spellCheck={false}
                                     placeholder="https://chat.whatsapp.com/..." invalid={!!fieldErrors.community_link}
