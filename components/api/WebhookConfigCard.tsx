@@ -58,7 +58,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
                 body: JSON.stringify({ keyType, webhookUrl: webhookUrl.trim(), rotateSecret }),
             })
             const json = await res.json()
-            if (!res.ok) { toast.error(json.error || 'Failed to save webhook'); return }
+            if (!res.ok) { toast.error(typeof json.error === 'string' && json.error.length < 140 ? json.error : 'We could not save the webhook.'); return }
             setSavedUrl(json.webhookUrl)
             setHasSecret(true)
             if (json.signingSecret) {
@@ -81,7 +81,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
         try {
             const res = await fetch(`/api/user/api-keys/webhook?keyType=${keyType}`, { method: 'DELETE' })
             const json = await res.json()
-            if (!res.ok) { toast.error(json.error || 'Failed to disable webhook'); return }
+            if (!res.ok) { toast.error('We could not turn the webhook off.'); return }
             setWebhookUrl('')
             setSavedUrl(null)
             setHasSecret(false)
@@ -112,28 +112,28 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
 
     if (loading) {
         return (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center justify-center h-40">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            <div className="neu-raised-sm rounded-3xl p-5 flex items-center justify-center h-40">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
         )
     }
 
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-                <Webhook className="w-5 h-5 text-slate-500" />
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+        <div className="neu-raised-sm rounded-3xl overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+                <Webhook className="w-5 h-5 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-foreground">
                     Developer API Webhook
                 </h2>
                 {savedUrl && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
                         Active
                     </span>
                 )}
             </div>
 
             <div className="p-5 space-y-4">
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                     Get notified the instant an order reaches <code className="font-mono">completed</code> or{' '}
                     <code className="font-mono">failed</code>, instead of polling{' '}
                     <code className="font-mono">GET /orders/{'{reference}'}</code>. Must be a public HTTPS URL —
@@ -141,7 +141,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
                 </p>
 
                 <div>
-                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5 block">
+                    <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
                         Webhook URL
                     </label>
                     <Input
@@ -157,7 +157,7 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
                     <div className="rounded-xl border-2 border-emerald-400/40 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20 overflow-hidden">
                         <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-400/20">
                             <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                            <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                            <p className="text-xs font-semibold text-foreground">
                                 Save this signing secret now — it will never be shown again.
                             </p>
                         </div>
@@ -166,14 +166,14 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
                                 <code className="flex-1 text-slate-200 break-all text-[12px]">
                                     {showSecret ? newSecret : '•'.repeat(Math.min(newSecret.length, 48))}
                                 </code>
-                                <button onClick={() => setShowSecret(s => !s)} className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white flex-shrink-0">
+                                <button onClick={() => setShowSecret(s => !s)} className="p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-white flex-shrink-0">
                                     {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
-                                <button onClick={copySecret} className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white flex-shrink-0">
+                                <button onClick={copySecret} className="p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-white flex-shrink-0">
                                     {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                                 </button>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            <p className="text-[11px] text-muted-foreground">
                                 Verify each request with HMAC-SHA256 against the <code className="font-mono">X-Capozy-Signature</code> header before trusting the payload.
                             </p>
                         </div>
@@ -181,8 +181,8 @@ export function WebhookConfigCard({ keyType }: { keyType: 'standard' }) {
                 )}
 
                 {!newSecret && hasSecret && (
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center justify-between rounded-xl neu-inset px-4 py-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                             Signing secret configured — hidden after creation.
                         </div>

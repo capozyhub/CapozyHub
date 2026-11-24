@@ -24,13 +24,13 @@ export function ApiCopyBtn({ text }: { text: string }) {
 
 export function ApiCodeBlock({ code, lang }: { code: string; lang?: string }) {
     return (
-        <div className="rounded-xl overflow-hidden border border-slate-700/50">
-            <div className="flex items-center justify-between pl-4 pr-2 py-2 bg-slate-800/80 border-b border-slate-700/50">
-                {lang && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang}</span>}
+        <div className="rounded-xl overflow-hidden border border-white/10/50">
+            <div className="flex items-center justify-between pl-4 pr-2 py-2 bg-slate-800/80 border-b border-white/10/50">
+                {lang && <span className="text-xs font-semibold text-muted-foreground">{lang}</span>}
                 <ApiCopyBtn text={code} />
             </div>
             <div className="bg-[#0d1117] overflow-x-auto p-4">
-                <pre className="text-[13px] font-mono text-slate-300 leading-relaxed whitespace-pre">{code}</pre>
+                <pre className="text-[13px] font-mono text-silver-100 leading-relaxed whitespace-pre">{code}</pre>
             </div>
         </div>
     )
