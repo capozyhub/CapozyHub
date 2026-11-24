@@ -4,8 +4,17 @@ import { z } from 'zod'
 import { nameSchema, phoneSchema, accountEmailSchema, passwordSchema } from '@/lib/validation'
 import { createServerClient } from '@/lib/supabase'
 import { hasTrustedRequestOrigin } from '@/lib/site-url'
+import { signupsPaused } from '@/lib/signup-gate'
 
 export async function POST(request: NextRequest) {
+  // Kill switch first: no origin check, parsing or database work for a paused signup.
+  if (signupsPaused()) {
+    return NextResponse.json(
+      { error: 'New accounts are paused right now. Please come back later.', code: 'signups_paused' },
+      { status: 403 },
+    )
+  }
+
   try {
     if (!hasTrustedRequestOrigin(request)) {
       return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
