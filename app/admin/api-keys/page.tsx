@@ -212,7 +212,7 @@ function RateLimitEditor({
                     placeholder={label}
                     value={values[key]}
                     onChange={e => setValues(v => ({ ...v, [key]: Math.max(1, parseInt(e.target.value) || 1) }))}
-                    className="w-20 px-3 py-1.5 rounded-lg border border-border bg-card text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                    className="w-20 px-3 py-1.5 rounded-lg text-sm font-mono text-foreground neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500"
                 />
                 <span className="text-xs text-muted-foreground">{hint}</span>
             </div>
@@ -299,7 +299,7 @@ function UserActivityPanel({ keyId, userId }: { keyId: string; userId: string })
     }
 
     const tile = (label: string, value: string | number, color = 'text-foreground') => (
-        <div className="rounded-xl bg-card border border-border p-2.5 sm:p-3 min-w-0">
+        <div className="p-2.5 sm:p-3 min-w-0 neu-raised-sm rounded-3xl">
             <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">{label}</p>
             <p className={cn('text-sm sm:text-base font-semibold mt-0.5 tabular-nums whitespace-nowrap', color)}>{value}</p>
         </div>
@@ -797,7 +797,7 @@ export default function AdminApiKeysPage() {
             )}
 
             {/* ── Feature Controls ────────────────────────────────────────── */}
-            <div className="rounded-2xl border border-border dark:border-border/60 bg-card p-5">
+            <div className="dark:border-border/60 p-5 neu-raised-sm rounded-3xl">
                 <div className="flex items-center gap-2 mb-4">
                     <Settings className="w-4 h-4 text-brand-700 dark:text-brand-500" />
                     <h3 className="text-sm font-semibold text-foreground">Feature Controls</h3>

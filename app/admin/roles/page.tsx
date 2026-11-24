@@ -396,7 +396,7 @@ export default function RoleManagementPage() {
                 {statCards.map(({ label, value, Icon, iconColor, numColor, bg }) => (
                     <div
                         key={label}
-                        className="relative overflow-hidden rounded-xl border border-border dark:border-border/60 bg-card p-3.5"
+                        className="relative overflow-hidden dark:border-border/60 p-3.5 neu-raised-sm rounded-3xl"
                     >
                         <div className={cn('absolute inset-0 opacity-[0.04] dark:opacity-[0.07]', bg)} />
                         <div className="flex items-center justify-between mb-2">
@@ -806,7 +806,7 @@ export default function RoleManagementPage() {
                                         return (
                                             <div
                                                 key={`${user.role}-${user.id}`}
-                                                className="border border-border dark:border-border/60 rounded-xl p-4 bg-card space-y-3"
+                                                className="dark:border-border/60 p-4 space-y-3 neu-raised-sm rounded-3xl"
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex items-center gap-2.5 min-w-0">

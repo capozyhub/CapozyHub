@@ -98,7 +98,7 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
     return (
         <button
             onClick={() => onSelect()}
-            className="flex-shrink-0 bg-card border border-border rounded-xl p-3 w-36 text-left hover:border-border dark:hover:border-border hover:shadow-md transition-all group"
+            className="flex-shrink-0 p-3 w-36 text-left hover:border-border dark:hover:border-border hover:shadow-md transition-all group neu-raised-sm rounded-3xl"
         >
             <div className="relative mb-2">
                 <div className="w-8 h-8 rounded-full clay-gold flex items-center justify-center text-white text-xs font-bold">
@@ -184,7 +184,7 @@ function AddToListPopover({
     }
 
     return (
-        <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card border border-border rounded-xl shadow-2xl p-3 space-y-2">
+        <div className="absolute right-0 top-full mt-1 z-50 w-64 shadow-2xl p-3 space-y-2 neu-raised-sm rounded-3xl">
             <p className="text-xs font-bold text-muted-foreground">Add to List</p>
             {lists.length === 0 && (
                 <p className="text-xs text-muted-foreground py-1">No lists yet. Create one below.</p>
@@ -555,7 +555,7 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                     </div>
                 )}
                 {showDropdown && results.length === 0 && !loading && query && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card rounded-xl border border-border shadow-xl p-4 text-center text-sm text-muted-foreground">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 shadow-xl p-4 text-center text-sm text-muted-foreground neu-raised-sm rounded-3xl">
                         No users found for &quot;{query}&quot;
                     </div>
                 )}

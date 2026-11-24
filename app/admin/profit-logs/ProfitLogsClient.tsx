@@ -201,7 +201,7 @@ export default function ProfitLogsClient() {
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-4 bg-card border border-border rounded-xl shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-4 neu-raised-sm rounded-3xl">
                 <div className="space-y-4 w-full">
                     <div className="flex flex-col sm:flex-row gap-4 sm:items-center w-full">
                         {/* Date Filters */}
@@ -225,7 +225,7 @@ export default function ProfitLogsClient() {
                             aria-label="Filter by transaction type"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value as any)}
-                            className="bg-card border border-border text-sm font-semibold text-foreground/80 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none focus:ring-2 focus:ring-brand-500"
+                            className="text-sm font-semibold text-foreground/80 px-4 py-2 rounded-lg ml-auto min-w-[150px] cursor-pointer outline-none neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500"
                         >
                             <option value="All">All Transactions</option>
                             <option value="main">Main Platform Filter</option>

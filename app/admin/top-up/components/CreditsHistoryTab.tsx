@@ -256,7 +256,7 @@ export function CreditsHistoryTab() {
                         { icon: Hash, label: 'Top-Ups', value: String(totalCount), color: 'text-brand-700' },
                         { icon: TrendingUp, label: 'Avg Amount', value: formatCurrency(avgAmount), color: 'text-amber-600' },
                     ].map(card => (
-                        <div key={card.label} className="bg-card border border-border rounded-xl p-3 text-center">
+                        <div key={card.label} className="p-3 text-center neu-raised-sm rounded-3xl">
                             <card.icon className={cn('w-4 h-4 mx-auto mb-1', card.color)} />
                             <p className={cn('text-base font-bold', card.color)}>{card.value}</p>
                             <p className="text-xs text-muted-foreground">{card.label}</p>

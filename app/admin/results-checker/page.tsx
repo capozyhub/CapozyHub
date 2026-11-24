@@ -242,7 +242,7 @@ export default function AdminResultsCheckerPage() {
 
     if (authLoading || loading) return (
         <div className="flex h-[80vh] items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
     )
 
@@ -260,26 +260,26 @@ export default function AdminResultsCheckerPage() {
             {/* ── Page Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500 flex-shrink-0" /> Results Checker
+                    <h1 className="font-display text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" aria-hidden="true" /> Results checker
                     </h1>
-                    <p className="text-muted-foreground text-sm mt-0.5">Manage vouchers, inventory, and global storefront settings.</p>
+                    <p className="text-muted-foreground text-sm mt-0.5">Vouchers, stock and the settings every storefront shares.</p>
                 </div>
                 <button
                     onClick={handleReleaseReservations}
                     disabled={releasing}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all self-start sm:self-auto flex-shrink-0"
+                    className="clay-silver flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold disabled:opacity-50 self-start sm:self-auto flex-shrink-0"
                 >
                     {releasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Release Reservations
+                    Release held vouchers
                 </button>
             </div>
 
-            {/* ── Global Settings ── */}
+            {/* ── Shared settings ── */}
             <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="px-4 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-3 bg-muted/50 dark:bg-muted/30">
-                    <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-tight">
-                        <Settings2 className="w-4 h-4 text-muted-foreground" /> Global Settings
+                    <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
+                        <Settings2 className="w-4 h-4 text-muted-foreground" /> Shared settings
                     </h2>
                     <div className="flex items-center gap-2">
                         <button onClick={handleSaveSettings} disabled={savingSettings}
@@ -300,7 +300,7 @@ export default function AdminResultsCheckerPage() {
                     <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                         {[
                             {
-                                id: 'rc-enabled', key: 'results_checker_enabled', label: 'Enable RC (Main Site)',
+                                id: 'rc-enabled', key: 'results_checker_enabled', label: 'Results checker on the main site',
                                 hint: 'Controls the logged-in user dashboard.',
                                 type: 'select', options: [
                                     { value: 'true', label: 'Enabled' },
@@ -308,18 +308,18 @@ export default function AdminResultsCheckerPage() {
                                 ]
                             },
                             {
-                                id: 'rc-storefront-enabled', key: 'results_checker_storefront_enabled', label: 'Enable RC (Guest Storefronts)',
+                                id: 'rc-storefront-enabled', key: 'results_checker_storefront_enabled', label: 'Results checker on shop storefronts',
                                 hint: 'Controls public /shop storefronts.',
                                 type: 'select', options: [
                                     { value: 'true', label: 'Enabled' },
                                     { value: 'false', label: 'Disabled' },
                                 ]
                             },
-                            { id: 'rc-fee', key: 'results_checker_paystack_fee_percent', label: 'Paystack Fee %', hint: 'Added to guest total (buyer pays fee).', type: 'number', placeholder: '1.95', step: '0.01' },
-                            { id: 'rc-max-qty', key: 'results_checker_max_quantity', label: 'Max Vouchers Per Order', type: 'number', placeholder: '50' },
-                            { id: 'rc-max-markup-customer', key: 'results_checker_max_markup_customer', label: 'Max Shop Markup (Customer)', hint: 'Cap for Customer shops.', type: 'number', step: '0.5', placeholder: '0' },
-                            { id: 'rc-max-markup-agent', key: 'results_checker_max_markup_agent', label: 'Max Shop Markup (Agent)', hint: 'Cap for Agent shops.', type: 'number', step: '0.5', placeholder: '0' },
-                            { id: 'rc-max-markup-dealer', key: 'results_checker_max_markup_dealer', label: 'Max Shop Markup (Dealer)', hint: 'Cap for Dealer shops.', type: 'number', step: '0.5', placeholder: '0' },
+                            { id: 'rc-fee', key: 'results_checker_paystack_fee_percent', label: 'Paystack fee (%)', hint: 'Added to guest total (buyer pays fee).', type: 'number', placeholder: '1.95', step: '0.01' },
+                            { id: 'rc-max-qty', key: 'results_checker_max_quantity', label: 'Most vouchers per order', type: 'number', placeholder: '50' },
+                            { id: 'rc-max-markup-customer', key: 'results_checker_max_markup_customer', label: 'Highest shop markup (customer shops)', hint: 'Cap for Customer shops.', type: 'number', step: '0.5', placeholder: '0' },
+                            { id: 'rc-max-markup-agent', key: 'results_checker_max_markup_agent', label: 'Highest shop markup (agent shops)', hint: 'Cap for Agent shops.', type: 'number', step: '0.5', placeholder: '0' },
+                            { id: 'rc-max-markup-dealer', key: 'results_checker_max_markup_dealer', label: 'Highest shop markup (dealer shops)', hint: 'Cap for Dealer shops.', type: 'number', step: '0.5', placeholder: '0' },
                         ].map(f => (
                             <div key={f.id}>
                                 <label htmlFor={f.id} className="block text-xs font-bold text-muted-foreground mb-1.5">{f.label}</label>
@@ -327,7 +327,7 @@ export default function AdminResultsCheckerPage() {
                                     <select id={f.id} title={f.label}
                                         value={settings[f.key] || 'false'}
                                         onChange={e => setSettings(s => ({ ...s, [f.key]: e.target.value }))}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all">
+                                        className="w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                         {f.options!.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                     </select>
                                 ) : (
@@ -336,7 +336,7 @@ export default function AdminResultsCheckerPage() {
                                         step={(f as any).step}
                                         value={settings[f.key] || ''}
                                         onChange={e => setSettings(s => ({ ...s, [f.key]: e.target.value }))}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all" />
+                                        className="w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                 )}
                                 {f.hint && <p className="text-xs text-muted-foreground mt-1">{f.hint}</p>}
                             </div>
@@ -352,7 +352,7 @@ export default function AdminResultsCheckerPage() {
                         <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                             className={`px-4 sm:px-5 py-2.5 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${
                                 activeTab === tab.key
-                                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                                    ? 'border-brand-500 text-foreground'
                                     : 'border-transparent text-muted-foreground hover:text-foreground/80 dark:hover:text-muted-foreground/70 hover:border-border'
                             }`}>
                             {tab.label}
@@ -364,22 +364,22 @@ export default function AdminResultsCheckerPage() {
             {/* ── Types Tab ── */}
             {activeTab === 'types' && (
                 <div className="space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-4 rounded-2xl border border-border shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 neu-raised-sm rounded-3xl">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="Search exam types..."
+                                placeholder="Search exam types" aria-label="Search exam types"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-brand-500/40 outline-none transition-all"
                             />
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <div className="flex bg-muted p-1 rounded-xl">
                                 {(['all', 'active', 'archived'] as const).map(f => (
                                     <button key={f} onClick={() => setFilterStatus(f)}
-                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterStatus === f ? 'bg-card dark:bg-muted shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground hover:text-foreground/80'}`}>
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${filterStatus === f ? 'bg-card dark:bg-muted shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}>
                                         {f.charAt(0).toUpperCase() + f.slice(1)}
                                     </button>
                                 ))}
@@ -401,23 +401,23 @@ export default function AdminResultsCheckerPage() {
                             .map(t => {
                                 const bulkTiers: any[] = (t as any).bulk_pricing || []
                                 return (
-                                    <div key={t.id} className="group bg-card rounded-2xl border border-border shadow-sm hover:shadow-lg hover:border-emerald-500/30 transition-all duration-200 overflow-hidden flex flex-col">
+                                    <div key={t.id} className="group bg-card rounded-2xl border border-border shadow-sm hover:shadow-lg hover:ring-1 hover:ring-brand-500/40 transition-all duration-200 overflow-hidden flex flex-col">
                                         {/* Card Header */}
                                         <div className="px-4 py-3.5 border-b border-border flex justify-between items-start gap-2">
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-emerald-600 transition-colors uppercase truncate">{t.name}</h3>
+                                                <h3 className="text-sm font-bold text-foreground tracking-tight group-hover:text-foreground transition-colors truncate">{t.name}</h3>
                                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                    <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase ${t.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                                                    <span className={`inline-flex items-center gap-1 text-xs font-bold ${t.is_active ? 'text-foreground' : 'text-muted-foreground'}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${t.is_active ? 'bg-emerald-500' : 'bg-foreground/10'}`} />
                                                         {t.is_active ? 'Live' : 'Archived'}
                                                     </span>
                                                     {bulkTiers.length > 0 && (
-                                                        <span className="text-[11px] font-bold uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md">Bulk</span>
+                                                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md">Bulk</span>
                                                     )}
                                                 </div>
                                             </div>
                                             <button onClick={() => handleOpenTypeModal(t)}
-                                                className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-muted-foreground hover:text-emerald-600 rounded-xl transition-all flex-shrink-0"
+                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-all flex-shrink-0"
                                                 title="Edit Type">
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
@@ -427,19 +427,19 @@ export default function AdminResultsCheckerPage() {
                                         <div className="px-4 py-3 border-b border-border">
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 <div className="p-2 bg-muted/50 rounded-xl text-center">
-                                                    <p className="text-[11px] font-bold text-muted-foreground uppercase mb-0.5">Cost</p>
+                                                    <p className="text-[11px] font-bold text-muted-foreground mb-0.5">Cost</p>
                                                     <p className="text-xs font-bold text-foreground/80 truncate">{formatCurrency(t.cost_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
-                                                    <p className="text-[11px] font-bold text-brand-400 uppercase mb-0.5">Customer</p>
+                                                    <p className="text-[11px] font-bold text-brand-400 mb-0.5">Customer</p>
                                                     <p className="text-xs font-bold text-brand-700 dark:text-brand-400 truncate">{formatCurrency(t.customer_price)}</p>
                                                 </div>
-                                                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl text-center">
-                                                    <p className="text-[11px] font-bold text-emerald-500 uppercase mb-0.5">Agent</p>
-                                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(t.agent_price)}</p>
+                                                <div className="p-2 bg-muted rounded-xl text-center">
+                                                    <p className="text-[11px] font-bold text-foreground mb-0.5">Agent</p>
+                                                    <p className="text-xs font-bold text-foreground truncate">{formatCurrency(t.agent_price)}</p>
                                                 </div>
                                                 <div className="p-2 bg-brand-50 dark:bg-brand-900/10 rounded-xl text-center">
-                                                    <p className="text-[11px] font-bold text-brand-500 uppercase mb-0.5">Dealer</p>
+                                                    <p className="text-[11px] font-bold text-brand-500 mb-0.5">Dealer</p>
                                                     <p className="text-xs font-bold text-brand-600 dark:text-brand-400 truncate">{formatCurrency(t.dealer_price)}</p>
                                                 </div>
                                             </div>
@@ -449,7 +449,7 @@ export default function AdminResultsCheckerPage() {
                                         <div className="px-4 py-3 flex-1">
                                             <div className="grid grid-cols-2 gap-1.5">
                                                 {[
-                                                    { label: 'Available', val: t.stock.available, cls: 'text-emerald-600 dark:text-emerald-400' },
+                                                    { label: 'Available', val: t.stock.available, cls: 'text-foreground' },
                                                     { label: 'Reserved', val: t.stock.reserved, cls: 'text-amber-600 dark:text-amber-400' },
                                                     { label: 'Sold', val: t.stock.sold, cls: 'text-brand-700 dark:text-brand-400' },
                                                     { label: 'Invalid', val: t.stock.invalid, cls: 'text-red-500 dark:text-red-400' },
@@ -488,7 +488,7 @@ export default function AdminResultsCheckerPage() {
                         const f = filterStatus === 'all' || (filterStatus === 'active' ? t.is_active : !t.is_active)
                         return m && f
                     }).length === 0 && (
-                        <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border">
+                        <div className="text-center py-20 border-dashed neu-raised-sm rounded-3xl">
                             <AlertCircle className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
                             <p className="text-muted-foreground font-bold text-sm">No exam types match your filters.</p>
                         </div>
@@ -499,16 +499,16 @@ export default function AdminResultsCheckerPage() {
             {/* ── Inventory Tab ── */}
             {activeTab === 'inventory' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <div className="lg:col-span-1 bg-card p-4 sm:p-5 rounded-2xl border border-border shadow-sm self-start">
-                        <h3 className="font-bold text-base text-foreground mb-4 flex items-center gap-2 uppercase tracking-tight">
+                    <div className="lg:col-span-1 p-4 sm:p-5 self-start neu-raised-sm rounded-3xl">
+                        <h3 className="font-bold text-base text-foreground mb-4 flex items-center gap-2 tracking-tight">
                             <FileUp className="w-4 h-4 text-muted-foreground" /> Upload Vouchers
                         </h3>
 
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="rc-exam-type" className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">Exam Type</label>
+                                <label htmlFor="rc-exam-type" className="block text-xs font-bold text-muted-foreground mb-1.5">Exam Type</label>
                                 <select id="rc-exam-type" title="Exam Type" value={uploadTypeId} onChange={e => setUploadTypeId(e.target.value)}
-                                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all">
+                                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                     <option value="">Select Type...</option>
                                     {types.filter(t => t.is_active).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                 </select>
@@ -529,13 +529,13 @@ export default function AdminResultsCheckerPage() {
                                         accept={uploadMode === 'csv' ? '.csv' : '.xlsx'}
                                         onChange={e => setUploadFile(e.target.files?.[0] || null)}
                                         className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
-                                    <button onClick={() => downloadTemplate('csv')} className="mt-3 text-xs font-bold text-emerald-600 hover:underline">Download Template</button>
+                                    <button onClick={() => downloadTemplate('csv')} className="mt-3 text-xs font-bold text-foreground hover:underline">Download Template</button>
                                 </div>
                             ) : (
                                 <div>
                                     <label htmlFor="rc-manual-text" className="text-xs text-muted-foreground mb-1.5 block font-medium">Format: PIN,SERIAL (one per line)</label>
                                     <textarea id="rc-manual-text" title="Manual Entry" value={uploadText} onChange={e => setUploadText(e.target.value)} rows={6}
-                                        className="w-full p-3 rounded-xl border border-border bg-muted/50 font-mono text-sm focus:ring-2 focus:ring-emerald-500/30 outline-none resize-none"
+                                        className="w-full p-3 rounded-xl border border-border bg-muted/50 font-mono text-sm focus:ring-2 focus:ring-brand-500/40 outline-none resize-none"
                                         placeholder={"123456789012,WR123456\n987654321098,WR987654"} />
                                 </div>
                             )}
@@ -547,7 +547,7 @@ export default function AdminResultsCheckerPage() {
 
                             {uploadResult && (
                                 <div className="p-3.5 rounded-xl bg-muted/50 border border-border text-sm space-y-1">
-                                    <p className="text-emerald-600 font-bold text-xs">✓ {uploadResult.inserted} Inserted</p>
+                                    <p className="text-foreground font-bold text-xs">✓ {uploadResult.inserted} Inserted</p>
                                     {uploadResult.skipped > 0 && <p className="text-amber-600 font-bold text-xs">! {uploadResult.skipped} Duplicates Skipped</p>}
                                     {uploadResult.errors.length > 0 && (
                                         <div className="mt-2 text-red-600 text-xs max-h-32 overflow-y-auto">
@@ -564,17 +564,17 @@ export default function AdminResultsCheckerPage() {
 
                     <div className="lg:col-span-2 bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-border space-y-3">
-                            <p className="font-bold text-sm text-foreground uppercase tracking-tight">Recent Additions (100)</p>
+                            <p className="font-bold text-sm text-foreground tracking-tight">Recent Additions (100)</p>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <input type="text" placeholder="Search PIN or Serial..." value={invSearch} onChange={e => setInvSearch(e.target.value)}
-                                    className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 min-w-0" />
+                                    className="flex-1 px-3 py-2.5 rounded-xl text-sm min-w-0 neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                 <select title="Filter by type" value={invTypeFilter} onChange={e => setInvTypeFilter(e.target.value)}
-                                    className="px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                                    className="px-3 py-2.5 rounded-xl text-sm neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                     <option value="">All Types</option>
                                     {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                                 </select>
                                 <select title="Filter by status" value={invStatusFilter} onChange={e => setInvStatusFilter(e.target.value)}
-                                    className="px-3 py-2.5 rounded-xl border border-border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                                    className="px-3 py-2.5 rounded-xl text-sm neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500">
                                     <option value="">All Status</option>
                                     <option value="available">Available</option>
                                     <option value="sold">Sold</option>
@@ -585,7 +585,7 @@ export default function AdminResultsCheckerPage() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-muted/50 text-xs uppercase font-bold text-muted-foreground">
+                                <thead className="bg-muted/50 text-xs font-bold text-muted-foreground">
                                     <tr>
                                         <th className="px-4 py-3">Type</th>
                                         <th className="px-4 py-3">PIN (Masked)</th>
@@ -606,7 +606,7 @@ export default function AdminResultsCheckerPage() {
                                             <td className="px-4 py-3 font-mono text-sm">{inv.pin.slice(0, 4)}••••••••</td>
                                             <td className="px-4 py-3 font-mono text-sm">{inv.serial_number}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
                                                     inv.status === 'available' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                                                     inv.status === 'reserved' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                                                     inv.status === 'invalid' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
@@ -645,12 +645,12 @@ export default function AdminResultsCheckerPage() {
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-2">
                             <input type="text" placeholder="Search reference, name, phone..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
-                                className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 min-w-0" />
+                                className="flex-1 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 min-w-0 neu-raised-sm rounded-3xl" />
                             <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                                 {(['all','today','yesterday','this_week','this_month'] as const).map(p => (
                                     <button key={p} onClick={() => setOrderDatePreset(p)}
-                                        className={`px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all whitespace-nowrap flex-shrink-0 ${
-                                            orderDatePreset === p ? 'bg-emerald-600 text-white shadow-sm' : 'bg-card border border-border text-muted-foreground hover:border-emerald-400'
+                                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 ${
+                                            orderDatePreset === p ? 'clay-gold' : 'neu-raised-sm text-muted-foreground hover:text-foreground'
                                         }`}>
                                         {p === 'this_week' ? 'Week' : p === 'this_month' ? 'Month' : p.charAt(0).toUpperCase() + p.slice(1)}
                                     </button>
@@ -668,12 +668,12 @@ export default function AdminResultsCheckerPage() {
                                 if (orderDatePreset === 'this_month' && (d.getMonth() !== today.getMonth() || d.getFullYear() !== today.getFullYear())) return false
                                 return true
                             }).map(order => (
-                                <div key={order.id} className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div key={order.id} className="p-4 hover:shadow-md transition-shadow neu-raised-sm rounded-3xl">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div className="space-y-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{order.reference_code}</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{order.status}</span>
+                                                <span className="font-mono text-xs text-foreground font-bold bg-muted px-2 py-0.5 rounded">{order.reference_code}</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : order.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{order.status}</span>
                                             </div>
                                             <p className="font-bold text-foreground text-sm">{order.quantity}× {order.type_name}</p>
                                             <p className="text-xs text-muted-foreground font-medium">
@@ -684,7 +684,7 @@ export default function AdminResultsCheckerPage() {
                                             <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString()}</p>
                                         </div>
                                         <div className="flex sm:flex-col items-center sm:items-end gap-3 flex-shrink-0">
-                                            <span className="text-lg font-bold text-emerald-600">{formatCurrency(order.total_paid)}</span>
+                                            <span className="text-lg font-bold text-foreground">{formatCurrency(order.total_paid)}</span>
                                             <button
                                                 onClick={async () => {
                                                     setLoadingVouchers(true)
@@ -696,7 +696,7 @@ export default function AdminResultsCheckerPage() {
                                                     } catch { toast.error('Network error') } finally { setLoadingVouchers(false) }
                                                 }}
                                                 disabled={loadingVouchers}
-                                                className="px-3 py-1.5 text-xs font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 disabled:opacity-50 flex items-center gap-1.5 transition-all">
+                                                className="px-3 py-1.5 text-xs font-bold bg-muted text-foreground rounded-xl border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 disabled:opacity-50 flex items-center gap-1.5 transition-all">
                                                 {loadingVouchers ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />} View Vouchers
                                             </button>
                                         </div>
@@ -715,7 +715,7 @@ export default function AdminResultsCheckerPage() {
                             <div className="bg-card rounded-3xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                                 <div className="p-4 sm:p-5 border-b border-border flex items-start justify-between gap-3 flex-shrink-0">
                                     <div>
-                                        <h3 className="font-bold text-foreground text-base uppercase tracking-tight">Voucher Details</h3>
+                                        <h3 className="font-bold text-foreground text-base tracking-tight">Voucher Details</h3>
                                         <p className="text-xs text-muted-foreground font-mono mt-0.5">{viewingOrder.order.reference_code}</p>
                                         <p className="text-xs text-muted-foreground mt-0.5">Customer: <span className="font-bold text-foreground/80">{viewingOrder.order.user_name || viewingOrder.order.customer_name || 'Guest'}</span></p>
                                         {viewingOrder.order.customer_email && <p className="text-xs text-muted-foreground">Email: <span className="font-medium">{viewingOrder.order.customer_email}</span></p>}
@@ -736,25 +736,25 @@ export default function AdminResultsCheckerPage() {
                                                 {v.expiry_date && <span className="text-xs text-amber-600 font-bold">Expires: {v.expiry_date}</span>}
                                             </div>
                                             <div className="space-y-2">
-                                                <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
+                                                <div className="flex items-center justify-between px-3.5 py-2.5 neu-raised-sm rounded-3xl">
                                                     <div className="min-w-0">
-                                                        <p className="text-[11px] text-muted-foreground font-bold uppercase mb-0.5">PIN</p>
+                                                        <p className="text-[11px] text-muted-foreground font-bold mb-0.5">PIN</p>
                                                         <p className="font-mono font-bold text-foreground text-sm">{v.pin}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.pin); toast.success('PIN copied!') }}
                                                         title="Copy PIN"
-                                                        className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all flex-shrink-0 ml-2">
+                                                        className="p-1.5 text-foreground hover:text-foreground rounded-lg hover:bg-muted transition-all flex-shrink-0 ml-2">
                                                         <Copy className="w-4 h-4" />
                                                     </button>
                                                 </div>
-                                                <div className="flex items-center justify-between bg-card rounded-xl px-3.5 py-2.5 border border-border">
+                                                <div className="flex items-center justify-between px-3.5 py-2.5 neu-raised-sm rounded-3xl">
                                                     <div className="min-w-0">
-                                                        <p className="text-[11px] text-muted-foreground font-bold uppercase mb-0.5">Serial</p>
+                                                        <p className="text-[11px] text-muted-foreground font-bold mb-0.5">Serial</p>
                                                         <p className="font-mono font-bold text-foreground text-sm">{v.serial_number}</p>
                                                     </div>
                                                     <button onClick={() => { navigator.clipboard.writeText(v.serial_number); toast.success('Serial copied!') }}
                                                         title="Copy Serial"
-                                                        className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all flex-shrink-0 ml-2">
+                                                        className="p-1.5 text-foreground hover:text-foreground rounded-lg hover:bg-muted transition-all flex-shrink-0 ml-2">
                                                         <Copy className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -773,7 +773,7 @@ export default function AdminResultsCheckerPage() {
                 <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-muted/50 border-b border-border text-xs uppercase font-bold text-muted-foreground">
+                            <thead className="bg-muted/50 border-b border-border text-xs font-bold text-muted-foreground">
                                 <tr>
                                     <th className="px-4 py-3">Date</th>
                                     <th className="px-4 py-3">User / Shop</th>
@@ -793,12 +793,12 @@ export default function AdminResultsCheckerPage() {
                                             <div className="font-bold text-sm text-foreground">{c.user?.first_name} {c.user?.last_name}</div>
                                             <div className="text-xs text-muted-foreground">{c.shop?.shop_name || 'Direct Purchase'}</div>
                                         </td>
-                                        <td className="px-4 py-3 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap">{c.order?.reference_code}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-foreground font-bold whitespace-nowrap">{c.order?.reference_code}</td>
                                         <td className="px-4 py-3 max-w-xs">
                                             <p className="text-sm text-foreground/80 truncate" title={c.description}>{c.description}</p>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-0.5 rounded-lg text-xs font-bold uppercase ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{c.status}</span>
+                                            <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{c.status}</span>
                                         </td>
                                         <td className="px-4 py-3">
                                             {c.status === 'open' && (
@@ -837,11 +837,11 @@ export default function AdminResultsCheckerPage() {
                         <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-4">
 
                             <div>
-                                <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">Exam Name</label>
+                                <label className="block text-xs font-bold text-muted-foreground mb-1.5">Exam Name</label>
                                 <input type="text" title="Exam Name" placeholder="e.g. WAEC Scratch Card"
                                     value={editingType.name || ''}
                                     onChange={e => setEditingType({...editingType, name: e.target.value})}
-                                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 font-bold text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 outline-none transition-all" />
+                                    className="w-full px-3 py-2.5 rounded-xl font-bold text-foreground text-sm outline-none transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
@@ -852,20 +852,20 @@ export default function AdminResultsCheckerPage() {
                                     { key: 'cost_price', label: 'Cost Price (GH₵)' },
                                 ].map(f => (
                                     <div key={f.key}>
-                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">{f.label}</label>
+                                        <label className="block text-xs font-bold text-muted-foreground mb-1.5">{f.label}</label>
                                         <input type="number" title={f.label} placeholder="0.00" step="0.5" min="0"
                                             value={(editingType as any)[f.key] || 0}
                                             onChange={e => setEditingType({...editingType, [f.key]: parseFloat(e.target.value) || 0})}
-                                            className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 font-bold text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 outline-none transition-all" />
+                                            className="w-full px-3 py-2.5 rounded-xl font-bold text-sm outline-none transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                     </div>
                                 ))}
 
                                 <div>
-                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">Display Order</label>
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1.5">Display Order</label>
                                     <input type="number" title="Display Order" placeholder="0" min="0"
                                         value={editingType.display_order || 0}
                                         onChange={e => setEditingType({...editingType, display_order: parseInt(e.target.value) || 0})}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-muted/50 font-bold text-sm focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all" />
+                                        className="w-full px-3 py-2.5 rounded-xl font-bold text-sm outline-none transition-all neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                 </div>
                             </div>
 
@@ -874,7 +874,7 @@ export default function AdminResultsCheckerPage() {
                                 className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border cursor-pointer select-none"
                                 onClick={() => setEditingType({...editingType, is_active: !editingType.is_active})}>
                                 <input type="checkbox" id="isActive" checked={editingType.is_active} readOnly
-                                    className="w-4 h-4 rounded border-border text-emerald-600 focus:ring-emerald-500 pointer-events-none" />
+                                    className="w-4 h-4 rounded border-border text-foreground focus:ring-emerald-500 pointer-events-none" />
                                 <div>
                                     <label htmlFor="isActive" className="text-sm font-bold text-foreground pointer-events-none">Active / Visible</label>
                                     <p className="text-xs text-muted-foreground">Uncheck to hide from storefronts.</p>
@@ -892,7 +892,7 @@ export default function AdminResultsCheckerPage() {
                                             tiers.push({ min_qty: 10, max_qty: 20, unit_price: 0 })
                                             setEditingType({ ...editingType, bulk_pricing: tiers } as any)
                                         }}
-                                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 transition-colors">
+                                        className="text-xs font-bold text-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                                         <Plus className="w-3 h-3" /> Add Tier
                                     </button>
                                 </div>
@@ -910,7 +910,7 @@ export default function AdminResultsCheckerPage() {
                                                         tiers[i] = { ...tiers[i], min_qty: parseInt(e.target.value) || 1 }
                                                         setEditingType({ ...editingType, bulk_pricing: tiers } as any)
                                                     }}
-                                                    className="w-full px-2 py-2 rounded-lg border border-border bg-muted/50 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none" />
+                                                    className="w-full px-2 py-2 rounded-lg text-sm font-bold outline-none neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-bold text-muted-foreground mb-1">Max Qty</p>
@@ -920,7 +920,7 @@ export default function AdminResultsCheckerPage() {
                                                         tiers[i] = { ...tiers[i], max_qty: parseInt(e.target.value) || 1 }
                                                         setEditingType({ ...editingType, bulk_pricing: tiers } as any)
                                                     }}
-                                                    className="w-full px-2 py-2 rounded-lg border border-border bg-muted/50 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none" />
+                                                    className="w-full px-2 py-2 rounded-lg text-sm font-bold outline-none neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-bold text-muted-foreground mb-1">Price (GH₵)</p>
@@ -930,7 +930,7 @@ export default function AdminResultsCheckerPage() {
                                                         tiers[i] = { ...tiers[i], unit_price: parseFloat(e.target.value) || 0 }
                                                         setEditingType({ ...editingType, bulk_pricing: tiers } as any)
                                                     }}
-                                                    className="w-full px-2 py-2 rounded-lg border border-border bg-muted/50 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none" />
+                                                    className="w-full px-2 py-2 rounded-lg text-sm font-bold outline-none neu-inset border-0 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-brand-500" />
                                             </div>
                                             <div className="flex justify-center">
                                                 <button type="button" title="Remove Tier"

@@ -337,7 +337,7 @@ export default function AdminProfitsPage() {
                     </div>
 
                     {range === 'custom' && (
-                        <div className="flex flex-wrap items-end gap-4 bg-card border border-dashed border-border rounded-xl p-4">
+                        <div className="flex flex-wrap items-end gap-4 border-dashed p-4 neu-raised-sm rounded-3xl">
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-muted-foreground">Start date</label>
                                 <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-[160px]" />
