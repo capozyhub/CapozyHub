@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
     CheckCircle2, XCircle, Loader2, Eye, Download, Clock,
     Copy, Check, ShieldCheck, Users, LayoutList, Search, Filter, RefreshCw, Ban
@@ -92,8 +93,8 @@ type AfarOrder = {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-    pending: { label: 'Pending', color: 'bg-muted text-foreground dark:bg-yellow-900/20 dark:text-muted-foreground', icon: Clock },
-    processing: { label: 'Processing', color: 'bg-muted text-foreground dark:bg-blue-900/20 dark:text-muted-foreground', icon: Clock },
+    pending: { label: 'Pending', color: 'bg-muted text-foreground', icon: Clock },
+    processing: { label: 'Processing', color: 'bg-brand-100 text-brand-800 dark:bg-brand-500/15 dark:text-brand-400', icon: Clock },
     completed: { label: 'Completed', color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle2 },
     cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
     refunded: { label: 'Refunded', color: 'bg-brand-100 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400', icon: Ban },
@@ -103,10 +104,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 function CopyField({ label, value }: { label: string; value: string }) {
     const [copied, setCopied] = useState(false)
     const copy = () => {
-        navigator.clipboard.writeText(value).then(() => {
+        navigator.clipboard?.writeText(value).then(() => {
             setCopied(true)
             setTimeout(() => setCopied(false), 1800)
-        })
+        }).catch(() => toast.error('Could not copy. Select the text and copy it by hand.'))
     }
     return (
         <div className="flex items-center justify-between py-2 border-b last:border-0">
@@ -116,8 +117,10 @@ function CopyField({ label, value }: { label: string; value: string }) {
             </div>
             <button
                 onClick={copy}
-                className="ml-2 p-1.5 rounded-md hover:bg-muted transition-colors"
+                type="button"
+                className="ml-2 p-2 rounded-md hover:bg-muted transition-colors"
                 title={`Copy ${label}`}
+                aria-label={`Copy ${label}`}
             >
                 {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
             </button>
@@ -126,6 +129,9 @@ function CopyField({ label, value }: { label: string; value: string }) {
 }
 
 export default function AdminAfaManagementPage() {
+    const { ask, dialog } = useConfirm()
+    const loadSeq = useRef(0)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [applications, setApplications] = useState<AfarOrder[]>([])
     // `initialLoading` gates the whole-page spinner (first mount only). `loading` tracks every
     // subsequent filter-driven refetch and is scoped to the table/list area only — a filter click
@@ -152,7 +158,9 @@ export default function AdminAfaManagementPage() {
     const [paymentFilter, setPaymentFilter] = useState<'all' | 'momo' | 'wallet'>('all')
 
     const fetchApplications = useCallback(async () => {
+        const seq = ++loadSeq.current
         setLoading(true)
+        setLoadFailed(false)
         let query = (supabase
             .from('afa_orders') as any)
             .select(`
@@ -172,7 +180,9 @@ export default function AdminAfaManagementPage() {
         if (end) query = query.lte('created_at', end)
 
         const { data, error } = await query
-        if (!error) setApplications(data || [])
+        if (seq !== loadSeq.current) return
+        if (error) setLoadFailed(true)
+        else setApplications(data || [])
         setLoading(false)
         setInitialLoading(false)
     }, [statusFilter, regionFilter, sourceFilter, paymentFilter, timePeriod, customStart, customEnd])
@@ -198,7 +208,7 @@ export default function AdminAfaManagementPage() {
         setRefreshCooldown(60)
     }
 
-    const updateStatus = async (id: string, status: string) => {
+    const updateStatus = async (id: string, status: string): Promise<boolean> => {
         setUpdatingId(id)
         try {
             // Routed through a real server-side API route rather than a direct
@@ -215,21 +225,33 @@ export default function AdminAfaManagementPage() {
             const json = await res.json().catch(() => null)
 
             if (!res.ok || !json?.success) {
-                console.error('Update error:', json?.error)
-                toast.error(json?.error || 'Failed to update status. Please check your permissions.')
-            } else {
-                toast.success(`Status updated to "${status}"`)
-                setApplications(prev => prev.map(a => a.id === id ? { ...a, status: status as any } : a))
+                toast.error(json?.error || 'Could not change the status. Try again.')
+                return false
             }
+            toast.success(`Marked as ${status}`)
+            setApplications(prev => prev.map(a => a.id === id ? { ...a, status: status as any } : a))
+            setSelectedApp(prev => prev && prev.id === id ? { ...prev, status: status as any } : prev)
+            return true
         } catch (err) {
-            console.error('Unexpected error updating status:', err)
-            toast.error('An unexpected error occurred while updating.')
+            toast.error('Could not reach the server. Check your connection and try again.')
+            return false
         } finally {
             setUpdatingId(null)
         }
     }
 
     const handleRefund = async (app: AfarOrder, confirmProcessing = false) => {
+        if (!confirmProcessing) {
+            const ok = await ask({
+                title: 'Refund this application?',
+                description: app.shop_id
+                    ? `The shop owner gets the cost price back for ${app.full_name}'s application. This cannot be undone.`
+                    : `${app.full_name}'s fee goes back to their wallet. This cannot be undone.`,
+                confirmLabel: 'Refund',
+                destructive: true,
+            })
+            if (!ok) return
+        }
         setRefundingId(app.id)
         try {
             const res = await fetch(`/api/admin/afa-orders/${app.id}/refund`, {
@@ -243,16 +265,15 @@ export default function AdminAfaManagementPage() {
                     setRefundConfirmApp(app)
                     return
                 }
-                toast.error(json?.message || json?.error || 'Refund failed')
+                toast.error(json?.message || json?.error || 'The refund did not go through. Try again.')
                 return
             }
-            toast.success(json.data?.message || 'Refund processed')
+            toast.success(json.data?.message || 'Refund done')
             setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'refunded' } : a))
             setRefundConfirmApp(null)
             if (selectedApp?.id === app.id) setSelectedApp(prev => prev ? { ...prev, status: 'refunded' } : prev)
         } catch (err) {
-            console.error('Refund error:', err)
-            toast.error('An unexpected error occurred while refunding.')
+            toast.error('Could not reach the server. Check the application status before trying again.')
         } finally {
             setRefundingId(null)
         }
@@ -298,11 +319,11 @@ export default function AdminAfaManagementPage() {
             document.body.removeChild(link)
             URL.revokeObjectURL(url)
 
-            // Auto-update status to "processing" after download
-            await updateStatus(app.id, 'processing')
-            toast.success('Application downloaded and marked as Processing.')
+            // Only a pending application moves to processing; a completed or cancelled one must not go backwards.
+            if (app.status === 'pending') await updateStatus(app.id, 'processing')
+            else toast.success('Application downloaded.')
         } catch (err) {
-            toast.error('Download failed')
+            toast.error('The download did not work. Try again.')
         } finally {
             setDownloading(false)
         }
@@ -327,16 +348,17 @@ export default function AdminAfaManagementPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
 
             {/* ─── Page Header ─── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Admin Console</span>
+                        <span>Admin</span>
                     </div>
-                    <h1 className="text-2xl font-bold">MTN AFA Applications</h1>
-                    <p className="text-sm text-muted-foreground">Manage and process incoming permanent registration applications.</p>
+                    <h1 className="font-display text-2xl font-bold">MTN AFA applications</h1>
+                    <p className="text-sm text-muted-foreground">Review each registration, download the details, and mark it processing or completed.</p>
                 </div>
                 <button
                     onClick={handleManualRefresh}
@@ -344,7 +366,7 @@ export default function AdminAfaManagementPage() {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors self-start sm:self-center"
                 >
                     {isRefreshing ? (
-                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Refreshing...</>
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Refreshing…</>
                     ) : refreshCooldown > 0 ? (
                         <><RefreshCw className="w-3.5 h-3.5" /> Refresh ({refreshCooldown}s)</>
                     ) : (
@@ -357,8 +379,8 @@ export default function AdminAfaManagementPage() {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
                     { label: 'Total', value: stats.total, icon: LayoutList, color: 'text-brand-700', bg: 'bg-brand-50 dark:bg-brand-900/20' },
-                    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted dark:bg-yellow-900/20' },
-                    { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted dark:bg-blue-900/20' },
+                    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted' },
+                    { label: 'Processing', value: stats.processing, icon: Clock, color: 'text-muted-foreground', bg: 'bg-brand-50 dark:bg-brand-500/10' },
                     { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
                     { label: 'Cancelled', value: stats.cancelled, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
                 ].map(s => (
@@ -380,7 +402,7 @@ export default function AdminAfaManagementPage() {
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by name, phone, or ID..."
+                            aria-label="Search applications" placeholder="Search by name, phone or ID number…"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             className="pl-9 h-10"
@@ -388,10 +410,10 @@ export default function AdminAfaManagementPage() {
                     </div>
                     <Select value={regionFilter} onValueChange={setRegionFilter}>
                         <SelectTrigger className="h-10 sm:w-[180px]">
-                            <SelectValue placeholder="All Regions" />
+                            <SelectValue placeholder="All regions" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
-                            <SelectItem value="all">All Regions</SelectItem>
+                            <SelectItem value="all">All regions</SelectItem>
                             {['Greater Accra', 'Ashanti', 'Western', 'Eastern', 'Central', 'Northern', 'Volta', 'Upper East', 'Upper West', 'Bono', 'Bono East', 'Ahafo', 'Savannah', 'North East', 'Oti', 'Western North'].map(r => (
                                 <SelectItem key={r} value={r}>{r}</SelectItem>
                             ))}
@@ -399,10 +421,10 @@ export default function AdminAfaManagementPage() {
                     </Select>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="h-10 sm:w-[180px]">
-                            <SelectValue placeholder="All Statuses" />
+                            <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="all">All statuses</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="processing">Processing</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
@@ -412,10 +434,10 @@ export default function AdminAfaManagementPage() {
                     </Select>
                     <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}>
                         <SelectTrigger className="h-10 sm:w-[150px]">
-                            <SelectValue placeholder="All Sources" />
+                            <SelectValue placeholder="All sources" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Sources</SelectItem>
+                            <SelectItem value="all">All sources</SelectItem>
                             <SelectItem value="web">Web</SelectItem>
                             <SelectItem value="shop">Shop</SelectItem>
                             <SelectItem value="api">API</SelectItem>
@@ -423,10 +445,10 @@ export default function AdminAfaManagementPage() {
                     </Select>
                     <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as typeof paymentFilter)}>
                         <SelectTrigger className="h-10 sm:w-[150px]">
-                            <SelectValue placeholder="All Payment Methods" />
+                            <SelectValue placeholder="All payments" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Payments</SelectItem>
+                            <SelectItem value="all">All payments</SelectItem>
                             <SelectItem value="momo">MoMo</SelectItem>
                             <SelectItem value="wallet">Wallet</SelectItem>
                         </SelectContent>
@@ -452,7 +474,7 @@ export default function AdminAfaManagementPage() {
                 <CardHeader className="p-4 border-b">
                     <CardTitle className="text-base flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        Registration Submissions
+                        Applications
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -484,11 +506,21 @@ export default function AdminAfaManagementPage() {
                             return matchSearch
                         })
 
+                        if (loadFailed) {
+                            return (
+                                <div role="alert" className="flex flex-col items-center justify-center py-16 gap-2 text-center px-4">
+                                    <p className="text-sm font-semibold text-foreground">Could not load the applications</p>
+                                    <p className="text-xs text-muted-foreground">Check your connection, then try again.</p>
+                                    <Button variant="outline" size="sm" onClick={() => fetchApplications()}>Try again</Button>
+                                </div>
+                            )
+                        }
+
                         if (filteredApps.length === 0) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                                     <ShieldCheck className="w-10 h-10 opacity-20" />
-                                    <p className="text-sm">No applications found matching your criteria.</p>
+                                    <p className="text-sm">No applications match these filters.</p>
                                 </div>
                             )
                         }
@@ -501,7 +533,7 @@ export default function AdminAfaManagementPage() {
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>Applicant</TableHead>
-                                                <TableHead>ID Type</TableHead>
+                                                <TableHead>ID type</TableHead>
                                                 <TableHead>Location</TableHead>
                                                 <TableHead>Fee</TableHead>
                                                 <TableHead>Submitted</TableHead>
@@ -521,12 +553,12 @@ export default function AdminAfaManagementPage() {
                                                         <div className="flex items-center gap-1.5 mt-0.5">
                                                             <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                             {app.shop_profiles?.shop_name && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
+                                                                <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-muted text-foreground ">
                                                                     {app.shop_profiles.shop_name}
                                                                 </span>
                                                             )}
                                                             {app.source === 'api' && (
-                                                                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground/80">
+                                                                <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-muted text-foreground/80">
                                                                     API
                                                                 </span>
                                                             )}
@@ -546,7 +578,7 @@ export default function AdminAfaManagementPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-1.5">
-                                                            <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase px-2 py-0.5 rounded-full ${cfg.color}`}>
+                                                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
                                                                 <StatusIcon className="w-3 h-3" />
                                                                 {cfg.label}
                                                             </span>
@@ -584,18 +616,18 @@ export default function AdminAfaManagementPage() {
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className="text-xs text-muted-foreground">{resolveApplicantName(app)}</span>
                                                     {app.shop_profiles?.shop_name && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground dark:bg-teal-900/30 dark:text-muted-foreground">
+                                                        <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-muted text-foreground ">
                                                             {app.shop_profiles.shop_name}
                                                         </span>
                                                     )}
                                                     {app.source === 'api' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase bg-muted text-foreground/80">
+                                                        <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-muted text-foreground/80">
                                                             API
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-1">
-                                                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase px-1.5 py-0.5 rounded-full ${cfg.color}`}>
+                                                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full ${cfg.color}`}>
                                                         <StatusIcon className="w-2.5 h-2.5" />
                                                         {cfg.label}
                                                     </span>
@@ -629,37 +661,37 @@ export default function AdminAfaManagementPage() {
                                 <DialogHeader>
                                     <DialogTitle className="flex items-center gap-2">
                                         <ShieldCheck className="w-5 h-5 text-muted-foreground" />
-                                        Application Details
+                                        Application details
                                     </DialogTitle>
                                     <DialogDescription>
-                                        MTN AFA Permanent Registration — Submitted {format(new Date(selectedApp.created_at), 'dd MMM yyyy, hh:mm a')}
+                                        MTN AFA registration, submitted {format(new Date(selectedApp.created_at), 'dd MMM yyyy, hh:mm a')}
                                     </DialogDescription>
                                 </DialogHeader>
 
                                 {/* Status Badge */}
                                 <div className="flex items-center justify-between py-1">
-                                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase px-3 py-1 rounded-full ${cfg.color}`}>
+                                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${cfg.color}`}>
                                         <StatusIcon className="w-3.5 h-3.5" />
                                         {cfg.label}
                                     </span>
                                     {selectedApp.payment_amount != null && (
                                         <span className="text-sm font-semibold text-muted-foreground">
-                                            Fee Paid: GH₵{selectedApp.payment_amount.toFixed(2)}
+                                            Fee paid: GH₵{selectedApp.payment_amount.toFixed(2)}
                                         </span>
                                     )}
                                 </div>
 
                                 {/* Field Data */}
                                 <div className="rounded-xl border bg-muted/30 dark:bg-muted/10 px-4 py-1 space-y-0">
-                                    <CopyField label="Full Name" value={selectedApp.full_name} />
-                                    <CopyField label="Phone Number" value={selectedApp.phone} />
-                                    <CopyField label="ID Type" value={idType} />
-                                    <CopyField label="ID Number" value={idNumber} />
+                                    <CopyField label="Full name" value={selectedApp.full_name} />
+                                    <CopyField label="Phone number" value={selectedApp.phone} />
+                                    <CopyField label="ID type" value={idType} />
+                                    <CopyField label="ID number" value={idNumber} />
                                     {selectedApp.date_of_birth && (
-                                        <CopyField label="Date of Birth" value={formatDob(selectedApp.date_of_birth)} />
+                                        <CopyField label="Date of birth" value={formatDob(selectedApp.date_of_birth)} />
                                     )}
                                     <CopyField label="Region" value={selectedApp.region} />
-                                    <CopyField label="City / Town" value={selectedApp.location} />
+                                    <CopyField label="City or town" value={selectedApp.location} />
                                     <CopyField label="Occupation" value={selectedApp.occupation || 'Farmer'} />
                                     {selectedApp.notes && (
                                         <CopyField label="Notes" value={selectedApp.notes} />
@@ -676,20 +708,20 @@ export default function AdminAfaManagementPage() {
 
                                 {/* ─── Download Button ─── */}
                                 <Button
-                                    className="w-full gap-2 bg-foreground/10 hover:bg-yellow-600 text-white"
+                                    className="w-full gap-2 clay-black"
                                     onClick={() => handleDownload(selectedApp)}
                                     disabled={downloading}
                                 >
                                     {downloading ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> Downloading...</>
+                                        <><Loader2 className="w-4 h-4 animate-spin" /> Downloading…</>
                                     ) : (
-                                        <><Download className="w-4 h-4" /> Download Application & Set Processing</>
+                                        <><Download className="w-4 h-4" /> {selectedApp.status === 'pending' ? 'Download and mark as processing' : 'Download application'}</>
                                     )}
                                 </Button>
 
                                 {/* ─── Status Controls ─── */}
                                 <div className="space-y-2">
-                                    <p className="text-xs text-muted-foreground font-medium">Update Status</p>
+                                    <p className="text-xs text-muted-foreground font-medium">Change status</p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             variant="outline"
@@ -734,7 +766,7 @@ export default function AdminAfaManagementPage() {
                                     </div>
                                     {selectedApp.status === 'refunded' && (
                                         <p className="text-xs text-muted-foreground italic">
-                                            This order has been refunded — status is locked.
+                                            This application was refunded, so its status can't be changed.
                                         </p>
                                     )}
                                 </div>
@@ -744,7 +776,7 @@ export default function AdminAfaManagementPage() {
                                     <div className="pt-2">
                                         {!selectedApp.shop_id && (selectedApp.payment_method ?? 'momo') !== 'wallet' ? (
                                             <p className="text-xs text-muted-foreground italic">
-                                                Refund not available — this was a guest MoMo payment with no wallet or Paystack transaction to reverse. Refund it manually outside the platform.
+                                                No refund here. This was a guest MoMo payment, so there is no wallet or Paystack transaction to reverse. Refund the customer yourself, outside Capozy.
                                             </p>
                                         ) : (
                                             <Button
@@ -755,7 +787,7 @@ export default function AdminAfaManagementPage() {
                                                 onClick={() => handleRefund(selectedApp)}
                                             >
                                                 {refundingId === selectedApp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                                {selectedApp.shop_id ? 'Refund shop owner (cost)' : 'Refund to wallet'}
+                                                {selectedApp.shop_id ? 'Refund the shop owner (cost price)' : 'Refund to wallet'}
                                             </Button>
                                         )}
                                     </div>
@@ -770,8 +802,8 @@ export default function AdminAfaManagementPage() {
             <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Custom range</DialogTitle>
-                        <DialogDescription>Select a specific date range to filter applications.</DialogDescription>
+                        <DialogTitle>Custom dates</DialogTitle>
+                        <DialogDescription>Pick the first and last day to include.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
                         <div className="space-y-1.5">
@@ -790,7 +822,7 @@ export default function AdminAfaManagementPage() {
                             className="h-9 flex-1"
                             disabled={!customStart || !customEnd}
                         >
-                            Apply filter
+                            Apply dates
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -804,10 +836,10 @@ export default function AdminAfaManagementPage() {
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                     <Ban className="w-5 h-5 text-brand-500" />
-                                    Confirm Refund
+                                    Refund while processing?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    This order (<span className="font-medium">{refundConfirmApp.full_name}</span>) is currently <span className="font-medium">processing</span>. Refunding now may reverse a payment for work already underway.
+                                    This order (<span className="font-medium">{refundConfirmApp.full_name}</span>) is already <span className="font-medium">processing</span>. Refunding now may reverse a payment for work that has started.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="flex gap-2 pt-2">
