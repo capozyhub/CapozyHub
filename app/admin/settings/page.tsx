@@ -47,8 +47,8 @@ function SettingsPanel({ title, description, icon: Icon, children }: {
                     </div>
                 )}
                 <div>
-                    <p className="text-sm font-bold text-foreground">{title}</p>
-                    {description && <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>}
+                    <p className="font-display text-sm font-semibold text-foreground">{title}</p>
+                    {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
                 </div>
             </div>
             <div className="p-5 space-y-4">{children}</div>
@@ -61,7 +61,7 @@ function SettingField({ label, hint, children }: { label: string; hint?: string;
         <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
             {children}
-            {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
+            {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
         </div>
     )
 }
@@ -115,6 +115,7 @@ export default function AdminSettingsPage() {
     const { isAdmin, isSubAdmin, isLoading: authLoading } = useAuth()
     const router = useRouter()
     const [loading, setLoading] = useState(true)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [saving, setSaving] = useState(false)
 
     // Form states
@@ -257,10 +258,10 @@ export default function AdminSettingsPage() {
 
     // Capture the saved baseline once, after the initial load completes.
     useEffect(() => {
-        if (!loading && baselineRef.current === null) {
+        if (!loading && !loadFailed && baselineRef.current === null) {
             baselineRef.current = JSON.stringify(buildUpdates())
         }
-    }, [loading, buildUpdates])
+    }, [loading, loadFailed, buildUpdates])
 
     // Warn before leaving with unsaved changes.
     useEffect(() => {
@@ -272,6 +273,8 @@ export default function AdminSettingsPage() {
 
     const fetchSettings = async () => {
         if (!isAdmin) { setLoading(false); return }
+        setLoadFailed(false)
+        setLoading(true)
         try {
             const { data, error } = await (supabase.from('admin_settings') as any).select('key, value')
             if (error) throw error
@@ -342,9 +345,10 @@ export default function AdminSettingsPage() {
             // AFA shop markup caps — different table (shop_global_settings), same
             // key/value shape as admin_settings but with a separate save path
             // (see saveAfaCaps) since it lives in a different table.
-            const { data: capsData } = await (supabase.from('shop_global_settings') as any)
+            const { data: capsData, error: capsError } = await (supabase.from('shop_global_settings') as any)
                 .select('key, value')
                 .in('key', ['afa_shop_fee_max_customer', 'afa_shop_fee_max_agent', 'afa_shop_fee_max_dealer'])
+            if (capsError) throw capsError
             const capsMap: Record<string, string> = {}
             for (const row of (capsData as { key: string; value: any }[]) || []) capsMap[row.key] = String(row.value)
             setAfaShopFeeMaxCustomer(capsMap.afa_shop_fee_max_customer ?? '0')
@@ -352,7 +356,7 @@ export default function AdminSettingsPage() {
             setAfaShopFeeMaxDealer(capsMap.afa_shop_fee_max_dealer ?? '0')
         } catch (error) {
             console.error('Error fetching settings:', error)
-            toast.error('Failed to load settings')
+            setLoadFailed(true)
         } finally {
             setLoading(false)
         }
@@ -362,7 +366,7 @@ export default function AdminSettingsPage() {
     // shop_global_settings, not admin_settings, so they can't ride buildUpdates'
     // single upsert. 0 means no limit (label this clearly in the UI).
     const saveAfaCaps = async () => {
-        if (!isAdmin) { toast.error('You do not have permission to modify settings.'); return }
+        if (!isAdmin) { toast.error('Only admins can change settings.'); return }
         const checks: [string, string][] = [
             ['Customer AFA markup cap', afaShopFeeMaxCustomer],
             ['Agent AFA markup cap', afaShopFeeMaxAgent],
@@ -391,7 +395,7 @@ export default function AdminSettingsPage() {
     }
 
     const saveSettings = async () => {
-        if (!isAdmin) { toast.error('You do not have permission to modify settings.'); return }
+        if (!isAdmin) { toast.error('Only admins can change settings.'); return }
 
         const isSafeUrl = (url: string): boolean => {
             if (!url.trim()) return true
@@ -456,8 +460,8 @@ export default function AdminSettingsPage() {
 
         const minNum = parseFloat(paystackMinTopup)
         const maxNum = parseFloat(paystackMaxTopup)
-        if (!Number.isFinite(minNum) || minNum < 1) { toast.error('Minimum top-up must be at least GHS 1.'); return }
-        if (!Number.isFinite(maxNum) || maxNum <= minNum) { toast.error('Maximum top-up must be greater than the minimum.'); return }
+        if (!Number.isFinite(minNum) || minNum < 1) { toast.error('The smallest top-up must be at least GH₵1.'); return }
+        if (!Number.isFinite(maxNum) || maxNum <= minNum) { toast.error('The largest top-up must be higher than the smallest.'); return }
         if (dealerPaystackFee.trim() !== '') {
             const dealerNum = parseFloat(dealerPaystackFee)
             if (!Number.isFinite(dealerNum) || dealerNum < 0 || dealerNum > 100) { toast.error('Dealer Paystack fee must be between 0 and 100.'); return }
@@ -523,14 +527,29 @@ export default function AdminSettingsPage() {
             <div className="p-8">
                 <Alert variant="destructive" className="max-w-md">
                     <ShieldAlert className="h-4 w-4" />
-                    <AlertTitle>Access Denied</AlertTitle>
-                    <AlertDescription>Only administrators can access System Settings.</AlertDescription>
+                    <AlertTitle>Admins only</AlertTitle>
+                    <AlertDescription>Only admins can change the platform settings.</AlertDescription>
                 </Alert>
             </div>
         )
     }
 
     if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+
+    if (loadFailed) {
+        return (
+            <div className="p-8">
+                <Alert variant="destructive" className="max-w-md">
+                    <ShieldAlert className="h-4 w-4" />
+                    <AlertTitle>Could not load the settings</AlertTitle>
+                    <AlertDescription>
+                        The form is hidden so you can't save defaults over the live values. Check your connection and try again.
+                        <div className="mt-3"><Button size="sm" variant="outline" onClick={() => fetchSettings()}>Try again</Button></div>
+                    </AlertDescription>
+                </Alert>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6 max-w-4xl">
@@ -542,14 +561,14 @@ export default function AdminSettingsPage() {
                         <Settings className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-foreground tracking-tight">System Settings</h1>
-                        <p className="text-sm text-muted-foreground mt-0.5">Configure detailed platform parameters</p>
+                        <h1 className="font-display text-xl font-bold text-foreground tracking-tight">Settings</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Fees, prices, contact details and which pages are switched on</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {isDirty && !saving && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Unsaved
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Unsaved changes
                         </span>
                     )}
                     <Button
@@ -558,7 +577,7 @@ export default function AdminSettingsPage() {
                         className="gap-2 h-9 text-xs font-bold"
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                        Save Changes
+                        Save changes
                     </Button>
                 </div>
             </div>
@@ -566,17 +585,17 @@ export default function AdminSettingsPage() {
             <Tabs defaultValue="general">
                 <TabsList className="flex-wrap h-auto gap-1">
                     <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="fees">Fees & Pricing</TabsTrigger>
+                    <TabsTrigger value="fees">Fees and prices</TabsTrigger>
                     <TabsTrigger value="fulfillment">Fulfillment</TabsTrigger>
-                    <TabsTrigger value="access">Page Access</TabsTrigger>
-                    <TabsTrigger value="landing">Landing Page</TabsTrigger>
-                    <TabsTrigger value="momo" className="text-brand-700 font-semibold">📱 MoMo Claims</TabsTrigger>
+                    <TabsTrigger value="access">Pages</TabsTrigger>
+                    <TabsTrigger value="landing">Landing page</TabsTrigger>
+                    <TabsTrigger value="momo" className="font-semibold">MoMo claims</TabsTrigger>
                 </TabsList>
 
                 {/* ── General ─────────────────────────────────────────────────── */}
                 <TabsContent value="general" className="space-y-4 mt-4">
-                    <SettingsPanel title="Support Information" description="Contact details displayed to users" icon={Mail}>
-                        <SettingField label="Support Email" hint="Displayed on help and contact pages">
+                    <SettingsPanel title="Support details" description="Shown to users on the help and contact pages" icon={Mail}>
+                        <SettingField label="Support email" hint="Shown on the help and contact pages">
                             <Input value={supportEmail} onChange={e => setSupportEmail(e.target.value)} placeholder="support@capozygh.com" className="max-w-sm" />
                         </SettingField>
                     </SettingsPanel>
@@ -628,40 +647,40 @@ export default function AdminSettingsPage() {
                                 <Input type="number" value={dealerPaystackFee} onChange={e => setDealerPaystackFee(e.target.value)} step="0.01" placeholder="Uses customer fee" />
                             </SettingField>
                         </div>
-                        <SettingField label="MTN Price Adjustment (GHS)" hint="Additional markup fee added to all MTN data packages">
+                        <SettingField label="MTN price adjustment (GH₵)" hint="Additional markup fee added to all MTN data packages">
                             <Input type="number" value={mtnAdjustment} onChange={e => setMtnAdjustment(e.target.value)} step="0.01" className="max-w-[180px]" />
                         </SettingField>
                     </SettingsPanel>
 
                     <SettingsPanel title="Wallet Top-up Limits" description="Minimum and maximum amount a user can top up per Paystack transaction" icon={Percent}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <SettingField label="Minimum Top-up (GHS)" hint="Smallest allowed top-up amount">
+                            <SettingField label="Smallest top-up (GH₵)" hint="Smallest allowed top-up amount">
                                 <Input type="number" value={paystackMinTopup} onChange={e => setPaystackMinTopup(e.target.value)} step="1" min="1" />
                             </SettingField>
-                            <SettingField label="Maximum Top-up (GHS)" hint="Largest allowed top-up amount">
+                            <SettingField label="Largest top-up (GH₵)" hint="Largest allowed top-up amount">
                                 <Input type="number" value={paystackMaxTopup} onChange={e => setPaystackMaxTopup(e.target.value)} step="1" />
                             </SettingField>
                         </div>
                     </SettingsPanel>
 
                     <SettingsPanel title="Membership Pricing" description="Fees for account upgrades and agent plans" icon={Star}>
-                        <SettingField label="Agent Upgrade Price (GHS)" hint="One-time fee for customers upgrading to agent status">
+                        <SettingField label="Agent upgrade price (GH₵)" hint="One-time fee for customers upgrading to agent status">
                             <Input type="number" value={agentUpgradePrice} onChange={e => setAgentUpgradePrice(e.target.value)} step="0.01" min="0" className="max-w-[180px]" />
                         </SettingField>
                     </SettingsPanel>
 
                     <SettingsPanel title="AFA Application Pricing" description="Set application fees for Authorized Field Agent registrations" icon={Users}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <SettingField label="Customer Application Fee (GHS)" hint="Fee charged to customers for AFA application">
+                            <SettingField label="Customer application fee (GH₵)" hint="Fee charged to customers for AFA application">
                                 <Input type="number" value={afaPriceCustomer} onChange={e => setAfaPriceCustomer(e.target.value)} step="0.01" min="0" />
                             </SettingField>
-                            <SettingField label="Agent Application Fee (GHS)" hint="Fee charged to agents for AFA application">
+                            <SettingField label="Agent application fee (GH₵)" hint="Fee charged to agents for AFA application">
                                 <Input type="number" value={afaPriceAgent} onChange={e => setAfaPriceAgent(e.target.value)} step="0.01" min="0" />
                             </SettingField>
-                            <SettingField label="Dealer Application Fee (GHS)" hint="Fee charged to dealers for AFA application">
+                            <SettingField label="Dealer application fee (GH₵)" hint="Fee charged to dealers for AFA application">
                                 <Input type="number" value={afaPriceDealer} onChange={e => setAfaPriceDealer(e.target.value)} step="0.01" min="0" />
                             </SettingField>
-                            <SettingField label="Platform Cost Per Registration (GHS)" hint="Real cost to the platform per AFA registration — subtracted from revenue in the profit engine, not a customer-facing price">
+                            <SettingField label="Platform cost per registration (GH₵)" hint="Real cost to the platform per AFA registration — subtracted from revenue in the profit engine, not a customer-facing price">
                                 <Input type="number" value={afaCostPrice} onChange={e => setAfaCostPrice(e.target.value)} step="0.01" min="0" />
                             </SettingField>
                         </div>
@@ -677,16 +696,16 @@ export default function AdminSettingsPage() {
                         />
                         <div className="pt-2">
                             <p className="text-xs font-semibold text-muted-foreground mb-3">
-                                Max profit per registration (GHS) — saved separately from the fields above
+                                Max profit per registration (GH₵) — saved separately from the fields above
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <SettingField label="Customer Shops (GHS)" hint="Max profit a customer-tier shop can earn per AFA registration. 0 = no limit">
+                                <SettingField label="Customer shops (GH₵)" hint="Max profit a customer-tier shop can earn per AFA registration. 0 = no limit">
                                     <Input type="number" value={afaShopFeeMaxCustomer} onChange={e => setAfaShopFeeMaxCustomer(e.target.value)} step="0.1" min="0" />
                                 </SettingField>
-                                <SettingField label="Agent Shops (GHS)" hint="Max profit an agent-tier shop can earn per AFA registration. 0 = no limit">
+                                <SettingField label="Agent shops (GH₵)" hint="Max profit an agent-tier shop can earn per AFA registration. 0 = no limit">
                                     <Input type="number" value={afaShopFeeMaxAgent} onChange={e => setAfaShopFeeMaxAgent(e.target.value)} step="0.1" min="0" />
                                 </SettingField>
-                                <SettingField label="Dealer Shops (GHS)" hint="Max profit a dealer-tier shop can earn per AFA registration. 0 = no limit">
+                                <SettingField label="Dealer shops (GH₵)" hint="Max profit a dealer-tier shop can earn per AFA registration. 0 = no limit">
                                     <Input type="number" value={afaShopFeeMaxDealer} onChange={e => setAfaShopFeeMaxDealer(e.target.value)} step="0.1" min="0" />
                                 </SettingField>
                             </div>
@@ -739,7 +758,7 @@ export default function AdminSettingsPage() {
                             <ToggleRow compact label="AFA Application" description="Field Agent registration" checked={pageAccessAfaOrders} onCheckedChange={setPageAccessAfaOrders} />
                             <ToggleRow compact label="Sub-Agents" description="Recruit and manage sub-agents" checked={pageAccessRecruit} onCheckedChange={setPageAccessRecruit} />
                             <ToggleRow compact label="Developer API" description="API keys and documentation" checked={pageAccessDeveloperApi} onCheckedChange={setPageAccessDeveloperApi} />
-                            <ToggleRow compact color="emerald" label="Public Storefront" description="Disabling takes all shops offline" checked={pageAccessStorefront} onCheckedChange={setPageAccessStorefront} />
+                            <ToggleRow compact color="emerald" label="Public storefronts" description="Disabling takes all shops offline" checked={pageAccessStorefront} onCheckedChange={setPageAccessStorefront} />
                         </div>
                     </SettingsPanel>
                 </TabsContent>
@@ -771,7 +790,7 @@ export default function AdminSettingsPage() {
                                         <Input placeholder="e.g. 1GB" value={pkg.volume} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], volume: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <div className="space-y-1">
-                                        {i === 0 && <Label className="text-xs font-bold text-muted-foreground">Price (GHS)</Label>}
+                                        {i === 0 && <Label className="text-xs font-bold text-muted-foreground">Price (GH₵)</Label>}
                                         <Input placeholder="e.g. 4.30" value={pkg.price} onChange={e => { const u = [...landingDataPackages]; u[i] = { ...u[i], price: e.target.value }; setLandingDataPackages(u) }} />
                                     </div>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setLandingDataPackages(landingDataPackages.filter((_, idx) => idx !== i))}>
@@ -799,7 +818,7 @@ export default function AdminSettingsPage() {
                                         <SettingField label="Key (unique ID)"><Input placeholder="e.g. 3d" value={plan.key} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], key: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
                                         <SettingField label="Title"><Input placeholder="e.g. Starter" value={plan.title} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], title: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
                                         <SettingField label="Duration"><Input placeholder="e.g. 3 Days Access" value={plan.duration} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], duration: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
-                                        <SettingField label="Price (GHS)"><Input placeholder="e.g. 9.99" value={plan.price} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], price: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
+                                        <SettingField label="Price (GH₵)"><Input placeholder="e.g. 9.99" value={plan.price} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], price: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
                                         <SettingField label="Old Price (optional)"><Input placeholder="e.g. 12.99" value={plan.oldPrice || ''} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], oldPrice: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
                                         <SettingField label="Badge (optional)"><Input placeholder="e.g. Best Value" value={plan.badge || ''} onChange={e => { const u = [...landingAgentPlans]; u[i] = { ...u[i], badge: e.target.value }; setLandingAgentPlans(u) }} /></SettingField>
                                     </div>
