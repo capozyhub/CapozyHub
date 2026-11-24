@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -151,8 +151,10 @@ export default function MyOrdersPage() {
         }
     }
 
+    const fetchSeq = useRef(0)
     const fetchData = async (pageNum: number = page) => {
         if (!dbUser) return
+        const mine = ++fetchSeq.current
         setIsLoading(true)
         try {
             const { from: dateFrom, to: dateTo } = getDateBounds()
@@ -177,6 +179,7 @@ export default function MyOrdersPage() {
                 .range(from, to)
 
             if (error) throw error
+            if (mine !== fetchSeq.current) return
             setOrders((data as any) || [])
             setTotalCount(count || 0)
 
@@ -194,6 +197,7 @@ export default function MyOrdersPage() {
                 })
                 .maybeSingle()
 
+            if (mine !== fetchSeq.current) return
             if (!statsErr && statsRow) {
                 const s = statsRow as MyOrderStatsRow
                 setStatusCounts({
@@ -230,10 +234,12 @@ export default function MyOrdersPage() {
             }
         } catch (error) {
             console.error('Error fetching data:', error)
-            toast.error('Failed to load orders')
+            toast.error('We could not load your orders. Try again.')
         } finally {
-            setIsLoading(false)
-            setInitialLoading(false)
+            if (mine === fetchSeq.current) {
+                setIsLoading(false)
+                setInitialLoading(false)
+            }
         }
     }
 
@@ -347,7 +353,7 @@ export default function MyOrdersPage() {
             fetchData()
         } catch (error: any) {
             console.error('Retry error:', error)
-            toast.error(error?.message || 'Failed to retry order')
+            toast.error('We could not retry this order. Try again.')
         } finally {
             setRetryBusy(false)
         }
@@ -390,7 +396,7 @@ export default function MyOrdersPage() {
             fetchData()
         } catch (error: any) {
             console.error('Confirm received error:', error)
-            toast.error(error?.message || 'Failed to confirm order received')
+            toast.error('We could not confirm this order. Try again.')
         } finally {
             setConfirmBusy(false)
         }
@@ -427,7 +433,7 @@ export default function MyOrdersPage() {
             setOrderThreads(prev => ({ ...prev, [complaintOrder.id]: { id: json.data.thread.id, status: 'open' } }))
             setComplaintOrder(null)
         } catch (error: any) {
-            toast.error(error?.message || 'Failed to submit complaint')
+            toast.error('We could not send your complaint. Try again.')
         } finally {
             setIsSubmitting(false)
         }
@@ -436,19 +442,19 @@ export default function MyOrdersPage() {
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
             case 'completed':
-                return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                return 'bg-brand-500/20 text-brand-900 dark:text-brand-400'
             case 'processing':
-                return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
+                return 'bg-foreground/10 text-foreground'
             case 'failed':
                 return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             case 'refunded':
-                return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                return 'bg-muted text-foreground'
             case 'queued':
-                return 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400'
+                return 'bg-foreground/10 text-foreground'
             case 'pending':
-                return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                return 'bg-muted text-muted-foreground'
             default:
-                return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                return 'bg-muted text-muted-foreground'
         }
     }
 
@@ -459,9 +465,7 @@ export default function MyOrdersPage() {
     }
 
     // Format amount for display (no truncation)
-    const formatAmount = (amount: number) => {
-        return `₵${amount.toFixed(2)}`
-    }
+    const formatAmount = (amount: number) => formatCurrency(amount)
 
     if (initialLoading) {
         return (
@@ -554,10 +558,11 @@ export default function MyOrdersPage() {
             <div id="order-filters" className="space-y-4">
                 {/* Search by Phone */}
                 <div className="space-y-2">
-                    <Label className="text-sm font-medium">Search by Phone</Label>
+                    <Label htmlFor="order-search" className="text-sm font-semibold">Search by phone number</Label>
                     <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
+                            id="order-search"
                             placeholder="Enter phone number"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -567,7 +572,7 @@ export default function MyOrdersPage() {
                 </div>
 
                 {/* Category Segment Filter */}
-                <div className="well flex gap-1 rounded-2xl p-1">
+                <div className="neu-inset flex gap-1 rounded-full p-1">
                     {([['All', 'All'], ['data', 'Data'], ['mtn_mashup', 'MTN Mashup']] as const).map(([val, label]) => (
                         <button
                             key={val}
@@ -622,22 +627,19 @@ export default function MyOrdersPage() {
             {/* Order Cards */}
             <div id="orders-table" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                 {isLoading ? (
-                    <Card className="sm:col-span-2 2xl:col-span-3">
-                        <CardContent className="py-12 text-center">
-                            <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin" />
-                        </CardContent>
-                    </Card>
+                    <div className="neu-inset rounded-3xl py-12 text-center sm:col-span-2 2xl:col-span-3" role="status">
+                        <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground" aria-label="Loading orders" />
+                    </div>
                 ) : orders.length === 0 ? (
-                    <Card className="sm:col-span-2 2xl:col-span-3">
-                        <CardContent className="py-12 text-center">
-                            <ShoppingCart className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                            <p className="text-muted-foreground">No orders found</p>
-                        </CardContent>
-                    </Card>
+                    <div className="neu-inset rounded-3xl py-12 text-center sm:col-span-2 2xl:col-span-3">
+                        <ShoppingCart className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
+                        <p className="font-semibold">No orders match</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Try another date range or clear a filter.</p>
+                    </div>
                 ) : (
                     orders.map((order) => (
-                        <Card key={order.id} className="overflow-hidden">
-                            <CardContent className="p-4 space-y-4">
+                        <article key={order.id} className="neu-raised-sm space-y-4 rounded-3xl p-4">
+                            <div className="space-y-4">
                                 {/* Header Row */}
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
@@ -655,11 +657,11 @@ export default function MyOrdersPage() {
                                             const retryTag = getRetryTag(order as any)
                                             const selfCompletedTag = getSelfCompletedTag(order as any)
                                             return selfCompletedTag ? (
-                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase ${selfCompletedTag.badge}`}>
+                                                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${selfCompletedTag.badge}`}>
                                                     {selfCompletedTag.label}
                                                 </span>
                                             ) : retryTag ? (
-                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase ${retryTag.badge}`}>
+                                                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${retryTag.badge}`}>
                                                     {retryTag.label}
                                                 </span>
                                             ) : null
@@ -668,17 +670,17 @@ export default function MyOrdersPage() {
                                 </div>
 
                                 {/* Details */}
-                                <div className="space-y-2 border-y border-border/60 py-3 text-sm">
+                                <div className="neu-inset space-y-2 rounded-2xl p-3 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Order Date:</span>
+                                        <span className="text-muted-foreground">Ordered</span>
                                         <span className="font-medium">{formatOrderDate(order.created_at ?? '')}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Data Bundle:</span>
+                                        <span className="text-muted-foreground">Bundle</span>
                                         <span className="font-medium">{order.size}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Amount:</span>
+                                        <span className="text-muted-foreground">Amount</span>
                                         <span className="font-medium">{formatCurrency(order.price)}</span>
                                     </div>
                                 </div>
@@ -687,14 +689,14 @@ export default function MyOrdersPage() {
                                 {order.reference_code && (
                                     <div className="flex items-center gap-2 -mt-1">
                                         <span className={cn(
-                                            "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide",
+                                            "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold",
                                             order.source === 'api'
-                                                ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
+                                                ? "bg-foreground/10 text-foreground"
                                                 : "bg-muted text-muted-foreground"
                                         )}>
                                             {order.source === 'api' ? 'API' : 'Web'}
                                         </span>
-                                        <span className="text-[10px] text-muted-foreground font-mono">{order.reference_code}</span>
+                                        <span className="text-xs text-muted-foreground font-mono">{order.reference_code}</span>
                                     </div>
                                 )}
 
@@ -703,7 +705,7 @@ export default function MyOrdersPage() {
                                     <span className="text-xs capitalize text-muted-foreground">{order.status}</span>
                                     {/* Action Area */}
                                     {orderThreads[order.id] || (order.complaints && order.complaints.length > 0) ? (
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800">
+                                        <div className="neu-inset flex items-center gap-2 rounded-full px-3 py-1.5 text-foreground">
                                             <MessageSquare className="w-3.5 h-3.5" />
                                             <span className="text-xs font-medium capitalize">
                                                 Complaint: {(orderThreads[order.id]?.status
@@ -723,7 +725,7 @@ export default function MyOrdersPage() {
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleRetry(order)}
-                                            className="text-brand-700 border-brand-200 hover:bg-brand-50 dark:text-brand-400 dark:border-brand-800 dark:hover:bg-brand-500/20"
+                                            className="clay-gold min-h-10 rounded-full border-0 px-4 font-semibold hover:opacity-100"
                                         >
                                             <RefreshCw className="w-4 h-4 mr-1" />
                                             Retry
@@ -743,7 +745,7 @@ export default function MyOrdersPage() {
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => handleComplaint(order)}
-                                                className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/20"
+                                                className="clay-silver min-h-10 rounded-full border-0 px-4 font-semibold hover:opacity-100"
                                             >
                                                 <MessageSquare className="w-4 h-4 mr-1" />
                                                 Complain
@@ -751,8 +753,8 @@ export default function MyOrdersPage() {
                                         )
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </article>
                     ))
                 )}
             </div>
@@ -850,11 +852,11 @@ export default function MyOrdersPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
-                        <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
+                        <div className="neu-inset flex items-start gap-2 rounded-xl p-3 text-sm text-foreground">
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                            <span>Today&apos;s price will be charged to your wallet — this may differ from what you originally paid. You&apos;ll see the exact amount charged once the retry succeeds.</span>
+                            <span>Your wallet is charged today&apos;s price, which can differ from what you first paid. The exact amount is shown once the retry succeeds.</span>
                         </div>
-                        <div className="flex items-start gap-2 text-sm text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-md p-2.5">
+                        <div className="neu-inset flex items-start gap-2 rounded-xl p-3 text-sm text-foreground">
                             <RefreshCw className="w-4 h-4 mt-0.5 shrink-0" />
                             <span>For MTN numbers, we recommend waiting 24 hours after a failed order before retrying, so the number can be verified into the MTN UP2U account.</span>
                         </div>
