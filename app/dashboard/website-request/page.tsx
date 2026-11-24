@@ -1,7 +1,7 @@
 // app/dashboard/website-request/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ const BUDGET_PRESETS = [1000, 3000, 8000, 20000]
 // Starter sentences — the blank textarea is the hardest part of this form, so we
 // hand people a first line they can edit rather than an empty box.
 const DESCRIPTION_STARTERS = [
-    { label: 'An online store', text: 'I want an online store like Jumia where customers can browse my products, pay with Mobile Money, and I can manage stock and orders.' },
+    { label: 'An online store', text: 'I want an online store where customers can browse my products, pay with Mobile Money, and I can manage stock and orders.' },
     { label: 'A business website', text: 'I want a professional website for my business showing who we are, the services we offer, and a way for customers to contact us.' },
     { label: 'A booking site', text: 'I want a site where customers can see my available times and book an appointment themselves, and I get notified for each booking.' },
     { label: 'A mobile app', text: 'I want a mobile app for Android and iPhone that my customers can download and use to order from me directly.' },
@@ -66,6 +66,8 @@ export default function WebsiteRequestPage() {
     const [callNote, setCallNote] = useState('')
 
     const [contactPhone, setContactPhone] = useState(dbUser?.phone_number ?? '')
+    // dbUser can finish loading after first render; fill the phone in once, without overwriting an edit.
+    useEffect(() => { if (dbUser?.phone_number) setContactPhone(prev => prev || dbUser.phone_number!) }, [dbUser?.phone_number])
     const [contactWhatsapp, setContactWhatsapp] = useState('')
 
     const toggleFeature = (key: string) => {
@@ -105,7 +107,7 @@ export default function WebsiteRequestPage() {
             })
             const json = await res.json()
             if (!json.success) {
-                toast.error(json.details?.[0] || json.error || 'Failed to submit request')
+                toast.error(typeof json.details?.[0] === 'string' ? json.details[0] : 'We could not send your request. Check the form and try again.')
                 return
             }
             toast.success('Request sent. We\'ll call you shortly.')
@@ -135,7 +137,7 @@ export default function WebsiteRequestPage() {
             })
             const json = await res.json()
             if (!json.success) {
-                toast.error(json.details?.[0] || json.error || 'Failed to submit request')
+                toast.error(typeof json.details?.[0] === 'string' ? json.details[0] : 'We could not send your request. Check the form and try again.')
                 return
             }
             toast.success('Call request sent. We\'ll be in touch shortly.')
@@ -171,7 +173,7 @@ export default function WebsiteRequestPage() {
                 </p>
 
                 {/* Trust strip */}
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-3">
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 neu-raised-sm rounded-2xl p-3">
                     {[
                         { Icon: Wallet, text: 'Nothing to pay now' },
                         { Icon: PhoneCall, text: 'Free consultation call' },
@@ -211,7 +213,7 @@ export default function WebsiteRequestPage() {
                 <div className="space-y-4">
 
                     {/* 1. Category */}
-                    <section className="rounded-2xl border border-border bg-card p-5">
+                    <section className="neu-raised-sm rounded-3xl p-5">
                         <SectionHeading step={1} title="What do you want built?" />
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             {WEBSITE_REQUEST_CATEGORIES.map(c => {
@@ -238,7 +240,7 @@ export default function WebsiteRequestPage() {
 
                     {/* 2. Features */}
                     {activeFeatures.length > 0 && (
-                        <section className="rounded-2xl border border-border bg-card p-5">
+                        <section className="neu-raised-sm rounded-3xl p-5">
                             <SectionHeading
                                 step={2}
                                 title="What should it include?"
@@ -276,7 +278,7 @@ export default function WebsiteRequestPage() {
                     )}
 
                     {/* 3. Description */}
-                    <section className="rounded-2xl border border-border bg-card p-5">
+                    <section className="neu-raised-sm rounded-3xl p-5">
                         <SectionHeading
                             step={3}
                             title="Tell us about it"
@@ -337,14 +339,14 @@ export default function WebsiteRequestPage() {
                                 value={referenceSites}
                                 onChange={e => setReferenceSites(e.target.value.slice(0, 300))}
                                 maxLength={300}
-                                placeholder="e.g. jumia.com.gh, or “something like capozygh.com”"
+                                placeholder="A website you like, for example example.com"
                                 className={cn(fieldClass, 'mt-1.5')}
                             />
                         </div>
                     </section>
 
                     {/* 4. Budget & timeline */}
-                    <section className="rounded-2xl border border-border bg-card p-5">
+                    <section className="neu-raised-sm rounded-3xl p-5">
                         <SectionHeading step={4} title="Budget and timing" />
 
                         <label className="text-sm font-semibold text-foreground">Your budget guide (GHS)</label>
@@ -405,7 +407,7 @@ export default function WebsiteRequestPage() {
                     </section>
 
                     {/* 5. Contact */}
-                    <section className="rounded-2xl border border-border bg-card p-5">
+                    <section className="neu-raised-sm rounded-3xl p-5">
                         <SectionHeading step={5} title="How should we reach you?" hint="We call or WhatsApp — we never share your number." />
                         <label className="text-sm font-semibold text-foreground">Phone number</label>
                         <input
@@ -429,7 +431,7 @@ export default function WebsiteRequestPage() {
                     </section>
 
                     {/* Confirm + submit */}
-                    <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="neu-raised-sm rounded-3xl p-5">
                         <label className="flex cursor-pointer items-start gap-2.5">
                             <input
                                 type="checkbox"
@@ -460,7 +462,7 @@ export default function WebsiteRequestPage() {
             ) : (
                 /* ── Call-back request ─────────────────────────────────── */
                 <div className="space-y-4">
-                    <section className="rounded-2xl border border-border bg-card p-5">
+                    <section className="neu-raised-sm rounded-3xl p-5">
                         <div className="mb-4 flex items-start gap-3">
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-400">
                                 <PhoneCall className="h-5 w-5" />
