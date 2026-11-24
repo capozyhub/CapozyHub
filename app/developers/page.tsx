@@ -10,7 +10,9 @@ import {
     Menu, X, ExternalLink, AlertTriangle,
     UserCheck, Smartphone, GraduationCap, BadgeCheck, Lightbulb,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { BrandLogo } from '@/components/ui/brand'
+import { BrandSwoosh } from '@/components/brand-swoosh'
+import { BRAND } from '@/lib/brand'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Method = 'GET' | 'POST'
@@ -21,16 +23,16 @@ const LANG_TABS: LangTab[] = ['cURL', 'Node.js', 'PHP', 'Python']
 // ─── TOC ─────────────────────────────────────────────────────────────────────
 const TOC = [
     { id: 'authentication', label: 'Authentication', icon: Lock },
-    { id: 'response-format', label: 'Response Format', icon: Code2 },
+    { id: 'response-format', label: 'Response format', icon: Code2 },
     { id: 'endpoints', label: 'Endpoints', icon: List },
-    { id: 'account-role', label: 'Account & Role', icon: UserCheck },
+    { id: 'account-role', label: 'Account and role', icon: UserCheck },
     { id: 'airtime', label: 'Airtime', icon: Smartphone },
     { id: 'resultschecker', label: 'Results Checker', icon: GraduationCap },
     { id: 'afa', label: 'AFA Registration', icon: BadgeCheck },
-    { id: 'tips', label: 'Tips & Recommendations', icon: Lightbulb },
+    { id: 'tips', label: 'Tips', icon: Lightbulb },
     { id: 'networks', label: 'Networks', icon: Globe },
-    { id: 'errors', label: 'Error Codes', icon: AlertCircle },
-    { id: 'examples', label: 'Code Examples', icon: Zap },
+    { id: 'errors', label: 'Error codes', icon: AlertCircle },
+    { id: 'examples', label: 'Code examples', icon: Zap },
 ]
 
 // ─── Copy Button ─────────────────────────────────────────────────────────────
@@ -50,11 +52,11 @@ function CopyBtn({ text, className }: { text: string; className?: string }) {
             onClick={copy}
             className={cn(
                 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                'bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white border border-slate-600',
+                'neu-night text-silver-100 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500',
                 className
             )}
         >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-brand-400" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? 'Copied' : 'Copy'}
         </button>
     )
@@ -63,20 +65,20 @@ function CopyBtn({ text, className }: { text: string; className?: string }) {
 // ─── Code Block ──────────────────────────────────────────────────────────────
 function CodeBlock({ code, label, className }: { code: string; label?: string; className?: string }) {
     return (
-        <div className={cn('rounded-xl overflow-hidden border border-slate-700/50', className)}>
+        <div className={cn('neu-night rounded-xl overflow-hidden', className)}>
             {label && (
-                <div className="flex items-center justify-between pl-4 pr-2 py-2 bg-slate-800/80 border-b border-slate-700/50">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+                <div className="flex items-center justify-between pl-4 pr-2 py-2 border-b border-white/10">
+                    <span className="text-xs font-semibold text-silver-200/80">{label}</span>
                     <CopyBtn text={code} />
                 </div>
             )}
             {!label && (
-                <div className="flex justify-end px-2 py-2 bg-slate-800/80 border-b border-slate-700/50">
+                <div className="flex justify-end px-2 py-2 border-b border-white/10">
                     <CopyBtn text={code} />
                 </div>
             )}
-            <div className="bg-[#0d1117] overflow-x-auto p-4">
-                <pre className="text-[13px] font-mono text-slate-300 leading-relaxed whitespace-pre">{code}</pre>
+            <div className="neu-night-in overflow-x-auto p-4 m-2 rounded-lg">
+                <pre className="text-[13px] font-mono text-silver-100 leading-relaxed whitespace-pre">{code}</pre>
             </div>
         </div>
     )
@@ -85,7 +87,7 @@ function CodeBlock({ code, label, className }: { code: string; label?: string; c
 // ─── Inline Code ─────────────────────────────────────────────────────────────
 function IC({ children }: { children: React.ReactNode }) {
     return (
-        <code className="text-[12px] font-mono bg-slate-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-md">
+        <code className="text-[12px] font-mono bg-muted text-brand-800 dark:text-brand-400 px-1.5 py-0.5 rounded-md">
             {children}
         </code>
     )
@@ -93,14 +95,14 @@ function IC({ children }: { children: React.ReactNode }) {
 
 // ─── Method Badge ─────────────────────────────────────────────────────────────
 const METHOD_COLORS: Record<Method, string> = {
-    GET: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    GET: 'bg-foreground/10 text-foreground border-foreground/20',
     POST: 'bg-brand-500/15 text-brand-700 dark:text-brand-400 border-brand-500/30',
 }
 
 function MethodBadge({ method }: { method: Method }) {
     return (
         <span className={cn(
-            'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border tracking-wide font-mono',
+            'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border font-mono',
             METHOD_COLORS[method]
         )}>
             {method}
@@ -120,28 +122,28 @@ function EndpointSection({
     const [lang, setLang] = useState<LangTab>('cURL')
 
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="neu-raised-sm rounded-3xl overflow-hidden">
             {/* Header bar */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex-wrap">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border flex-wrap">
                 <MethodBadge method={method} />
-                <code className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100 break-all">{path}</code>
-                <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto hidden sm:block">{description}</span>
+                <code className="text-sm font-mono font-semibold text-foreground break-all">{path}</code>
+                <span className="text-xs text-muted-foreground ml-auto hidden sm:block">{description}</span>
             </div>
 
             <div className="p-5 sm:p-6 space-y-6">
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
 
                 {/* Query params */}
                 {queryParams && queryParams.length > 0 && (
                     <div>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Query Parameters</p>
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        <p className="text-sm font-semibold mb-3">Query parameters</p>
+                        <div className="neu-inset rounded-xl overflow-hidden divide-y divide-border">
                             {queryParams.map(p => (
                                 <div key={p.name} className="flex flex-wrap items-start gap-3 px-4 py-3 text-sm">
-                                    <code className="font-mono text-violet-600 dark:text-violet-400 text-xs font-bold w-24 flex-shrink-0 mt-0.5">{p.name}</code>
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">{p.type}</span>
-                                    {!p.required && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 uppercase">optional</span>}
-                                    <span className="text-slate-600 dark:text-slate-400 text-xs flex-1 min-w-[140px]">{p.desc}</span>
+                                    <code className="font-mono text-brand-800 dark:text-brand-400 text-xs font-bold w-24 flex-shrink-0 mt-0.5">{p.name}</code>
+                                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.type}</span>
+                                    {!p.required && <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">optional</span>}
+                                    <span className="text-muted-foreground text-xs flex-1 min-w-[140px]">{p.desc}</span>
                                 </div>
                             ))}
                         </div>
@@ -152,22 +154,22 @@ function EndpointSection({
                 <div className={cn('grid gap-5', requestBody ? 'sm:grid-cols-2' : 'grid-cols-1 max-w-xl')}>
                     {requestBody && (
                         <div>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Request Body</p>
+                            <p className="text-sm font-semibold mb-2">Request body</p>
                             <CodeBlock code={requestBody} />
                         </div>
                     )}
                     <div>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Response</p>
+                        <p className="text-sm font-semibold mb-2">Response</p>
                         <CodeBlock code={responseBody} />
                     </div>
                 </div>
 
                 {/* Notes */}
                 {notes && notes.length > 0 && (
-                    <ul className="space-y-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4">
+                    <ul className="space-y-2 neu-inset rounded-xl p-4">
                         {notes.map((note, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                <span className="text-violet-500 font-bold mt-0.5 flex-shrink-0">→</span>
+                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                <span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5 flex-shrink-0">→</span>
                                 <span className="leading-relaxed">{note}</span>
                             </li>
                         ))}
@@ -176,17 +178,19 @@ function EndpointSection({
 
                 {/* Code samples */}
                 <div className="space-y-2">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Code Sample</p>
-                    <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+                    <p className="text-sm font-semibold">Code sample</p>
+                    <div className="neu-inset flex flex-wrap gap-1 p-1 rounded-full w-fit" role="tablist" aria-label="Language">
                         {LANG_TABS.map(l => (
                             <button
                                 key={l}
+                                role="tab"
+                                aria-selected={lang === l}
                                 onClick={() => setLang(l)}
                                 className={cn(
-                                    'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                                    'min-h-9 px-3 rounded-full text-xs font-semibold transition-all',
                                     lang === l
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                        ? 'clay-gold'
+                                        : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
                                 {l}
@@ -203,8 +207,8 @@ function EndpointSection({
 // ─── Section Heading ──────────────────────────────────────────────────────────
 function SectionHeading({ id, num, label }: { id: string; num: number; label: string }) {
     return (
-        <h2 id={id} className="flex items-center gap-3 text-xl font-black text-slate-900 dark:text-white scroll-mt-24">
-            <span className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 text-sm font-black flex-shrink-0">
+        <h2 id={id} className="flex items-center gap-3 font-display text-2xl font-bold tracking-tight text-foreground scroll-mt-24">
+            <span className="clay-gold w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" aria-hidden="true">
                 {num}
             </span>
             {label}
@@ -215,21 +219,21 @@ function SectionHeading({ id, num, label }: { id: string; num: number; label: st
 // ─── Table ────────────────────────────────────────────────────────────────────
 function DocTable({ head, rows }: { head: string[]; rows: (string | React.ReactNode)[][] }) {
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="neu-raised-sm rounded-3xl overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[400px]">
                     <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/50">
+                        <tr className="bg-muted/60">
                             {head.map(h => (
-                                <th key={h} className="text-left px-5 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{h}</th>
+                                <th key={h} className="text-left px-5 py-3 text-sm font-semibold text-muted-foreground">{h}</th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-border">
                         {rows.map((row, i) => (
-                            <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                            <tr key={i} className="hover:bg-muted/40 transition-colors">
                                 {row.map((cell, j) => (
-                                    <td key={j} className="px-5 py-3 text-slate-700 dark:text-slate-300">{cell}</td>
+                                    <td key={j} className="px-5 py-3 text-foreground/80">{cell}</td>
                                 ))}
                             </tr>
                         ))}
@@ -759,36 +763,33 @@ print(r.json())`,
 // ─── TOC Nav ──────────────────────────────────────────────────────────────────
 function TocNav({ activeSection, onSelect }: { activeSection: string; onSelect: (id: string) => void }) {
     return (
-        <nav className="space-y-0.5">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-3">On this page</p>
+        <nav aria-label="On this page" className="space-y-1">
+            <p className="px-3 pb-2 text-sm font-semibold text-muted-foreground">On this page</p>
             {TOC.map(item => {
                 const Icon = item.icon
+                const active = activeSection === item.id
                 return (
                     <button
                         key={item.id}
                         onClick={() => onSelect(item.id)}
+                        aria-current={active ? 'true' : undefined}
                         className={cn(
-                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left',
-                            activeSection === item.id
-                                ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-semibold'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                            'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors',
+                            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500',
+                            active ? 'neu-inset font-semibold text-foreground' : 'font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                         )}
                     >
-                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <Icon className={cn('h-4 w-4 flex-shrink-0', active && 'text-brand-700 dark:text-brand-500')} aria-hidden="true" />
                         {item.label}
                     </button>
                 )
             })}
-            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                <Link href="/dashboard/api">
-                    <Button size="sm" className="w-full bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold gap-1.5 h-9">
-                        Get API Key <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+                <Link href="/dashboard/api" className="clay-gold flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                    Get an API key <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
-                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer" className="block">
-                    <Button size="sm" variant="outline" className="w-full text-xs font-bold gap-1.5 h-9">
-                        OpenAPI Spec <ExternalLink className="w-3 h-3" />
-                    </Button>
+                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer" className="clay-black flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+                    OpenAPI spec <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
             </div>
         </nav>
@@ -798,8 +799,8 @@ function TocNav({ activeSection, onSelect }: { activeSection: string; onSelect: 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DevelopersPage() {
     const [activeSection, setActiveSection] = useState('authentication')
-    const [activeLang, setActiveLang] = useState<LangTab>('cURL')
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [activeLang, setActiveLang] = useState<LangTab>('cURL')
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -812,7 +813,9 @@ export default function DevelopersPage() {
 
     useEffect(() => {
         document.body.style.overflow = sidebarOpen ? 'hidden' : ''
-        return () => { document.body.style.overflow = '' }
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSidebarOpen(false) }
+        window.addEventListener('keydown', onKey)
+        return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', onKey) }
     }, [sidebarOpen])
 
     const scrollTo = (id: string) => {
@@ -822,19 +825,16 @@ export default function DevelopersPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="min-h-screen bg-black">
 
             {sidebarOpen && (
                 <>
-                    <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-                    <div className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl border-r border-slate-200 dark:border-slate-800 flex flex-col lg:hidden">
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-                            <div className="flex items-center gap-2">
-                                <Code2 className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                                <span className="text-sm font-bold text-slate-900 dark:text-white">API Docs</span>
-                            </div>
-                            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Close menu">
-                                <X className="w-4 h-4 text-slate-500" />
+                    <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+                    <div role="dialog" aria-modal="true" aria-label="Contents" className="neu-raised fixed inset-y-0 left-0 z-50 flex w-72 flex-col rounded-r-3xl lg:hidden">
+                        <div className="flex flex-shrink-0 items-center justify-between px-5 py-4">
+                            <span className="font-display text-base font-bold">API docs</span>
+                            <button onClick={() => setSidebarOpen(false)} className="neu-raised-sm flex h-9 w-9 items-center justify-center rounded-full" aria-label="Close contents">
+                                <X className="h-4 w-4" />
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
@@ -845,106 +845,91 @@ export default function DevelopersPage() {
             )}
 
             {/* ── Hero ─────────────────────────────────────────────────────── */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-brand-700 to-slate-900 text-white">
-                <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(rgba(255,255,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] bg-[size:48px_48px]" />
-                <div className="relative max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-12 sm:py-20">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                            <Code2 className="w-5 h-5" />
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 rounded-full px-3 py-1">The live API</span>
-                        </div>
-                    </div>
-                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-3 leading-tight">
-                        Capozy Hub<br /><span className="text-violet-300">Developer API</span>
+            <header className="relative isolate overflow-hidden bg-black text-white">
+                <BrandSwoosh className="pointer-events-none absolute -bottom-10 -right-[28%] -z-10 w-full opacity-80 sm:-right-[8%] sm:w-[65%]" />
+                <div className="relative mx-auto max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pb-28 xl:max-w-6xl 2xl:max-w-[1600px]">
+                    <Link href="/" aria-label={BRAND.name} className="flex w-fit items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+                        <BrandLogo width={40} height={40} className="h-10 w-10" />
+                        <span className="font-display text-xl font-bold tracking-tight">{BRAND.nameFirst} <span className="text-brand-500">{BRAND.nameSecond}</span></span>
+                    </Link>
+                    <h1 className="mt-10 font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl">
+                        Build on the {BRAND.name} API.
                     </h1>
-                    <p className="text-sm sm:text-lg text-white/75 max-w-xl mb-8">
-                        One API for Ghana digital services: data bundles, airtime, WAEC/BECE results checkers and MTN AFA registration. Integrate using your wallet balance and agent pricing.
+                    <p className="mt-4 max-w-xl text-lg leading-relaxed text-silver-200">
+                        Sell data bundles, airtime, results checker vouchers and AFA registration from your own app. Orders are paid from your wallet at your role&apos;s price.
                     </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex flex-wrap items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm rounded-xl px-4 py-2.5 overflow-x-auto">
-                            <span className="text-xs text-white/60 font-medium whitespace-nowrap">Base URL</span>
-                            <code className="text-xs sm:text-sm font-mono text-white font-semibold whitespace-nowrap">{BASE}</code>
-                            <CopyBtn text={BASE} />
+                    <div className="mt-8 grid max-w-2xl gap-4">
+                        <div className="neu-night flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
+                            <span className="text-sm font-semibold text-silver-200">Base URL</span>
+                            <code className="overflow-x-auto whitespace-nowrap font-mono text-sm font-semibold text-white">{BASE}</code>
+                            <CopyBtn text={BASE} className="ml-auto" />
                         </div>
-                    </div>
-                    <div className="mt-8 rounded-xl overflow-hidden border border-white/10 bg-black/30 backdrop-blur-sm max-w-xl">
-                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-white/5">
-                            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Authentication Header</span>
-                            <CopyBtn text={`Authorization: ${KEY}`} />
-                        </div>
-                        <div className="px-4 py-3 overflow-x-auto">
-                            <pre className="text-sm font-mono text-violet-300 whitespace-nowrap">
-                                {'Authorization: '}<span className="text-emerald-400">{KEY}</span>
-                            </pre>
+                        <div className="neu-night rounded-2xl">
+                            <div className="flex items-center justify-between px-4 pt-3">
+                                <span className="text-sm font-semibold text-silver-200">Authentication header</span>
+                                <CopyBtn text={`Authorization: ${KEY}`} />
+                            </div>
+                            <div className="neu-night-in m-2 overflow-x-auto rounded-xl px-4 py-3">
+                                <pre className="whitespace-nowrap font-mono text-sm text-brand-400">{'Authorization: '}<span className="text-white">{KEY}</span></pre>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* ── Coverage notice ──────────────────────────────────────────────
-                Deliberately placed BEFORE the mobile TOC bar / Authentication
-                section — the single most important scope fact on this page
-                must not be something a developer only discovers after they've
-                already started integrating. */}
-            <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/50">
-                <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex items-start sm:items-center gap-3">
-                    <Globe className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5 sm:mt-0" />
-                    <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                        <strong>Ghana networks only.</strong> This API fulfils MTN, Telecel, AT-iShare, and AT-BigTime — Ghanaian
-                        numbers and Ghanaian networks exclusively. There is no support for international numbers, foreign
-                        telecom networks, or any country outside Ghana.
-                    </p>
+            {/* ── Docs sheet ───────────────────────────────────────────────── */}
+            <main className="relative -mt-8 rounded-t-[2rem] bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)]">
+                {/* Coverage notice: the most important scope fact, shown before anything else. */}
+                <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 xl:max-w-6xl 2xl:max-w-[1600px]">
+                    <div className="neu-inset flex items-start gap-3 rounded-2xl px-4 py-3.5" role="note">
+                        <Globe className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700 dark:text-brand-500" aria-hidden="true" />
+                        <p className="text-sm leading-relaxed text-foreground">
+                            <strong>Ghana networks only.</strong> The API serves MTN, Telecel, AT-iShare and AT-BigTime on Ghanaian numbers. International numbers and networks are not supported.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            {/* ── Mobile TOC bar ────────────────────────────────────────────── */}
-            <div className="lg:hidden sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Section:</span>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
+                {/* Mobile contents bar */}
+                <div className="sticky top-0 z-30 mx-auto mt-4 max-w-5xl px-4 lg:hidden">
+                    <div className="neu-raised-sm flex items-center justify-between gap-4 rounded-2xl px-4 py-2.5">
+                        <span className="truncate text-sm font-semibold">
                             {TOC.find(t => t.id === activeSection)?.label ?? 'Introduction'}
                         </span>
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="clay-gold flex min-h-9 flex-shrink-0 items-center gap-1.5 rounded-full px-4 text-xs font-semibold"
+                        >
+                            <Menu className="h-3.5 w-3.5" aria-hidden="true" />Contents
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-bold flex-shrink-0"
-                    >
-                        <Menu className="w-3.5 h-3.5" />Contents
-                    </button>
                 </div>
-            </div>
 
-            {/* ── Body ─────────────────────────────────────────────────────── */}
-            <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-10">
-                <div className="flex flex-col lg:flex-row gap-10">
+            <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 xl:max-w-6xl 2xl:max-w-[1600px]">
+                <div className="flex flex-col gap-10 lg:flex-row">
 
-                    <aside className="hidden lg:block w-52 xl:w-60 flex-shrink-0">
+                    <aside className="hidden w-52 flex-shrink-0 lg:block xl:w-60">
                         <div className="sticky top-8">
                             <TocNav activeSection={activeSection} onSelect={scrollTo} />
                         </div>
                     </aside>
-
                     <div className="flex-1 min-w-0 space-y-14">
 
                         {/* 1. Authentication */}
                         <section id="authentication" className="space-y-5">
                             <SectionHeading id="authentication" num={1} label="Authentication" />
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-5">
-                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            <div className="neu-raised-sm rounded-3xl p-6 space-y-5">
+                                <p className="text-sm text-muted-foreground leading-relaxed">
                                     All API requests must include your API key in the <IC>Authorization</IC> header — no Bearer prefix required.
                                 </p>
                                 <CodeBlock code={`Authorization: ${KEY}`} />
-                                <div className="flex items-start gap-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4">
-                                    <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠️</span>
-                                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                                        <strong>Important:</strong> Your API key is shown <em>only once</em> when generated. Store it securely — losing it requires generating a new key, which permanently revokes the old one.
+                                <div className="flex items-start gap-3 neu-inset rounded-xl p-4">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700 dark:text-brand-500" aria-hidden="true" />
+                                    <p className="text-sm text-foreground">
+                                        <strong>Save your key.</strong> Your API key is shown <em>only once</em> when generated. Store it securely — losing it requires generating a new key, which permanently revokes the old one.
                                     </p>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Getting Your API Key</h3>
+                                    <h3 className="text-sm font-bold text-foreground mb-3">Getting Your API Key</h3>
                                     <ol className="space-y-2">
                                         {[
                                             'Log in to your Capozy Hub account (agent role required)',
@@ -953,8 +938,8 @@ export default function DevelopersPage() {
                                             'Copy and store the key — it will not be shown again',
                                             'Wait for admin approval (status: pending → active)',
                                         ].map((step, i) => (
-                                            <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                                <span className="w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                                                <span className="clay-gold w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                                                     {i + 1}
                                                 </span>
                                                 {step}
@@ -967,9 +952,9 @@ export default function DevelopersPage() {
 
                         {/* 2. Response Format */}
                         <section id="response-format" className="space-y-5">
-                            <SectionHeading id="response-format" num={2} label="Response Format" />
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-5">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">All responses follow a consistent JSON structure:</p>
+                            <SectionHeading id="response-format" num={2} label="Response format" />
+                            <div className="neu-raised-sm rounded-3xl p-6 space-y-5">
+                                <p className="text-sm text-muted-foreground">All responses follow a consistent JSON structure:</p>
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
@@ -990,7 +975,7 @@ export default function DevelopersPage() {
                         {/* 3. Endpoints */}
                         <section id="endpoints" className="space-y-5">
                             <SectionHeading id="endpoints" num={3} label="Endpoints" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Eight endpoints — all require a valid API key in the <IC>Authorization</IC> header.</p>
+                            <p className="text-sm text-muted-foreground">Eight endpoints — all require a valid API key in the <IC>Authorization</IC> header.</p>
                             <div className="space-y-6">
 
                                 <EndpointSection
@@ -1071,8 +1056,8 @@ export default function DevelopersPage() {
 
                         {/* 4. Account & Role */}
                         <section id="account-role" className="space-y-5">
-                            <SectionHeading id="account-role" num={4} label="Account & Role" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <SectionHeading id="account-role" num={4} label="Account and role" />
+                            <p className="text-sm text-muted-foreground">
                                 Check your own role and, if it&apos;s time-limited, how many days are left — no support ticket needed.
                             </p>
                             <div className="space-y-6">
@@ -1093,7 +1078,7 @@ export default function DevelopersPage() {
                         {/* 5. Airtime */}
                         <section id="airtime" className="space-y-5">
                             <SectionHeading id="airtime" num={5} label="Airtime" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Send MTN, Telecel, or AT airtime to a beneficiary from your wallet. The beneficiary receives exactly the amount you send;
                                 the platform fee is added on top. Orders start as <IC>pending</IC> and are fulfilled by our team: poll the status endpoint or use a webhook.
                             </p>
@@ -1130,10 +1115,10 @@ export default function DevelopersPage() {
                         {/* 6. Results Checker */}
                         <section id="resultschecker" className="space-y-5">
                             <SectionHeading id="resultschecker" num={6} label="Results Checker" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Sell WAEC/BECE/WASSCE results checker vouchers. Same <IC>standard</IC> key.
                             </p>
-                            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4 text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                            <div className="neu-inset rounded-xl p-4 text-xs text-foreground leading-relaxed">
                                 <strong>Vouchers are returned directly in the purchase response</strong> — there is no separate
                                 &quot;retrieve voucher&quot; call. <IC>recipientPhone</IC> / <IC>recipientEmail</IC> are optional
                                 and have no fallback to your own account: omit both and Capozy Hub sends nothing — you own
@@ -1179,7 +1164,7 @@ export default function DevelopersPage() {
                         {/* 7. AFA Registration */}
                         <section id="afa" className="space-y-5">
                             <SectionHeading id="afa" num={7} label="AFA Registration" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Register an MTN AFA agent on behalf of your customer. Same <IC>standard</IC> key.
                             </p>
                             <div className="space-y-6">
@@ -1220,26 +1205,26 @@ export default function DevelopersPage() {
 
                         {/* 10. Tips & Recommendations */}
                         <section id="tips" className="space-y-6">
-                            <SectionHeading id="tips" num={8} label="Tips & Recommendations" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <SectionHeading id="tips" num={8} label="Tips" />
+                            <p className="text-sm text-muted-foreground">
                                 One key covers the whole API: data, airtime, results checker, AFA, wallet and orders.
                             </p>
 
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Your API key</p>
-                                <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Always send a unique <IC>reference</IC> per order — it becomes your idempotency key. A retry with the SAME reference and body safely returns the existing order instead of charging twice; reusing a reference for a genuinely DIFFERENT order returns <IC>409</IC> instead of a silent duplicate charge.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Poll <IC>GET .../orders/&#123;reference&#125;</IC> after placing an order rather than assuming success from the initial <IC>pending</IC> status.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Results Checker vouchers arrive directly in the purchase response — save them immediately. There is no separate voucher-retrieval call beyond the order-status lookup.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Validate the AFA Ghana Card format and region client-side before calling the API — it avoids a wasted request on an obvious input mistake.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>If you serve dealer/agent accounts, check <IC>GET /account/role</IC> — pricing is expiry-aware everywhere, so a lapsed reseller is automatically billed as a customer the moment their tier expires.</span></li>
-                                    <li className="flex items-start gap-2"><span className="text-violet-500 font-bold mt-0.5">→</span><span>Every list endpoint returns at most 30 records. Design your integration to look up by reference or page through results, not to fetch everything in one call.</span></li>
+                            <div className="neu-raised-sm rounded-3xl p-6 space-y-4">
+                                <p className="text-sm font-bold text-foreground">Your API key</p>
+                                <ul className="space-y-2.5 text-sm text-muted-foreground">
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>Always send a unique <IC>reference</IC> per order — it becomes your idempotency key. A retry with the SAME reference and body safely returns the existing order instead of charging twice; reusing a reference for a genuinely DIFFERENT order returns <IC>409</IC> instead of a silent duplicate charge.</span></li>
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>Poll <IC>GET .../orders/&#123;reference&#125;</IC> after placing an order rather than assuming success from the initial <IC>pending</IC> status.</span></li>
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>Results Checker vouchers arrive directly in the purchase response — save them immediately. There is no separate voucher-retrieval call beyond the order-status lookup.</span></li>
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>Validate the AFA Ghana Card format and region client-side before calling the API — it avoids a wasted request on an obvious input mistake.</span></li>
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>If you serve dealer/agent accounts, check <IC>GET /account/role</IC> — pricing is expiry-aware everywhere, so a lapsed reseller is automatically billed as a customer the moment their tier expires.</span></li>
+                                    <li className="flex items-start gap-2"><span className="text-brand-700 dark:text-brand-500 font-bold mt-0.5">→</span><span>Every list endpoint returns at most 30 records. Design your integration to look up by reference or page through results, not to fetch everything in one call.</span></li>
                                 </ul>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Network number validation</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            <div className="neu-raised-sm rounded-3xl p-6 space-y-4">
+                                <p className="text-sm font-bold text-foreground">Network number validation</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
                                     We detect a recipient/beneficiary&apos;s network from the number&apos;s prefix before submitting an
                                     order. As of this writing:
                                 </p>
@@ -1251,7 +1236,7 @@ export default function DevelopersPage() {
                                         ['AirtelTigo', '026, 027, 056, 057'],
                                     ]}
                                 />
-                                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                                <p className="text-xs text-muted-foreground leading-relaxed">
                                     These are <strong>not guaranteed to stay fixed</strong> — Ghanaian operators occasionally get
                                     reassigned or new ranges opened by the regulator. Don&apos;t hardcode this list as a permanent
                                     source of truth in your own client-side validation; our API&apos;s response is the final word on
@@ -1260,7 +1245,7 @@ export default function DevelopersPage() {
                                 </p>
                             </div>
 
-                            <div className="rounded-xl bg-violet-50 dark:bg-violet-900/15 border border-violet-200 dark:border-violet-800/50 p-4 text-sm text-violet-800 dark:text-violet-300">
+                            <div className="neu-inset rounded-xl p-4 text-sm text-foreground">
                                 Need a higher rate limit, custom pricing, or a role adjustment? Message admin support from your
                                 dashboard — don&apos;t build workarounds around a limit; we can usually just raise it for you.
                             </div>
@@ -1268,20 +1253,20 @@ export default function DevelopersPage() {
 
                         {/* 11. Networks */}
                         <section id="networks" className="space-y-5">
-                            <SectionHeading id="networks" num={9} label="Supported Networks" />
+                            <SectionHeading id="networks" num={9} label="Networks" />
                             <DocTable
                                 head={['Network Value', 'Provider', 'Notes']}
                                 rows={[
-                                    [<code key="mtn" className="font-mono text-violet-600 dark:text-violet-400 text-xs">"MTN"</code>, 'MTN Ghana', 'Most widely available bundles'],
-                                    [<code key="tel" className="font-mono text-violet-600 dark:text-violet-400 text-xs">"Telecel"</code>, 'Telecel Ghana (formerly Vodafone)', ''],
-                                    [<code key="at1" className="font-mono text-violet-600 dark:text-violet-400 text-xs">"AT-iShare"</code>, 'AirtelTigo iShare', 'AirtelTigo bundle type 1'],
-                                    [<code key="at2" className="font-mono text-violet-600 dark:text-violet-400 text-xs">"AT-BigTime"</code>, 'AirtelTigo BigTime', 'AirtelTigo bundle type 2'],
+                                    [<code key="mtn" className="font-mono text-brand-800 dark:text-brand-400 text-xs">"MTN"</code>, 'MTN Ghana', 'Most widely available bundles'],
+                                    [<code key="tel" className="font-mono text-brand-800 dark:text-brand-400 text-xs">"Telecel"</code>, 'Telecel Ghana (formerly Vodafone)', ''],
+                                    [<code key="at1" className="font-mono text-brand-800 dark:text-brand-400 text-xs">"AT-iShare"</code>, 'AirtelTigo iShare', 'AirtelTigo bundle type 1'],
+                                    [<code key="at2" className="font-mono text-brand-800 dark:text-brand-400 text-xs">"AT-BigTime"</code>, 'AirtelTigo BigTime', 'AirtelTigo bundle type 2'],
                                 ]}
                             />
-                            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4 text-sm text-amber-800 dark:text-amber-200">
+                            <div className="neu-inset rounded-xl p-4 text-sm text-foreground">
                                 Network values are <strong>case-sensitive</strong>. Use <IC>GET /packages</IC> to see exactly which networks and sizes are currently available.
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 This is the complete list — the four networks above are the only ones this API serves. There is no
                                 network value for any carrier outside Ghana, and none will be accepted.
                             </p>
@@ -1289,7 +1274,7 @@ export default function DevelopersPage() {
 
                         {/* 12. Error Codes */}
                         <section id="errors" className="space-y-5">
-                            <SectionHeading id="errors" num={10} label="Error Codes" />
+                            <SectionHeading id="errors" num={10} label="Error codes" />
                             <DocTable
                                 head={['Code', 'When it occurs']}
                                 rows={[
@@ -1299,23 +1284,23 @@ export default function DevelopersPage() {
                                     [<span key="404" className="font-mono font-bold text-red-500">404</span>, 'Package or order not found for the given network/size/reference'],
                                     [<span key="409" className="font-mono font-bold text-amber-500">409</span>, 'Duplicate reference — an order with this reference already exists.'],
                                     [<span key="429" className="font-mono font-bold text-amber-500">429</span>, 'Rate limit exceeded — back off and retry after a short delay'],
-                                    [<span key="500" className="font-mono font-bold text-slate-500">500</span>, 'Internal server error — contact support if persistent'],
-                                    [<span key="503" className="font-mono font-bold text-slate-500">503</span>, 'API feature temporarily disabled by administrator'],
+                                    [<span key="500" className="font-mono font-bold text-muted-foreground">500</span>, 'Internal server error — contact support if persistent'],
+                                    [<span key="503" className="font-mono font-bold text-muted-foreground">503</span>, 'API feature temporarily disabled by administrator'],
                                 ]}
                             />
                         </section>
 
                         {/* 13. Code Examples */}
                         <section id="examples" className="space-y-5">
-                            <SectionHeading id="examples" num={11} label="Full Examples" />
-                            <p className="text-sm text-slate-600 dark:text-slate-300">Complete runnable data purchase example. Select your language.</p>
-                            <div className="flex flex-wrap gap-1 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl w-fit">
+                            <SectionHeading id="examples" num={11} label="Code examples" />
+                            <p className="text-sm text-muted-foreground">Complete runnable data purchase example. Select your language.</p>
+                            <div className="neu-inset flex flex-wrap gap-1 p-1 rounded-full w-fit" role="tablist" aria-label="Language">
                                 {LANG_TABS.map(l => (
-                                    <button key={l} onClick={() => setActiveLang(l)}
-                                        className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all',
+                                    <button key={l} role="tab" aria-selected={activeLang === l} onClick={() => setActiveLang(l)}
+                                        className={cn('min-h-10 px-4 rounded-full text-sm font-semibold transition-all',
                                             activeLang === l
-                                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                                ? 'clay-gold'
+                                                : 'text-muted-foreground hover:text-foreground'
                                         )}>
                                         {l}
                                     </button>
@@ -1325,28 +1310,24 @@ export default function DevelopersPage() {
                         </section>
 
                         {/* Footer */}
-                        <div className="border-t border-slate-200 dark:border-slate-800 pt-10 text-center">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Ready to start building?</p>
+                        <div className="border-t border-border pt-10 text-center">
+                            <p className="text-sm text-muted-foreground mb-4">Ready to start building?</p>
                             <div className="flex flex-wrap items-center justify-center gap-3">
-                                <Link href="/dashboard/api">
-                                    <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold gap-2 px-6">
-                                        Get Your API Key <ArrowRight className="w-4 h-4" />
-                                    </Button>
+                                <Link href="/dashboard/api" className="clay-gold inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full px-8 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                                    Get your API key <ArrowRight className="h-4 w-4" aria-hidden="true" />
                                 </Link>
-                                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer">
-                                    <Button variant="outline" className="font-bold gap-2 px-6">
-                                        OpenAPI Spec <ExternalLink className="w-4 h-4" />
-                                    </Button>
+                                <a href="/openapi.yaml" target="_blank" rel="noopener noreferrer" className="clay-black inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full px-8 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
+                                    OpenAPI spec <ExternalLink className="h-4 w-4" aria-hidden="true" />
                                 </a>
-                            </div>
-                            <p className="mt-6 text-xs text-slate-400 dark:text-slate-600">
-                                © {new Date().getFullYear()} Capozy Hub · Need help? Contact support via your dashboard.
+                            </div>                            <p className="mt-6 text-xs text-muted-foreground">
+                                &copy; {new Date().getFullYear()} {BRAND.name}. Need help? Contact support from your dashboard.
                             </p>
                         </div>
 
                     </div>
                 </div>
             </div>
+            </main>
         </div>
     )
 }
