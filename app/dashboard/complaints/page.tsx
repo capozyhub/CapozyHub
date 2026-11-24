@@ -3,34 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
+import { fetchAllRows } from '@/lib/fetch-all-rows'
 import { formatDate, normalizeWhatsAppNumber, cn } from '@/lib/utils'
 import { getSupportContacts, SupportContacts } from '@/app/actions/support'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     MessageSquare, Loader2, Send, ArrowLeft, Plus, Phone, Mail,
-    ChevronDown, CheckCircle2, XCircle, Headphones, Lock,
-    Bell, X, ExternalLink,
+    ChevronDown, CheckCircle2, XCircle, Headphones, Lock, Bell, X, ExternalLink,
 } from 'lucide-react'
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
+import { ClayButton, Notice, TextField } from '@/components/auth/fields'
+import { FOCUS } from '@/components/auth/auth-shell'
 import { toast } from '@/lib/toast'
 import { Complaint } from '@/types/supabase'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
@@ -57,26 +43,37 @@ interface SupportMessage {
 
 const GH_PHONE_RE = /^(0|\+233)[2-9][0-9]{8}$/
 
-function PresenceBadge({ active }: { active: boolean | null }) {
-    if (active === null) return null
-    return (
-        <span className={cn(
-            'inline-flex items-center gap-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-            active
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-        )}>
-            <span className={cn('w-1.5 h-1.5 rounded-full', active ? 'bg-emerald-500' : 'bg-amber-500')} />
-            {active ? 'Support active now' : 'Support away'}
-        </span>
-    )
-}
-
 const CATEGORY_LABELS: Record<SupportThread['category'], string> = {
     order: 'Order issue',
     payment: 'Payment',
     account: 'Account',
     other: 'Other',
+}
+
+const STATUS_LABEL: Record<SupportThread['status'], string> = { open: 'Open', closed: 'Closed' }
+
+/** Keep a short, readable server message; otherwise use our own sentence. */
+function plainError(message: unknown, fallback: string) {
+    return typeof message === 'string' && message.length > 0 && message.length < 160 ? message : fallback
+}
+
+function StatusPill({ status }: { status: SupportThread['status'] }) {
+    return (
+        <span className="neu-inset inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+            <span className={cn('h-1.5 w-1.5 rounded-full', status === 'open' ? 'bg-brand-500' : 'bg-silver-400')} aria-hidden="true" />
+            {STATUS_LABEL[status]}
+        </span>
+    )
+}
+
+function PresenceBadge({ active }: { active: boolean | null }) {
+    if (active === null) return null
+    return (
+        <span className="neu-inset inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium">
+            <span className={cn('h-1.5 w-1.5 rounded-full', active ? 'bg-emerald-500' : 'bg-silver-400')} aria-hidden="true" />
+            {active ? 'Support is online' : 'Support is away'}
+        </span>
+    )
 }
 
 export default function SupportComplaintsPage() {
@@ -86,9 +83,11 @@ export default function SupportComplaintsPage() {
     const [threads, setThreads] = useState<SupportThread[]>([])
     const [unreadByThread, setUnreadByThread] = useState<Record<string, number>>({})
     const [loadingThreads, setLoadingThreads] = useState(true)
+    const [threadsFailed, setThreadsFailed] = useState(false)
     const [selectedThread, setSelectedThread] = useState<SupportThread | null>(null)
     const [messages, setMessages] = useState<SupportMessage[]>([])
     const [loadingMessages, setLoadingMessages] = useState(false)
+    const [messagesFailed, setMessagesFailed] = useState(false)
     const [composer, setComposer] = useState('')
     const [sending, setSending] = useState(false)
 
@@ -100,13 +99,13 @@ export default function SupportComplaintsPage() {
     const [phone, setPhone] = useState('')
     const [whatsapp, setWhatsapp] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [formError, setFormError] = useState('')
 
     // Legacy order complaints (read-only history)
     const [legacy, setLegacy] = useState<Complaint[]>([])
     const [showLegacy, setShowLegacy] = useState(false)
 
-    // Support "active now" badge — heartbeat-based, not real presence (see
-    // lib/admin-presence.ts). Polled lightly; never blocks the chat UI.
+    // "Support is online" badge: heartbeat-based, not real presence (see lib/admin-presence.ts).
     const [supportActive, setSupportActive] = useState<boolean | null>(null)
     useEffect(() => {
         let cancelled = false
@@ -115,15 +114,14 @@ export default function SupportComplaintsPage() {
                 const res = await fetch('/api/support/presence')
                 const json = await res.json()
                 if (!cancelled && res.ok && json.success) setSupportActive(json.data.active)
-            } catch { /* transient — keep last known state */ }
+            } catch { /* transient: keep last known state */ }
         }
         poll()
         const interval = setInterval(poll, 45_000)
         return () => { cancelled = true; clearInterval(interval) }
     }, [])
 
-    // Contextual push prompt — admin replies land as web push, so nudge users
-    // who start a chat without notifications enabled. Dismissal lasts the session.
+    // Admin replies arrive as web push, so nudge people who start a chat without notifications.
     const { permission, isSupported, isSubscribing, requestPermission } = usePushNotifications()
     const [pushPromptDismissed, setPushPromptDismissed] = useState(true)
     useEffect(() => {
@@ -149,26 +147,25 @@ export default function SupportComplaintsPage() {
 
     const fetchThreads = useCallback(async () => {
         if (!dbUser?.id) return
+        setThreadsFailed(false)
         try {
-            const [{ data: threadRows }, { data: unreadRows }] = await Promise.all([
-                (supabase as any)
-                    .from('support_threads')
-                    .select('*')
-                    .order('last_message_at', { ascending: false }),
-                (supabase as any)
-                    .from('support_messages')
-                    .select('thread_id')
-                    .eq('sender_role', 'admin')
-                    .is('read_by_user_at', null),
+            const [threadRes, unreadRes] = await Promise.all([
+                fetchAllRows<SupportThread>(() => (supabase as any)
+                    .from('support_threads').select('*')
+                    .order('last_message_at', { ascending: false }).order('id', { ascending: false })),
+                fetchAllRows<{ thread_id: string }>(() => (supabase as any)
+                    .from('support_messages').select('thread_id')
+                    .eq('sender_role', 'admin').is('read_by_user_at', null)
+                    .order('id', { ascending: false })),
             ])
-            setThreads(threadRows || [])
+            if (threadRes.failed) { setThreadsFailed(true); return }
+            setThreads(threadRes.rows)
             const unread: Record<string, number> = {}
-            for (const row of unreadRows || []) {
-                unread[row.thread_id] = (unread[row.thread_id] || 0) + 1
-            }
+            for (const row of unreadRes.rows) unread[row.thread_id] = (unread[row.thread_id] || 0) + 1
             setUnreadByThread(unread)
         } catch (error) {
             console.error('Error fetching support threads:', error)
+            setThreadsFailed(true)
         } finally {
             setLoadingThreads(false)
         }
@@ -177,12 +174,12 @@ export default function SupportComplaintsPage() {
     const fetchLegacy = useCallback(async () => {
         if (!dbUser?.id) return
         try {
-            const { data } = await (supabase
+            const res = await fetchAllRows<Complaint>(() => (supabase
                 .from('complaints')
                 .select('*, orders (reference_code, network, size)')
                 .eq('user_id', dbUser.id)
-                .order('created_at', { ascending: false }) as any)
-            setLegacy(data || [])
+                .order('created_at', { ascending: false }).order('id', { ascending: false }) as any))
+            setLegacy(res.rows)
         } catch (error) {
             console.error('Error fetching legacy complaints:', error)
         }
@@ -199,8 +196,7 @@ export default function SupportComplaintsPage() {
     const threadIdsRef = useRef<Set<string>>(new Set())
     useEffect(() => { threadIdsRef.current = new Set(threads.map(t => t.id)) }, [threads])
 
-    // Live updates: new messages in my threads + thread status changes.
-    // RLS scopes both subscriptions to rows this user may SELECT.
+    // Live updates: new messages in my threads and thread status changes. RLS scopes both to this user.
     useEffect(() => {
         if (!dbUser?.id) return
         const channel = supabase
@@ -210,8 +206,7 @@ export default function SupportComplaintsPage() {
                 (payload: any) => {
                     const msg = payload.new as SupportMessage
                     if (!msg?.thread_id) return
-                    // RLS already scopes broadcasts to this user's threads; this
-                    // client-side guard is defense-in-depth against upstream regressions.
+                    // Defence in depth on top of RLS.
                     if (!threadIdsRef.current.has(msg.thread_id)) return
                     setMessages(prev =>
                         msg.thread_id === selectedThreadIdRef.current && !prev.some(m => m.id === msg.id)
@@ -221,8 +216,7 @@ export default function SupportComplaintsPage() {
                     if (msg.sender_role === 'admin' && msg.thread_id !== selectedThreadIdRef.current) {
                         setUnreadByThread(prev => ({ ...prev, [msg.thread_id]: (prev[msg.thread_id] || 0) + 1 }))
                     }
-                    // Realtime delivery to an open client counts as "delivered" —
-                    // the grey double-tick admin sees, independent of "read".
+                    // Arriving at an open client counts as delivered (the grey tick support sees).
                     if (msg.sender_role === 'admin') {
                         (supabase as any)
                             .from('support_messages')
@@ -247,21 +241,25 @@ export default function SupportComplaintsPage() {
         return () => { supabase.removeChannel(channel) }
     }, [dbUser?.id])
 
+    // Only the latest opened thread may fill the chat, so a slow earlier reply cannot overwrite it.
+    const openSeq = useRef(0)
     const openThread = async (thread: SupportThread) => {
+        const seq = ++openSeq.current
         setSelectedThread(thread)
         setLoadingMessages(true)
+        setMessagesFailed(false)
         setMessages([])
         try {
-            // Explicit column list — read_by_admin_at (admin read-receipts) is not
-            // part of the user-facing contract, so don't ship it to the browser.
-            const { data } = await (supabase as any)
+            // Explicit column list: read_by_admin_at (admin read receipts) is not part of the member contract.
+            const res = await fetchAllRows<SupportMessage>(() => (supabase as any)
                 .from('support_messages')
                 .select('id, thread_id, sender_role, body, read_by_user_at, created_at')
                 .eq('thread_id', thread.id)
-                .order('created_at', { ascending: true })
-            setMessages(data || [])
-            // Mark admin messages delivered + read (column-level grant allows only
-            // the two user-direction columns).
+                .order('created_at', { ascending: true }).order('id', { ascending: true }))
+            if (seq !== openSeq.current) return
+            if (res.failed) { setMessagesFailed(true); return }
+            setMessages(res.rows)
+            // Mark admin messages delivered and read (a column-level grant allows only these two columns).
             const now = new Date().toISOString()
             await (supabase as any)
                 .from('support_messages')
@@ -269,11 +267,12 @@ export default function SupportComplaintsPage() {
                 .eq('thread_id', thread.id)
                 .eq('sender_role', 'admin')
                 .is('read_by_user_at', null)
-            setUnreadByThread(prev => ({ ...prev, [thread.id]: 0 }))
+            if (seq === openSeq.current) setUnreadByThread(prev => ({ ...prev, [thread.id]: 0 }))
         } catch (error) {
             console.error('Error loading messages:', error)
+            if (seq === openSeq.current) setMessagesFailed(true)
         } finally {
-            setLoadingMessages(false)
+            if (seq === openSeq.current) setLoadingMessages(false)
         }
     }
 
@@ -291,13 +290,13 @@ export default function SupportComplaintsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text }),
             })
-            const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to send message')
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || !json.success) throw new Error(plainError(json.error, 'We could not send your message. Try again.'))
             setComposer('')
             const sent = json.data.message as SupportMessage
             setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
         } catch (error: any) {
-            toast.error(error?.message || 'Failed to send message')
+            toast.error(plainError(error?.message, 'We could not send your message. Try again.'))
         } finally {
             setSending(false)
         }
@@ -308,15 +307,17 @@ export default function SupportComplaintsPage() {
         setCategory('other')
         setFirstMessage('')
         setWhatsapp('')
+        setFormError('')
         setPhone((dbUser as any)?.phone_number || '')
     }
 
     const handleCreate = async () => {
         if (submitting) return
-        if (subject.trim().length < 3) { toast.error('Please enter a short subject'); return }
-        if (firstMessage.trim().length < 5) { toast.error('Please describe your issue'); return }
-        if (!GH_PHONE_RE.test(phone.trim())) { toast.error('Enter a valid Ghanaian phone number'); return }
-        if (!GH_PHONE_RE.test(whatsapp.trim())) { toast.error('Enter a valid WhatsApp number'); return }
+        if (subject.trim().length < 3) { setFormError('Give your complaint a short subject.'); return }
+        if (firstMessage.trim().length < 5) { setFormError('Tell us what happened, in a sentence or two.'); return }
+        if (!GH_PHONE_RE.test(phone.trim())) { setFormError('Enter a valid Ghana phone number, like 0241234567.'); return }
+        if (!GH_PHONE_RE.test(whatsapp.trim())) { setFormError('Enter a valid WhatsApp number, like 0241234567.'); return }
+        setFormError('')
         setSubmitting(true)
         try {
             const res = await fetch('/api/support/threads', {
@@ -330,16 +331,16 @@ export default function SupportComplaintsPage() {
                     whatsapp_number: whatsapp.trim(),
                 }),
             })
-            const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to open complaint')
-            toast.success('Complaint submitted — our team will reply here')
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || !json.success) throw new Error(plainError(json.error, 'We could not send your complaint. Try again.'))
+            toast.success('Complaint sent. Our team will reply here.')
             setShowNew(false)
             resetNewForm()
             const thread = json.data.thread as SupportThread
             setThreads(prev => [thread, ...prev])
             openThread(thread)
         } catch (error: any) {
-            toast.error(error?.message || 'Failed to open complaint')
+            setFormError(plainError(error?.message, 'We could not send your complaint. Try again.'))
         } finally {
             setSubmitting(false)
         }
@@ -350,242 +351,241 @@ export default function SupportComplaintsPage() {
     const contactCards = useMemo(() => {
         if (!contacts) return []
         const cards: { label: string; hint: string; href: string; icon: any }[] = []
-        if (contacts.phone) cards.push({ label: 'Call Support', hint: contacts.phone, href: `tel:${contacts.phone}`, icon: Phone })
-        if (contacts.email) cards.push({ label: 'Email Support', hint: contacts.email, href: `mailto:${contacts.email}`, icon: Mail })
+        if (contacts.phone) cards.push({ label: 'Call us', hint: contacts.phone, href: `tel:${contacts.phone}`, icon: Phone })
+        if (contacts.email) cards.push({ label: 'Email us', hint: contacts.email, href: `mailto:${contacts.email}`, icon: Mail })
         return cards
     }, [contacts])
 
-    // WhatsApp surfaces get first-class branded treatment — they are the
-    // primary support channel for most users.
     const whatsappLinks = useMemo(() => {
         if (!contacts) return []
         const links: { label: string; sub: string; href: string }[] = []
-        if (contacts.communityLink) links.push({
-            label: 'WhatsApp Community',
-            sub: 'Connect with other users & resellers',
-            href: contacts.communityLink,
-        })
-        if (contacts.groupLink) links.push({
-            label: 'Official Group',
-            sub: 'Ask questions & get help from the group',
-            href: contacts.groupLink,
-        })
-        if (contacts.channelLink) links.push({
-            label: 'Updates Channel',
-            sub: 'Announcements, offers & new services',
-            href: contacts.channelLink,
-        })
+        if (contacts.communityLink) links.push({ label: 'WhatsApp community', sub: 'Meet other members and resellers', href: contacts.communityLink })
+        if (contacts.groupLink) links.push({ label: 'Official group', sub: 'Ask questions and get help from the group', href: contacts.groupLink })
+        if (contacts.channelLink) links.push({ label: 'Updates channel', sub: 'Announcements, offers and new services', href: contacts.channelLink })
         return links
     }, [contacts])
 
     const openCount = threads.filter(t => t.status === 'open').length
 
-    // Suspended users are deliberately allowed on this page (layout gate exempts
-    // it) so they can appeal — give them context instead of a dead end.
+    // Suspended members are allowed on this page (the layout gate exempts it) so they can appeal.
     const isSuspendedUser = (dbUser as any)?.status === 'suspended'
 
     if (loadingThreads) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-20" role="status" aria-label="Loading your complaints">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
             </div>
         )
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Support &amp; Complaints</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Help and complaints</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Reach our team directly, or open a complaint and chat with us here.
                     </p>
                 </div>
-                <Button onClick={() => setShowNew(true)} className="gap-1.5 shrink-0">
-                    <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New Complaint</span><span className="sm:hidden">New</span>
-                </Button>
+                <button
+                    type="button"
+                    onClick={() => setShowNew(true)}
+                    className={cn('clay-gold flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold', FOCUS)}
+                >
+                    <Plus className="h-4 w-4" aria-hidden="true" /> New complaint
+                </button>
             </div>
 
-            {/* Suspension appeal notice */}
             {isSuspendedUser && (
-                <div className="rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-900/15 dark:border-amber-700/40 px-4 py-3">
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Your account is suspended</p>
-                    <p className="text-xs text-amber-700/90 dark:text-amber-400/90 mt-0.5">
-                        You can still use this page — open a complaint below to appeal your suspension, or reach us on WhatsApp.
-                    </p>
-                </div>
+                <Notice tone="info">
+                    <span className="block font-semibold">Your account is suspended.</span>
+                    <span className="mt-0.5 block font-normal text-muted-foreground">
+                        You can still use this page. Open a complaint below to appeal, or reach us on WhatsApp.
+                    </span>
+                </Notice>
             )}
 
-            {/* Contact hub */}
             {(contacts?.whatsapp || contactCards.length > 0 || whatsappLinks.length > 0) && (
-                <div className="space-y-3">
-                    {/* WhatsApp Support — the primary channel, prominently branded */}
+                <section aria-label="Contact us" className="space-y-3">
                     {contacts?.whatsapp && (
-                        <a href={waLink(contacts.whatsapp)} target="_blank" rel="noopener noreferrer" className="block">
-                            <Card className="border-[#25D366]/40 bg-[#25D366]/5 dark:bg-[#25D366]/10 transition-all hover:border-[#25D366]/70 hover:shadow-md">
-                                <CardContent className="p-4 sm:p-5 flex items-center gap-4">
-                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#25D366] flex items-center justify-center shrink-0 shadow-sm">
-                                        <WhatsAppIcon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm sm:text-base font-semibold">WhatsApp Support</p>
-                                        <p className="text-xs sm:text-sm text-muted-foreground">
-                                            Chat with our support team directly on WhatsApp — the fastest way to reach us.
-                                        </p>
-                                    </div>
-                                    <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
-                                </CardContent>
-                            </Card>
+                        <a
+                            href={waLink(contacts.whatsapp)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn('neu-raised neu-press flex items-center gap-4 rounded-[2rem] p-4 sm:p-5', FOCUS)}
+                        >
+                            <span className="clay-black flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+                                <WhatsAppIcon className="h-6 w-6 text-white" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block font-display text-base font-bold tracking-tight">Chat on WhatsApp</span>
+                                <span className="block text-sm text-muted-foreground">The fastest way to reach our support team.</span>
+                            </span>
+                            <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <span className="sr-only">(opens in a new tab)</span>
                         </a>
                     )}
 
-                    {/* Call / Email */}
                     {contactCards.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {contactCards.map(card => (
-                                <a key={card.label} href={card.href} target="_blank" rel="noopener noreferrer">
-                                    <Card className="h-full transition-colors hover:border-primary/40">
-                                        <CardContent className="p-4 flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                <card.icon className="w-5 h-5 text-primary" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium">{card.label}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{card.hint}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                <a key={card.label} href={card.href} className={cn('neu-raised-sm neu-press flex items-center gap-3 rounded-3xl p-4', FOCUS)}>
+                                    <span className="neu-inset flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                                        <card.icon className="h-4 w-4" aria-hidden="true" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-sm font-semibold">{card.label}</span>
+                                        <span className="block truncate text-xs text-muted-foreground">{card.hint}</span>
+                                    </span>
                                 </a>
                             ))}
                         </div>
                     )}
 
-                    {/* WhatsApp community, group & channel — branded cards with context */}
                     {whatsappLinks.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             {whatsappLinks.map(link => (
-                                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">
-                                    <Card className="h-full transition-colors hover:border-[#25D366]/60">
-                                        <CardContent className="p-4 flex items-start gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-[#25D366]/15 flex items-center justify-center shrink-0">
-                                                <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium">{link.label}</p>
-                                                <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{link.sub}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                <a
+                                    key={link.label}
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={cn('neu-raised-sm neu-press flex items-start gap-3 rounded-3xl p-4', FOCUS)}
+                                >
+                                    <span className="neu-inset flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                                        <WhatsAppIcon className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-sm font-semibold">{link.label}</span>
+                                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{link.sub}</span>
+                                        <span className="sr-only">(opens in a new tab)</span>
+                                    </span>
                                 </a>
                             ))}
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
-            {/* Threads + chat */}
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(260px,340px)_1fr] gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(260px,340px)_1fr]">
                 {/* Thread list */}
-                <div className={cn('space-y-2', selectedThread && 'hidden md:block')}>
+                <section aria-labelledby="my-complaints" className={cn('space-y-3', selectedThread && 'hidden md:block')}>
                     <div className="flex items-center justify-between px-1">
-                        <p className="text-sm font-medium">My Complaints</p>
-                        {openCount > 0 && (
-                            <span className="text-xs text-muted-foreground">{openCount} open</span>
-                        )}
+                        <h2 id="my-complaints" className="font-display text-lg font-bold tracking-tight">My complaints</h2>
+                        {openCount > 0 && <span className="text-xs text-muted-foreground">{openCount} open</span>}
                     </div>
-                    {threads.length === 0 ? (
-                        <Card className="p-8 text-center">
-                            <Headphones className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
-                            <p className="text-sm text-muted-foreground">No complaints yet</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Open one and our team will reply right here.
-                            </p>
-                        </Card>
-                    ) : (
-                        threads.map(thread => (
+                    {threadsFailed ? (
+                        <div className="space-y-3">
+                            <Notice>We could not load your complaints. Check your connection and try again.</Notice>
                             <button
-                                key={thread.id}
-                                onClick={() => openThread(thread)}
-                                className={cn(
-                                    'w-full text-left rounded-xl border p-3 transition-colors hover:border-primary/40',
-                                    selectedThread?.id === thread.id && 'border-primary/60 bg-muted/40'
-                                )}
+                                type="button"
+                                onClick={() => { setLoadingThreads(true); fetchThreads() }}
+                                className={cn('clay-silver min-h-11 w-full rounded-full text-sm font-semibold', FOCUS)}
                             >
-                                <div className="flex items-center justify-between gap-2">
-                                    <p className="text-sm font-medium truncate">{thread.subject}</p>
-                                    {(unreadByThread[thread.id] || 0) > 0 && (
-                                        <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
-                                            {unreadByThread[thread.id]}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                    <Badge variant={thread.status === 'open' ? 'processing' : 'completed'} className="text-[10px] py-0 h-5">
-                                        {thread.status}
-                                    </Badge>
-                                    <span className="text-[11px] text-muted-foreground">{CATEGORY_LABELS[thread.category]}</span>
-                                    <span className="text-[11px] text-muted-foreground ml-auto">{formatDate(thread.last_message_at)}</span>
-                                </div>
+                                Try again
                             </button>
-                        ))
+                        </div>
+                    ) : threads.length === 0 ? (
+                        <div className="neu-inset rounded-3xl p-8 text-center">
+                            <Headphones className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" aria-hidden="true" />
+                            <p className="font-semibold">No complaints yet</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Open one and our team will reply right here.</p>
+                        </div>
+                    ) : (
+                        <ul className="space-y-2">
+                            {threads.map(thread => {
+                                const unread = unreadByThread[thread.id] || 0
+                                return (
+                                    <li key={thread.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => openThread(thread)}
+                                            aria-current={selectedThread?.id === thread.id}
+                                            className={cn(
+                                                'w-full rounded-3xl p-4 text-left',
+                                                selectedThread?.id === thread.id ? 'neu-inset' : 'neu-raised-sm neu-press',
+                                                FOCUS,
+                                            )}
+                                        >
+                                            <span className="flex items-center justify-between gap-2">
+                                                <span className="truncate text-sm font-semibold">{thread.subject}</span>
+                                                {unread > 0 && (
+                                                    <span className="clay-gold flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
+                                                        {unread}
+                                                        <span className="sr-only"> unread</span>
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="mt-2 flex items-center gap-2">
+                                                <StatusPill status={thread.status} />
+                                                <span className="text-[11px] text-muted-foreground">{CATEGORY_LABELS[thread.category]}</span>
+                                                <span className="ml-auto text-[11px] text-muted-foreground">{formatDate(thread.last_message_at)}</span>
+                                            </span>
+                                        </button>
+                                    </li>
+                                )
+                            })}
+                        </ul>
                     )}
-                </div>
+                </section>
 
                 {/* Chat pane */}
-                <div className={cn(!selectedThread && 'hidden md:block')}>
+                <section aria-label="Conversation" className={cn(!selectedThread && 'hidden md:block')}>
                     {!selectedThread ? (
-                        <Card className="h-full min-h-[320px] flex items-center justify-center">
-                            <div className="text-center px-6">
-                                <MessageSquare className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
-                                <p className="text-sm text-muted-foreground">Select a complaint to view the conversation</p>
+                        <div className="neu-inset flex h-full min-h-[320px] items-center justify-center rounded-[2rem]">
+                            <div className="px-6 text-center">
+                                <MessageSquare className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" aria-hidden="true" />
+                                <p className="text-sm text-muted-foreground">Pick a complaint to read the conversation.</p>
                             </div>
-                        </Card>
+                        </div>
                     ) : (
-                        <Card className="flex flex-col h-[520px] max-h-[70vh] overflow-hidden">
-                            {/* Chat header */}
-                            <div className="px-4 py-3 border-b flex items-center gap-3 bg-gradient-to-r from-background to-muted/30">
+                        <div className="neu-raised flex h-[520px] max-h-[70vh] flex-col overflow-hidden rounded-[2rem]">
+                            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                                 <button
+                                    type="button"
                                     onClick={() => setSelectedThread(null)}
-                                    className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted"
+                                    className={cn('-ml-1.5 flex h-10 w-10 items-center justify-center rounded-full md:hidden', FOCUS)}
                                     aria-label="Back to complaints"
                                 >
-                                    <ArrowLeft className="w-4 h-4" />
+                                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                                 </button>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium truncate">{selectedThread.subject}</p>
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="truncate font-display text-base font-bold tracking-tight">{selectedThread.subject}</p>
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <p className="text-[11px] text-muted-foreground">
                                             {CATEGORY_LABELS[selectedThread.category]} · opened {formatDate(selectedThread.created_at)}
                                         </p>
                                         {selectedThread.status === 'open' && <PresenceBadge active={supportActive} />}
                                     </div>
                                 </div>
-                                <Badge variant={selectedThread.status === 'open' ? 'processing' : 'completed'}>
-                                    {selectedThread.status}
-                                </Badge>
+                                <StatusPill status={selectedThread.status} />
                             </div>
 
-                            {/* Messages */}
-                            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-muted/10 to-muted/30">
+                            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
                                 {loadingMessages ? (
-                                    <div className="flex justify-center py-10">
-                                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                                    <div className="flex justify-center py-10" role="status" aria-label="Loading messages">
+                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+                                    </div>
+                                ) : messagesFailed ? (
+                                    <div className="space-y-3 py-6">
+                                        <Notice>We could not load this conversation.</Notice>
+                                        <button
+                                            type="button"
+                                            onClick={() => openThread(selectedThread)}
+                                            className={cn('clay-silver mx-auto flex min-h-11 items-center rounded-full px-6 text-sm font-semibold', FOCUS)}
+                                        >
+                                            Try again
+                                        </button>
                                     </div>
                                 ) : (
                                     messages.map(msg => (
                                         <div key={msg.id} className={cn('flex', msg.sender_role === 'user' ? 'justify-end' : 'justify-start')}>
                                             <div className={cn(
-                                                'max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm transition-colors',
-                                                msg.sender_role === 'user'
-                                                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                                                    : 'bg-background border rounded-bl-md'
+                                                'max-w-[85%] rounded-3xl px-4 py-2.5 text-sm sm:max-w-[70%]',
+                                                msg.sender_role === 'user' ? 'clay-black rounded-br-lg' : 'neu-raised-sm rounded-bl-lg',
                                             )}>
                                                 <p className="whitespace-pre-wrap break-words">{msg.body}</p>
-                                                <p className={cn(
-                                                    'text-[10px] mt-1 text-right',
-                                                    msg.sender_role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                                                )}>
+                                                <p className={cn('mt-1 text-right text-[10px]', msg.sender_role === 'user' ? 'text-silver-200' : 'text-muted-foreground')}>
                                                     {formatDate(msg.created_at)}
                                                 </p>
                                             </div>
@@ -594,190 +594,186 @@ export default function SupportComplaintsPage() {
                                 )}
                             </div>
 
-                            {/* Contextual push prompt — shown while chatting without notifications */}
                             {selectedThread.status === 'open' && showPushPrompt && (
-                                <div className="px-3 py-2.5 border-t bg-primary/5 flex items-center gap-2.5">
-                                    <Bell className="w-4 h-4 text-primary shrink-0" />
-                                    <p className="text-xs text-muted-foreground flex-1 min-w-0">
-                                        Get notified the moment support replies — even when you close this page.
+                                <div className="flex items-center gap-2.5 border-t border-border px-3 py-2.5">
+                                    <Bell className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                    <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                                        Get a notification the moment support replies, even after you close this page.
                                     </p>
-                                    <Button
-                                        size="sm"
+                                    <button
+                                        type="button"
                                         onClick={() => requestPermission()}
                                         disabled={isSubscribing}
-                                        className="h-7 px-2.5 text-xs shrink-0"
+                                        className={cn('clay-gold min-h-9 shrink-0 rounded-full px-3 text-xs font-semibold disabled:opacity-60', FOCUS)}
                                     >
-                                        {isSubscribing ? 'Enabling…' : 'Enable'}
-                                    </Button>
+                                        {isSubscribing ? 'Turning on' : 'Turn on'}
+                                    </button>
                                     <button
+                                        type="button"
                                         onClick={dismissPushPrompt}
-                                        aria-label="Dismiss notification prompt"
-                                        className="p-1 rounded-md text-muted-foreground hover:text-foreground shrink-0"
+                                        aria-label="Dismiss the notification prompt"
+                                        className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground', FOCUS)}
                                     >
-                                        <X className="w-3.5 h-3.5" />
+                                        <X className="h-3.5 w-3.5" aria-hidden="true" />
                                     </button>
                                 </div>
                             )}
                             {selectedThread.status === 'open' && isSupported && permission === 'denied' && !pushPromptDismissed && (
-                                <div className="px-3 py-1.5 border-t">
+                                <div className="border-t border-border px-3 py-1.5">
                                     <p className="text-[11px] text-muted-foreground">
-                                        Notifications are blocked — enable them in your browser settings to hear back instantly.
+                                        Notifications are blocked. Turn them on in your browser settings to hear back right away.
                                     </p>
                                 </div>
                             )}
 
-                            {/* Composer / closed notice */}
                             {selectedThread.status === 'open' ? (
                                 <form
                                     onSubmit={e => { e.preventDefault(); handleSend() }}
-                                    className="p-3 border-t flex items-center gap-2"
+                                    className="flex items-center gap-2 border-t border-border p-3"
                                 >
-                                    <Input
-                                        value={composer}
-                                        onChange={e => setComposer(e.target.value)}
-                                        placeholder="Type a message…"
-                                        maxLength={1000}
-                                        className="flex-1 rounded-full bg-muted/50 border-transparent focus-visible:bg-background"
-                                    />
-                                    <Button type="submit" size="icon" className="rounded-full shrink-0" disabled={!composer.trim() || sending} aria-label="Send message">
-                                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                    </Button>
+                                    <Label htmlFor="support-composer" className="sr-only">Your message</Label>
+                                    <div className="neu-inset min-w-0 flex-1 rounded-full">
+                                        <input
+                                            id="support-composer"
+                                            value={composer}
+                                            onChange={e => setComposer(e.target.value)}
+                                            placeholder="Type a message"
+                                            maxLength={1000}
+                                            autoComplete="off"
+                                            className="h-11 w-full rounded-full bg-transparent px-4 text-base text-foreground placeholder:text-muted-foreground/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black dark:focus-visible:outline-brand-500"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={!composer.trim() || sending}
+                                        aria-label="Send message"
+                                        className={cn('clay-gold flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-60', FOCUS)}
+                                    >
+                                        {sending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+                                    </button>
                                 </form>
                             ) : (
-                                <div className="p-3 border-t flex items-center justify-between gap-3 bg-muted/30">
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                        <Lock className="w-3.5 h-3.5" /> This complaint is closed.
+                                <div className="flex items-center justify-between gap-3 border-t border-border p-3">
+                                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Lock className="h-3.5 w-3.5" aria-hidden="true" /> This complaint is closed.
                                     </p>
-                                    <Button size="sm" variant="outline" onClick={() => setShowNew(true)} className="gap-1">
-                                        <Plus className="w-3.5 h-3.5" /> New Complaint
-                                    </Button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNew(true)}
+                                        className={cn('clay-silver flex min-h-10 items-center gap-1 rounded-full px-4 text-xs font-semibold', FOCUS)}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New complaint
+                                    </button>
                                 </div>
                             )}
-                        </Card>
+                        </div>
                     )}
-                </div>
+                </section>
             </div>
 
-            {/* Legacy order complaints */}
             {legacy.length > 0 && (
-                <div className="border rounded-xl">
+                <section className="neu-raised-sm rounded-3xl">
                     <button
+                        type="button"
                         onClick={() => setShowLegacy(v => !v)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-muted-foreground hover:text-foreground"
+                        aria-expanded={showLegacy}
+                        aria-controls="legacy-panel"
+                        className={cn('flex w-full items-center justify-between gap-3 rounded-3xl px-5 py-4 text-left text-sm font-semibold', FOCUS)}
                     >
-                        <span>Past order complaints ({legacy.length})</span>
-                        <ChevronDown className={cn('w-4 h-4 transition-transform', showLegacy && 'rotate-180')} />
+                        <span>Earlier order complaints ({legacy.length})</span>
+                        <ChevronDown className={cn('h-4 w-4 transition-transform motion-reduce:transition-none', showLegacy && 'rotate-180')} aria-hidden="true" />
                     </button>
                     {showLegacy && (
-                        <div className="px-4 pb-4 space-y-3">
+                        <div id="legacy-panel" className="space-y-3 border-t border-border px-5 pb-5 pt-4">
                             <p className="text-xs text-muted-foreground">
-                                Order complaints filed before the new support system. They are kept for 30 days.
+                                Order complaints filed before this chat existed. They are kept for 30 days.
                             </p>
                             {legacy.map(c => (
-                                <div key={c.id} className="rounded-lg border p-3">
+                                <div key={c.id} className="neu-inset rounded-2xl p-3.5">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
-                                            <p className="text-sm font-medium truncate">{c.title}</p>
-                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{c.description}</p>
+                                            <p className="truncate text-sm font-semibold">{c.title}</p>
+                                            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{c.description}</p>
                                         </div>
-                                        <div className="flex items-center gap-1.5 shrink-0">
+                                        <div className="flex shrink-0 items-center gap-1.5">
                                             {c.status === 'resolved' ? (
-                                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                                             ) : c.status === 'rejected' ? (
-                                                <XCircle className="w-4 h-4 text-red-600" />
+                                                <XCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
                                             ) : null}
-                                            <span className="text-xs text-muted-foreground capitalize">{(c.status ?? 'pending').replace('_', ' ')}</span>
+                                            <span className="text-xs capitalize text-muted-foreground">{(c.status ?? 'pending').replace('_', ' ')}</span>
                                         </div>
                                     </div>
                                     {c.resolution_notes && (
-                                        <p className="text-xs text-muted-foreground mt-2 p-2 rounded bg-muted/50">
-                                            {c.resolution_notes}
-                                        </p>
+                                        <p className="mt-2 rounded-xl bg-background/60 p-2 text-xs text-muted-foreground">{c.resolution_notes}</p>
                                     )}
-                                    <p className="text-[11px] text-muted-foreground mt-2">{formatDate(c.created_at ?? '')}</p>
+                                    <p className="mt-2 text-[11px] text-muted-foreground">{formatDate(c.created_at ?? '')}</p>
                                 </div>
                             ))}
                         </div>
                     )}
-                </div>
+                </section>
             )}
 
-            {/* New complaint dialog */}
             <Dialog open={showNew} onOpenChange={open => { setShowNew(open); if (!open) resetNewForm() }}>
-                <DialogContent className="max-w-md w-[calc(100vw-2rem)] sm:w-full max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto rounded-[2rem] sm:w-full">
                     <DialogHeader>
-                        <DialogTitle>New Complaint</DialogTitle>
+                        <DialogTitle className="font-display">New complaint</DialogTitle>
                         <DialogDescription>
-                            Our team replies here in the chat. For order issues, you can also file directly from My Orders.
+                            Our team replies here in the chat. For a problem with one order, you can also report it from My orders.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-1">
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Subject</label>
-                            <Input
-                                value={subject}
-                                onChange={e => setSubject(e.target.value)}
-                                placeholder="Short summary of the issue"
-                                maxLength={200}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Category</label>
-                            <Select value={category} onValueChange={v => setCategory(v as SupportThread['category'])}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="order">Order issue</SelectItem>
-                                    <SelectItem value="payment">Payment</SelectItem>
-                                    <SelectItem value="account">Account</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Describe the issue</label>
-                            <Textarea
-                                value={firstMessage}
-                                onChange={e => setFirstMessage(e.target.value)}
-                                placeholder="Tell us what happened…"
-                                rows={4}
-                                maxLength={5000}
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium">Phone number</label>
-                                <Input
-                                    value={phone}
-                                    onChange={e => setPhone(e.target.value)}
-                                    placeholder="0241234567"
-                                    inputMode="tel"
-                                />
+                    <form onSubmit={e => { e.preventDefault(); handleCreate() }} noValidate className="space-y-4">
+                        {formError && <Notice>{formError}</Notice>}
+                        <TextField id="complaint-subject" label="Subject" value={subject} onChange={setSubject} placeholder="A short summary" />
+                        <div className="space-y-2">
+                            <Label htmlFor="complaint-category" className="text-sm font-semibold">Category</Label>
+                            <div className="neu-inset rounded-xl">
+                                <Select value={category} onValueChange={v => setCategory(v as SupportThread['category'])}>
+                                    <SelectTrigger id="complaint-category" className="h-12 rounded-xl border-0 bg-transparent px-4 text-base shadow-none">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {(Object.keys(CATEGORY_LABELS) as SupportThread['category'][]).map(k => (
+                                            <SelectItem key={k} value={k}>{CATEGORY_LABELS[k]}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-medium">WhatsApp number</label>
-                                <Input
-                                    value={whatsapp}
-                                    onChange={e => setWhatsapp(e.target.value)}
-                                    placeholder="0241234567"
-                                    inputMode="tel"
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="complaint-body" className="text-sm font-semibold">What happened?</Label>
+                            <div className="neu-inset rounded-xl">
+                                <Textarea
+                                    id="complaint-body"
+                                    value={firstMessage}
+                                    onChange={e => setFirstMessage(e.target.value)}
+                                    placeholder="Tell us what went wrong"
+                                    rows={4}
+                                    maxLength={5000}
+                                    className="rounded-xl border-0 bg-transparent px-4 py-3 text-base shadow-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-0 dark:focus-visible:ring-brand-500"
                                 />
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            We may reach you on WhatsApp or by phone if we need more details.
-                        </p>
-                    </div>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="outline" onClick={() => setShowNew(false)} disabled={submitting}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handleCreate} disabled={submitting}>
-                            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                            Submit Complaint
-                        </Button>
-                    </DialogFooter>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <TextField id="complaint-phone" label="Phone number" value={phone} onChange={setPhone} inputMode="tel" autoComplete="tel" placeholder="0241234567" />
+                            <TextField id="complaint-whatsapp" label="WhatsApp number" value={whatsapp} onChange={setWhatsapp} inputMode="tel" placeholder="0241234567" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">We may call or message you on WhatsApp if we need more details.</p>
+                        <DialogFooter className="gap-2 sm:gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowNew(false)}
+                                disabled={submitting}
+                                className={cn('clay-silver min-h-11 rounded-full px-5 text-sm font-semibold', FOCUS)}
+                            >
+                                Cancel
+                            </button>
+                            <ClayButton type="submit" loading={submitting} className="min-h-11 w-auto px-6 text-sm">
+                                Send complaint
+                            </ClayButton>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>
