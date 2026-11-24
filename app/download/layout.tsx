@@ -1,14 +1,11 @@
 import { Metadata } from 'next'
+import { BRAND } from '@/lib/brand'
 
 export const metadata: Metadata = {
-    title: 'Download Capozy Hub App - Install on iPhone, Android & Windows',
-    description: 'Install the Capozy Hub app on your phone or computer for faster access, PIN login, and instant data purchases.',
+    title: `Install the ${BRAND.name} app on iPhone, Android or your computer`,
+    description: `Add ${BRAND.name} to your home screen for quick access to data, airtime and vouchers. No app store needed.`,
 }
 
-export default function DownloadLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
+export default function DownloadLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>
 }
