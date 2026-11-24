@@ -6,6 +6,7 @@ import { messageSchema } from '@/lib/validation'
 import { sendPushNotification } from '@/lib/push-service'
 import { getCounterpartReceipt } from '@/lib/support-ticks'
 import { touchAdminPresence } from '@/lib/admin-presence'
+import { ORDER_COLUMNS, originOf } from '@/lib/support-origin'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,8 @@ const actionSchema = z.discriminatedUnion('action', [
     z.object({ action: z.literal('reply'), message: messageSchema }),
     z.object({ action: z.literal('close'), closing_note: messageSchema.optional() }),
     z.object({ action: z.literal('read') }),
+    z.object({ action: z.literal('reopen') }),
+    z.object({ action: z.literal('assign'), to: z.enum(['me', 'none']) }),
 ])
 
 // GET /api/admin/support/threads/[id] — thread + full message history
@@ -33,12 +36,54 @@ export async function GET(
         }
 
         const supabase = createServerClient() as any
+
+        // Older order complaints (retired `complaints` table) open as a read-only conversation.
+        if (new URL(request.url).searchParams.get('kind') === 'report') {
+            const { data: c, error: cError } = await supabase
+                .from('complaints')
+                .select(`
+                    id, user_id, title, description, status, resolution_notes, created_at, updated_at,
+                    users (first_name, last_name, email, phone_number),
+                    orders (${ORDER_COLUMNS}, fulfillment_method, error_message)
+                `)
+                .eq('id', id)
+                .maybeSingle()
+            if (cError) throw cError
+            if (!c) return NextResponse.json({ success: false, error: 'Complaint not found' }, { status: 404 })
+            const isOpen = c.status === 'pending' || c.status === 'in_review'
+            const messages: any[] = [{
+                id: `${c.id}-report`, thread_id: c.id, sender_role: 'user',
+                body: c.description, created_at: c.created_at,
+            }]
+            if (c.resolution_notes) {
+                messages.push({
+                    id: `${c.id}-resolution`, thread_id: c.id, sender_role: 'admin',
+                    body: c.resolution_notes, created_at: c.updated_at ?? c.created_at,
+                })
+            }
+            return NextResponse.json({
+                success: true,
+                data: {
+                    thread: {
+                        id: c.id, kind: 'report', user_id: c.user_id, order_id: null, subject: c.title,
+                        category: 'order', phone_number: c.users?.phone_number ?? '',
+                        whatsapp_number: c.users?.phone_number ?? '',
+                        status: isOpen ? 'open' : 'closed', report_status: c.status,
+                        closed_at: isOpen ? null : c.updated_at, last_message_at: c.updated_at ?? c.created_at,
+                        created_at: c.created_at, users: c.users, orders: c.orders, origin: originOf(c.orders),
+                    },
+                    messages,
+                    history: [],
+                },
+            })
+        }
+
         const { data: thread, error } = await supabase
             .from('support_threads')
             .select(`
                 *,
                 users (first_name, last_name, email, phone_number),
-                orders (reference_code, network, size, status, price, phone_number, created_at, fulfillment_method, download_batch_id)
+                orders (${ORDER_COLUMNS}, fulfillment_method, download_batch_id, error_message)
             `)
             .eq('id', id)
             .maybeSingle()
@@ -46,6 +91,15 @@ export async function GET(
         if (!thread) {
             return NextResponse.json({ success: false, error: 'Thread not found' }, { status: 404 })
         }
+
+        // The customer's other complaints, so the admin sees repeat issues at a glance.
+        const { data: history } = await supabase
+            .from('support_threads')
+            .select('id, subject, status, created_at')
+            .eq('user_id', thread.user_id)
+            .neq('id', id)
+            .order('created_at', { ascending: false })
+            .limit(5)
 
         const { data: rawMessages, error: msgError } = await supabase
             .from('support_messages')
@@ -77,7 +131,10 @@ export async function GET(
             ...getCounterpartReceipt(m.sender_role, m),
         }))
 
-        return NextResponse.json({ success: true, data: { thread, messages } })
+        return NextResponse.json({
+            success: true,
+            data: { thread: { ...thread, kind: 'thread', origin: originOf(thread.orders) }, messages, history: history || [] },
+        })
     } catch (error) {
         console.error('[Admin Support] Error fetching thread:', error)
         return NextResponse.json({ success: false, error: 'Failed to fetch thread' }, { status: 500 })
@@ -147,13 +204,50 @@ export async function POST(
                 .single()
             if (insertError) throw insertError
 
+            // Replying means the admin has read everything the customer sent so far.
+            const now = new Date().toISOString()
+            await supabase
+                .from('support_messages')
+                .update({ read_by_admin_at: now, delivered_to_admin_at: now })
+                .eq('thread_id', id)
+                .eq('sender_role', 'user')
+                .is('read_by_admin_at', null)
+
             await notifyUser(supabase, thread.user_id, 'Support replied to your complaint',
-                `Our team replied on "${thread.subject}". Open Support & Complaints to view it.`)
+                `Our team replied on "${thread.subject}". Open Help and complaints to read it.`)
 
             return NextResponse.json({
                 success: true,
                 data: { message: { ...newMessage, ...getCounterpartReceipt('admin', newMessage) } },
             })
+        }
+
+        if (payload.action === 'assign') {
+            // Self-assign or release only. Handing a complaint to someone else is not offered.
+            const { error: assignError } = payload.to === 'me'
+                ? await supabase
+                    .from('support_thread_assignments')
+                    .upsert({ thread_id: id, admin_id: access.user!.id, assigned_at: new Date().toISOString() }, { onConflict: 'thread_id' })
+                : await supabase.from('support_thread_assignments').delete().eq('thread_id', id)
+            if (assignError) throw assignError
+            return NextResponse.json({ success: true })
+        }
+
+        if (payload.action === 'reopen') {
+            // Guarded on status='closed' so a double click can't flip it twice.
+            const { data: reopened, error: reopenError } = await supabase
+                .from('support_threads')
+                .update({ status: 'open', closed_at: null, closed_by: null })
+                .eq('id', id)
+                .eq('status', 'closed')
+                .select('id')
+            if (reopenError) throw reopenError
+            if (!reopened || reopened.length === 0) {
+                return NextResponse.json({ success: false, error: 'Complaint is already open' }, { status: 409 })
+            }
+            await notifyUser(supabase, thread.user_id, 'Your complaint was reopened',
+                `Our team reopened "${thread.subject}". Open Help and complaints to follow it.`)
+            return NextResponse.json({ success: true })
         }
 
         // action === 'close'

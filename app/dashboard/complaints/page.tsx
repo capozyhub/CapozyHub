@@ -41,6 +41,17 @@ interface SupportMessage {
     created_at: string
 }
 
+interface RecentOrder {
+    id: string
+    reference_code: string
+    network: string
+    size: string
+    phone_number: string
+    created_at: string
+    shop_order_id: string | null
+    shop_name: string | null
+}
+
 const GH_PHONE_RE = /^(0|\+233)[2-9][0-9]{8}$/
 
 const CATEGORY_LABELS: Record<SupportThread['category'], string> = {
@@ -100,6 +111,9 @@ export default function SupportComplaintsPage() {
     const [whatsapp, setWhatsapp] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [formError, setFormError] = useState('')
+    // Optional order link: the member's own orders, and the shop orders they sold as a shop owner.
+    const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
+    const [orderId, setOrderId] = useState('none')
 
     // Legacy order complaints (read-only history)
     const [legacy, setLegacy] = useState<Complaint[]>([])
@@ -302,7 +316,43 @@ export default function SupportComplaintsPage() {
         }
     }
 
+    // Load the picker's orders when the dialog opens. RLS limits this to the member's own rows,
+    // which include the order record behind each of their shop's sales.
+    useEffect(() => {
+        if (!showNew || !dbUser?.id) return
+        let cancelled = false
+        ;(supabase as any)
+            .from('orders')
+            .select('id, reference_code, network, size, phone_number, created_at, shop_order_id, shop_name')
+            .eq('user_id', dbUser.id)
+            .order('created_at', { ascending: false })
+            .limit(40)
+            .then(({ data }: { data: RecentOrder[] | null }) => { if (!cancelled) setRecentOrders(data || []) })
+        return () => { cancelled = true }
+    }, [showNew, dbUser?.id])
+
+    const [reopening, setReopening] = useState(false)
+    const handleReopen = async () => {
+        if (!selectedThread || reopening) return
+        setReopening(true)
+        try {
+            const res = await fetch(`/api/support/threads/${selectedThread.id}/reopen`, { method: 'POST' })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok || !json.success) throw new Error(plainError(json.error, 'We could not reopen this complaint. Try again.'))
+            const sent = json.data.message as SupportMessage
+            setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
+            setSelectedThread(prev => prev ? { ...prev, status: 'open' } : prev)
+            setThreads(prev => prev.map(t => t.id === selectedThread.id ? { ...t, status: 'open' } : t))
+            toast.success('Reopened. Our team will pick it up.')
+        } catch (error: any) {
+            toast.error(plainError(error?.message, 'We could not reopen this complaint. Try again.'))
+        } finally {
+            setReopening(false)
+        }
+    }
+
     const resetNewForm = () => {
+        setOrderId('none')
         setSubject('')
         setCategory('other')
         setFirstMessage('')
@@ -325,7 +375,8 @@ export default function SupportComplaintsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     subject: subject.trim(),
-                    category,
+                    category: orderId !== 'none' ? 'order' : category,
+                    ...(orderId !== 'none' ? { order_id: orderId } : {}),
                     message: firstMessage.trim(),
                     phone_number: phone.trim(),
                     whatsapp_number: whatsapp.trim(),
@@ -655,15 +706,25 @@ export default function SupportComplaintsPage() {
                             ) : (
                                 <div className="flex items-center justify-between gap-3 border-t border-border p-3">
                                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <Lock className="h-3.5 w-3.5" aria-hidden="true" /> This complaint is closed.
+                                        <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Closed. Was it solved?
                                     </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNew(true)}
-                                        className={cn('clay-silver flex min-h-10 items-center gap-1 rounded-full px-4 text-xs font-semibold', FOCUS)}
-                                    >
-                                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New complaint
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleReopen}
+                                            disabled={reopening}
+                                            className={cn('clay-gold flex min-h-10 items-center gap-1 rounded-full px-4 text-xs font-semibold disabled:opacity-60', FOCUS)}
+                                        >
+                                            {reopening ? 'Reopening' : 'Still not solved'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNew(true)}
+                                            className={cn('clay-silver flex min-h-10 items-center gap-1 rounded-full px-4 text-xs font-semibold', FOCUS)}
+                                        >
+                                            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> New
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -725,6 +786,32 @@ export default function SupportComplaintsPage() {
                     </DialogHeader>
                     <form onSubmit={e => { e.preventDefault(); handleCreate() }} noValidate className="space-y-4">
                         {formError && <Notice>{formError}</Notice>}
+                        <div className="space-y-2">
+                            <Label htmlFor="complaint-order" className="text-sm font-semibold">Which order is this about? (optional)</Label>
+                            <div className="neu-inset rounded-xl">
+                                <Select
+                                    value={orderId}
+                                    onValueChange={v => {
+                                        setOrderId(v)
+                                        const o = recentOrders.find(r => r.id === v)
+                                        if (o && !subject.trim()) setSubject(`${o.shop_order_id ? 'Shop order' : 'Order'} ${o.reference_code}`)
+                                    }}
+                                >
+                                    <SelectTrigger id="complaint-order" className="h-12 rounded-xl border-0 bg-transparent px-4 text-base shadow-none">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-72">
+                                        <SelectItem value="none">Not about a specific order</SelectItem>
+                                        {recentOrders.map(o => (
+                                            <SelectItem key={o.id} value={o.id}>
+                                                {o.shop_order_id ? 'Shop order' : 'My order'} · {o.reference_code} · {o.network} {o.size} · {o.phone_number}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Sold something through your shop? Pick the shop order so we can check it fast.</p>
+                        </div>
                         <TextField id="complaint-subject" label="Subject" value={subject} onChange={setSubject} placeholder="A short summary" />
                         <div className="space-y-2">
                             <Label htmlFor="complaint-category" className="text-sm font-semibold">Category</Label>

@@ -159,6 +159,8 @@ export default function ShopOrdersPage() {
     // Complaint state
     const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null)
     const [complaintDescription, setComplaintDescription] = useState('')
+    const [complaintPhone, setComplaintPhone] = useState('')
+    const [complaintWhatsapp, setComplaintWhatsapp] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Retry state — refunded storefront/USSD orders can be retried from the owner's
@@ -401,11 +403,12 @@ export default function ShopOrdersPage() {
                 const currentOrderIds = rows.map((o: any) => o.current_order_id).filter(Boolean)
                 const complaintsByOrderId = new Map<string, any[]>()
                 if (currentOrderIds.length > 0) {
-                    const { data: complaintRows } = await (supabase as any)
-                        .from('complaints')
-                        .select('id, order_id, status')
-                        .in('order_id', currentOrderIds)
-                    for (const c of complaintRows || []) {
+                    // Chat threads are the current system; older `complaints` rows still show their status.
+                    const [{ data: threadRows }, { data: legacyRows }] = await Promise.all([
+                        (supabase as any).from('support_threads').select('id, order_id, status').in('order_id', currentOrderIds),
+                        (supabase as any).from('complaints').select('id, order_id, status').in('order_id', currentOrderIds),
+                    ])
+                    for (const c of [...(threadRows || []), ...(legacyRows || [])]) {
                         const arr = complaintsByOrderId.get(c.order_id) || []
                         arr.push(c)
                         complaintsByOrderId.set(c.order_id, arr)
@@ -479,40 +482,50 @@ export default function ShopOrdersPage() {
     }
 
     const submitComplaint = async () => {
-        if (!selectedOrder || !complaintDescription) return
+        if (!selectedOrder || !complaintDescription.trim()) return
+        const GH_PHONE_RE = /^(0|\+233)[2-9][0-9]{8}$/
+        if (!GH_PHONE_RE.test(complaintPhone.trim())) { toast.error('Enter a valid phone number, like 0241234567.'); return }
+        if (!GH_PHONE_RE.test(complaintWhatsapp.trim())) { toast.error('Enter a valid WhatsApp number, like 0241234567.'); return }
 
         setIsSubmitting(true)
         try {
-            // First, find the mirrored order ID
-            const { data: mirror, error: mirrorErr } = await (supabase as any)
+            // The order row behind this storefront order. A retried order has more than one
+            // row, so start from the current one in the retry chain, not a single-row lookup.
+            const currentId = selectedOrder.orders?.[0]?.id
+            const { data: mirrorRows, error: mirrorErr } = await (supabase as any)
                 .from('orders')
                 .select('id, reference_code')
-                .eq('shop_order_id', selectedOrder.id)
-                .maybeSingle()
+                .eq(currentId ? 'id' : 'shop_order_id', currentId ?? selectedOrder.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+            const mirror = mirrorRows?.[0]
 
             if (mirrorErr || !mirror) {
                 throw new Error('Could not find linked order record')
             }
 
-            const response = await fetch('/api/complaints/submit', {
+            // Same chat thread the member's own orders use, so support answers in one place.
+            const response = await fetch('/api/support/threads', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     order_id: mirror.id,
-                    title: `[Shop: ${dbUser?.first_name}] Issue with order ${mirror.reference_code}`,
-                    description: complaintDescription,
-                    priority: 'medium',
+                    subject: `Shop order ${mirror.reference_code}: problem for ${selectedOrder.guest_phone}`,
+                    category: 'order',
+                    message: complaintDescription.trim(),
+                    phone_number: complaintPhone.trim(),
+                    whatsapp_number: complaintWhatsapp.trim(),
                 })
             })
 
-            if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.error || 'Failed to submit complaint')
+            const json = await response.json().catch(() => ({}))
+            if (!response.ok || !json?.success) {
+                throw new Error(typeof json?.error === 'string' && json.error.length < 160 ? json.error : 'Failed to submit complaint')
             }
 
-            const { complaint: newComplaint } = await response.json()
+            const newComplaint = { id: json.data.thread.id, status: 'open' }
 
-            toast.success('Complaint submitted successfully')
+            toast.success('Report sent. Our team will reply in Help and complaints.')
 
             // Optimistic Update: Add the complaint to the local state
             // Keep the mirror's status/retry fields — replacing the whole entry made the
@@ -911,7 +924,7 @@ export default function ShopOrdersPage() {
                             const tag = getSelfCompletedTag(order.orders?.[0] || {}) || getRetryTag(order.orders?.[0] || {})
                             const orderComplaints = order.is_rc ? (order.rc_complaints || []) : (order.orders?.[0]?.complaints || [])
                             const canMomo = !order.is_rc && !order.is_afa && isMomoLookupEligible({ status: displayStatus })
-                            const canComplain = displayStatus === 'completed' && !order.is_rc && !order.is_afa && isWithin48Hours(order.created_at)
+                            const canComplain = displayStatus !== 'refunded' && !order.is_rc && !order.is_afa && differenceInHours(new Date(), new Date(order.created_at)) <= 168
                             const when = new Date(order.created_at)
 
                             return (
@@ -943,7 +956,9 @@ export default function ShopOrdersPage() {
 
                                         {orderComplaints.length > 0 ? (
                                             <span className={cn(PILL, 'neu-inset text-brand-700 dark:text-brand-500')}>
-                                                <MessageSquare className="h-3 w-3" /> Complaint: {prettyStatus(String(orderComplaints[0].status ?? 'open'))}
+                                                <MessageSquare className="h-3 w-3" /> {['closed', 'resolved', 'rejected'].includes(String(orderComplaints[0].status))
+                                                    ? 'Report closed'
+                                                    : 'Report sent, support is on it'}
                                             </span>
                                         ) : isRetryable(order) ? (
                                             <button type="button" onClick={() => handleRetry(order)} className={cn(ACTION_BTN, 'clay-gold h-8 px-3')}>
@@ -956,7 +971,12 @@ export default function ShopOrdersPage() {
                                         ) : canComplain ? (
                                             <button
                                                 type="button"
-                                                onClick={() => { setSelectedOrder(order); setComplaintDescription('') }}
+                                                onClick={() => {
+                                                    setSelectedOrder(order)
+                                                    setComplaintDescription('')
+                                                    setComplaintPhone((dbUser as any)?.phone_number || '')
+                                                    setComplaintWhatsapp('')
+                                                }}
                                                 className={cn(ACTION_BTN, 'neu-raised-sm neu-press h-8 px-3 text-foreground')}
                                             >
                                                 <MessageSquare className="h-3.5 w-3.5" /> Report a problem
@@ -1029,6 +1049,17 @@ export default function ShopOrdersPage() {
                                 rows={4}
                             />
                         </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="complaint-phone">Your phone number</Label>
+                                <Input id="complaint-phone" value={complaintPhone} onChange={(e) => setComplaintPhone(e.target.value)} placeholder="0241234567" inputMode="tel" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="complaint-whatsapp">Your WhatsApp number</Label>
+                                <Input id="complaint-whatsapp" value={complaintWhatsapp} onChange={(e) => setComplaintWhatsapp(e.target.value)} placeholder="0241234567" inputMode="tel" />
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">We may call or message you on WhatsApp if we need more details.</p>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setSelectedOrder(null)}>

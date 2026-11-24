@@ -1,102 +1,58 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { formatDate, normalizeWhatsAppNumber, cn } from '@/lib/utils'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { formatDate, normalizeWhatsAppNumber, formatCurrency, cn } from '@/lib/utils'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import {
-    Loader2, RefreshCw, Search, X, Calendar, Filter, MessageSquare,
-    Send, Phone, Mail, Lock, Inbox, Archive, Info, Check, CheckCheck,
+    Loader2, RefreshCw, Search, X, MessageSquare, Send, Phone, Mail, Lock, LockOpen,
+    Inbox, Check, CheckCheck, ArrowLeft, Copy, Store, Globe, Code2, CircleHelp, Clock,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { getMessageTickState } from '@/lib/support-ticks'
+import { FOCUS } from '@/components/auth/auth-shell'
+import { Notice } from '@/components/auth/fields'
+import type { ComplaintOrigin } from '@/lib/support-origin'
 
-// No supplier is wired up for Capozy — every order is fulfilled by hand, so this just
-// shows the order's own status rather than a supplier identity.
-function SupplierBadge({ order }: { order: { status?: string | null } | null | undefined }) {
-    if (!order) return <span className="text-muted-foreground text-xs">—</span>
-    return <Badge variant="outline" className="text-[10px] py-0 h-5 font-normal capitalize">{order.status ?? 'pending'}</Badge>
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface OrderInfo {
+    reference_code: string
+    network: string
+    size: string
+    status: string | null
+    price?: number
+    phone_number?: string
+    created_at?: string
+    shop_name?: string | null
+    shop_order_id?: string | null
+    source?: string | null
+    error_message?: string | null
 }
 
-function MessageTick({ state }: { state: 'sent' | 'delivered' | 'read' }) {
-    if (state === 'sent') return <Check className="w-3.5 h-3.5 shrink-0" />
-    return <CheckCheck className={cn('w-3.5 h-3.5 shrink-0', state === 'read' && 'text-brand-300')} />
-}
-
-function PresenceBadge({ active }: { active: boolean | null }) {
-    if (active === null) return null
-    return (
-        <span className={cn(
-            'inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full',
-            active
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-        )}>
-            <span className={cn('w-1.5 h-1.5 rounded-full', active ? 'bg-emerald-500' : 'bg-amber-500')} />
-            {active ? 'Support active now' : 'Support away'}
-        </span>
-    )
-}
-
-// ─── Support threads (new system) ────────────────────────────────────────────
-
-interface AdminThread {
+interface Conversation {
     id: string
+    /** `thread` is a chat. `report` is an older order complaint with no chat channel. */
+    kind: 'thread' | 'report'
     user_id: string
-    order_id: string | null
     subject: string
     category: string
     phone_number: string
     whatsapp_number: string
     status: 'open' | 'closed'
+    report_status?: string
     closed_at?: string | null
     last_message_at: string
     created_at: string
+    origin: ComplaintOrigin
+    assignee?: { admin_id: string; name: string } | null
     users?: { first_name: string | null; last_name: string | null; email: string; phone_number: string } | null
-    orders?: {
-        reference_code: string
-        network: string
-        size: string
-        status: string | null
-        price?: number
-        phone_number?: string
-        created_at?: string
-        fulfillment_method?: string | null
-        download_batch_id?: string | null
-    } | null
+    orders?: OrderInfo | null
     last_message?: { body: string; sender_role: string; created_at: string } | null
     unread_count?: number
 }
 
-interface AdminMessage {
+interface Message {
     id: string
-    thread_id: string
     sender_role: 'user' | 'admin'
     body: string
     created_at: string
@@ -104,1065 +60,785 @@ interface AdminMessage {
     read_at?: string | null
 }
 
-type ThreadStatusFilter = 'all' | 'open' | 'closed'
+interface HistoryItem { id: string; subject: string; status: string; created_at: string }
 
-function ThreadsConsole() {
-    const [threads, setThreads] = useState<AdminThread[]>([])
+type View = 'needs-reply' | 'open' | 'closed' | 'all'
+type OriginFilter = 'all' | ComplaintOrigin
+type AssignFilter = 'any' | 'mine' | 'unassigned'
+
+const ORIGIN_META: Record<ComplaintOrigin, { label: string; icon: typeof Store }> = {
+    shop: { label: 'Shop order', icon: Store },
+    website: { label: 'Website order', icon: Globe },
+    api: { label: 'API order', icon: Code2 },
+    general: { label: 'General', icon: CircleHelp },
+}
+
+const CATEGORY_LABEL: Record<string, string> = { order: 'Order', payment: 'Payment', account: 'Account', other: 'Other' }
+
+// One-click starters. They fill the box, they never send on their own.
+const QUICK_REPLIES: { label: string; text: string }[] = [
+    { label: 'Checking now', text: 'Hi {name}, thanks for reaching out. We are checking {ref} now and will update you here shortly.' },
+    { label: 'Need details', text: 'Hi {name}, to look into {ref} we need a screenshot of your payment and the number that should receive the data. You can send them here or on WhatsApp.' },
+    { label: 'Delivered', text: 'Hi {name}, {ref} shows as delivered{to}. Please check your bundle balance and tell us if the data is still missing.' },
+    { label: 'Resolved', text: 'Hi {name}, this is sorted. Thanks for your patience. If anything else comes up, open a new complaint and we will help.' },
+]
+
+// ─── Small helpers ───────────────────────────────────────────────────────────
+
+function customerName(c: Conversation) {
+    const n = `${c.users?.first_name ?? ''} ${c.users?.last_name ?? ''}`.trim()
+    return n || c.users?.email || 'Customer'
+}
+
+/** "12m", "3h", "2d": how long ago, for wait times. */
+function ago(iso: string) {
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000))
+    if (mins < 1) return 'now'
+    if (mins < 60) return `${mins}m`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 48) return `${hrs}h`
+    return `${Math.floor(hrs / 24)}d`
+}
+
+function waitingOnSupport(c: Conversation) {
+    if (c.status !== 'open') return false
+    if (c.kind === 'report') return true
+    return !c.last_message || c.last_message.sender_role === 'user'
+}
+
+function OriginChip({ origin }: { origin: ComplaintOrigin }) {
+    const { label, icon: Icon } = ORIGIN_META[origin]
+    return (
+        <span className={cn(
+            'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+            origin === 'shop' ? 'bg-black text-white dark:bg-brand-500 dark:text-black' : 'neu-inset',
+        )}>
+            <Icon className="h-3 w-3" aria-hidden="true" /> {label}
+        </span>
+    )
+}
+
+function StatusDot({ open }: { open: boolean }) {
+    return (
+        <span className="neu-inset inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+            <span className={cn('h-1.5 w-1.5 rounded-full', open ? 'bg-brand-500' : 'bg-silver-400')} aria-hidden="true" />
+            {open ? 'Open' : 'Closed'}
+        </span>
+    )
+}
+
+function Tick({ state }: { state: 'sent' | 'delivered' | 'read' }) {
+    if (state === 'sent') return <Check className="h-3.5 w-3.5 shrink-0" aria-label="Sent" />
+    return <CheckCheck className={cn('h-3.5 w-3.5 shrink-0', state === 'read' && 'text-brand-300')} aria-label={state === 'read' ? 'Read' : 'Delivered'} />
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
+export default function AdminComplaintsPage() {
+    const [items, setItems] = useState<Conversation[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadFailed, setLoadFailed] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
-    const [statusFilter, setStatusFilter] = useState<ThreadStatusFilter>('open')
+    const [view, setView] = useState<View>('needs-reply')
+    const [originFilter, setOriginFilter] = useState<OriginFilter>('all')
     const [days, setDays] = useState('30')
     const [search, setSearch] = useState('')
+    const [assignFilter, setAssignFilter] = useState<AssignFilter>('any')
+    const [viewerId, setViewerId] = useState<string | null>(null)
 
-    // Drawer
-    const [activeThread, setActiveThread] = useState<AdminThread | null>(null)
-    const [messages, setMessages] = useState<AdminMessage[]>([])
-    const [loadingDrawer, setLoadingDrawer] = useState(false)
+    const [active, setActive] = useState<Conversation | null>(null)
+    const [messages, setMessages] = useState<Message[]>([])
+    const [history, setHistory] = useState<HistoryItem[]>([])
+    const [loadingChat, setLoadingChat] = useState(false)
     const [reply, setReply] = useState('')
-    const [replying, setReplying] = useState(false)
-    const [showClose, setShowClose] = useState(false)
-    const [closingNote, setClosingNote] = useState('')
+    const [busy, setBusy] = useState<'reply' | 'close' | 'reopen' | 'resolve' | 'reject' | 'assign' | null>(null)
     const [closing, setClosing] = useState(false)
-    const [showOrderDetails, setShowOrderDetails] = useState(false)
+    const [note, setNote] = useState('')
 
     const scrollRef = useRef<HTMLDivElement>(null)
-    const activeIdRef = useRef<string | null>(null)
-    useEffect(() => { activeIdRef.current = activeThread?.id ?? null }, [activeThread?.id])
+    const activeRef = useRef<Conversation | null>(null)
+    const openSeq = useRef(0)
+    const messagesRef = useRef<Message[]>([])
+    useEffect(() => { activeRef.current = active }, [active])
+    useEffect(() => { messagesRef.current = messages }, [messages])
 
-    const fetchThreads = useCallback(async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true)
+    const fetchItems = useCallback(async (manual = false) => {
+        if (manual) setRefreshing(true)
         try {
-            const res = await fetch(`/api/admin/support/threads?status=${statusFilter}&days=${days}`)
+            const res = await fetch(`/api/admin/support/threads?status=all&days=${days}`)
             const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to fetch threads')
-            setThreads(json.data || [])
-            if (isRefresh) toast.success('Threads refreshed')
-        } catch (error: any) {
-            console.error('Error fetching threads:', error)
-            toast.error(error?.message || 'Failed to load support threads')
+            if (!res.ok || !json.success) throw new Error(json.error || 'load failed')
+            setItems(json.data || [])
+            setViewerId(json.viewer_id ?? null)
+            setLoadFailed(false)
+            if (manual) toast.success('Up to date')
+        } catch {
+            setLoadFailed(true)
+            if (manual) toast.error('We could not refresh the inbox. Try again.')
         } finally {
             setLoading(false)
             setRefreshing(false)
         }
-    }, [statusFilter, days])
+    }, [days])
 
-    useEffect(() => { fetchThreads() }, [fetchThreads])
+    useEffect(() => { fetchItems() }, [fetchItems])
 
-    // Admins can't receive RLS-scoped realtime here — poll lightly instead.
-    // EGRESS: this runs for as long as the page is open. Each tick is a full
-    // round-trip through middleware (session verify + admin role check) before
-    // the query even runs, so the list poll is deliberately slow — the drawer
-    // poll below covers the conversation an admin is actually reading.
+    // The inbox list polls slowly: every tick is a full middleware round trip.
+    // The open conversation polls faster, and both pause while the tab is hidden.
     useEffect(() => {
-        const interval = setInterval(() => fetchThreads(), 180_000)
-        return () => clearInterval(interval)
-    }, [fetchThreads])
+        const id = setInterval(() => { if (!document.hidden) fetchItems() }, 120_000)
+        return () => clearInterval(id)
+    }, [fetchItems])
 
-    const openDrawer = async (thread: AdminThread) => {
-        setActiveThread(thread)
+    const loadConversation = useCallback(async (c: Conversation, quiet = false) => {
+        const seq = quiet ? openSeq.current : ++openSeq.current
+        const suffix = c.kind === 'report' ? '?kind=report' : ''
+        const res = await fetch(`/api/admin/support/threads/${c.id}${suffix}`)
+        const json = await res.json()
+        if (!res.ok || !json.success) throw new Error(json.error || 'load failed')
+        if (seq !== openSeq.current) return null
+        return json.data as { thread: Conversation; messages: Message[]; history: HistoryItem[] }
+    }, [])
+
+    const markRead = (id: string) => {
+        fetch(`/api/admin/support/threads/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'read' }),
+        }).catch(() => { })
+        setItems(prev => prev.map(t => t.id === id ? { ...t, unread_count: 0 } : t))
+    }
+
+    const openConversation = async (c: Conversation) => {
+        setActive(c)
         setMessages([])
+        setHistory([])
         setReply('')
-        setShowClose(false)
-        setClosingNote('')
-        setShowOrderDetails(false)
-        setLoadingDrawer(true)
+        setClosing(false)
+        setNote('')
+        setLoadingChat(true)
         try {
-            const res = await fetch(`/api/admin/support/threads/${thread.id}`)
-            const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load thread')
-            setActiveThread(json.data.thread)
-            setMessages(json.data.messages)
-            // Mark user messages read — fire and forget, then clear the list badge.
-            fetch(`/api/admin/support/threads/${thread.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'read' }),
-            }).catch(() => { })
-            setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, unread_count: 0 } : t))
-        } catch (error: any) {
-            toast.error(error?.message || 'Failed to load thread')
-            setActiveThread(null)
+            const data = await loadConversation(c)
+            if (!data) return
+            setActive(prev => prev && prev.id === c.id ? { ...c, ...data.thread, last_message: c.last_message, unread_count: 0 } : prev)
+            setMessages(data.messages)
+            setHistory(data.history)
+            if (c.kind === 'thread') markRead(c.id)
+        } catch {
+            toast.error('We could not open that conversation. Try again.')
+            setActive(null)
         } finally {
-            setLoadingDrawer(false)
+            setLoadingChat(false)
         }
     }
 
-    // Poll the open conversation for new user messages.
+    // Keep the open chat fresh, and mark new customer messages read as they land.
     useEffect(() => {
-        if (!activeThread?.id) return
-        const interval = setInterval(async () => {
-            const id = activeIdRef.current
-            if (!id) return
+        if (!active?.id || active.kind !== 'thread') return
+        const id = setInterval(async () => {
+            const current = activeRef.current
+            if (!current || document.hidden) return
             try {
-                const res = await fetch(`/api/admin/support/threads/${id}`)
-                const json = await res.json()
-                if (res.ok && json.success && activeIdRef.current === id) {
-                    setMessages(json.data.messages)
-                }
+                const data = await loadConversation(current, true)
+                if (!data || activeRef.current?.id !== current.id) return
+                const known = new Set(messagesRef.current.map(m => m.id))
+                if (data.messages.some(m => m.sender_role === 'user' && !known.has(m.id))) markRead(current.id)
+                setMessages(data.messages)
             } catch { /* transient */ }
-        }, 30_000)
-        return () => clearInterval(interval)
-    }, [activeThread?.id])
+        }, 15_000)
+        return () => clearInterval(id)
+    }, [active?.id, active?.kind, loadConversation])
 
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }, [messages.length, activeThread?.id])
+    }, [messages.length, active?.id])
 
-    const handleReply = async () => {
-        const text = reply.trim()
-        if (!text || !activeThread || replying) return
-        setReplying(true)
-        try {
-            const res = await fetch(`/api/admin/support/threads/${activeThread.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'reply', message: text }),
-            })
-            const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to send reply')
-            setReply('')
-            const sent = json.data.message as AdminMessage
-            setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
-        } catch (error: any) {
-            toast.error(error?.message || 'Failed to send reply')
-        } finally {
-            setReplying(false)
-        }
+    const patchActive = (patch: Partial<Conversation>) => {
+        setActive(prev => prev ? { ...prev, ...patch } : prev)
+        setItems(prev => prev.map(t => t.id === active?.id ? { ...t, ...patch } : t))
     }
 
-    const handleClose = async () => {
-        if (!activeThread || closing) return
-        setClosing(true)
-        try {
-            const res = await fetch(`/api/admin/support/threads/${activeThread.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'close', closing_note: closingNote.trim() || undefined }),
-            })
-            const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed to close thread')
-            toast.success('Complaint closed')
-            setShowClose(false)
-            setActiveThread(prev => prev ? { ...prev, status: 'closed' } : prev)
-            setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, status: 'closed' } : t))
-        } catch (error: any) {
-            toast.error(error?.message || 'Failed to close thread')
-        } finally {
-            setClosing(false)
-        }
-    }
-
-    const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase()
-        if (!q) return threads
-        return threads.filter(t => {
-            const name = `${t.users?.first_name ?? ''} ${t.users?.last_name ?? ''}`.toLowerCase()
-            return name.includes(q)
-                || (t.users?.email ?? '').toLowerCase().includes(q)
-                || t.subject.toLowerCase().includes(q)
-                || (t.orders?.reference_code ?? '').toLowerCase().includes(q)
-                || t.phone_number.includes(q)
+    const post = async (body: Record<string, unknown>) => {
+        const res = await fetch(`/api/admin/support/threads/${active!.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
         })
-    }, [threads, search])
-
-    const openCount = threads.filter(t => t.status === 'open').length
-    const unreadTotal = threads.reduce((sum, t) => sum + (t.unread_count || 0), 0)
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        )
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json.success) throw new Error(typeof json.error === 'string' && json.error.length < 160 ? json.error : 'That did not go through. Try again.')
+        return json
     }
 
-    return (
-        <div className="space-y-4">
-            {/* Mini stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xl font-semibold">{openCount}</p>
-                        <p className="text-xs text-muted-foreground">Open complaints</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xl font-semibold">{unreadTotal}</p>
-                        <p className="text-xs text-muted-foreground">Unread messages</p>
-                    </CardContent>
-                </Card>
-                <Card className="hidden sm:block">
-                    <CardContent className="p-4">
-                        <p className="text-xl font-semibold">{threads.length}</p>
-                        <p className="text-xs text-muted-foreground">In view</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filters */}
-            <div className="space-y-3">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Search by name, email, subject, phone, or order ref…"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="pl-9 pr-9"
-                    />
-                    {search && (
-                        <button
-                            onClick={() => setSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-2 items-center">
-                    <Select value={statusFilter} onValueChange={v => setStatusFilter(v as ThreadStatusFilter)}>
-                        <SelectTrigger className="w-[130px] h-9 text-sm">
-                            <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                            <SelectItem value="all">All</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={days} onValueChange={setDays}>
-                        <SelectTrigger className="w-[140px] h-9 text-sm">
-                            <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="7">Last 7 days</SelectItem>
-                            <SelectItem value="30">Last 30 days</SelectItem>
-                            <SelectItem value="90">Last 90 days</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fetchThreads(true)}
-                        disabled={refreshing}
-                        className="h-9 gap-2"
-                    >
-                        <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-                        Refresh
-                    </Button>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                        {filtered.length} of {threads.length} thread{threads.length !== 1 ? 's' : ''}
-                    </span>
-                </div>
-            </div>
-
-            {/* Thread rows */}
-            {filtered.length === 0 ? (
-                <Card className="p-12 text-center">
-                    <Inbox className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
-                    <p className="text-sm text-muted-foreground">No support threads found</p>
-                </Card>
-            ) : (
-                <div className="space-y-2">
-                    {filtered.map(thread => (
-                        <button
-                            key={thread.id}
-                            onClick={() => openDrawer(thread)}
-                            className="w-full text-left rounded-xl border p-3.5 transition-colors hover:border-primary/40 bg-card"
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-sm font-medium truncate">{thread.subject}</p>
-                                        {(thread.unread_count || 0) > 0 && (
-                                            <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
-                                                {thread.unread_count}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                        {thread.users?.first_name} {thread.users?.last_name} · {thread.users?.email}
-                                    </p>
-                                    {thread.last_message && (
-                                        <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">
-                                            <span className="font-medium">{thread.last_message.sender_role === 'admin' ? 'You: ' : ''}</span>
-                                            {thread.last_message.body}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="shrink-0 flex flex-col items-end gap-1.5">
-                                    <Badge variant={thread.status === 'open' ? 'processing' : 'completed'} className="text-[10px] py-0 h-5">
-                                        {thread.status}
-                                    </Badge>
-                                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                        {formatDate(thread.last_message_at)}
-                                    </span>
-                                    {thread.orders?.reference_code && (
-                                        <span className="text-[10px] font-mono text-muted-foreground">{thread.orders.reference_code}</span>
-                                    )}
-                                </div>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Conversation drawer */}
-            <Dialog open={!!activeThread} onOpenChange={open => { if (!open) setActiveThread(null) }}>
-                <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] sm:w-full max-h-[90vh] flex flex-col p-0 gap-0">
-                    {activeThread && (
-                        <>
-                            <DialogHeader className="px-4 sm:px-6 pt-5 pb-3 border-b space-y-1.5">
-                                <div className="flex items-center justify-between gap-3 pr-8">
-                                    <DialogTitle className="text-base truncate">{activeThread.subject}</DialogTitle>
-                                    <Badge variant={activeThread.status === 'open' ? 'processing' : 'completed'}>
-                                        {activeThread.status}
-                                    </Badge>
-                                </div>
-                                <DialogDescription asChild>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                                        <span>
-                                            {activeThread.users?.first_name} {activeThread.users?.last_name} · {activeThread.users?.email}
-                                        </span>
-                                        <a
-                                            href={`tel:${activeThread.phone_number}`}
-                                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                                        >
-                                            <Phone className="w-3 h-3" /> {activeThread.phone_number}
-                                        </a>
-                                        <a
-                                            href={`https://wa.me/${normalizeWhatsAppNumber(activeThread.whatsapp_number)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                                        >
-                                            <MessageSquare className="w-3 h-3" /> WhatsApp
-                                        </a>
-                                        {activeThread.users?.email && (
-                                            <a
-                                                href={`mailto:${activeThread.users.email}`}
-                                                className="inline-flex items-center gap-1 text-primary hover:underline"
-                                            >
-                                                <Mail className="w-3 h-3" /> Email
-                                            </a>
-                                        )}
-                                    </div>
-                                </DialogDescription>
-                                {activeThread.orders && (
-                                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                                        <span className="truncate">
-                                            Linked order <span className="font-mono">{activeThread.orders.reference_code}</span>
-                                            {' · '}{activeThread.orders.network} {activeThread.orders.size}
-                                            {' · '}<span className="capitalize">{activeThread.orders.status ?? 'unknown'}</span>
-                                        </span>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowOrderDetails(true)}
-                                            className="h-6 px-2 gap-1 text-[11px] shrink-0"
-                                        >
-                                            <Info className="w-3 h-3" /> View Details
-                                        </Button>
-                                    </div>
-                                )}
-                            </DialogHeader>
-
-                            {/* Messages */}
-                            <div ref={scrollRef} className="flex-1 min-h-[240px] overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-muted/10 to-muted/30">
-                                {loadingDrawer ? (
-                                    <div className="flex justify-center py-10">
-                                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                                    </div>
-                                ) : (
-                                    messages.map(msg => (
-                                        <div key={msg.id} className={cn('flex', msg.sender_role === 'admin' ? 'justify-end' : 'justify-start')}>
-                                            <div className={cn(
-                                                'max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm transition-colors',
-                                                msg.sender_role === 'admin'
-                                                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                                                    : 'bg-background border rounded-bl-md'
-                                            )}>
-                                                <p className="whitespace-pre-wrap break-words">{msg.body}</p>
-                                                <p className={cn(
-                                                    'text-[10px] mt-1 text-right flex items-center justify-end gap-1',
-                                                    msg.sender_role === 'admin' ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                                                )}>
-                                                    {formatDate(msg.created_at)}
-                                                    {msg.sender_role === 'admin' && <MessageTick state={getMessageTickState({ delivered_at: msg.delivered_at ?? null, read_at: msg.read_at ?? null })} />}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                            {/* Composer / close */}
-                            {activeThread.status === 'open' ? (
-                                showClose ? (
-                                    <div className="p-4 border-t space-y-3">
-                                        <p className="text-sm font-medium">Close this complaint?</p>
-                                        <Textarea
-                                            value={closingNote}
-                                            onChange={e => setClosingNote(e.target.value)}
-                                            placeholder="Optional closing note sent to the user…"
-                                            rows={2}
-                                            maxLength={1000}
-                                        />
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => setShowClose(false)} disabled={closing}>
-                                                Cancel
-                                            </Button>
-                                            <Button size="sm" onClick={handleClose} disabled={closing}>
-                                                {closing ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Lock className="w-3.5 h-3.5 mr-1.5" />}
-                                                Close Complaint
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <form
-                                        onSubmit={e => { e.preventDefault(); handleReply() }}
-                                        className="p-3 border-t flex items-center gap-2"
-                                    >
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setShowClose(true)}
-                                            className="gap-1.5 shrink-0"
-                                        >
-                                            <Lock className="w-3.5 h-3.5" /> Close
-                                        </Button>
-                                        <Input
-                                            value={reply}
-                                            onChange={e => setReply(e.target.value)}
-                                            placeholder="Reply to the user…"
-                                            maxLength={1000}
-                                            className="flex-1 rounded-full bg-muted/50 border-transparent focus-visible:bg-background"
-                                        />
-                                        <Button type="submit" size="icon" className="rounded-full shrink-0" disabled={!reply.trim() || replying} aria-label="Send reply">
-                                            {replying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                        </Button>
-                                    </form>
-                                )
-                            ) : (
-                                <div className="p-3 border-t bg-muted/30">
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                        <Lock className="w-3.5 h-3.5" /> Closed {activeThread.closed_at ? formatDate(activeThread.closed_at) : ''}
-                                    </p>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Order details — admin-only, surfaces what a legacy complaint already
-                showed (beneficiary/date/supplier) for the thread-based flow too. */}
-            <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-                <DialogContent className="max-w-md w-[calc(100vw-2rem)] sm:w-full">
-                    <DialogHeader>
-                        <DialogTitle>Order Details</DialogTitle>
-                        <DialogDescription>For resolving this complaint against the right order and supplier.</DialogDescription>
-                    </DialogHeader>
-                    {activeThread?.orders && (
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-muted-foreground">Order reference</span>
-                                <span className="font-mono">{activeThread.orders.reference_code}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-muted-foreground">Beneficiary number</span>
-                                <span className="font-mono">{activeThread.orders.phone_number ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-muted-foreground">Package</span>
-                                <span className="capitalize">{activeThread.orders.network} {activeThread.orders.size}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-muted-foreground">Order placed</span>
-                                <span>{activeThread.orders.created_at ? formatDate(activeThread.orders.created_at) : '—'}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                                <span className="text-muted-foreground">Supplier</span>
-                                <SupplierBadge order={activeThread.orders} />
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowOrderDetails(false)}>Close</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-    )
-}
-
-// ─── Legacy order complaints (read-only resolution flow) ─────────────────────
-
-type DatePreset = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'
-type StatusFilter = 'all' | 'pending' | 'in_review' | 'resolved' | 'rejected'
-
-function getPresetRange(preset: DatePreset): { from: Date | null; to: Date | null } {
-    const now = new Date()
-    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
-
-    switch (preset) {
-        case 'today':
-            return { from: startOfDay(now), to: endOfDay(now) }
-        case 'yesterday': {
-            const y = new Date(now); y.setDate(y.getDate() - 1)
-            return { from: startOfDay(y), to: endOfDay(y) }
-        }
-        case 'week': {
-            const w = new Date(now); w.setDate(w.getDate() - 7)
-            return { from: startOfDay(w), to: endOfDay(now) }
-        }
-        case 'month': {
-            const m = new Date(now); m.setMonth(m.getMonth() - 1)
-            return { from: startOfDay(m), to: endOfDay(now) }
-        }
-        default:
-            return { from: null, to: null }
-    }
-}
-
-function LegacyComplaints() {
-    const [complaints, setComplaints] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [refreshing, setRefreshing] = useState(false)
-    const [selectedComplaint, setSelectedComplaint] = useState<any>(null)
-    const [resolutionNotes, setResolutionNotes] = useState('')
-    const [isResolving, setIsResolving] = useState(false)
-
-    // Filters
-    const [search, setSearch] = useState('')
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-    const [datePreset, setDatePreset] = useState<DatePreset>('all')
-    const [customFrom, setCustomFrom] = useState('')
-    const [customTo, setCustomTo] = useState('')
-
-    useEffect(() => {
-        fetchComplaints()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const fetchComplaints = async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true)
-        else setLoading(true)
+    const sendReply = async () => {
+        const text = reply.trim()
+        if (!text || !active || busy) return
+        setBusy('reply')
         try {
-            const response = await fetch('/api/admin/complaints?days=30')
-            if (!response.ok) throw new Error('Failed to fetch complaints')
-            const data = await response.json()
-            setComplaints(data || [])
-            if (isRefresh) toast.success('Complaints refreshed')
-        } catch (error) {
-            console.error('Error fetching complaints:', error)
-            toast.error('Failed to load complaints')
-        } finally {
-            setLoading(false)
-            setRefreshing(false)
-        }
+            const json = await post({ action: 'reply', message: text })
+            const sent = json.data.message as Message
+            setReply('')
+            setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
+            patchActive({ last_message: { body: sent.body, sender_role: 'admin', created_at: sent.created_at }, last_message_at: sent.created_at, unread_count: 0 })
+        } catch (e: any) {
+            toast.error(e?.message || 'We could not send that reply. Try again.')
+        } finally { setBusy(null) }
     }
 
-    const handleResolve = async (status: 'resolved' | 'rejected') => {
-        if (!selectedComplaint) return
-
-        setIsResolving(true)
+    const closeThread = async () => {
+        if (!active || busy) return
+        setBusy('close')
         try {
-            const response = await fetch('/api/admin/complaints/resolve', {
+            await post({ action: 'close', closing_note: note.trim() || undefined })
+            if (note.trim()) {
+                const sentAt = new Date().toISOString()
+                setMessages(prev => [...prev, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt }])
+            }
+            toast.success('Complaint closed. The customer has been told.')
+            setClosing(false)
+            setNote('')
+            patchActive({ status: 'closed', closed_at: new Date().toISOString() })
+        } catch (e: any) {
+            toast.error(e?.message || 'We could not close this complaint. Try again.')
+        } finally { setBusy(null) }
+    }
+
+    const reopenThread = async () => {
+        if (!active || busy) return
+        setBusy('reopen')
+        try {
+            await post({ action: 'reopen' })
+            toast.success('Complaint reopened. The customer has been told.')
+            patchActive({ status: 'open', closed_at: null })
+        } catch (e: any) {
+            toast.error(e?.message || 'We could not reopen this complaint. Try again.')
+        } finally { setBusy(null) }
+    }
+
+    const assign = async (to: 'me' | 'none') => {
+        if (!active || busy) return
+        setBusy('assign')
+        try {
+            await post({ action: 'assign', to })
+            patchActive({ assignee: to === 'me' && viewerId ? { admin_id: viewerId, name: 'You' } : null })
+            toast.success(to === 'me' ? 'This one is yours now.' : 'Released. Anyone on the team can pick it up.')
+        } catch (e: any) {
+            toast.error(e?.message || 'We could not update the handler. Try again.')
+        } finally { setBusy(null) }
+    }
+
+    const resolveReport = async (status: 'resolved' | 'rejected') => {
+        if (!active || busy) return
+        setBusy(status === 'resolved' ? 'resolve' : 'reject')
+        try {
+            const res = await fetch('/api/admin/complaints/resolve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: selectedComplaint.id,
-                    status,
-                    resolution_notes: resolutionNotes,
-                })
+                body: JSON.stringify({ id: active.id, status, resolution_notes: note }),
             })
-
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.error || 'Failed to update complaint')
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(typeof json.error === 'string' && json.error.length < 160 ? json.error : 'That did not go through. Try again.')
+            toast.success(status === 'resolved' ? 'Marked resolved. The customer has been told.' : 'Rejected. The customer has been told.')
+            if (note.trim()) {
+                const sentAt = new Date().toISOString()
+                setMessages(prev => [...prev, { id: `local-${sentAt}`, sender_role: 'admin', body: note.trim(), created_at: sentAt }])
             }
-
-            setComplaints(complaints.map(c =>
-                c.id === selectedComplaint.id
-                    ? { ...c, status, resolution_notes: resolutionNotes, updated_at: new Date().toISOString() }
-                    : c
-            ))
-
-            toast.success(`Complaint marked as ${status}`)
-            setSelectedComplaint(null)
-            setResolutionNotes('')
-        } catch (error: any) {
-            console.error('Failed to update complaint:', error)
-            toast.error(error?.message || 'Failed to update complaint')
-        } finally {
-            setIsResolving(false)
-        }
+            setNote('')
+            patchActive({ status: 'closed', report_status: status, closed_at: new Date().toISOString() })
+        } catch (e: any) {
+            toast.error(e?.message || 'We could not update this complaint. Try again.')
+        } finally { setBusy(null) }
     }
 
-    const filteredComplaints = useMemo(() => {
-        let result = [...complaints]
+    const copy = (text: string, what: string) => {
+        navigator.clipboard?.writeText(text).then(() => toast.success(`${what} copied`)).catch(() => toast.error('Could not copy'))
+    }
 
-        // Search filter
+    const fillQuickReply = (text: string) => {
+        if (!active) return
+        const first = (active.users?.first_name || '').trim() || 'there'
+        const ref = active.orders?.reference_code ? `order ${active.orders.reference_code}` : 'your order'
+        const to = active.orders?.phone_number ? ` to ${active.orders.phone_number}` : ''
+        setReply(text.replaceAll('{name}', first).replaceAll('{ref}', ref).replaceAll('{to}', to))
+    }
+
+    // ── Derived lists ────────────────────────────────────────────────────────
+
+    const counts = useMemo(() => {
+        const needs = items.filter(waitingOnSupport)
+        return {
+            needs: needs.length,
+            open: items.filter(i => i.status === 'open').length,
+            closed: items.filter(i => i.status === 'closed').length,
+            oldest: needs.length ? needs.reduce((a, b) => (new Date(a.last_message_at) < new Date(b.last_message_at) ? a : b)) : null,
+            byOrigin: {
+                shop: items.filter(i => i.status === 'open' && i.origin === 'shop').length,
+                website: items.filter(i => i.status === 'open' && i.origin === 'website').length,
+            },
+        }
+    }, [items])
+
+    const visible = useMemo(() => {
         const q = search.trim().toLowerCase()
-        if (q) {
-            result = result.filter(c => {
-                const userName = `${c.users?.first_name ?? ''} ${c.users?.last_name ?? ''}`.toLowerCase()
-                const email = (c.users?.email ?? '').toLowerCase()
-                const ref = (c.orders?.reference_code ?? '').toLowerCase()
-                const title = (c.title ?? '').toLowerCase()
-                return userName.includes(q) || email.includes(q) || ref.includes(q) || title.includes(q)
-            })
-        }
+        let rows = items.filter(i => {
+            if (view === 'needs-reply' && !waitingOnSupport(i)) return false
+            if (view === 'open' && i.status !== 'open') return false
+            if (view === 'closed' && i.status !== 'closed') return false
+            if (originFilter !== 'all' && i.origin !== originFilter) return false
+            if (assignFilter === 'mine' && i.assignee?.admin_id !== viewerId) return false
+            if (assignFilter === 'unassigned' && (i.assignee || i.kind === 'report')) return false
+            if (!q) return true
+            return customerName(i).toLowerCase().includes(q)
+                || (i.users?.email ?? '').toLowerCase().includes(q)
+                || i.subject.toLowerCase().includes(q)
+                || (i.orders?.reference_code ?? '').toLowerCase().includes(q)
+                || (i.orders?.phone_number ?? '').includes(q)
+                || (i.orders?.shop_name ?? '').toLowerCase().includes(q)
+                || i.phone_number.includes(q)
+        })
+        // Longest-waiting first where a reply is owed; otherwise newest activity first.
+        rows = [...rows].sort((a, b) => view === 'needs-reply'
+            ? +new Date(a.last_message_at) - +new Date(b.last_message_at)
+            : +new Date(b.last_message_at) - +new Date(a.last_message_at))
+        return rows
+    }, [items, view, originFilter, assignFilter, viewerId, search])
 
-        // Status filter
-        if (statusFilter !== 'all') {
-            result = result.filter(c => c.status === statusFilter)
-        }
+    const VIEWS: { id: View; label: string; n?: number }[] = [
+        { id: 'needs-reply', label: 'Needs a reply', n: counts.needs },
+        { id: 'open', label: 'Open', n: counts.open },
+        { id: 'closed', label: 'Closed', n: counts.closed },
+        { id: 'all', label: 'All' },
+    ]
+    const ORIGINS: { id: OriginFilter; label: string }[] = [
+        { id: 'all', label: 'Everything' },
+        { id: 'shop', label: 'Shop orders' },
+        { id: 'website', label: 'Website orders' },
+        { id: 'general', label: 'General' },
+    ]
 
-        // Date filter
-        let dateFrom: Date | null = null
-        let dateTo: Date | null = null
-
-        if (datePreset === 'custom') {
-            if (customFrom) dateFrom = new Date(customFrom)
-            if (customTo) {
-                dateTo = new Date(customTo)
-                dateTo.setHours(23, 59, 59, 999)
-            }
-        } else if (datePreset !== 'all') {
-            const range = getPresetRange(datePreset)
-            dateFrom = range.from
-            dateTo = range.to
-        }
-
-        if (dateFrom || dateTo) {
-            result = result.filter(c => {
-                const d = new Date(c.created_at)
-                if (dateFrom && d < dateFrom) return false
-                if (dateTo && d > dateTo) return false
-                return true
-            })
-        }
-
-        return result
-    }, [complaints, search, statusFilter, datePreset, customFrom, customTo])
-
-    const clearFilters = () => {
-        setSearch('')
-        setStatusFilter('all')
-        setDatePreset('all')
-        setCustomFrom('')
-        setCustomTo('')
-    }
-
-    const hasActiveFilters = search || statusFilter !== 'all' || datePreset !== 'all'
-
-    const getStatusBadge = (status: string) => {
-        const variants: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-            pending: 'pending',
-            in_review: 'processing',
-            resolved: 'completed',
-            rejected: 'failed',
-        }
-        return <Badge variant={variants[status] ?? 'pending'}>{status.replace('_', ' ')}</Badge>
-    }
-
-    const statusCounts = useMemo(() => {
-        const counts: Record<string, number> = { all: complaints.length, pending: 0, in_review: 0, resolved: 0, rejected: 0 }
-        complaints.forEach(c => { if (counts[c.status] !== undefined) counts[c.status]++ })
-        return counts
-    }, [complaints])
+    // ── Render ───────────────────────────────────────────────────────────────
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-24" role="status" aria-label="Loading complaints">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
             </div>
         )
     }
 
+    const isReport = active?.kind === 'report'
+    const order = active?.orders ?? null
+    const canReply = !!active && active.kind === 'thread' && active.status === 'open'
+
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
-                    Order complaints filed before the support-threads system. Kept for 30 days.
-                </p>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchComplaints(true)}
+        <div className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Complaints</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Every customer complaint, from website and shop orders, in one inbox. Reply, resolve and close from here.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => fetchItems(true)}
                     disabled={refreshing}
-                    className="gap-2 shrink-0"
+                    className={cn('clay-silver flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-60', FOCUS)}
                 >
-                    <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-                    Refresh
-                </Button>
+                    <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin motion-reduce:animate-none')} aria-hidden="true" /> Refresh
+                </button>
             </div>
 
-            {/* Filters */}
-            <div className="space-y-3">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Search by name, email, order ref, or issue..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="pl-9 pr-9"
-                    />
-                    {search && (
-                        <button
-                            onClick={() => setSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
+            {loadFailed && <Notice>We could not load the inbox. Check your connection, then press Refresh.</Notice>}
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="neu-raised-sm rounded-3xl p-4">
+                    <p className="font-display text-2xl font-bold">{counts.needs}</p>
+                    <p className="text-xs text-muted-foreground">Waiting on us</p>
                 </div>
-
-                <div className="flex flex-wrap gap-2 items-center">
-                    <Select value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
-                        <SelectTrigger className="w-[150px] h-9 text-sm">
-                            <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                            <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Status <span className="text-muted-foreground">({statusCounts.all})</span></SelectItem>
-                            <SelectItem value="pending">Pending <span className="text-muted-foreground">({statusCounts.pending})</span></SelectItem>
-                            <SelectItem value="in_review">In Review <span className="text-muted-foreground">({statusCounts.in_review})</span></SelectItem>
-                            <SelectItem value="resolved">Resolved <span className="text-muted-foreground">({statusCounts.resolved})</span></SelectItem>
-                            <SelectItem value="rejected">Rejected <span className="text-muted-foreground">({statusCounts.rejected})</span></SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={datePreset} onValueChange={v => setDatePreset(v as DatePreset)}>
-                        <SelectTrigger className="w-[140px] h-9 text-sm">
-                            <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                            <SelectValue placeholder="Date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Last 30 Days</SelectItem>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="yesterday">Yesterday</SelectItem>
-                            <SelectItem value="week">Last 7 Days</SelectItem>
-                            <SelectItem value="custom">Custom Range</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    {hasActiveFilters && (
-                        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-muted-foreground hover:text-foreground gap-1.5">
-                            <X className="w-3.5 h-3.5" />
-                            Clear
-                        </Button>
-                    )}
-
-                    <span className="text-xs text-muted-foreground ml-auto">
-                        {filteredComplaints.length} of {complaints.length} complaint{complaints.length !== 1 ? 's' : ''}
-                    </span>
+                <div className="neu-raised-sm rounded-3xl p-4">
+                    <p className="font-display text-2xl font-bold">{counts.oldest ? ago(counts.oldest.last_message_at) : '0m'}</p>
+                    <p className="text-xs text-muted-foreground">Longest wait</p>
                 </div>
+                <div className="neu-raised-sm rounded-3xl p-4">
+                    <p className="font-display text-2xl font-bold">{counts.byOrigin.shop}</p>
+                    <p className="text-xs text-muted-foreground">Open, shop orders</p>
+                </div>
+                <div className="neu-raised-sm rounded-3xl p-4">
+                    <p className="font-display text-2xl font-bold">{counts.byOrigin.website}</p>
+                    <p className="text-xs text-muted-foreground">Open, website orders</p>
+                </div>
+            </div>
 
-                {datePreset === 'custom' && (
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground whitespace-nowrap">From</label>
-                            <Input
-                                type="date"
-                                value={customFrom}
-                                onChange={e => setCustomFrom(e.target.value)}
-                                className="h-9 text-sm w-auto"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground whitespace-nowrap">To</label>
-                            <Input
-                                type="date"
-                                value={customTo}
-                                onChange={e => setCustomTo(e.target.value)}
-                                className="h-9 text-sm w-auto"
-                            />
-                        </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+                {/* ── Inbox ─────────────────────────────────────────────── */}
+                <section aria-label="Inbox" className={cn('space-y-3', active && 'hidden lg:block')}>
+                    <div className="neu-inset flex items-center gap-2 rounded-full px-4">
+                        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <label htmlFor="complaint-search" className="sr-only">Search complaints</label>
+                        <input
+                            id="complaint-search"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Name, email, order ref, number or shop"
+                            className="h-11 min-w-0 flex-1 bg-transparent text-base placeholder:text-muted-foreground/70 focus-visible:outline-none"
+                        />
+                        {search && (
+                            <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className={cn('flex h-8 w-8 items-center justify-center rounded-full', FOCUS)}>
+                                <X className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        )}
                     </div>
-                )}
-            </div>
 
-            {/* Desktop Table */}
-            <div className="hidden md:block">
-                <Card>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>Order Ref</TableHead>
-                                    <TableHead>Order Date</TableHead>
-                                    <TableHead>Beneficiary</TableHead>
-                                    <TableHead>Package</TableHead>
-                                    <TableHead>Supplier</TableHead>
-                                    <TableHead>Issue</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Filed</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredComplaints.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
-                                            {hasActiveFilters ? (
-                                                <div className="space-y-1">
-                                                    <p>No complaints match your filters.</p>
-                                                    <button onClick={clearFilters} className="text-sm text-primary underline underline-offset-4">
-                                                        Clear filters
-                                                    </button>
-                                                </div>
-                                            ) : 'No complaints found'}
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredComplaints.map((complaint) => (
-                                        <TableRow key={complaint.id}>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">{complaint.users?.first_name} {complaint.users?.last_name}</span>
-                                                    <span className="text-xs text-muted-foreground">{complaint.users?.email}</span>
-                                                    {complaint.orders?.shop_name && (
-                                                        <Badge variant="outline" className="mt-1 w-fit bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] py-0 px-1.5 h-auto">
-                                                            Shop: {complaint.orders.shop_name}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {complaint.orders?.reference_code}
-                                            </TableCell>
-                                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                                                {complaint.orders?.created_at ? formatDate(complaint.orders.created_at) : '-'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="font-mono text-sm">{complaint.orders?.phone_number}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium capitalize">{complaint.orders?.network}</span>
-                                                    <span className="text-xs text-muted-foreground">{complaint.orders?.size}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell><SupplierBadge order={complaint.orders} /></TableCell>
-                                            <TableCell className="max-w-[180px] truncate">{complaint.title}</TableCell>
-                                            <TableCell>{getStatusBadge(complaint.status)}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                                                {formatDate(complaint.created_at)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => setSelectedComplaint(complaint)}>
-                                                    View
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
+                    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Show">
+                        {VIEWS.map(v => (
+                            <button
+                                key={v.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={view === v.id}
+                                onClick={() => setView(v.id)}
+                                className={cn('min-h-10 rounded-full px-3.5 text-sm font-semibold', view === v.id ? 'neu-inset' : 'neu-raised-sm neu-press', FOCUS)}
+                            >
+                                {v.label}{v.n !== undefined && <span className="ml-1.5 text-muted-foreground">{v.n}</span>}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {ORIGINS.map(o => (
+                            <button
+                                key={o.id}
+                                type="button"
+                                aria-pressed={originFilter === o.id}
+                                onClick={() => setOriginFilter(o.id)}
+                                className={cn('min-h-9 rounded-full px-3 text-xs font-semibold', originFilter === o.id ? 'clay-black' : 'neu-raised-sm neu-press', FOCUS)}
+                            >
+                                {o.label}
+                            </button>
+                        ))}
+                        {([['any', 'Anyone'], ['mine', 'Mine'], ['unassigned', 'Unassigned']] as const).map(([id, label]) => (
+                            <button
+                                key={id}
+                                type="button"
+                                aria-pressed={assignFilter === id}
+                                onClick={() => setAssignFilter(id)}
+                                className={cn('min-h-9 rounded-full px-3 text-xs font-semibold', assignFilter === id ? 'clay-black' : 'neu-raised-sm neu-press', FOCUS)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="sr-only">Closed complaints from the last</span>
+                            <select
+                                value={days}
+                                onChange={e => setDays(e.target.value)}
+                                className="neu-inset h-9 rounded-full bg-transparent px-3 text-xs font-semibold text-foreground"
+                            >
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                            </select>
+                        </label>
+                    </div>
 
-            {/* Mobile Cards */}
-            <div className="grid grid-cols-1 gap-3 md:hidden">
-                {filteredComplaints.length === 0 ? (
-                    <div className="py-12 text-center text-muted-foreground">
-                        {hasActiveFilters ? (
-                            <div className="space-y-2">
-                                <p className="text-sm">No complaints match your filters.</p>
-                                <button onClick={clearFilters} className="text-sm text-primary underline underline-offset-4">
+                    {visible.length === 0 ? (
+                        <div className="neu-inset rounded-3xl p-8 text-center">
+                            <Inbox className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" aria-hidden="true" />
+                            <p className="font-semibold">
+                                {search || originFilter !== 'all' ? 'Nothing matches that' : view === 'needs-reply' ? 'You are all caught up' : 'No complaints here'}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {search || originFilter !== 'all'
+                                    ? 'Try a different search or filter.'
+                                    : view === 'needs-reply' ? 'Every open complaint has had a reply.' : 'New complaints will show up here.'}
+                            </p>
+                            {(search || originFilter !== 'all') && (
+                                <button type="button" onClick={() => { setSearch(''); setOriginFilter('all') }} className={cn('clay-silver mt-4 min-h-10 rounded-full px-5 text-sm font-semibold', FOCUS)}>
                                     Clear filters
                                 </button>
+                            )}
+                        </div>
+                    ) : (
+                        <ul className="space-y-2">
+                            {visible.map(c => {
+                                const waiting = waitingOnSupport(c)
+                                const stale = waiting && Date.now() - new Date(c.last_message_at).getTime() > 24 * 3_600_000
+                                return (
+                                    <li key={`${c.kind}-${c.id}`}>
+                                        <button
+                                            type="button"
+                                            onClick={() => openConversation(c)}
+                                            aria-current={active?.id === c.id}
+                                            className={cn('w-full rounded-3xl p-4 text-left', active?.id === c.id ? 'neu-inset' : 'neu-raised-sm neu-press', FOCUS)}
+                                        >
+                                            <span className="flex items-center justify-between gap-2">
+                                                <span className="truncate text-sm font-semibold">{customerName(c)}</span>
+                                                <span className="flex shrink-0 items-center gap-1.5">
+                                                    {(c.unread_count || 0) > 0 && (
+                                                        <span className="clay-gold flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
+                                                            {c.unread_count}<span className="sr-only"> unread</span>
+                                                        </span>
+                                                    )}
+                                                    <span className={cn('flex items-center gap-1 text-[11px]', stale ? 'font-semibold text-red-700 dark:text-red-400' : 'text-muted-foreground')}>
+                                                        <Clock className="h-3 w-3" aria-hidden="true" />{ago(c.last_message_at)}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span className="mt-0.5 block truncate text-sm">{c.subject}</span>
+                                            {c.last_message && (
+                                                <span className="mt-1 line-clamp-1 block text-xs text-muted-foreground">
+                                                    {c.last_message.sender_role === 'admin' ? 'You: ' : ''}{c.last_message.body}
+                                                </span>
+                                            )}
+                                            <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                <OriginChip origin={c.origin} />
+                                                {c.orders?.shop_name && <span className="truncate text-[11px] text-muted-foreground">{c.orders.shop_name}</span>}
+                                                {c.orders?.reference_code && <span className="font-mono text-[11px] text-muted-foreground">{c.orders.reference_code}</span>}
+                                                {c.assignee && c.status === 'open' && (
+                                                    <span className="ml-auto text-[11px] text-muted-foreground">
+                                                        {c.assignee.admin_id === viewerId ? 'Yours' : c.assignee.name}
+                                                    </span>
+                                                )}
+                                                {c.status === 'closed' && <span className="ml-auto text-[11px] text-muted-foreground">Closed</span>}
+                                            </span>
+                                        </button>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    )}
+                </section>
+
+                {/* ── Conversation ──────────────────────────────────────── */}
+                <section aria-label="Conversation" className={cn(!active && 'hidden lg:block')}>
+                    {!active ? (
+                        <div className="neu-inset flex min-h-[360px] items-center justify-center rounded-[2rem]">
+                            <div className="px-6 text-center">
+                                <MessageSquare className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" aria-hidden="true" />
+                                <p className="font-semibold">Pick a complaint</p>
+                                <p className="mt-1 text-sm text-muted-foreground">The chat, the order and the customer&apos;s history show up here.</p>
                             </div>
-                        ) : (
-                            <p className="text-sm">No complaints found</p>
-                        )}
-                    </div>
-                ) : (
-                    filteredComplaints.map((complaint) => (
-                        <Card key={complaint.id} className="overflow-hidden">
-                            <CardContent className="p-4 space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <span className="font-medium text-sm">{complaint.users?.first_name} {complaint.users?.last_name}</span>
-                                        <span className="text-xs text-muted-foreground block">{complaint.users?.email}</span>
-                                        {complaint.orders?.shop_name && (
-                                            <Badge variant="outline" className="mt-1 bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                                                Shop: {complaint.orders.shop_name}
-                                            </Badge>
-                                        )}
+                        </div>
+                    ) : (
+                        <div className="neu-raised flex max-h-[80vh] min-h-[480px] flex-col overflow-hidden rounded-[2rem] lg:h-[calc(100vh-15rem)]">
+                            {/* Header */}
+                            <div className="space-y-3 border-b border-border p-4">
+                                <div className="flex items-start gap-3">
+                                    <button type="button" onClick={() => setActive(null)} aria-label="Back to the inbox" className={cn('-ml-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full lg:hidden', FOCUS)}>
+                                        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                                    </button>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-display text-lg font-bold tracking-tight">{active.subject}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {customerName(active)}{active.users?.email && customerName(active) !== active.users.email ? ` · ${active.users.email}` : ''}
+                                        </p>
                                     </div>
-                                    {getStatusBadge(complaint.status)}
+                                    <StatusDot open={active.status === 'open'} />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <OriginChip origin={active.origin} />
+                                    <span className="text-[11px] text-muted-foreground">{CATEGORY_LABEL[active.category] ?? 'Other'} · opened {formatDate(active.created_at)}</span>
+                                    {isReport && <span className="neu-inset rounded-full px-2 py-0.5 text-[11px] font-semibold">Older report, no chat</span>}
+                                    {canReply && (
+                                        active.assignee ? (
+                                            <>
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    Handled by {active.assignee.admin_id === viewerId ? 'you' : active.assignee.name}
+                                                </span>
+                                                {(active.assignee.admin_id === viewerId) && (
+                                                    <button type="button" onClick={() => assign('none')} disabled={!!busy} className={cn('neu-raised-sm neu-press min-h-8 rounded-full px-3 text-[11px] font-semibold disabled:opacity-60', FOCUS)}>Release</button>
+                                                )}
+                                                {(active.assignee.admin_id !== viewerId) && (
+                                                    <button type="button" onClick={() => assign('me')} disabled={!!busy} className={cn('neu-raised-sm neu-press min-h-8 rounded-full px-3 text-[11px] font-semibold disabled:opacity-60', FOCUS)}>Take over</button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <button type="button" onClick={() => assign('me')} disabled={!!busy} className={cn('clay-gold min-h-8 rounded-full px-3 text-[11px] font-semibold disabled:opacity-60', FOCUS)}>Take this one</button>
+                                        )
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {active.phone_number && (
+                                        <a href={`tel:${active.phone_number}`} className={cn('clay-silver flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold', FOCUS)}>
+                                            <Phone className="h-3.5 w-3.5" aria-hidden="true" /> Call {active.phone_number}
+                                        </a>
+                                    )}
+                                    {active.whatsapp_number && (
+                                        <a href={`https://wa.me/${normalizeWhatsAppNumber(active.whatsapp_number)}`} target="_blank" rel="noopener noreferrer" className={cn('clay-silver flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold', FOCUS)}>
+                                            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" /> WhatsApp<span className="sr-only"> (opens in a new tab)</span>
+                                        </a>
+                                    )}
+                                    {active.users?.email && (
+                                        <a href={`mailto:${active.users.email}`} className={cn('clay-silver flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold', FOCUS)}>
+                                            <Mail className="h-3.5 w-3.5" aria-hidden="true" /> Email
+                                        </a>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-muted/40 p-3 rounded-lg">
-                                    <div className="col-span-2">
-                                        <span className="text-muted-foreground text-xs block">Order Ref</span>
-                                        <span className="font-mono text-xs">{complaint.orders?.reference_code ?? '—'}</span>
-                                        {complaint.orders?.created_at && (
-                                            <span className="text-xs text-muted-foreground block">{formatDate(complaint.orders.created_at)}</span>
-                                        )}
+                                {order ? (
+                                    <div className="neu-inset rounded-2xl p-3 text-sm">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="min-w-0 truncate">
+                                                <span className="font-mono font-semibold">{order.reference_code}</span>
+                                                <span className="text-muted-foreground"> · {order.network} {order.size}</span>
+                                            </p>
+                                            <button type="button" onClick={() => copy(order.reference_code, 'Order reference')} aria-label="Copy order reference" className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', FOCUS)}>
+                                                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                                            </button>
+                                        </div>
+                                        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                                            <div><dt className="text-muted-foreground">Status</dt><dd className="font-semibold capitalize">{order.status ?? 'unknown'}</dd></div>
+                                            <div><dt className="text-muted-foreground">Amount</dt><dd className="font-semibold">{order.price != null ? formatCurrency(order.price) : '—'}</dd></div>
+                                            <div>
+                                                <dt className="text-muted-foreground">Data goes to</dt>
+                                                <dd className="flex items-center gap-1 font-mono font-semibold">
+                                                    {order.phone_number ?? '—'}
+                                                    {order.phone_number && (
+                                                        <button type="button" onClick={() => copy(order.phone_number!, 'Number')} aria-label="Copy number" className={cn('flex h-6 w-6 items-center justify-center rounded-full', FOCUS)}>
+                                                            <Copy className="h-3 w-3" aria-hidden="true" />
+                                                        </button>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div><dt className="text-muted-foreground">Placed</dt><dd className="font-semibold">{order.created_at ? formatDate(order.created_at) : '—'}</dd></div>
+                                            {order.shop_name && <div className="col-span-2"><dt className="text-muted-foreground">Sold by shop</dt><dd className="font-semibold">{order.shop_name}</dd></div>}
+                                            {order.error_message && <div className="col-span-2"><dt className="text-muted-foreground">Last error on the order</dt><dd className="font-semibold">{order.error_message}</dd></div>}
+                                        </dl>
                                     </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs block">Beneficiary</span>
-                                        <span className="font-mono text-xs">{complaint.orders?.phone_number ?? '—'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs block">Package</span>
-                                        <span className="text-xs capitalize">{complaint.orders?.network} {complaint.orders?.size}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground text-xs block">Supplier</span>
-                                        <SupplierBadge order={complaint.orders} />
-                                    </div>
-                                </div>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">No order is linked to this complaint.</p>
+                                )}
 
-                                <div>
-                                    <p className="text-sm font-medium leading-snug">{complaint.title}</p>
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{complaint.description}</p>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t">
-                                    <span className="text-xs text-muted-foreground">{formatDate(complaint.created_at)}</span>
-                                    <Button size="sm" variant="outline" onClick={() => setSelectedComplaint(complaint)}>
-                                        View Details
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
-
-            {/* Detail/Resolution Dialog */}
-            <Dialog open={!!selectedComplaint} onOpenChange={() => { setSelectedComplaint(null); setResolutionNotes('') }}>
-                <DialogContent className="max-w-lg w-[calc(100vw-2rem)] sm:w-full">
-                    <DialogHeader>
-                        <DialogTitle>Complaint Details</DialogTitle>
-                        <DialogDescription asChild>
-                            <div>
-                                <span>Order: {selectedComplaint?.orders?.reference_code ?? '—'}</span>
-                                {selectedComplaint?.orders?.shop_name && (
-                                    <span className="block text-emerald-600 font-semibold mt-1">
-                                        Reseller Shop: {selectedComplaint.orders.shop_name}
-                                    </span>
+                                {history.length > 0 && (
+                                    <div className="text-xs text-muted-foreground">
+                                        <span className="font-semibold text-foreground">Earlier complaints from this customer:</span>{' '}
+                                        {history.map((h, i) => (
+                                            <span key={h.id}>{i > 0 && ' · '}{h.subject} ({h.status})</span>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-                        </DialogDescription>
-                    </DialogHeader>
 
-                    <div className="space-y-4 py-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {getStatusBadge(selectedComplaint?.status ?? 'pending')}
-                            <span className="text-xs text-muted-foreground">{selectedComplaint ? formatDate(selectedComplaint.created_at) : ''}</span>
+                            {/* Messages */}
+                            <div ref={scrollRef} className="min-h-[180px] flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+                                {loadingChat ? (
+                                    <div className="flex justify-center py-10" role="status" aria-label="Loading messages">
+                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+                                    </div>
+                                ) : messages.map(msg => (
+                                    <div key={msg.id} className={cn('flex', msg.sender_role === 'admin' ? 'justify-end' : 'justify-start')}>
+                                        <div className={cn(
+                                            'max-w-[85%] rounded-3xl px-4 py-2.5 text-sm sm:max-w-[75%]',
+                                            msg.sender_role === 'admin' ? 'clay-black rounded-br-lg' : 'neu-raised-sm rounded-bl-lg',
+                                        )}>
+                                            <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                                            <p className={cn('mt-1 flex items-center justify-end gap-1 text-[10px]', msg.sender_role === 'admin' ? 'text-silver-200' : 'text-muted-foreground')}>
+                                                {formatDate(msg.created_at)}
+                                                {msg.sender_role === 'admin' && !isReport && !String(msg.id).startsWith('local-') && (
+                                                    <Tick state={getMessageTickState({ delivered_at: msg.delivered_at ?? null, read_at: msg.read_at ?? null })} />
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Footer: reply / close / reopen / resolve */}
+                            {isReport && active.status === 'open' ? (
+                                <div className="space-y-3 border-t border-border p-4">
+                                    <p className="text-xs text-muted-foreground">This was filed before chat existed, so the customer can&apos;t reply. Your note below is sent to them with the decision.</p>
+                                    <div className="neu-inset rounded-xl">
+                                        <label htmlFor="resolution-note" className="sr-only">Note to the customer</label>
+                                        <Textarea
+                                            id="resolution-note"
+                                            value={note}
+                                            onChange={e => setNote(e.target.value)}
+                                            placeholder="What was done, or why it was rejected"
+                                            rows={2}
+                                            maxLength={2000}
+                                            className="rounded-xl border-0 bg-transparent px-4 py-3 text-base shadow-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-0 dark:focus-visible:ring-brand-500"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <button type="button" onClick={() => resolveReport('rejected')} disabled={!!busy} className={cn('clay-silver flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60', FOCUS)}>
+                                            {busy === 'reject' && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Reject
+                                        </button>
+                                        <button type="button" onClick={() => resolveReport('resolved')} disabled={!!busy} className={cn('clay-gold flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60', FOCUS)}>
+                                            {busy === 'resolve' && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Mark resolved
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : canReply ? (
+                                closing ? (
+                                    <div className="space-y-3 border-t border-border p-4">
+                                        <p className="text-sm font-semibold">Close this complaint?</p>
+                                        <div className="neu-inset rounded-xl">
+                                            <label htmlFor="closing-note" className="sr-only">Closing note</label>
+                                            <Textarea
+                                                id="closing-note"
+                                                value={note}
+                                                onChange={e => setNote(e.target.value)}
+                                                placeholder="Optional last message to the customer"
+                                                rows={2}
+                                                maxLength={1000}
+                                                className="rounded-xl border-0 bg-transparent px-4 py-3 text-base shadow-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-0 dark:focus-visible:ring-brand-500"
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button type="button" onClick={() => setClosing(false)} disabled={!!busy} className={cn('clay-silver min-h-11 rounded-full px-5 text-sm font-semibold', FOCUS)}>Keep open</button>
+                                            <button type="button" onClick={closeThread} disabled={!!busy} className={cn('clay-gold flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60', FOCUS)}>
+                                                {busy === 'close' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Lock className="h-4 w-4" aria-hidden="true" />} Close complaint
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 border-t border-border p-3">
+                                        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Quick replies">
+                                            {QUICK_REPLIES.map(q => (
+                                                <button key={q.label} type="button" onClick={() => fillQuickReply(q.text)} className={cn('neu-raised-sm neu-press min-h-9 shrink-0 rounded-full px-3 text-xs font-semibold', FOCUS)}>
+                                                    {q.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <form onSubmit={e => { e.preventDefault(); sendReply() }} className="flex items-end gap-2">
+                                            <button type="button" onClick={() => { setNote(''); setClosing(true) }} aria-label="Close complaint" className={cn('clay-silver flex h-11 w-11 shrink-0 items-center justify-center rounded-full', FOCUS)}>
+                                                <Lock className="h-4 w-4" aria-hidden="true" />
+                                            </button>
+                                            <div className="neu-inset min-w-0 flex-1 rounded-3xl">
+                                                <label htmlFor="admin-reply" className="sr-only">Reply to the customer</label>
+                                                <textarea
+                                                    id="admin-reply"
+                                                    value={reply}
+                                                    onChange={e => setReply(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
+                                                    placeholder="Reply to the customer. Enter sends, Shift+Enter adds a line."
+                                                    rows={reply.includes('\n') || reply.length > 70 ? 3 : 1}
+                                                    maxLength={1000}
+                                                    className="w-full resize-none rounded-3xl bg-transparent px-4 py-2.5 text-base text-foreground placeholder:text-muted-foreground/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black dark:focus-visible:outline-brand-500"
+                                                />
+                                            </div>
+                                            <button type="submit" disabled={!reply.trim() || !!busy} aria-label="Send reply" className={cn('clay-gold flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-60', FOCUS)}>
+                                                {busy === 'reply' ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+                                            </button>
+                                        </form>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex items-center justify-between gap-3 border-t border-border p-3">
+                                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                                        {isReport ? `${(active.report_status ?? 'closed').replace('_', ' ')}` : 'Closed'}{active.closed_at ? ` ${formatDate(active.closed_at)}` : ''}
+                                    </p>
+                                    {!isReport && (
+                                        <button type="button" onClick={reopenThread} disabled={!!busy} className={cn('clay-silver flex min-h-10 items-center gap-1.5 rounded-full px-4 text-xs font-semibold disabled:opacity-60', FOCUS)}>
+                                            {busy === 'reopen' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <LockOpen className="h-3.5 w-3.5" aria-hidden="true" />} Reopen
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
-
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-muted/40 p-3 rounded-lg">
-                            <div>
-                                <span className="text-muted-foreground text-xs block">Beneficiary</span>
-                                <span className="font-mono text-xs">{selectedComplaint?.orders?.phone_number ?? '—'}</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground text-xs block">Order placed</span>
-                                <span className="text-xs">{selectedComplaint?.orders?.created_at ? formatDate(selectedComplaint.orders.created_at) : '—'}</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground text-xs block">Supplier</span>
-                                <SupplierBadge order={selectedComplaint?.orders} />
-                            </div>
-                        </div>
-
-                        <div className="p-3 bg-muted rounded-lg">
-                            <h4 className="font-semibold text-sm mb-1">{selectedComplaint?.title}</h4>
-                            <p className="text-sm text-muted-foreground">{selectedComplaint?.description}</p>
-                        </div>
-
-                        {selectedComplaint?.status === 'pending' || selectedComplaint?.status === 'in_review' ? (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Resolution Notes</label>
-                                <Textarea
-                                    placeholder="Explain the resolution or rejection reason..."
-                                    value={resolutionNotes}
-                                    onChange={(e) => setResolutionNotes(e.target.value)}
-                                    rows={4}
-                                />
-                            </div>
-                        ) : (
-                            <div className="p-3 bg-brand-50 dark:bg-brand-900/20 rounded-lg">
-                                <h4 className="font-semibold text-sm mb-1">Resolution</h4>
-                                <p className="text-sm">{selectedComplaint?.resolution_notes}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        {(selectedComplaint?.status === 'pending' || selectedComplaint?.status === 'in_review') ? (
-                            <>
-                                <Button variant="outline" onClick={() => handleResolve('rejected')} disabled={isResolving}>
-                                    {isResolving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Reject
-                                </Button>
-                                <Button onClick={() => handleResolve('resolved')} disabled={isResolving}>
-                                    {isResolving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                    Mark Resolved
-                                </Button>
-                            </>
-                        ) : (
-                            <Button variant="outline" onClick={() => { setSelectedComplaint(null); setResolutionNotes('') }}>
-                                Close
-                            </Button>
-                        )}
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-    )
-}
-
-// ─── Page shell ───────────────────────────────────────────────────────────────
-
-export default function AdminSupportComplaintsPage() {
-    const [tab, setTab] = useState<'threads' | 'legacy'>('threads')
-
-    return (
-        <div className="space-y-4 sm:space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Support &amp; Complaints</h1>
-                    <p className="text-sm text-muted-foreground">Chat with users, resolve issues, and close complaints</p>
-                </div>
-                <div className="inline-flex rounded-lg border p-0.5 self-start sm:self-auto">
-                    <button
-                        onClick={() => setTab('threads')}
-                        className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-                            tab === 'threads' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <MessageSquare className="w-3.5 h-3.5" /> Threads
-                    </button>
-                    <button
-                        onClick={() => setTab('legacy')}
-                        className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-                            tab === 'legacy' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                        )}
-                    >
-                        <Archive className="w-3.5 h-3.5" /> Legacy
-                    </button>
-                </div>
+                    )}
+                </section>
             </div>
-
-            {tab === 'threads' ? <ThreadsConsole /> : <LegacyComplaints />}
         </div>
     )
 }

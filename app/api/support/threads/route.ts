@@ -45,6 +45,20 @@ export async function POST(request: Request) {
             if (!ownedOrder) {
                 return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
             }
+            // One open complaint per order: a second one only splits the conversation.
+            const { data: existing } = await supabase
+                .from('support_threads')
+                .select('id')
+                .eq('order_id', order_id)
+                .eq('user_id', user.id)
+                .eq('status', 'open')
+                .limit(1)
+            if (existing && existing.length > 0) {
+                return NextResponse.json(
+                    { success: false, error: 'You already have an open complaint about this order. Add your message to it in Help and complaints.' },
+                    { status: 409 }
+                )
+            }
         }
 
         // Writes go through the service-role client (tables are read-only to
@@ -131,7 +145,7 @@ export async function POST(request: Request) {
                 await adminDb.from('notifications').insert({
                     user_id: user.id,
                     title: 'We received your complaint',
-                    message: `"${subject.trim()}" has been logged. Our team will reply here soon.`,
+                    message: `"${subject.trim()}" has been logged. Our team will reply in Help and complaints, and you will get a notification when they do.`,
                     type: 'support_reply',
                     action_url: '/dashboard/complaints',
                 })
