@@ -261,7 +261,7 @@ export default function ShopDomainDiscoveryPage() {
                         </button>
                         {termsOpen && (
                             <div id="terms-panel" className="border-t border-border px-5 pb-6 pt-5">
-                                <TermsSectionsLive className="space-y-6" />
+                                <TermsSectionsLive className="space-y-6" brandName={BRAND.name} />
                             </div>
                         )}
                     </section>

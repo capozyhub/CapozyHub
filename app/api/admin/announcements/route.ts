@@ -90,6 +90,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, data: row })
     } catch (e: any) {
         console.error('[announce-post]', e)
-        return NextResponse.json({ success: false, error: e.message ?? 'Internal error' }, { status: 500 })
+        return NextResponse.json({ success: false, error: 'Something went wrong on our side. Please try again.' }, { status: 500 })
     }
 }

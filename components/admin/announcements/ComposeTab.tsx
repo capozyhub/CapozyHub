@@ -1,17 +1,18 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Loader2, Megaphone, Maximize2, Minimize2, Plus, X, Bell, Clock, FileText } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
+import { ClayButton, Notice, TextAreaField, TextField } from '@/components/auth/fields'
 import { CtaFieldGroup } from './CtaFieldGroup'
 import { AnnouncementPreview } from './AnnouncementPreview'
 
 const TITLE_MAX = 80
 const MESSAGE_MAX = 1000
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500'
 
 export type EditingAnnouncement = {
     id?: string
@@ -28,11 +29,12 @@ export type EditingAnnouncement = {
 
 type VisibleOn = 'main_site' | 'storefronts' | 'both'
 type Mode = 'draft' | 'publish' | 'schedule'
+type When = 'now' | 'later'
 
-const VISIBLE_OPTIONS: { value: VisibleOn; label: string }[] = [
-    { value: 'main_site', label: 'Main Site' },
-    { value: 'storefronts', label: 'Storefronts' },
-    { value: 'both', label: 'Both' },
+const AUDIENCES: { value: VisibleOn; label: string; hint: string }[] = [
+    { value: 'main_site', label: 'Members', hint: 'Pops up on the dashboard after sign-in.' },
+    { value: 'storefronts', label: 'Shop visitors', hint: 'Pops up on every shop storefront.' },
+    { value: 'both', label: 'Everyone', hint: 'Members and shop visitors.' },
 ]
 
 /** ISO timestamp → value for <input type="datetime-local"> in the user's local wall-clock. */
@@ -41,6 +43,40 @@ function toLocalDatetimeInput(iso: string): string {
     if (isNaN(d.getTime())) return ''
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
     return local.toISOString().slice(0, 16)
+}
+
+/** A group of radio-style cards: the chosen one sits pressed in, the others stand raised. */
+function ChoiceGroup<T extends string>({ legend, name, value, onChange, options, columns }: {
+    legend: string
+    name: string
+    value: T
+    onChange: (v: T) => void
+    options: { value: T; label: string; hint?: string }[]
+    columns: string
+}) {
+    return (
+        <fieldset className="space-y-2">
+            <legend className="text-sm font-semibold text-foreground">{legend}</legend>
+            <div className={cn('grid gap-2', columns)}>
+                {options.map(o => {
+                    const checked = value === o.value
+                    return (
+                        <label
+                            key={o.value}
+                            className={cn(
+                                'flex cursor-pointer flex-col gap-0.5 rounded-2xl p-3.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-600 dark:focus-within:outline-brand-500',
+                                checked ? 'neu-inset' : 'neu-raised-sm neu-press',
+                            )}
+                        >
+                            <input type="radio" name={name} value={o.value} checked={checked} onChange={() => onChange(o.value)} className="sr-only" />
+                            <span className={cn('text-sm font-semibold', checked ? 'text-foreground' : 'text-foreground/90')}>{o.label}</span>
+                            {o.hint && <span className="text-xs leading-snug text-muted-foreground">{o.hint}</span>}
+                        </label>
+                    )
+                })}
+            </div>
+        </fieldset>
+    )
 }
 
 export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }: {
@@ -60,15 +96,15 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
     const [cta2Url, setCta2Url] = useState('')
     const [showSecond, setShowSecond] = useState(false)
     const [sendPush, setSendPush] = useState(true)
-    const [showSchedule, setShowSchedule] = useState(false)
+    const [when, setWhen] = useState<When>('now')
     const [scheduledAt, setScheduledAt] = useState('')
-    const [previewSurface, setPreviewSurface] = useState<'dashboard' | 'storefront'>('dashboard')
-    const [fullscreen, setFullscreen] = useState(false)
     const [submitting, setSubmitting] = useState<Mode | null>(null)
+    const [formError, setFormError] = useState('')
+    const [titleError, setTitleError] = useState('')
+    const [messageError, setMessageError] = useState('')
+    const [confirmOpen, setConfirmOpen] = useState(false)
 
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-    // Hydrate form from the row being edited / duplicated.
+    // Fill the form from the notice being edited or duplicated.
     useEffect(() => {
         setTitle(editing?.title ?? '')
         setMessage(editing?.message ?? '')
@@ -78,20 +114,13 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
         setCta2Label(editing?.cta_secondary_label ?? '')
         setCta2Url(editing?.cta_secondary_url ?? '')
         setShowSecond(!!(editing?.cta_secondary_label || editing?.cta_secondary_url))
-        // Preserve an existing schedule when editing a scheduled row, so a quick text edit
-        // doesn't silently drop the publish time.
+        // Keep an existing schedule when editing a scheduled notice, so a quick text edit
+        // does not silently drop the publish time.
         const isScheduled = editing?.status === 'scheduled' && !!editing?.scheduled_at
-        setShowSchedule(isScheduled)
+        setWhen(isScheduled ? 'later' : 'now')
         setScheduledAt(isScheduled ? toLocalDatetimeInput(editing!.scheduled_at!) : '')
+        setFormError(''); setTitleError(''); setMessageError('')
     }, [editing])
-
-    // Auto-grow the message textarea to fit content.
-    useEffect(() => {
-        const el = textareaRef.current
-        if (!el || fullscreen) return
-        el.style.height = 'auto'
-        el.style.height = `${Math.min(el.scrollHeight, 320)}px`
-    }, [message, fullscreen])
 
     const draft = {
         title, message,
@@ -103,18 +132,27 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
     function resetForm() {
         setTitle(''); setMessage(''); setVisibleOn('main_site')
         setCta1Label(''); setCta1Url(''); setCta2Label(''); setCta2Url('')
-        setShowSecond(false); setSendPush(true); setShowSchedule(false); setScheduledAt('')
+        setShowSecond(false); setSendPush(true); setWhen('now'); setScheduledAt('')
+        setFormError(''); setTitleError(''); setMessageError('')
+    }
+
+    // Run before the confirm step, so a missing field is flagged without opening a dialog.
+    function validate(mode: Mode): boolean {
+        setFormError(''); setTitleError(''); setMessageError('')
+        let ok = true
+        if (!title.trim()) { setTitleError('Add a title.'); ok = false }
+        if (!message.trim()) { setMessageError('Write the message.'); ok = false }
+        if (mode === 'schedule') {
+            if (!scheduledAt) { setFormError('Pick the date and time to publish.'); ok = false }
+            else if (new Date(scheduledAt).getTime() <= Date.now()) { setFormError('Pick a time in the future.'); ok = false }
+        }
+        return ok
     }
 
     async function submit(mode: Mode) {
-        if (!title.trim() || !message.trim()) {
-            toast.error('Title and message are required')
-            return
-        }
-        if (mode === 'schedule' && !scheduledAt) {
-            toast.error('Pick a date & time to schedule')
-            return
-        }
+        if (submitting) return
+        setConfirmOpen(false)
+        if (!validate(mode)) return
 
         const payload = {
             title: title.trim(),
@@ -131,208 +169,202 @@ export function ComposeTab({ editing, onSaved, onCancelEdit, savedButtons = [] }
 
         setSubmitting(mode)
         try {
-            const url = isEditing
-                ? `/api/admin/announcements/${editing!.id}`
-                : '/api/admin/announcements'
+            const url = isEditing ? `/api/admin/announcements/${editing!.id}` : '/api/admin/announcements'
             const res = await fetch(url, {
                 method: isEditing ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(isEditing ? { action: 'update', ...payload } : payload),
             })
-            const json = await res.json()
+            const json = await res.json().catch(() => ({}))
             if (!res.ok || !json.success) {
-                throw new Error(json.error || 'Failed to save announcement')
+                setFormError(json.error || 'Could not save the announcement. Try again.')
+                return
             }
             toast.success(
-                mode === 'publish' ? (isEditing ? 'Updated & published' : 'Announcement published')
-                    : mode === 'schedule' ? 'Announcement scheduled'
+                mode === 'publish' ? 'The announcement is live'
+                    : mode === 'schedule' ? 'Scheduled. It goes live at the time you chose'
                         : 'Draft saved'
             )
             resetForm()
             onSaved()
-        } catch (e: any) {
-            toast.error(e.message || 'Something went wrong')
+        } catch {
+            setFormError('Could not reach the server. Check your connection and try again.')
         } finally {
             setSubmitting(null)
         }
     }
 
-    const messageEditor = (
-        <textarea
-            ref={fullscreen ? undefined : textareaRef}
-            value={message}
-            onChange={e => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
-            placeholder="Write your announcement… line breaks are preserved."
-            className={fullscreen
-                ? 'w-full h-full resize-none bg-transparent text-base leading-relaxed outline-none'
-                : 'w-full min-h-[120px] max-h-[320px] resize-none rounded-lg border border-border bg-transparent px-3 py-2 text-sm leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-primary/40'}
-        />
-    )
+    const busy = !!submitting
+    const wasLive = isEditing && editing?.status === 'published'
 
     return (
-        <div className="grid gap-5 lg:grid-cols-2">
-            {/* ── Form column ── */}
-            <div className="space-y-4">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            {/* ── The form ── */}
+            <form
+                className="neu-raised space-y-6 rounded-[2rem] p-5 sm:p-7"
+                // Enter inside a field must never publish. Going live is the button below, behind a confirm.
+                onSubmit={e => e.preventDefault()}
+            >
                 {isEditing && (
-                    <div className="flex items-center justify-between rounded-lg bg-brand-50 dark:bg-brand-950/40 px-3 py-2">
-                        <span className="text-[12px] font-medium text-brand-700 dark:text-brand-300">Editing existing announcement</span>
-                        <button onClick={() => { resetForm(); onCancelEdit() }} className="text-[12px] font-medium text-brand-700 hover:underline">
-                            New instead
+                    <Notice tone="info">
+                        You are editing an existing announcement.{' '}
+                        <button type="button" onClick={() => { resetForm(); onCancelEdit() }} className={cn('rounded font-semibold underline underline-offset-4', FOCUS)}>
+                            Start a new one instead
                         </button>
-                    </div>
+                    </Notice>
                 )}
+                {formError && <Notice>{formError}</Notice>}
 
-                {/* Title */}
-                <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-[11px] font-medium text-muted-foreground">Title</Label>
-                        <span className="text-[11px] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
-                    </div>
-                    <Input
+                <div className="space-y-5">
+                    <TextField
+                        id="ann-title"
+                        label="Title"
                         value={title}
-                        onChange={e => setTitle(e.target.value.slice(0, TITLE_MAX))}
-                        placeholder="e.g. Join our community"
-                        className="text-sm"
+                        onChange={v => { setTitle(v.slice(0, TITLE_MAX)); setTitleError('') }}
+                        placeholder="Data prices have changed"
+                        hint={`${title.length} of ${TITLE_MAX}`}
+                        error={titleError}
+                        required={false}
+                    />
+                    <TextAreaField
+                        id="ann-message"
+                        label="Message"
+                        value={message}
+                        onChange={v => { setMessage(v.slice(0, MESSAGE_MAX)); setMessageError('') }}
+                        error={messageError}
+                        placeholder="Say it plainly. Line breaks are kept."
+                        rows={6}
+                        maxLength={MESSAGE_MAX}
                     />
                 </div>
 
-                {/* Message */}
-                <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-[11px] font-medium text-muted-foreground">Message</Label>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[11px] tabular-nums text-muted-foreground">{message.length}/{MESSAGE_MAX}</span>
+                <div className="space-y-2">
+                    <ChoiceGroup
+                        legend="Who sees it"
+                        name="ann-audience"
+                        value={visibleOn}
+                        onChange={setVisibleOn}
+                        options={AUDIENCES}
+                        columns="sm:grid-cols-3"
+                    />
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                        Only one notice shows per audience, so publishing this one switches off the current one.
+                        {visibleOn !== 'main_site' && ' Shop owners’ own notices are switched off while it is live.'}
+                    </p>
+                </div>
+
+                <div className="space-y-3">
+                    <CtaFieldGroup index={1} label={cta1Label} url={cta1Url} onLabel={setCta1Label} onUrl={setCta1Url} savedButtons={savedButtons} />
+                    {showSecond ? (
+                        <div className="space-y-2">
+                            <CtaFieldGroup index={2} label={cta2Label} url={cta2Url} onLabel={setCta2Label} onUrl={setCta2Url} savedButtons={savedButtons} />
                             <button
                                 type="button"
-                                onClick={() => setFullscreen(true)}
-                                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                onClick={() => { setShowSecond(false); setCta2Label(''); setCta2Url('') }}
+                                className={cn('flex items-center gap-1.5 rounded text-sm font-semibold text-muted-foreground hover:text-foreground', FOCUS)}
                             >
-                                <Maximize2 className="w-3 h-3" /> Expand
+                                <X className="h-4 w-4" aria-hidden="true" /> Remove the second button
                             </button>
                         </div>
-                    </div>
-                    {messageEditor}
-                </div>
-
-                {/* Visible on */}
-                <div className="space-y-1.5">
-                    <Label className="text-[11px] font-medium text-muted-foreground">Show on</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                        {VISIBLE_OPTIONS.map(o => (
-                            <Button
-                                key={o.value}
-                                type="button"
-                                variant={visibleOn === o.value ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setVisibleOn(o.value)}
-                                className="h-8 text-xs font-medium"
-                            >
-                                {o.label}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* CTA buttons */}
-                <CtaFieldGroup index={1} label={cta1Label} url={cta1Url} onLabel={setCta1Label} onUrl={setCta1Url} savedButtons={savedButtons} />
-                {showSecond ? (
-                    <div className="relative">
-                        <CtaFieldGroup index={2} label={cta2Label} url={cta2Url} onLabel={setCta2Label} onUrl={setCta2Url} savedButtons={savedButtons} />
+                    ) : (
                         <button
                             type="button"
-                            onClick={() => { setShowSecond(false); setCta2Label(''); setCta2Url('') }}
-                            className="absolute -top-2 -right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-card border border-border text-muted-foreground hover:text-foreground"
-                            aria-label="Remove second button"
+                            onClick={() => setShowSecond(true)}
+                            className={cn('neu-raised-sm neu-press flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-foreground', FOCUS)}
                         >
-                            <X className="w-3 h-3" />
+                            <Plus className="h-4 w-4" aria-hidden="true" /> Add a second button
                         </button>
-                    </div>
-                ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setShowSecond(true)} className="w-full h-8 text-xs font-medium gap-1">
-                        <Plus className="w-3.5 h-3.5" /> Add second button
-                    </Button>
-                )}
+                    )}
+                </div>
 
-                {/* Send push */}
-                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-primary" />
-                        <div>
-                            <Label htmlFor="send-push" className="text-sm font-medium">Send push notification</Label>
-                            <p className="text-[11px] text-muted-foreground">Off = quiet (shows in-app only)</p>
+                <div className="space-y-4">
+                    <ChoiceGroup
+                        legend="When it goes live"
+                        name="ann-when"
+                        value={when}
+                        onChange={setWhen}
+                        options={[
+                            { value: 'now', label: 'Right away' },
+                            { value: 'later', label: 'At a set time' },
+                        ]}
+                        columns="grid-cols-2"
+                    />
+                    {when === 'later' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="ann-at" className="text-sm font-semibold text-foreground">Publish at</Label>
+                            <div className="neu-inset rounded-xl">
+                                <input
+                                    id="ann-at"
+                                    type="datetime-local"
+                                    value={scheduledAt}
+                                    onChange={e => setScheduledAt(e.target.value)}
+                                    className="h-12 w-full rounded-xl border-0 bg-transparent px-4 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500"
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Uses your device&rsquo;s time.</p>
                         </div>
+                    )}
+
+                    <div className="neu-inset flex items-center justify-between gap-4 rounded-2xl p-4">
+                        <div className="min-w-0">
+                            <Label htmlFor="ann-push" className="text-sm font-semibold text-foreground">Send a push notification</Label>
+                            <p className="mt-0.5 text-xs text-muted-foreground">Sent when it goes live. Turn it off to show the popup only.</p>
+                        </div>
+                        <Switch id="ann-push" checked={sendPush} onCheckedChange={setSendPush} />
                     </div>
-                    <Switch id="send-push" checked={sendPush} onCheckedChange={setSendPush} />
                 </div>
 
-                {/* Schedule */}
-                {showSchedule && (
-                    <div className="space-y-1.5 rounded-lg border border-border p-3">
-                        <Label className="text-[11px] font-medium text-muted-foreground">Publish at</Label>
-                        <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} className="text-sm" />
-                    </div>
-                )}
-
-                {/* Actions */}
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                    <Button type="button" variant="outline" onClick={() => submit('draft')} disabled={!!submitting} className="h-9 text-xs font-medium gap-1">
-                        {submitting === 'draft' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                        Save draft
-                    </Button>
-                    <Button
+                <div className="space-y-3 pt-1">
+                    <ClayButton
                         type="button"
-                        variant={showSchedule ? 'default' : 'outline'}
-                        onClick={() => showSchedule ? submit('schedule') : setShowSchedule(true)}
-                        disabled={!!submitting}
-                        className="h-9 text-xs font-medium gap-1"
+                        loading={submitting === 'publish' || submitting === 'schedule'}
+                        disabled={busy}
+                        onClick={() => {
+                            if (when === 'later') { void submit('schedule'); return }
+                            if (validate('publish')) setConfirmOpen(true)
+                        }}
                     >
-                        {submitting === 'schedule' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
-                        {showSchedule ? 'Schedule' : 'Schedule…'}
-                    </Button>
-                    <Button type="button" onClick={() => submit('publish')} disabled={!!submitting} className="h-9 text-xs font-medium gap-1">
-                        {submitting === 'publish' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Megaphone className="w-3.5 h-3.5" />}
-                        Publish
-                    </Button>
+                        {when === 'later' ? 'Schedule it' : isEditing ? 'Save and publish' : 'Publish now'}
+                    </ClayButton>
+                    <button
+                        type="button"
+                        onClick={() => void submit('draft')}
+                        disabled={busy}
+                        className={cn('neu-raised-sm neu-press flex min-h-[3rem] w-full items-center justify-center rounded-full text-sm font-semibold text-foreground disabled:opacity-60', FOCUS)}
+                    >
+                        {submitting === 'draft' ? 'Saving…' : 'Save as a draft'}
+                    </button>
+                    {wasLive && <p className="text-center text-xs text-muted-foreground">Saving this live notice as a draft switches it off.</p>}
                 </div>
-            </div>
+            </form>
 
-            {/* ── Preview column ── */}
-            <div className="space-y-3 lg:sticky lg:top-4 self-start">
-                <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-medium text-muted-foreground">Live preview</span>
-                    <div className="flex gap-1">
-                        {(['dashboard', 'storefront'] as const).map(s => (
-                            <Button
-                                key={s}
-                                type="button"
-                                variant={previewSurface === s ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setPreviewSurface(s)}
-                                className="h-7 px-2.5 text-[11px] font-medium capitalize"
-                            >
-                                {s}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
-                <AnnouncementPreview draft={draft} surface={previewSurface} />
-            </div>
-
-            {/* ── Fullscreen message editor ── */}
-            {fullscreen && (
-                <div className="fixed inset-0 z-[120] flex flex-col bg-card ">
-                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                        <span className="text-sm font-semibold">Edit message</span>
-                        <div className="flex items-center gap-3">
-                            <span className="text-[11px] tabular-nums text-muted-foreground">{message.length}/{MESSAGE_MAX}</span>
-                            <button onClick={() => setFullscreen(false)} className="inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground">
-                                <Minimize2 className="w-3.5 h-3.5" /> Done
+            {confirmOpen && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4" onKeyDown={e => { if (e.key === 'Escape') setConfirmOpen(false) }}>
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmOpen(false)} aria-hidden="true" />
+                    <div role="alertdialog" aria-modal="true" aria-labelledby="ann-pub-title" aria-describedby="ann-pub-body" className="neu-raised relative w-full max-w-sm space-y-5 rounded-[2rem] bg-neu p-6">
+                        <div>
+                            <h3 id="ann-pub-title" className="font-display text-xl font-bold text-foreground">
+                                Publish to {AUDIENCES.find(a => a.value === visibleOn)?.label.toLowerCase()} now?
+                            </h3>
+                            <p id="ann-pub-body" className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                                It goes live straight away{sendPush ? ' and a push notification is sent' : ''}. It also switches off the notice that is showing to the same people.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2.5">
+                            <ClayButton type="button" autoFocus onClick={() => void submit('publish')}>Publish now</ClayButton>
+                            <button type="button" onClick={() => setConfirmOpen(false)} className={cn('neu-raised-sm neu-press flex min-h-[3rem] items-center justify-center rounded-full text-sm font-semibold text-foreground', FOCUS)}>
+                                Not yet
                             </button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto px-4 py-4">{messageEditor}</div>
                 </div>
             )}
+
+            {/* ── What people will see ── */}
+            <div className="space-y-3 lg:sticky lg:top-24">
+                <p className="text-sm font-semibold text-foreground">What people will see</p>
+                <AnnouncementPreview draft={draft} />
+            </div>
         </div>
     )
 }

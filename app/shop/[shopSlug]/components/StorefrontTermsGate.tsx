@@ -67,9 +67,10 @@ export function StorefrontTermsGate({
         <div className="relative flex items-center justify-center pt-3 pb-1">
           <div className="h-1 w-9 rounded-full bg-foreground/15" />
           <button
+            type="button"
             onClick={onCancel}
             aria-label="Close"
-            className="neu-raised-sm neu-press absolute right-4 top-2 flex h-9 w-9 items-center justify-center rounded-full"
+            className="neu-raised-sm neu-press absolute right-4 top-2 flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500"
           >
             <X className="h-4 w-4" />
           </button>
@@ -78,8 +79,8 @@ export function StorefrontTermsGate({
         {/* Header: black plate, like the stage behind every storefront sheet */}
         <div className="relative isolate mx-5 mt-2 overflow-hidden rounded-2xl bg-black px-5 pb-5 pt-4 text-white">
           <BrandSwoosh className="pointer-events-none absolute -bottom-10 -right-[20%] -z-10 w-[80%] opacity-60" />
-          <span className="clay-gold inline-block rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest">
-            Before You Buy
+          <span className="clay-gold inline-block rounded-full px-3 py-1 text-xs font-bold">
+            Before you buy
           </span>
           <DialogTitle className="mt-2 font-display text-xl font-bold tracking-tight">
             Terms &amp; Conditions
@@ -108,7 +109,7 @@ export function StorefrontTermsGate({
               <h3 className="text-sm font-bold tracking-tight text-foreground mb-1">
                 {i + 1}. {s.title}
                 {s.badge ? (
-                  <span className="ml-2 align-middle text-[9px] font-black uppercase tracking-wide text-brand-700 dark:text-brand-400 neu-inset rounded px-1.5 py-0.5">
+                  <span className="neu-inset ml-2 rounded px-1.5 py-0.5 align-middle text-xs font-semibold text-brand-800 dark:text-brand-400">
                     {s.badge}
                   </span>
                 ) : null}
@@ -126,7 +127,7 @@ export function StorefrontTermsGate({
         {/* Footer */}
         <div className="border-t border-black/5 dark:border-white/10 px-5 pt-3 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
           {!reachedEnd && (
-            <p className="text-center text-xs text-muted-foreground mb-2">▼ Scroll to the end to enable Accept</p>
+            <p className="mb-2 text-center text-xs text-muted-foreground">Scroll to the end to continue</p>
           )}
           <div className="flex gap-2.5">
             <button
@@ -140,7 +141,7 @@ export function StorefrontTermsGate({
               disabled={!reachedEnd}
               className="clay-gold flex-1 h-11 rounded-full text-sm font-bold transition disabled:opacity-45 disabled:grayscale"
             >
-              I Accept &amp; Continue
+              I agree and continue
             </button>
           </div>
         </div>

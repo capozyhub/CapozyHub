@@ -31,7 +31,8 @@ import AfaRegistrationForm from './AfaRegistrationForm'
 import { ServiceChargeSheet, type ChargeDescriptor } from './components/ServiceChargeSheet'
 import { StorefrontTermsBoundary } from './components/StorefrontTermsBoundary'
 import { NetworkIcon } from '@/components/network-icon'
-import { AnnouncementCTAButtons } from '@/components/announcements/AnnouncementCTAButtons'
+import { AnnouncementDialog } from '@/components/announcements/announcement-dialog'
+import { BRAND } from '@/lib/brand'
 import { StorefrontShell, type StorefrontLink } from '@/components/storefront/shell'
 import { ServiceTabs, type ServiceTab } from '@/components/storefront/service-tabs'
 import { resolveAccent } from '@/components/storefront/accent'
@@ -210,9 +211,8 @@ export default function ShopStorefront({
     // unique announcement once. Resets automatically when admin posts/reposts.
     const [announcementDismissed, setAnnouncementDismissed] = useState(() => {
         if (!initialAnnouncement?.id || typeof window === 'undefined') return false
-        return !!localStorage.getItem(`storefront_ann_${initialAnnouncement.id}`)
+        try { return !!localStorage.getItem(`storefront_ann_${initialAnnouncement.id}`) } catch { return false }
     })
-    const [announcementCountdown, setAnnouncementCountdown] = useState(0)
     // Announcements must wait for the page-load terms gate: the boundary reports
     // when the agreement is out of the way (already accepted / not needed / accepted now).
     const [termsGateResolved, setTermsGateResolved] = useState(false)
@@ -289,17 +289,6 @@ export default function ShopStorefront({
         }
     }, [termsGateResolved, announcement, announcementDismissed])
 
-    // 5-second countdown while announcement modal is open
-    useEffect(() => {
-        if (!showAnnouncementModal) { setAnnouncementCountdown(0); return }
-        setAnnouncementCountdown(5)
-    }, [showAnnouncementModal])
-    useEffect(() => {
-        if (announcementCountdown <= 0) return
-        const t = setTimeout(() => setAnnouncementCountdown(c => c - 1), 1000)
-        return () => clearTimeout(t)
-    }, [announcementCountdown])
-
     // Detect push support and check if already subscribed to this shop
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -371,11 +360,10 @@ export default function ShopStorefront({
     }
 
     const handleDismissAnnouncement = () => {
-        if (announcementCountdown > 0) return
         setShowAnnouncementModal(false)
         setAnnouncementDismissed(true)
         if (announcement?.id) {
-            localStorage.setItem(`storefront_ann_${announcement.id}`, '1')
+            try { localStorage.setItem(`storefront_ann_${announcement.id}`, '1') } catch { /* shown again next visit */ }
         }
     }
 
@@ -1249,45 +1237,14 @@ export default function ShopStorefront({
                 )}
             </StorefrontShell>
 
-            {/* ── Notice from the shop ── */}
+            {/* ── Notice from the Capozy team or this shop ── */}
             {announcement && showAnnouncementModal && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={announcement.title || 'A notice from this shop'}>
-                    {/* No dismiss on backdrop click: the notice has to be read */}
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none" />
-                    <div className="relative w-full overflow-hidden rounded-t-[2rem] bg-neu shadow-[0_-18px_40px_rgba(0,0,0,0.35)] animate-in slide-in-from-bottom fade-in duration-300 motion-reduce:animate-none sm:mx-4 sm:max-w-md sm:rounded-[2rem]">
-                        <div className="relative bg-black px-7 pb-6 pt-7 text-white">
-                            <BrandSwoosh className="pointer-events-none absolute -bottom-4 -right-1/3 w-full opacity-70" />
-                            <span className="relative inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-brand-400">
-                                <Bell className="h-3.5 w-3.5" aria-hidden="true" />
-                                {announcement.type === 'admin' ? 'From the Capozy team' : `From ${shop.shop_name}`}
-                            </span>
-                            <h3 className="relative mt-3 font-display text-2xl font-bold leading-tight tracking-tight">
-                                {announcement.title || 'A quick update'}
-                            </h3>
-                        </div>
-
-                        <div className="max-h-[38vh] overflow-y-auto px-7 py-5 sm:max-h-[45vh]">
-                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">{announcement.message}</p>
-                            <AnnouncementCTAButtons row={announcement} variant="modal" className="mt-5" />
-                        </div>
-
-                        <div className="px-7 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-2 sm:pb-7">
-                            <button
-                                type="button"
-                                onClick={handleDismissAnnouncement}
-                                disabled={announcementCountdown > 0}
-                                className={cn('flex min-h-[3.25rem] w-full items-center justify-center gap-2.5 rounded-full text-base font-semibold', FOCUS, announcementCountdown > 0 ? 'neu-inset text-muted-foreground' : 'clay-gold')}
-                            >
-                                {announcementCountdown > 0 ? (
-                                    <>
-                                        <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current text-xs font-semibold tabular-nums">{announcementCountdown}</span>
-                                        Have a read first
-                                    </>
-                                ) : 'Got it'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <AnnouncementDialog
+                    content={announcement}
+                    from={announcement.type === 'admin' ? `From the ${BRAND.name} team` : `From ${shop.shop_name}`}
+                    readSeconds={announcementDismissed ? 0 : undefined}
+                    onDismiss={handleDismissAnnouncement}
+                />
             )}
 
             {/* ── Voucher delivered ── */}

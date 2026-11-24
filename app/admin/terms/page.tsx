@@ -147,7 +147,7 @@ export default function AdminTermsPage() {
                 <textarea value={changelog} onChange={(e) => setChangelog(e.target.value)} rows={3}
                   className="mt-1 w-full rounded-lg border border-border bg-transparent px-2 py-1.5 text-sm" />
               </label>
-              <p className="text-[11px] text-muted-foreground">Highlight markup: <code className="text-[10px]">{CHEATSHEET}</code></p>
+              <p className="text-[11px] text-muted-foreground">Highlight markup: <code className="text-xs">{CHEATSHEET}</code></p>
             </div>
 
             <div className="space-y-3">
@@ -216,7 +216,7 @@ export default function AdminTermsPage() {
                   <div key={s.id}>
                     <h3 className="text-sm font-bold text-foreground mb-1">
                       {i + 1}. {s.title}
-                      {s.badge ? <span className="ml-2 text-[9px] font-bold uppercase text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.badge}</span> : null}
+                      {s.badge ? <span className="ml-2 text-[11px] font-bold uppercase text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.badge}</span> : null}
                     </h3>
                     <p className="text-[13px] leading-relaxed text-foreground/80"><ToneText text={s.body} /></p>
                   </div>
@@ -238,7 +238,7 @@ export default function AdminTermsPage() {
                       <span className="font-mono">{v.version}</span>
                       <span className="flex items-center gap-2">
                         {v.requires_reacceptance ? <span className="text-amber-600">re-accept</span> : <span className="text-muted-foreground">minor</span>}
-                        {v.is_current ? <span className="text-[10px] font-bold uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded px-1.5 py-0.5">current</span> : null}
+                        {v.is_current ? <span className="text-xs font-bold uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded px-1.5 py-0.5">current</span> : null}
                       </span>
                     </button>
                   </li>

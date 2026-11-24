@@ -56,6 +56,41 @@ export function TextField({
     )
 }
 
+export function TextAreaField({
+    id, label, value, onChange, placeholder, hint, error, rows = 5, maxLength, required = false,
+}: {
+    id: string
+    label: string
+    value: string
+    onChange: (v: string) => void
+    placeholder?: string
+    hint?: string
+    error?: string
+    rows?: number
+    maxLength?: number
+    required?: boolean
+}) {
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id} className="text-sm font-semibold text-foreground">{label}</Label>
+            <div className={cn(WELL, error && 'ring-2 ring-red-500')}>
+                <textarea
+                    id={id} name={id} rows={rows} placeholder={placeholder} required={required} maxLength={maxLength}
+                    value={value} onChange={(e) => onChange(e.target.value)}
+                    aria-invalid={!!error} aria-describedby={error || hint ? `${id}-note` : undefined}
+                    className="block w-full resize-y rounded-xl border-0 bg-transparent px-4 py-3 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-brand-500"
+                />
+            </div>
+            <div className="flex items-start justify-between gap-3 text-xs">
+                {error
+                    ? <p id={`${id}-note`} className="text-red-600 dark:text-red-400">{error}</p>
+                    : <p id={`${id}-note`} className="text-muted-foreground">{hint}</p>}
+                {maxLength ? <span className="shrink-0 tabular-nums text-muted-foreground">{value.length} of {maxLength}</span> : null}
+            </div>
+        </div>
+    )
+}
+
 export function PasswordField({
     id, label, value, onChange, autoComplete, placeholder, autoFocus,
 }: {

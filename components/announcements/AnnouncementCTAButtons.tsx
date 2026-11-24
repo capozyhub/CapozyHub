@@ -22,52 +22,49 @@ function TelegramIcon({ className }: { className?: string }) {
     )
 }
 
-// Per-kind brand treatment. 'link' (unknown) is intentionally absent → it falls
-// back to the neutral default look below.
-const BRAND: Partial<Record<CtaKind, { className: string; Icon: ComponentType<{ className?: string }> }>> = {
-    whatsapp: { className: 'bg-[#25D366] hover:bg-[#1EBE57] text-white', Icon: WhatsAppIcon },
-    telegram: { className: 'bg-[#2AABEE] hover:bg-[#1E96D4] text-white', Icon: TelegramIcon },
-    call: { className: 'bg-emerald-600 hover:bg-emerald-700 text-white', Icon: Phone },
-    email: { className: 'bg-brand-600 hover:bg-brand-500 text-black', Icon: Mail },
+const KIND_ICON: Record<CtaKind, ComponentType<{ className?: string }>> = {
+    whatsapp: WhatsAppIcon,
+    telegram: TelegramIcon,
+    call: Phone,
+    email: Mail,
+    link: ExternalLink,
 }
 
-export function AnnouncementCTAButtons({ row, variant = 'modal', className }: {
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500'
+
+/**
+ * The action buttons under an announcement. The first is the gold primary, the second a
+ * quiet raised pill. The icon says what the link is (WhatsApp, Telegram, call, email, web);
+ * the colour never changes, so a notice looks like Capozy whatever it links to.
+ */
+export function AnnouncementCTAButtons({ row, className }: {
     row: Parameters<typeof resolveCtas>[0]
-    variant?: 'modal' | 'bell'
     className?: string
 }) {
     const { primary, secondary } = resolveCtas(row)
     if (!primary && !secondary) return null
-    const btns = [primary, secondary].filter(Boolean) as { label: string; url: string }[]
+    const buttons = [primary, secondary].filter(Boolean) as { label: string; url: string }[]
 
     return (
-        <div className={cn('flex flex-col gap-2', variant === 'bell' && 'gap-1.5', className)}>
-            {btns.map((b, i) => {
-                const meta = getCtaMeta(b.url)
-                const brand = BRAND[meta.kind]
-                const Icon = brand?.Icon ?? ExternalLink
-                const isPrimary = i === 0
-                // Known link type → official brand look. Unknown → neutral default
-                // (solid for the primary button, outline for the secondary).
-                const look = brand
-                    ? brand.className
-                    : isPrimary
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90'
-                        : 'border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
+        <div className={cn('flex flex-col gap-3', className)}>
+            {buttons.map((b, i) => {
+                const { kind } = getCtaMeta(b.url)
+                const Icon = KIND_ICON[kind]
+                const opensNewTab = kind !== 'call' && kind !== 'email'
                 return (
                     <a
-                        key={i}
+                        key={`${b.url}-${i}`}
                         href={b.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(opensNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                         className={cn(
-                            'inline-flex items-center justify-center gap-2 rounded-xl transition-colors font-medium',
-                            variant === 'bell' ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2.5 text-sm',
-                            look,
+                            'flex min-h-[3rem] items-center justify-center gap-2.5 rounded-full px-5 text-sm font-semibold',
+                            i === 0 ? 'clay-gold' : 'neu-raised-sm neu-press text-foreground',
+                            FOCUS,
                         )}
                     >
-                        <Icon className="w-4 h-4 shrink-0" />
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span className="truncate">{b.label}</span>
+                        {opensNewTab && <span className="sr-only"> (opens in a new tab)</span>}
                     </a>
                 )
             })}

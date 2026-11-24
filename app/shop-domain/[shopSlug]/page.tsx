@@ -164,17 +164,21 @@ export default async function ShopDomainPage({ params }: Props) {
     }
 
     // Fetch announcement server-side to eliminate client-side DB call per visitor
-    let initialAnnouncement: { id: string; type: 'admin' | 'shop'; message: string; title?: string } | null = null
+    let initialAnnouncement: { id: string; type: 'admin' | 'shop'; message: string; title?: string; cta_primary_label?: string | null; cta_primary_url?: string | null; cta_secondary_label?: string | null; cta_secondary_url?: string | null } | null = null
     const { data: adminAnn } = await (supabase as any)
         .from('system_announcements')
-        .select('id, title, message')
+        .select('id, title, message, cta_primary_label, cta_primary_url, cta_secondary_label, cta_secondary_url')
         .eq('is_active', true)
         .in('visible_on', ['storefronts', 'both'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
     if (adminAnn) {
-        initialAnnouncement = { id: adminAnn.id, type: 'admin', title: adminAnn.title, message: adminAnn.message }
+        initialAnnouncement = {
+            id: adminAnn.id, type: 'admin', title: adminAnn.title, message: adminAnn.message,
+            cta_primary_label: adminAnn.cta_primary_label, cta_primary_url: adminAnn.cta_primary_url,
+            cta_secondary_label: adminAnn.cta_secondary_label, cta_secondary_url: adminAnn.cta_secondary_url,
+        }
     } else {
         const { data: shopAnn } = await (supabase as any)
             .from('shop_announcements')

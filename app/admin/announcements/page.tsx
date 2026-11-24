@@ -1,41 +1,49 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { collectSavedButtons } from '@/lib/announcement-cta'
-import { PenSquare, History as HistoryIcon } from 'lucide-react'
 import { ComposeTab, type EditingAnnouncement } from '@/components/admin/announcements/ComposeTab'
 import { HistoryTab } from '@/components/admin/announcements/HistoryTab'
 import type { SystemAnnouncement } from '@/types/supabase'
 
+type Tab = 'compose' | 'history'
+
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:focus-visible:outline-brand-500'
+
 export default function AdminAnnouncementsPage() {
-    const [tab, setTab] = useState<'compose' | 'history'>('compose')
+    const [tab, setTab] = useState<Tab>('compose')
     const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState(false)
     const [editing, setEditing] = useState<EditingAnnouncement>(null)
+    // Only the newest request may write state: a slow reply from before a toggle or delete
+    // must not overwrite the fresher list.
+    const requestId = useRef(0)
 
-    // Distinct buttons used on past announcements (newest first) — offered for reuse
-    // in Compose so the admin never re-types a repeated button.
+    // Buttons used on earlier notices (newest first), offered for reuse in the form.
     const savedButtons = useMemo(() => collectSavedButtons(announcements), [announcements])
 
     const fetchAnnouncements = useCallback(async () => {
+        const mine = ++requestId.current
         setLoading(true)
+        setLoadError(false)
         try {
-            // RLS lets admins read all rows (incl. drafts/scheduled) via the
-            // select_combined policy; reads stay on the cookie/RLS client.
+            // RLS lets admins read every row (drafts and scheduled too), so this stays on the cookie client.
             const { data, error } = await supabase
                 .from('system_announcements')
                 .select('*')
                 .order('created_at', { ascending: false })
+            if (mine !== requestId.current) return
             if (error) throw error
             setAnnouncements((data ?? []) as SystemAnnouncement[])
         } catch (e) {
+            if (mine !== requestId.current) return
             console.error('[admin-announcements] fetch error', e)
-            toast.error('Failed to load announcements')
+            setLoadError(true)
         } finally {
-            setLoading(false)
+            if (mine === requestId.current) setLoading(false)
         }
     }, [])
 
@@ -47,9 +55,9 @@ export default function AdminAnnouncementsPage() {
     }
 
     function handleDuplicate(a: SystemAnnouncement) {
-        // No id → ComposeTab saves it as a brand-new row.
+        // No id: the form saves it as a brand-new row.
         setEditing({
-            title: `${a.title} (copy)`,
+            title: `${a.title} (copy)`.slice(0, 80),
             message: a.message,
             visible_on: a.visible_on,
             cta_primary_label: a.cta_primary_label,
@@ -66,44 +74,55 @@ export default function AdminAnnouncementsPage() {
         setTab('history')
     }
 
-    const tabBtn = (active: boolean) => cn(
-        'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
-        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-    )
+    const tabs: { id: Tab; label: string }[] = [
+        { id: 'compose', label: editing?.id ? 'Edit' : 'Write' },
+        { id: 'history', label: `History${announcements.length ? ` (${announcements.length})` : ''}` },
+    ]
 
     return (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="mx-auto max-w-6xl space-y-6">
             <div>
-                <h1 className="text-lg font-semibold text-foreground">Announcements</h1>
-                <p className="text-sm text-muted-foreground">
-                    Compose alerts with optional action buttons, or manage past announcements.
+                <h1 className="font-display text-2xl font-bold tracking-tight text-balance text-foreground sm:text-3xl">Announcements</h1>
+                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    Write a notice, choose who sees it, and publish it now or at a set time. People read it in a popup, and can get a push notification too.
                 </p>
             </div>
 
-            {/* Tabs */}
-            <div className="inline-flex rounded-lg border border-border p-1">
-                <button type="button" onClick={() => setTab('compose')} className={tabBtn(tab === 'compose')}>
-                    <PenSquare className="w-3.5 h-3.5" /> Compose
-                </button>
-                <button type="button" onClick={() => setTab('history')} className={tabBtn(tab === 'history')}>
-                    <HistoryIcon className="w-3.5 h-3.5" /> History
-                    <span className="ml-0.5 rounded-full bg-black/10 dark:bg-card/10 px-1.5 text-[10px] tabular-nums">
-                        {announcements.length}
-                    </span>
-                </button>
+            <div role="tablist" aria-label="Announcements" className="neu-inset inline-flex rounded-full p-1">
+                {tabs.map(t => (
+                    <button
+                        key={t.id}
+                        id={`ann-tab-${t.id}`}
+                        role="tab"
+                        type="button"
+                        aria-selected={tab === t.id}
+                        aria-controls={`ann-panel-${t.id}`}
+                        onClick={() => setTab(t.id)}
+                        className={cn(
+                            'h-10 rounded-full px-5 text-sm font-semibold transition-colors motion-reduce:transition-none',
+                            tab === t.id ? 'clay-gold' : 'text-muted-foreground hover:text-foreground',
+                            FOCUS,
+                        )}
+                    >
+                        {t.label}
+                    </button>
+                ))}
             </div>
 
-            {tab === 'compose' ? (
-                <ComposeTab editing={editing} onSaved={handleSaved} onCancelEdit={() => setEditing(null)} savedButtons={savedButtons} />
-            ) : (
-                <HistoryTab
-                    announcements={announcements}
-                    loading={loading}
-                    onEdit={handleEdit}
-                    onDuplicate={handleDuplicate}
-                    onRefresh={fetchAnnouncements}
-                />
-            )}
+            <div id={`ann-panel-${tab}`} role="tabpanel" aria-labelledby={`ann-tab-${tab}`}>
+                {tab === 'compose' ? (
+                    <ComposeTab editing={editing} onSaved={handleSaved} onCancelEdit={() => setEditing(null)} savedButtons={savedButtons} />
+                ) : (
+                    <HistoryTab
+                        announcements={announcements}
+                        loading={loading}
+                        loadError={loadError}
+                        onEdit={handleEdit}
+                        onDuplicate={handleDuplicate}
+                        onRefresh={fetchAnnouncements}
+                    />
+                )}
+            </div>
         </div>
     )
 }
