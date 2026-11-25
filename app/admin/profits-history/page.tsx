@@ -236,7 +236,7 @@ export default function AdminProfitsPage() {
     if (error) {
         return (
             <div className="p-4 md:p-8">
-                <Card className="border-rose-300 dark:border-rose-900 max-w-lg mx-auto mt-20">
+                <Card className="border-red-300 dark:border-red-900 max-w-lg mx-auto mt-20" role="alert">
                     <CardContent className="pt-6 flex flex-col items-center text-center space-y-4">
                         <AlertCircle className="w-12 h-12 text-rose-500" />
                         <h2 className="text-xl font-semibold">Couldn&rsquo;t load the ledger</h2>
@@ -258,11 +258,11 @@ export default function AdminProfitsPage() {
 
                 {/* ── Masthead ─────────────────────────────────────────── */}
                 <div className="flex flex-col gap-1 border-b border-border pb-6">
-                    <h1 className="text-[28px] md:text-3xl font-semibold tracking-tight text-foreground">
+                    <h1 className="font-display text-[28px] md:text-3xl font-semibold tracking-tight text-foreground">
                         Profit ledger
                     </h1>
                     <p className="text-muted-foreground text-sm md:text-base">
-                        What the platform earned, what it paid out, and what it still owes — for the period below.
+                        What the platform earned, what it paid out, and what it still owes, for the period below.
                     </p>
                 </div>
 
@@ -272,6 +272,8 @@ export default function AdminProfitsPage() {
                         {(['today', 'yesterday', 'week', 'month', 'all'] as TimeRange[]).map((r) => (
                             <button
                                 key={r}
+                                type="button"
+                                aria-pressed={range === r}
                                 onClick={() => setRange(r)}
                                 className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${range === r
                                         ? 'bg-foreground text-background border-foreground'
