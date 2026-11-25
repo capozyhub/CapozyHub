@@ -21,7 +21,7 @@ npm run lint
 
 ## Scope and the `_parked/` rule
 
-The product was scoped down on purpose. Removed features live in the gitignored `_parked/` folder (original paths preserved), outside the build and never pushed. **Tracked code must never import a parked file; the pushed repo must build from a fresh clone.** Parked: utility bills, Hubtel (all of it), Moolre, the commission wallet, the SMS product (shop/business SMS, sender IDs, credits), USSD, Google/passkey/PIN/biometric/phone-OTP auth, the signup promo. Full plan and order: `docs/stage-1-5-scope-down.md`.
+The product was scoped down on purpose. Removed features live in the gitignored `_parked/` folder (original paths preserved), outside the build and never pushed. **Tracked code must never import a parked file; the pushed repo must build from a fresh clone.** Parked: utility bills, Hubtel (all of it), Moolre, MoMo "Send & Claim" (SMS-forward wallet top-up; parked 2026-11-25 as a second payment rail), the commission wallet, the SMS product (shop/business SMS, sender IDs, credits), USSD, Google/passkey/PIN/biometric/phone-OTP auth, the signup promo. Full plan and order: `docs/stage-1-5-scope-down.md`.
 
 What is in scope now:
 - **Payments and payouts: Paystack only** (collections, MoMo transfers, bank list). Ghana bank account names cannot be auto-resolved; the withdraw flow falls back to a typed name that an admin confirms.

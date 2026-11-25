@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
     Loader2, Save, Plus, Trash2, ShieldAlert, Settings,
     Mail, MessageSquare, Store, Shield, Percent, Star,
-    Users, Zap, Globe, CreditCard, Phone, Wallet, ExternalLink,
+    Users, Zap, Globe, CreditCard, Phone, Wallet,
     IdCard,
 } from 'lucide-react'
 import { toast } from '@/lib/toast'
@@ -589,7 +589,6 @@ export default function AdminSettingsPage() {
                     <TabsTrigger value="fulfillment">Fulfillment</TabsTrigger>
                     <TabsTrigger value="access">Pages</TabsTrigger>
                     <TabsTrigger value="landing">Landing page</TabsTrigger>
-                    <TabsTrigger value="momo" className="font-semibold">MoMo claims</TabsTrigger>
                 </TabsList>
 
                 {/* ── General ─────────────────────────────────────────────────── */}
@@ -851,26 +850,6 @@ export default function AdminSettingsPage() {
                             <Button type="button" variant="outline" size="sm" onClick={() => setLandingTestimonials([...landingTestimonials, EMPTY_TESTIMONIAL()])}>
                                 <Plus className="w-4 h-4 mr-1" /> Add Review
                             </Button>
-                        </div>
-                    </SettingsPanel>
-                </TabsContent>
-
-                {/* ── MoMo Claims ──────────────────────────────────────────── */}
-                <TabsContent value="momo" className="space-y-4 mt-4">
-                    <SettingsPanel
-                        title="Mobile Money Claims"
-                        description="Customers who pay by MoMo but aren't auto-credited can submit a claim. Review, match, and resolve claims from the dedicated MoMo Claims center."
-                        icon={Wallet}
-                    >
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <p className="text-sm text-muted-foreground flex-1">
-                                Claim review, transaction matching, and crediting live on the MoMo Claims page so they stay close to the payment records.
-                            </p>
-                            <Link href="/admin/momo-claims">
-                                <Button variant="outline" className="gap-2 h-9 text-xs font-bold">
-                                    Open MoMo Claims <ExternalLink className="w-3.5 h-3.5" />
-                                </Button>
-                            </Link>
                         </div>
                     </SettingsPanel>
                 </TabsContent>

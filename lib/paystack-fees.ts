@@ -1,6 +1,6 @@
 // Single source of truth for Paystack top-up fee % and amount limits.
 // Used by BOTH the charge/initialize routes (authoritative) and the
-// claim-momo settings endpoint (display), so the fee a user SEES always
+// /api/wallet/topup-settings endpoint (display), so the fee a user SEES always
 // equals the fee they are CHARGED.
 
 export interface RoleFeeContext {

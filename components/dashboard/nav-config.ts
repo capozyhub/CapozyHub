@@ -129,7 +129,6 @@ export const adminNavGroups: NavGroup[] = [
             { href: '/admin/finance', label: 'Finance', icon: Banknote },
             { href: '/admin/shops/withdrawals', label: 'Shop Withdrawals', icon: Banknote },
             { href: '/admin/payments', label: 'Payments Center', icon: CreditCard },
-            { href: '/admin/momo-claims', label: 'MoMo Claims', icon: Wallet },
             { href: '/admin/profits-history', label: 'Profits History', icon: Activity },
         ],
     },

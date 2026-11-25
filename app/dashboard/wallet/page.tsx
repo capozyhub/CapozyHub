@@ -1,27 +1,21 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
-import { cn, formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import type { WalletTransaction } from '@/types/supabase'
 import { TopUpForm } from '@/components/dashboard/wallet/TopUpForm'
 import { ChargeModal } from '@/components/dashboard/wallet/ChargeModal'
-import { ClaimPanel } from '@/components/dashboard/wallet/ClaimPanel'
-import { ClaimWaitingModal } from '@/components/dashboard/wallet/ClaimWaitingModal'
 import { TransactionsList } from '@/components/dashboard/wallet/TransactionsList'
 import { useChargeFlow } from '@/components/dashboard/wallet/useChargeFlow'
-import { useClaimSession } from '@/components/dashboard/wallet/useClaimSession'
-import type { ClaimSuccessData, MomoPaymentAccount, WalletNetworkCode } from '@/components/dashboard/wallet/meta'
-
-type Tab = 'topup' | 'claim'
+import type { WalletNetworkCode } from '@/components/dashboard/wallet/meta'
 
 export default function WalletPage() {
     const { dbUser } = useAuth()
     const userId = dbUser?.id
 
-    const [tab, setTab] = useState<Tab>('topup')
     const [balance, setBalance] = useState(0)
     const [totalCredited, setTotalCredited] = useState(0)
     const [totalDebited, setTotalDebited] = useState(0)
@@ -32,26 +26,17 @@ export default function WalletPage() {
     const [minTopup, setMinTopup] = useState(5)
     const [maxTopup, setMaxTopup] = useState(5000)
 
-    const [momoEnabled, setMomoEnabled] = useState(true)
-    const [momoAccounts, setMomoAccounts] = useState<MomoPaymentAccount[]>([])
-    const [momoAccountName, setMomoAccountName] = useState('')
-    const [momoMinClaimable, setMomoMinClaimable] = useState(1)
-    const [momoMaxClaimable, setMomoMaxClaimable] = useState(50000)
-
-    const [claimSuccess, setClaimSuccess] = useState<ClaimSuccessData | null>(null)
     const [walletError, setWalletError] = useState(false)
-    const historyRef = useRef<HTMLDivElement | null>(null)
 
     const loadWalletData = useCallback(async () => {
         if (!userId) return
         try {
-            const [walletRes, txnsRes, momoSettingsRes] = await Promise.all([
+            const [walletRes, txnsRes, settingsRes] = await Promise.all([
                 supabase.from('wallets').select('*').eq('user_id', userId).single(),
-                // Both top-up rails (Paystack and MoMo claim) log source: 'payment'; refunds and
-                // admin credits are also type: 'credit' but belong on the transactions/admin pages,
-                // not under "Recent top-ups".
+                // Top-ups log source: 'payment'; refunds and admin credits are also
+                // type: 'credit' but belong on the transactions page, not under "Recent top-ups".
                 supabase.from('wallet_transactions').select('*').eq('user_id', userId).eq('type', 'credit').eq('source', 'payment').order('created_at', { ascending: false }).limit(20),
-                fetch('/api/wallet/claim-momo?settings_only=true', { credentials: 'include' }).then(r => r.json()).catch(() => null),
+                fetch('/api/wallet/topup-settings', { credentials: 'include' }).then(r => r.json()).catch(() => null),
             ])
 
             const wallet = walletRes.data as any
@@ -62,22 +47,17 @@ export default function WalletPage() {
                 setWalletError(false)
             } else {
                 // PGRST116 ("no rows") means the wallet hasn't been created yet, which the
-                // charge/claim routes handle lazily — that's not a failure worth alarming over.
+                // charge route handles lazily — that's not a failure worth alarming over.
                 // Anything else means we genuinely couldn't read the balance; show it rather
                 // than silently rendering GHS 0.00 as if the account were empty.
                 setWalletError(walletRes.error?.code !== 'PGRST116')
             }
             setTransactions((txnsRes.data as WalletTransaction[]) || [])
 
-            if (momoSettingsRes && !momoSettingsRes.error) {
-                setMomoEnabled(momoSettingsRes.momo_enabled !== false)
-                setMomoAccounts(momoSettingsRes.momo_accounts || [])
-                setMomoAccountName(momoSettingsRes.momo_account_name || '')
-                setMomoMinClaimable(momoSettingsRes.momo_min_claimable || 1)
-                setMomoMaxClaimable(momoSettingsRes.momo_max_claimable || 50000)
-                if (momoSettingsRes.paystack_fee_percent !== undefined) setPaystackFeePercent(momoSettingsRes.paystack_fee_percent)
-                if (momoSettingsRes.paystack_min_topup !== undefined) setMinTopup(Number(momoSettingsRes.paystack_min_topup) || 5)
-                if (momoSettingsRes.paystack_max_topup !== undefined) setMaxTopup(Number(momoSettingsRes.paystack_max_topup) || 5000)
+            if (settingsRes && !settingsRes.error) {
+                if (settingsRes.paystack_fee_percent !== undefined) setPaystackFeePercent(settingsRes.paystack_fee_percent)
+                if (settingsRes.paystack_min_topup !== undefined) setMinTopup(Number(settingsRes.paystack_min_topup) || 5)
+                if (settingsRes.paystack_max_topup !== undefined) setMaxTopup(Number(settingsRes.paystack_max_topup) || 5000)
             }
         } catch (err) {
             console.error('Error fetching wallet data:', err)
@@ -100,27 +80,8 @@ export default function WalletPage() {
 
     const charge = useChargeFlow({ onPaid: loadWalletData })
 
-    const onCredited = useCallback((data: ClaimSuccessData) => {
-        setClaimSuccess(data)
-        setBalance(data.new_balance)
-        loadWalletData()
-    }, [loadWalletData])
-
-    const claim = useClaimSession({ userId, onCredited })
-
     const onCharge = (amount: number, phone: string, network: WalletNetworkCode) => {
         charge.startCharge(amount, phone, network)
-    }
-
-    const goToHistory = () => {
-        claim.retry()
-        setClaimSuccess(null)
-        historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-
-    const closeClaimModal = () => {
-        claim.retry()
-        setClaimSuccess(null)
     }
 
     return (
@@ -128,7 +89,7 @@ export default function WalletPage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight">Wallet</h1>
-                    <p className="text-sm text-muted-foreground">Top up with mobile money, or send &amp; claim to credit yourself instantly.</p>
+                    <p className="text-sm text-muted-foreground">Top up with mobile money. Your balance is ready the moment the payment clears.</p>
                 </div>
             </div>
 
@@ -171,40 +132,14 @@ export default function WalletPage() {
                 </div>
             )}
 
-            <div role="tablist" className="well flex w-fit gap-1 rounded-2xl p-1">
-                {([['topup', 'Top up'], ['claim', 'Send & claim']] as const).map(([key, label]) => (
-                    <button
-                        key={key}
-                        type="button"
-                        role="tab"
-                        aria-selected={tab === key}
-                        onClick={() => setTab(key)}
-                        className={cn('whitespace-nowrap rounded-xl px-5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', tab === key ? 'clay-gold' : 'text-muted-foreground hover:text-foreground')}
-                    >
-                        {label}
-                    </button>
-                ))}
-            </div>
-
             {!loading && (
-                tab === 'topup' ? (
-                    <TopUpForm
-                        minTopup={minTopup}
-                        maxTopup={maxTopup}
-                        paystackFeePercent={paystackFeePercent}
-                        isAgentOrDealer={dbUser?.role === 'agent' || dbUser?.role === 'dealer'}
-                        onCharge={onCharge}
-                    />
-                ) : (
-                    <ClaimPanel
-                        momoEnabled={momoEnabled}
-                        momoAccounts={momoAccounts}
-                        momoMinClaimable={momoMinClaimable}
-                        momoMaxClaimable={momoMaxClaimable}
-                        starting={claim.step === 'starting'}
-                        onStart={claim.start}
-                    />
-                )
+                <TopUpForm
+                    minTopup={minTopup}
+                    maxTopup={maxTopup}
+                    paystackFeePercent={paystackFeePercent}
+                    isAgentOrDealer={dbUser?.role === 'agent' || dbUser?.role === 'dealer'}
+                    onCharge={onCharge}
+                />
             )}
 
             <ChargeModal
@@ -221,22 +156,7 @@ export default function WalletPage() {
                 onRetry={charge.retry}
             />
 
-            <ClaimWaitingModal
-                step={claim.step}
-                session={claim.session}
-                secondsLeft={claim.secondsLeft}
-                momoAccounts={momoAccounts}
-                momoAccountName={momoAccountName}
-                claimSuccess={claimSuccess}
-                manualChecking={claim.manualChecking}
-                onManualClaim={claim.manualClaim}
-                onCancel={claim.cancel}
-                onRetry={claim.retry}
-                onDone={closeClaimModal}
-                onViewHistory={goToHistory}
-            />
-
-            <div ref={historyRef} className="space-y-3">
+            <div className="space-y-3">
                 <h2 className="font-display text-lg font-semibold">Recent top-ups</h2>
                 <TransactionsList transactions={transactions} />
             </div>

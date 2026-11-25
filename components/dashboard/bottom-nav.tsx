@@ -41,7 +41,6 @@ const ADMIN_REGISTRY: Record<string, { label: string; icon: LucideIcon }> = {
     '/admin/shops/settings':      { label: 'Sh.Settings', icon: Settings },
     '/admin/profits-history':     { label: 'Profits',     icon: TrendingUp },
     '/admin/afa-management':      { label: 'AFA',         icon: BadgeCheck },
-    '/admin/momo-claims':         { label: 'MoMo',        icon: Wallet },
     '/admin/results-checker':     { label: 'Results',     icon: FileText },
     '/admin/complaints':          { label: 'Complaints',  icon: MessageSquare },
     '/admin/announcements':       { label: 'Announce',    icon: Bell },
