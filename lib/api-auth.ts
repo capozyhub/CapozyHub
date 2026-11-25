@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { createHash } from 'crypto'
 import { LRUCache } from 'lru-cache'
+import { waitUntil } from '@vercel/functions'
 import { createServerClient } from '@/lib/supabase'
 import { parseAllowedRoles } from '@/lib/role-parser'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
-
 import { API_KEY_SHAPE } from '@/lib/api-key-format'
+
 // ============================================================================
 // Developer API — Authentication & Utilities
 // This is the API-key equivalent of createRouteClient().
@@ -298,12 +299,12 @@ export async function validateApiKey(
         rateLimits,
     })
 
-    // ── Step 7: Update last_used_at (fire-and-forget) ───────────────────
-    ;(supabase.from('api_keys') as any)
+    // ── Step 7: Update last_used_at (background, kept alive by waitUntil) ─
+    waitUntil(Promise.resolve((supabase.from('api_keys') as any)
         .update({ last_used_at: new Date().toISOString() })
-        .eq('id', apiKey.id)
+        .eq('id', apiKey.id))
         .then(() => {})
-        .catch((e: any) => console.error('[API Auth] last_used_at update error:', e.message))
+        .catch((e: any) => console.error('[API Auth] last_used_at update error:', e.message)))
 
     // ── Step 8: Return authenticated context ────────────────────────────
     return {
@@ -374,7 +375,7 @@ export function apiError(code: number, message: string): NextResponse {
 
 /**
  * Logs an API request to the api_logs table.
- * Fire-and-forget — never awaited in route handlers.
+ * Not awaited by route handlers; waitUntil keeps the insert alive after the response.
  * Uses service role client to bypass RLS for inserts.
  */
 export function logApiRequest(params: {
@@ -389,7 +390,7 @@ export function logApiRequest(params: {
 }): void {
     const supabase = createServerClient()
 
-    ;(supabase.from('api_logs') as any)
+    waitUntil(Promise.resolve((supabase.from('api_logs') as any)
         .insert({
             api_key_id:       params.apiKeyId,
             user_id:          params.userId,
@@ -399,9 +400,9 @@ export function logApiRequest(params: {
             response_time_ms: params.responseTimeMs,
             ip_address:       params.ip,
             error_message:    params.errorMessage || null,
-        })
+        }))
         .then(() => {})
-        .catch((e: any) => console.error('[API Log] Insert error:', e.message))
+        .catch((e: any) => console.error('[API Log] Insert error:', e.message)))
 }
 
 // ─── Utility: Check if response is an error ─────────────────────────────────

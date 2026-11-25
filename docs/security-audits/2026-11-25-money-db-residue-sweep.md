@@ -147,8 +147,7 @@ confirmed a suspended user cannot change `suspended_until` and an owner cannot i
   `notifyDataOrderWebhook` was only called from the admin status route and the unscheduled
   auto-complete cron. The Rexamart webhook now calls it after its guarded update.
 - **[Low, fixed] Bare promises dropped on Vercel:** Rexamart push notifications (now
-  `waitUntil`); `last_used_at` and `api_logs` writes in `lib/api-auth.ts` (now `waitUntil`; that
-  file is also being changed by another session, so these hunks ship with its commit).
+  `waitUntil`); `last_used_at` and `api_logs` writes in `lib/api-auth.ts` (now `waitUntil`).
 - **[Low, fixed] Paystack amount-mismatch update** could flip a concurrently completed payment to
   failed; now guarded by `status = 'pending'`.
 - **[Low, open] API references share one global namespace** (`API-<ref>`): another developer
