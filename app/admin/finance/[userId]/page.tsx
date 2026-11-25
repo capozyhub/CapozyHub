@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useRef, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Table,
@@ -37,6 +37,8 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
     const [walletStats, setWalletStats] = useState<any>(null)
     const [user, setUser] = useState<any>(null) // New state for user details
     const [page, setPage] = useState(0)
+    const [loadFailed, setLoadFailed] = useState(false)
+    const seqRef = useRef(0)
 
     // Filters
     const [typeFilter, setTypeFilter] = useState('all')
@@ -51,8 +53,10 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
     }, [userId, page, typeFilter, sourceFilter, startDate, endDate]) // Updated dependency
 
     const fetchTransactions = async () => {
+        const seq = ++seqRef.current
         try {
             setLoading(true)
+            setLoadFailed(false)
             const offset = page * ITEMS_PER_PAGE
             const queryParams = new URLSearchParams({
                 limit: ITEMS_PER_PAGE.toString(),
@@ -67,16 +71,16 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
             const response = await fetch(`/api/admin/finance/users/${userId}/transactions?${queryParams}`)
             if (!response.ok) throw new Error('Failed to fetch transactions')
             const data = await response.json()
+            if (seq !== seqRef.current) return
 
             setTransactions(data.transactions || [])
             setTotalCount(data.totalCount || 0)
             setWalletStats(data.wallet || null) // Set full wallet stats
             setUser(data.user || null)
         } catch (error) {
-            console.error('Error:', error)
-            toast.error('Failed to load transactions')
+            if (seq === seqRef.current) setLoadFailed(true)
         } finally {
-            setLoading(false)
+            if (seq === seqRef.current) setLoading(false)
         }
     }
 
@@ -84,8 +88,8 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
     const formatSource = (source: string) => {
         switch (source) {
             case 'purchase': return 'Order'
-            case 'payment': return 'Wallet Funding'
-            case 'admin': return 'Admin Adjustment'
+            case 'payment': return 'Wallet top-up'
+            case 'admin': return 'Admin credit'
             case 'refund': return 'Refund'
             default: return source
         }
@@ -101,13 +105,13 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                     onClick={() => router.back()}
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Wallet Analytics
+                    Back to wallet balances
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Transaction History</h1>
+                    <h1 className="font-display text-2xl font-bold tracking-tight">Transaction history</h1>
                     {user ? (
                         <div className="flex flex-col mt-1">
-                            <p className="text-lg font-medium">{user.first_name} {user.last_name}</p>
+                            <p className="text-lg font-medium">{[user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unnamed user'}</p>
                             <div className="flex gap-3 text-xs text-muted-foreground font-mono">
                                 <span>{user.phone_number}</span>
                                 <span className="text-muted-foreground/30">•</span>
@@ -137,12 +141,12 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                             <label className="text-xs font-medium text-muted-foreground">Type</label>
                             <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val); setPage(0) }}>
                                 <SelectTrigger className="w-full md:w-[150px]">
-                                    <SelectValue placeholder="All Types" />
+                                    <SelectValue placeholder="All types" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Types</SelectItem>
-                                    <SelectItem value="credit">Credit (+)</SelectItem>
-                                    <SelectItem value="debit">Debit (-)</SelectItem>
+                                    <SelectItem value="all">All types</SelectItem>
+                                    <SelectItem value="credit">Money in</SelectItem>
+                                    <SelectItem value="debit">Money out</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -151,19 +155,19 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                             <label className="text-xs font-medium text-muted-foreground">Category</label>
                             <Select value={sourceFilter} onValueChange={(val) => { setSourceFilter(val); setPage(0) }}>
                                 <SelectTrigger className="w-full md:w-[150px]">
-                                    <SelectValue placeholder="All Categories" />
+                                    <SelectValue placeholder="All categories" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="purchase">Orders / Purchases</SelectItem>
-                                    <SelectItem value="payment">Wallet Funding</SelectItem>
-                                    <SelectItem value="admin">Admin Adjustments</SelectItem>
+                                    <SelectItem value="all">All categories</SelectItem>
+                                    <SelectItem value="purchase">Orders</SelectItem>
+                                    <SelectItem value="payment">Wallet top-ups</SelectItem>
+                                    <SelectItem value="admin">Admin credits</SelectItem>
                                     <SelectItem value="refund">Refunds</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2 w-full md:w-auto">
-                            <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                            <label className="text-xs font-medium text-muted-foreground">Start date</label>
                             <Input
                                 type="date"
                                 value={startDate}
@@ -172,7 +176,7 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                             />
                         </div>
                         <div className="space-y-2 w-full md:w-auto">
-                            <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                            <label className="text-xs font-medium text-muted-foreground">End date</label>
                             <Input
                                 type="date"
                                 value={endDate}
@@ -198,7 +202,7 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
             </Card>
 
             {/* Table */}
-            <Card className="border shadow-sm">
+            <Card className="border-0">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -208,8 +212,8 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                                 <TableHead>Description</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
-                                <TableHead className="text-right">Prev Bal</TableHead>
-                                <TableHead className="text-right">New Bal</TableHead>
+                                <TableHead className="text-right">Balance before</TableHead>
+                                <TableHead className="text-right">Balance after</TableHead>
                                 <TableHead>Category</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -220,10 +224,17 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                                         <Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" />
                                     </TableCell>
                                 </TableRow>
+                            ) : loadFailed ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-24 text-center" role="alert">
+                                        <p className="text-sm text-foreground">Could not load the transactions.</p>
+                                        <Button size="sm" variant="outline" className="mt-2" onClick={() => fetchTransactions()}>Try again</Button>
+                                    </TableCell>
+                                </TableRow>
                             ) : transactions.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                                        No transactions found matching your filters.
+                                        No transactions match these filters.
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -247,10 +258,10 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                                                 }
                                             >
                                                 {txn.type === 'credit' ? <ArrowUpCircle className="w-3 h-3 mr-1" /> : <ArrowDownCircle className="w-3 h-3 mr-1" />}
-                                                {txn.type.toUpperCase()}
+                                                {txn.type === 'credit' ? 'In' : 'Out'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className={`text-right font-medium ${txn.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                                        <TableCell className={`text-right font-medium ${txn.type === 'credit' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-xs text-muted-foreground">
@@ -275,7 +286,7 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
             {/* Pagination */}
             <div className="flex justify-between items-center text-sm text-muted-foreground">
                 <div>
-                    Showing {Math.min(transactions.length, ITEMS_PER_PAGE)} of {totalCount} records
+                    Showing {transactions.length} of {totalCount}
                 </div>
                 <div className="flex gap-2">
                     <Button
@@ -290,7 +301,7 @@ export default function UserTransactionHistoryPage({ params }: { params: Promise
                         variant="outline"
                         size="sm"
                         onClick={() => setPage(p => p + 1)}
-                        disabled={transactions.length < ITEMS_PER_PAGE || loading}
+                        disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount || loading}
                     >
                         Next
                     </Button>

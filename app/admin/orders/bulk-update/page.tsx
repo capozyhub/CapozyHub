@@ -13,6 +13,7 @@ import { getStatusBadgeClass, shouldShowRefundOverlay, REFUND_OVERLAY_BADGE_CLAS
 import { MAX_BULK_REFUND, isRefundable } from '@/lib/refunds'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
     Activity,
     Search,
@@ -66,6 +67,7 @@ function parseManualRows(text: string): { phoneNumber: string; size: string }[] 
 
 export default function BulkOrderUpdatePage() {
     const { dbUser } = useAuth()
+    const { ask, dialog } = useConfirm()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Filters
@@ -115,7 +117,7 @@ export default function BulkOrderUpdatePage() {
                 })
             }
             const data = await response.json()
-            if (!response.ok || !data.success) throw new Error(data.error || 'Lookup failed')
+            if (!response.ok || !data.success) throw new Error(data.error || 'The search did not work.')
 
             const found: LookupOrder[] = data.data.orders || []
             setOrders(found)
@@ -124,7 +126,7 @@ export default function BulkOrderUpdatePage() {
             setSelectedIds(new Set(found.map(o => o.id))) // select all by default
             setSearched(true)
         } catch (error: any) {
-            toast.error(error.message || 'Lookup failed')
+            toast.error(error.message || 'The search did not work. Try again.')
         } finally {
             setIsSearching(false)
         }
@@ -141,7 +143,16 @@ export default function BulkOrderUpdatePage() {
     }
 
     const bulkUpdateStatus = async (newStatus: 'pending' | 'processing' | 'completed' | 'failed') => {
-        if (selectedIds.size === 0) { toast.error('No orders selected'); return }
+        if (selectedIds.size === 0) { toast.error('Select at least one order.'); return }
+        if (newStatus === 'failed' || newStatus === 'completed') {
+            const ok = await ask({
+                title: `Mark ${selectedIds.size} order(s) as ${newStatus}?`,
+                description: newStatus === 'failed' ? 'Failed orders may be refunded to the buyer. Check the selection first.' : 'Buyers are told their data was delivered. Check the selection first.',
+                confirmLabel: newStatus === 'failed' ? 'Mark as failed' : 'Mark as completed',
+                destructive: newStatus === 'failed',
+            })
+            if (!ok) return
+        }
         setIsUpdating(true)
         try {
             const orderIds = Array.from(selectedIds)
@@ -151,11 +162,11 @@ export default function BulkOrderUpdatePage() {
                 body: JSON.stringify({ orderIds, status: newStatus }),
             })
             const data = await response.json()
-            if (!response.ok) throw new Error(data.error || 'Update failed')
-            toast.success(`${data.count ?? orderIds.length} order(s) marked as ${newStatus}`)
+            if (!response.ok) throw new Error(data.error || 'The update did not work.')
+            toast.success(`${data.count ?? orderIds.length} order(s) marked ${newStatus}`)
             await handleSearch()
         } catch (error: any) {
-            toast.error('Update failed: ' + error.message)
+            toast.error(error.message || 'The update did not work. Try again.')
         } finally {
             setIsUpdating(false)
         }
@@ -165,10 +176,10 @@ export default function BulkOrderUpdatePage() {
     // just split into MAX_BULK_REFUND-sized batches since this grid can hold more than that.
     const bulkRefund = async () => {
         const ids = Array.from(selectedIds)
-        if (ids.length === 0) { toast.error('No orders selected'); return }
+        if (ids.length === 0) { toast.error('Select at least one order.'); return }
         setBulkRefundBusy(true)
+        let ok = 0, skipped = 0, failed = 0
         try {
-            let ok = 0, skipped = 0, failed = 0
             for (let i = 0; i < ids.length; i += MAX_BULK_REFUND) {
                 const chunk = ids.slice(i, i + MAX_BULK_REFUND)
                 const response = await fetch('/api/admin/orders/bulk-refund', {
@@ -177,15 +188,16 @@ export default function BulkOrderUpdatePage() {
                     body: JSON.stringify({ orderIds: chunk, mechanism: 'owner_wallet', confirmProcessing: true }),
                 })
                 const data = await response.json()
-                if (!response.ok || !data.success) throw new Error(data.error || 'Bulk refund failed')
+                if (!response.ok || !data.success) throw new Error(data.error || 'The refund did not work.')
                 const s = data.data?.summary ?? { ok: 0, skipped: 0, failed: 0 }
                 ok += s.ok; skipped += s.skipped; failed += s.failed
             }
-            toast.success(`Refunded ${ok} · skipped ${skipped} · failed ${failed}`)
+            toast.success(`${ok} refunded, ${skipped} skipped, ${failed} failed`)
             setShowBulkRefund(false)
             await handleSearch()
         } catch (error: any) {
-            toast.error(error.message || 'Bulk refund failed')
+            toast.error(`${error.message || 'The refund stopped part-way.'} ${ok} were refunded before it stopped. Search again to see the current state.`)
+            setShowBulkRefund(false)
         } finally {
             setBulkRefundBusy(false)
         }
@@ -197,7 +209,7 @@ export default function BulkOrderUpdatePage() {
         const rows = orders
             .filter(o => selectedIds.has(o.id))
             .map(o => [{ v: o.phone_number || '', t: 's' as const }, (o.size || '').replace(/GB/i, '').trim()])
-        if (rows.length === 0) { toast.error('No orders selected'); return }
+        if (rows.length === 0) { toast.error('Select at least one order.'); return }
 
         // @ts-ignore
         const { utils, writeFile } = await import('xlsx-js-style')
@@ -236,18 +248,19 @@ export default function BulkOrderUpdatePage() {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh]">
                 <Activity className="w-12 h-12 text-destructive mb-4" />
-                <h1 className="text-2xl font-bold">Access Denied</h1>
-                <p className="text-muted-foreground">Admin privileges required.</p>
+                <h1 className="font-display text-2xl font-bold">Admins only</h1>
+                <p className="text-muted-foreground">You need an admin account to change orders in bulk.</p>
             </div>
         )
     }
 
     return (
         <div className="px-2 py-4 md:p-8 max-w-[1400px] mx-auto space-y-6">
+            {dialog}
             <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Bulk Order Update</h1>
+                <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Bulk order update</h1>
                 <p className="text-xs md:text-sm text-muted-foreground">
-                    Look up orders by filters or by an uploaded/pasted list, then apply a status change or refund to the whole set at once.
+                    Find orders with filters or a pasted list, then change the status or refund them all at once.
                 </p>
             </div>
 
@@ -260,7 +273,7 @@ export default function BulkOrderUpdatePage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Network</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Network</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', ...NETWORKS].map(n => (
                                         <Button key={n} variant={network === n ? 'default' : 'outline'} size="sm"
@@ -272,7 +285,7 @@ export default function BulkOrderUpdatePage() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Status</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Status</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {BROWSE_STATUSES.map(s => (
                                         <Button key={s} variant={status === s ? 'default' : 'outline'} size="sm"
@@ -285,11 +298,11 @@ export default function BulkOrderUpdatePage() {
 
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs uppercase font-bold text-muted-foreground">From</label>
+                                    <label className="text-xs font-semibold text-muted-foreground">From</label>
                                     <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 text-xs" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs uppercase font-bold text-muted-foreground">To</label>
+                                    <label className="text-xs font-semibold text-muted-foreground">To</label>
                                     <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 text-xs" />
                                 </div>
                             </div>
@@ -298,7 +311,7 @@ export default function BulkOrderUpdatePage() {
 
                     <Card className="shadow-sm">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-bold">Pull Specific Orders (optional)</CardTitle>
+                            <CardTitle className="text-sm font-bold">Find specific orders (optional)</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="flex gap-1.5">
@@ -317,12 +330,11 @@ export default function BulkOrderUpdatePage() {
                                     <Textarea
                                         value={pasteText}
                                         onChange={e => setPasteText(e.target.value)}
-                                        placeholder={'One beneficiary per line — size is optional:\n0551617309\t1\n0551617309\t4\n0509542032'}
+                                        placeholder={'One beneficiary per line, size optional:\n0551617309\t1\n0551617309\t4\n0509542032'}
                                         className="text-xs h-28 font-mono"
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        BeneficiaryNumber, or BeneficiaryNumber and Size — comma or tab separated. Size only narrows
-                                        the match to that data size (e.g. 1 = 1GB); leave it out to pull every order for that number.
+                                        A phone number, or a phone number and a size, separated by a comma or tab. The size only narrows the match (1 means 1GB). Leave it out to get every order for that number.
                                     </p>
                                     {pasteText.trim() && (
                                         <p className="text-xs text-muted-foreground">{parsedPasteRows.length} row(s) parsed</p>
@@ -348,12 +360,12 @@ export default function BulkOrderUpdatePage() {
 
                     <Button onClick={handleSearch} disabled={isSearching || (uploadMode === 'file' && !file)} className="w-full h-10 font-bold">
                         {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-                        Find Orders
+                        Find orders
                     </Button>
 
                     {(notFound.length > 0 || sizeMismatch.length > 0) && (
                         <Card className="border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 shadow-sm">
-                            <CardContent className="p-3 space-y-2 text-[11px]">
+                            <CardContent className="p-3 space-y-2 text-xs">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
                                     <AlertTriangle className="w-3.5 h-3.5" /> Unmatched rows
                                 </div>
@@ -378,7 +390,7 @@ export default function BulkOrderUpdatePage() {
                         <div className="sticky top-20 z-30 flex items-center justify-between bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg flex-wrap gap-2">
                             <div className="flex items-center gap-2">
                                 <Badge variant="default" className="rounded-full px-2 text-xs">{selectedIds.size}</Badge>
-                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
+                                <span className="text-xs font-semibold">Selected</span>
                             </div>
                             <div className="flex gap-2 md:gap-3 flex-wrap justify-end">
                                 <Button size="sm" onClick={() => bulkUpdateStatus('pending')}
@@ -387,16 +399,16 @@ export default function BulkOrderUpdatePage() {
                                     title={hasProcessingSelected ? 'Cannot revert processing orders to pending' : ''}>
                                     <Clock className="w-3.5 h-3.5 mr-1.5" /> Pending
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-foreground/10 hover:bg-yellow-600 text-black font-bold" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 clay-silver font-semibold" disabled={isUpdating}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Processing
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-bold clay clay-green" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-semibold clay-black" disabled={isUpdating}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-bold" disabled={isUpdating}>
                                     <XCircle className="w-3.5 h-3.5 mr-1.5" /> Fail
                                 </Button>
-                                <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 bg-brand-600 hover:bg-brand-700 text-white font-bold" disabled={isUpdating}>
+                                <Button size="sm" onClick={() => setShowBulkRefund(true)} className="h-9 text-xs px-3 clay-gold font-semibold" disabled={isUpdating}>
                                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refund
                                 </Button>
                             </div>
@@ -413,7 +425,7 @@ export default function BulkOrderUpdatePage() {
                                     <Download className="w-3 h-3 mr-1" /> Export
                                 </Button>
                                 <Button variant="outline" size="sm" className="h-7 text-xs" onClick={toggleSelectAll} disabled={orders.length === 0}>
-                                    {allSelected ? 'Unselect All' : 'Select All'}
+                                    {allSelected ? 'Clear selection' : 'Select all'}
                                 </Button>
                             </div>
                         </CardHeader>
@@ -421,14 +433,14 @@ export default function BulkOrderUpdatePage() {
                             {!searched ? (
                                 <div className="text-center py-20 border-2 border-dashed rounded-xl m-2">
                                     <Search className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
-                                    <h3 className="text-sm font-bold">Set your filters or paste order numbers</h3>
-                                    <p className="text-muted-foreground text-xs">Then hit Find Orders.</p>
+                                    <h3 className="text-sm font-semibold">Set filters or paste phone numbers</h3>
+                                    <p className="text-muted-foreground text-xs">Then press Find orders.</p>
                                 </div>
                             ) : orders.length === 0 ? (
                                 <div className="text-center py-20 border-2 border-dashed rounded-xl m-2">
                                     <Package className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
-                                    <h3 className="text-sm font-bold">No Records Found</h3>
-                                    <p className="text-muted-foreground text-xs">Try adjusting your filters or list.</p>
+                                    <h3 className="text-sm font-semibold">No orders found</h3>
+                                    <p className="text-muted-foreground text-xs">Change the filters or the list and search again.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -446,32 +458,32 @@ export default function BulkOrderUpdatePage() {
                                             <Checkbox checked={selectedIds.has(order.id)} className="scale-110 pointer-events-none" />
                                             <div className="flex-1 grid grid-cols-2 md:grid-cols-5 items-center gap-x-2 gap-y-2 p-1">
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Beneficiary</p>
-                                                    <p className="text-[12px] font-medium text-primary">{order.phone_number}</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Beneficiary</p>
+                                                    <p className="text-xs font-medium text-primary">{order.phone_number}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Ref</p>
-                                                    <p className="text-[12px] font-medium truncate">{order.reference_code || order.id.slice(0, 8)}</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Ref</p>
+                                                    <p className="text-xs font-medium truncate">{order.reference_code || order.id.slice(0, 8)}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Bundle</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         <Badge variant="outline" className="text-xs px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
-                                                        <span className="text-[12px] font-medium">{order.size}</span>
+                                                        <span className="text-xs font-medium">{order.size}</span>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Status</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Status</p>
                                                     <div className="flex items-center gap-1 flex-wrap">
                                                         <Badge className={cn('text-xs px-1.5 py-0.5 font-bold', getStatusBadgeClass(order.status))}>{order.status}</Badge>
                                                         {shouldShowRefundOverlay(order) && (
-                                                            <Badge className={cn('text-[11px] px-1.5 py-0.5 font-bold', REFUND_OVERLAY_BADGE_CLASS)}>Refunded</Badge>
+                                                            <Badge className={cn('text-xs px-1.5 py-0.5 font-bold', REFUND_OVERLAY_BADGE_CLASS)}>Refunded</Badge>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs uppercase font-medium text-muted-foreground">Date</p>
-                                                    <p className="text-[12px]">{new Date(order.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Date</p>
+                                                    <p className="text-xs">{new Date(order.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -488,15 +500,15 @@ export default function BulkOrderUpdatePage() {
                     <DialogHeader>
                         <DialogTitle>Refund {selectedIds.size} order(s)?</DialogTitle>
                         <DialogDescription>
-                            {refundEligibleCount} of {selectedIds.size} selected are refund-eligible — already-refunded or completed orders are skipped automatically and cannot be double-refunded.
+                            {refundEligibleCount} of {selectedIds.size} selected can be refunded. Orders already refunded or completed are skipped, so nobody is refunded twice.
                             {selectedIds.size > MAX_BULK_REFUND ? ` Processed in batches of ${MAX_BULK_REFUND}.` : ''}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowBulkRefund(false)} disabled={bulkRefundBusy}>Cancel</Button>
-                        <Button onClick={bulkRefund} disabled={bulkRefundBusy} className="bg-brand-600 hover:bg-brand-700 text-white">
+                        <Button onClick={bulkRefund} disabled={bulkRefundBusy} className="clay-gold">
                             {bulkRefundBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                            Confirm Refund
+                            Refund
                         </Button>
                     </DialogFooter>
                 </DialogContent>
