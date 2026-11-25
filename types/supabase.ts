@@ -1107,51 +1107,6 @@ export type Database = {
         }
         Relationships: []
       }
-      fulfillment_logs: {
-        Row: {
-          api_response: Json | null
-          codecraft_reference: string | null
-          created_at: string | null
-          id: string
-          order_id: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          api_response?: Json | null
-          codecraft_reference?: string | null
-          created_at?: string | null
-          id?: string
-          order_id: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          api_response?: Json | null
-          codecraft_reference?: string | null
-          created_at?: string | null
-          id?: string
-          order_id?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fulfillment_logs_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fulfillment_logs_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "shop_orders_effective"
-            referencedColumns: ["mirror_order_id"]
-          },
-        ]
-      }
       guest_push_subscriptions: {
         Row: {
           auth: string

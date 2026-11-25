@@ -92,9 +92,7 @@ The `CRON_SECRET` is a password that you create to ensure only your authorized c
 | :--- | :--- | :--- |
 | `verify-pending-payments` | Every 5 min | Checks pending Paystack wallet payments |
 | `refulfill-pending-orders` | Every 5 min | Auto-retries pending data orders via active supplier |
-| `sync-codecraft-status` | Every 5 min | Polls CodeCraft API to update processing order statuses (regular & bigtime) |
-| `sync-xpress-status` | Every 5 min | Polls Xpress API to update processing order statuses |
-| `sync-paystack-withdrawals` | Every 10 min | Polls Moolre API to settle pending withdrawals |
+| `sync-paystack-withdrawals` | Every 10 min | Polls Paystack to settle pending withdrawals |
 | `auto-complete-data` | Every 10 min | Auto-completes stale data package orders |
 | `fulfill-pending-rc-vouchers` | Every 10 min | Auto-fulfills pending RC orders and retries delivery |
 | `release-rc-reservations` | Every 15 min | Frees expired Results Checker reservations |
