@@ -74,7 +74,7 @@ async function main() {
     assertEqual(r.recruiterEarns, 0, 'dealer recruiter, no markup: recruiterEarns 0')
 }
 
-// ── Ceiling TEMPORARILY DISABLED (Task 6, 2026-09-14, explicit user request — see the
+// ── Ceiling RE-ENABLED 2026-11-25 (was disabled 2026-09-14 for testing) (Task 6, 2026-09-14, explicit user request — see the
 //    marker in lib/pricing/sub-agent-cost.ts): a markup pushing subCost above the
 //    customer price (15) is now accepted, not rejected. Restore the `ok, false`
 //    assertion here when the ceiling check itself is reinstated. ──
@@ -86,8 +86,8 @@ async function main() {
         sub_agent_default_pricing: [],
     })
     const r = await resolveSubAgentAfaCost(db, 'kofi', AFA_SETTINGS)
-    assertEqual(r.ok, true, 'former ceiling breach is currently ALLOWED (ceiling disabled): subCost 16 > customer price 15')
-    assertEqual(r.subCost, 16, 'subCost above customer price still computed normally')
+    assertEqual(r.ok, false, 'ceiling (re-enabled 2026-11-25): subCost 16 > customer price 15 is rejected')
+    assertEqual(r.subCost, 0, 'rejected: charges nothing')
 }
 
 // ── Suspended sub: fails closed ──

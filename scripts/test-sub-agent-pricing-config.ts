@@ -211,6 +211,24 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
     assertEqual(rows, [{ ref: 'a', subPrice: 10 }], 'buildMatchParentPriceRows: unknown ref dropped, not defaulted to 0')
 }
 
+// ── buildValidatedWrites: retail ceiling (re-enabled 2026-11-25) ──
+{
+    const yourPriceByRef = new Map([['a', 4], ['b', 9]])
+    const retail = new Map([['a', 10], ['b', 10]])
+    assertEqual(
+        buildValidatedWrites([{ ref: 'a', subPrice: 10 }], yourPriceByRef, retail).ok, true,
+        'buildValidatedWrites: sub price exactly at retail is allowed')
+    assertEqual(
+        buildValidatedWrites([{ ref: 'a', subPrice: 6 }, { ref: 'b', subPrice: 11 }], yourPriceByRef, retail).ok, false,
+        'buildValidatedWrites: one row above retail fails the whole batch')
+    assertEqual(
+        buildValidatedWrites([{ ref: 'a', subPrice: 5 }], yourPriceByRef, new Map()).ok, false,
+        'buildValidatedWrites: missing retail price fails closed when a ceiling map is given')
+    assertEqual(
+        buildValidatedWrites([{ ref: 'b', subPrice: 50 }], yourPriceByRef).ok, true,
+        'buildValidatedWrites: no ceiling map keeps the old behaviour')
+}
+
 if (process.exitCode === 1) {
     console.error('\nSome tests FAILED')
 } else {

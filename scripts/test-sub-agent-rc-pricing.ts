@@ -66,7 +66,7 @@ async function main() {
         assertEqual(r.recruiterEarns, 0, 'no pricing rows: recruiterEarns 0')
     }
 
-    // ── Ceiling TEMPORARILY DISABLED (Task 6, 2026-09-14, explicit user request — see the
+    // ── Ceiling RE-ENABLED 2026-11-25 (was disabled 2026-09-14 for testing) (Task 6, 2026-09-14, explicit user request — see the
     //    marker in lib/pricing/sub-agent-cost.ts): a markup pushing subCost above the
     //    customer price is now accepted, not rejected. Restore the `ok, false` assertion
     //    here when the ceiling check itself is reinstated. ──
@@ -78,8 +78,8 @@ async function main() {
             sub_agent_default_pricing: [],
         })
         const r = await resolveSubAgentRcCost(db, 'kofi', TYPE, 1)
-        assertEqual(r.ok, true, 'former ceiling breach is currently ALLOWED (ceiling disabled): subCost 18 > customer price 14')
-        assertEqual(r.subCost, 18, 'subCost above customer price still computed normally')
+        assertEqual(r.ok, false, 'ceiling (re-enabled 2026-11-25): subCost 18 > customer price 14 is rejected')
+        assertEqual(r.subCost, 0, 'rejected: charges nothing')
     }
 
     // ── A different type's pricing row does not leak in ──
@@ -117,7 +117,7 @@ async function main() {
         assertEqual(r.recruiterEarns, 0, 'bulk tier: recruiterEarns 0 with 0 markup')
     }
 
-    // ── Bulk-tier-aware ceiling breach TEMPORARILY DISABLED (Task 6, 2026-09-14, explicit
+    // ── Bulk-tier-aware ceiling breach RE-ENABLED 2026-11-25 (was disabled 2026-09-14 for testing) (Task 6, 2026-09-14, explicit
     //    user request — see the marker in lib/pricing/sub-agent-cost.ts): a markup that
     //    breaches the tighter bulk-tier ceiling (11) is now accepted, not rejected.
     //    Restore the `ok, false` assertion here when the ceiling check itself is
@@ -134,8 +134,10 @@ async function main() {
             sub_agent_default_pricing: [],
         })
         const r = await resolveSubAgentRcCost(db, 'kofi', TYPE_BULK, 20)
-        assertEqual(r.ok, true, 'former bulk-tier ceiling breach is currently ALLOWED (ceiling disabled): subCost 11.5 > bulk ceiling 11')
-        assertEqual(r.subCost, 11.5, 'subCost above bulk ceiling still computed normally')
+        // The ceiling is the single-unit customer price (14), not the bulk tier (11): a tier
+        // price is the same for every role, so a bulk ceiling would reject any markup at all.
+        assertEqual(r.ok, true, 'bulk purchase with a markup: allowed under the single-unit customer ceiling (14)')
+        assertEqual(r.subCost, 11.5, 'bulk purchase: subCost = bulk tier (11) + markup (0.5)')
     }
 }
 

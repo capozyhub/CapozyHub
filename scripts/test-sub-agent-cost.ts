@@ -50,14 +50,12 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
         'negative recruiter cost rejected')
 }
 
-// ── Ceiling TEMPORARILY DISABLED (Task 6, 2026-09-14, explicit user request — see the
-//    marker in lib/pricing/sub-agent-cost.ts): a subCost above the standard customer
-//    price is now accepted, not rejected. Restore the old rejection assertions here
-//    when the ceiling check itself is reinstated. ──
+// ── Ceiling: a sub never pays more than the standard customer price ──
 {
     const r = computeSubAgentCost({ recruiterCost: 9, markup: 2, customerPrice: 10 })
-    assertEqual(r.ok, true, 'subCost above customer price is currently ALLOWED (ceiling disabled)')
-    assertEqual(r.subCost, 11, 'subCost above customer price still computed normally')
+    assertEqual(r.ok, false, 'subCost above customer price is rejected')
+    assertEqual(r.subCost, 0, 'rejected result charges nothing')
+    assertEqual(r.recruiterEarns, 0, 'rejected result credits nothing')
 }
 {
     const r = computeSubAgentCost({ recruiterCost: 9, markup: 1, customerPrice: 10 })

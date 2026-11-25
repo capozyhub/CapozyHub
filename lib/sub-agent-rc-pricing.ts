@@ -52,11 +52,11 @@ export async function resolveSubAgentRcCost(
 
     const markup = await resolveSubAgentMarkup(db, ctx.recruiterId, subUserId, 'results_checker', type.id)
 
-    // The ceiling a sub may be charged is also bulk-tier-aware at this quantity — otherwise a
-    // sub buying in bulk could be capped at the flat customer_price while an ordinary customer
-    // buying the same quantity pays less via the bulk tier (the same C1 gap, on the ceiling
-    // side rather than the cost side).
-    const { unitPrice: customerCeiling } = resolveRcUnitPrice(type, quantity, 'customer')
+    // The ceiling is the single-unit customer price — the same number the pricing-config
+    // routes validate a markup against when it is saved. A bulk tier's unit_price is the same
+    // for every role, so a quantity-aware ceiling equals the recruiter's own cost inside a
+    // tier and would reject ANY markup on a bulk purchase (review 2026-11-25).
+    const { unitPrice: customerCeiling } = resolveRcUnitPrice(type, 1, 'customer')
 
     const result = computeSubAgentCost({ recruiterCost, markup, customerPrice: customerCeiling })
     if (!result.ok) return FAIL_CLOSED(result.reason ?? 'Pricing is not available for this type')

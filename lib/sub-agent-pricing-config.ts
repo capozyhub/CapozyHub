@@ -231,6 +231,10 @@ export type BuildWritesResult =
 export function buildValidatedWrites(
     rows: Array<{ ref: string; subPrice: number }>,
     yourPriceByRef: Map<string, number>,
+    /** Public retail price per ref. A sub price above it is rejected at save time, so a
+     *  recruiter sees the error instead of the item silently becoming unavailable to the
+     *  sub (computeSubAgentCost rejects it at charge time). */
+    ceilingByRef?: Map<string, number>,
 ): BuildWritesResult {
     if (rows.length === 0) {
         return { ok: false, error: 'No rows provided' }
@@ -255,6 +259,13 @@ export function buildValidatedWrites(
         const result = subPriceToMarkup(row.subPrice, yourPrice)
         if (!result.ok || result.markup == null) {
             return { ok: false, error: result.error ?? 'Invalid price' }
+        }
+        const ceiling = ceilingByRef?.get(row.ref)
+        if (ceilingByRef && (ceiling == null || !Number.isFinite(ceiling) || ceiling <= 0)) {
+            return { ok: false, error: 'Retail price is not available for this item' }
+        }
+        if (ceiling != null && r2(yourPrice + result.markup) > ceiling) {
+            return { ok: false, error: `Sub price cannot be above the retail price of GHS ${ceiling.toFixed(2)}` }
         }
         writes.push({ productRef: row.ref, markup: result.markup })
     }

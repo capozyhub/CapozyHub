@@ -238,7 +238,9 @@ export async function PUT(request: NextRequest) {
                 inputRows = rows.map((r: any) => ({ ref: String(r?.packageId), subPrice: Number(r?.subPrice) }))
             }
 
-            const built = buildValidatedWrites(inputRows, yourPriceByRef)
+            const retailByRef = new Map<string, number>()
+            for (const pkg of pkgRows) retailByRef.set(pkg.id, Number(pkg.price))
+            const built = buildValidatedWrites(inputRows, yourPriceByRef, retailByRef)
             if (!built.ok) {
                 return NextResponse.json({ success: false, error: built.error }, { status: 400 })
             }
@@ -275,15 +277,17 @@ export async function PUT(request: NextRequest) {
 
             const typeRows: RCTypeRow[] = types ?? []
             const yourPriceByRef = new Map<string, number>()
+            const retailByRef = new Map<string, number>()
             for (const type of typeRows) {
                 const { unitPrice } = resolveRcUnitPrice(type, 1, recruiterRole)
                 yourPriceByRef.set(type.id, unitPrice)
+                retailByRef.set(type.id, resolveRcUnitPrice(type, 1, 'customer').unitPrice)
             }
 
             const inputRows = matchParentPrice === true
                 ? buildMatchParentPriceRows(typeRows.map((t) => t.id), yourPriceByRef)
                 : rows.map((r: any) => ({ ref: String(r?.typeId), subPrice: Number(r?.subPrice) }))
-            const built = buildValidatedWrites(inputRows, yourPriceByRef)
+            const built = buildValidatedWrites(inputRows, yourPriceByRef, retailByRef)
             if (!built.ok) {
                 return NextResponse.json({ success: false, error: built.error }, { status: 400 })
             }
@@ -313,11 +317,15 @@ export async function PUT(request: NextRequest) {
                 return NextResponse.json({ success: false, error: 'AFA pricing is not configured' }, { status: 500 })
             }
 
+            const retailPrice = resolveAfaPrice(settingsMap, 'customer')
+            if (retailPrice === null) {
+                return NextResponse.json({ success: false, error: 'AFA pricing is not configured' }, { status: 500 })
+            }
             const yourPriceByRef = new Map<string, number>([[AFA_PRODUCT_REF, yourPrice]])
             const inputRows = matchParentPrice === true
                 ? buildMatchParentPriceRows([AFA_PRODUCT_REF], yourPriceByRef)
                 : [{ ref: AFA_PRODUCT_REF, subPrice }]
-            const built = buildValidatedWrites(inputRows, yourPriceByRef)
+            const built = buildValidatedWrites(inputRows, yourPriceByRef, new Map([[AFA_PRODUCT_REF, retailPrice]]))
             if (!built.ok) {
                 return NextResponse.json({ success: false, error: built.error }, { status: 400 })
             }

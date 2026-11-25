@@ -110,7 +110,7 @@ async function main() {
         assertEqual(overridden.subtotal, 240, 'bulk tier: subtotal = (11+1) * 20')
     }
 
-    // ── Former ceiling breach: the subCost > customer ceiling reject is TEMPORARILY DISABLED
+    // ── Former ceiling breach: the subCost > customer ceiling reject is RE-ENABLED 2026-11-25 (was disabled 2026-09-14 for testing)
     //    (lib/pricing/sub-agent-cost.ts, 2026-09-14 explicit user request) — a sub price above
     //    the customer's own retail price is currently ALLOWED and computed normally, the same
     //    as the equivalent case in scripts/test-sub-agent-rc-pricing.ts. Re-tighten this
@@ -123,8 +123,8 @@ async function main() {
             sub_agent_default_pricing: [],
         })
         const subResult = await resolveSubAgentRcCost(db, 'kofi', TYPE, 1)
-        assertEqual(subResult.ok, true, 'former ceiling breach is currently ALLOWED (ceiling disabled): subCost 18 > customer ceiling 14')
-        assertEqual(subResult.subCost, 18, 'subCost above customer ceiling still computed normally')
+        assertEqual(subResult.ok, false, 'ceiling (re-enabled 2026-11-25): subCost 18 > customer ceiling 14 is rejected')
+        assertEqual(subResult.subCost, 0, 'rejected: charges nothing')
     }
 
     // ── Suspended sub-agent: resolver fails closed (route must 409, not fall through to

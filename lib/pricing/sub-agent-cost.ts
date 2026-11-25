@@ -48,19 +48,13 @@ export function computeSubAgentCost(input: SubAgentCostInput): SubAgentCostResul
 
   const subCost = r2(recruiterCost + markup)
 
-  // TEMPORARILY DISABLED (2026-09-14, explicit user request — "any pricing can be
-  // entered today, we will change this later after we are done with the test"):
-  // a sub price above the customer's own retail price is currently ALLOWED. This
-  // was previously a hard reject (`subCost > customerPrice`) that silently hid
-  // any package/type priced this way from the sub-agent's own view with no
-  // error surfaced anywhere — confirmed as the root cause of "configured
-  // pricing still shows unavailable" during live testing. Re-enable the
-  // ceiling check below (and restore the accompanying write-time validation
-  // this plan deliberately did NOT add) once testing is done:
-  //
-  //   if (subCost > customerPrice) {
-  //       return REJECT('Pricing exceeds the allowed maximum for this package')
-  //   }
+  // A sub-agent never pays more than the public retail price (re-enabled 2026-11-25 after
+  // being switched off for testing on 2026-09-14). The pricing-config routes reject such a
+  // markup when it is saved (buildValidatedWrites' ceiling), so this charge-time check only
+  // catches drift, e.g. an admin lowering the retail price below an existing sub price.
+  if (subCost > customerPrice) {
+    return REJECT('Pricing exceeds the allowed maximum for this package')
+  }
 
   return { ok: true, subCost, recruiterEarns: r2(markup) }
 }
