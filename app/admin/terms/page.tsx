@@ -124,7 +124,7 @@ export default function AdminTermsPage() {
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Editor */}
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border p-4 space-y-3 bg-card">
+            <div className="p-4 space-y-3 neu-raised-sm rounded-3xl">
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs font-bold text-muted-foreground">Version (YYYY-MM-DD)
                   <input value={version} onChange={(e) => setVersion(e.target.value)}
@@ -152,7 +152,7 @@ export default function AdminTermsPage() {
 
             <div className="space-y-3">
               {sections.map((s, i) => (
-                <div key={i} className="rounded-2xl border border-border p-3 space-y-2 bg-card">
+                <div key={i} className="p-3 space-y-2 neu-raised-sm rounded-3xl">
                   <div className="flex gap-2">
                     <input value={s.title} onChange={(e) => updateSection(i, { title: e.target.value })}
                       className="flex-1 h-9 rounded-lg border border-border bg-transparent px-2 text-sm font-bold" placeholder="Section title" />
@@ -229,7 +229,7 @@ export default function AdminTermsPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border p-4 bg-card">
+            <div className="p-4 neu-raised-sm rounded-3xl">
               <p className="text-xs font-bold text-muted-foreground mb-2">Published versions</p>
               <ul className="space-y-1.5">
                 {versions.map((v) => (
