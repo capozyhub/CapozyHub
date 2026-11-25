@@ -81,7 +81,7 @@ export default function AdminMtnMashupPage() {
             if (!res.ok) throw new Error('Failed to load packages')
             const data = await res.json()
             setPackages(Array.isArray(data) ? data : [])
-        } catch { toast.error('Failed to load packages') }
+        } catch { toast.error('Could not load the packages. Refresh the page to try again.') }
         finally { setIsLoadingPkgs(false) }
     }
 
@@ -92,7 +92,7 @@ export default function AdminMtnMashupPage() {
             if (!res.ok) throw new Error('Failed to load orders')
             const data = await res.json()
             setOrders(Array.isArray(data) ? data : [])
-        } catch { toast.error('Failed to load orders') }
+        } catch { toast.error('Could not load the orders. Refresh the page to try again.') }
         finally { setIsLoadingOrders(false) }
     }
 
@@ -128,7 +128,7 @@ export default function AdminMtnMashupPage() {
             toast.success(editing ? 'Package updated' : 'Package created')
             setIsDialogOpen(false)
             fetchPackages()
-        } catch (e: any) { toast.error(e.message || 'Failed to save') }
+        } catch (e: any) { toast.error(e.message || 'Could not save. Try again.') }
         finally { setIsSaving(false) }
     }
 
@@ -139,7 +139,7 @@ export default function AdminMtnMashupPage() {
             const res = await fetch(`/api/admin/mtn-mashup/packages?id=${id}`, { method: 'DELETE' })
             if (!res.ok) throw new Error('Failed to delete')
             toast.success('Package deleted'); fetchPackages()
-        } catch { toast.error('Failed to delete') }
+        } catch { toast.error('Could not delete the package. Try again.') }
         finally { setDeletingId(null) }
     }
 
@@ -156,9 +156,9 @@ export default function AdminMtnMashupPage() {
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Failed to update')
-            toast.success(status === 'failed' && data.refunded ? 'Order failed & wallet refunded' : `Order marked ${status}`)
+            toast.success(status === 'failed' && data.refunded ? 'Order marked failed and the wallet was refunded' : `Order marked ${status}`)
             fetchOrders()
-        } catch (e: any) { toast.error(e.message || 'Failed to update') }
+        } catch (e: any) { toast.error(e.message || 'Could not update the order. Try again.') }
         finally { setUpdatingId(null) }
     }
 
@@ -180,7 +180,7 @@ export default function AdminMtnMashupPage() {
             toast.success(`${data.updated ?? 0} order(s) marked ${status}${data.refunded ? ` · ${data.refunded} refunded` : ''}`)
             setSelectedOrders(new Set())
             fetchOrders()
-        } catch (e: any) { toast.error(e.message || 'Bulk update failed') }
+        } catch (e: any) { toast.error(e.message || 'The bulk update did not finish. Check the orders before trying again.') }
         finally { setIsBulkUpdating(false) }
     }
 
@@ -210,7 +210,7 @@ export default function AdminMtnMashupPage() {
             if (order.status === 'pending') {
                 await updateStatus(order.id, 'processing')
             }
-        } catch { toast.error('Copy failed') }
+        } catch { toast.error('Could not copy. Select the text and copy it by hand.') }
     }
 
     const statusClass = (s: string) =>
@@ -301,19 +301,19 @@ export default function AdminMtnMashupPage() {
                         <div className="sticky top-20 z-30 flex items-center justify-between flex-wrap gap-2 bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg">
                             <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-primary text-primary-foreground text-xs font-bold">{selectedOrders.size}</span>
-                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
+                                <span className="text-xs font-semibold">Selected</span>
                             </div>
                             <div className="flex gap-2 flex-wrap justify-end">
                                 <Button size="sm" onClick={() => bulkUpdateStatus('pending')} className="h-9 text-xs px-3 bg-amber-500 hover:bg-amber-600 text-black font-bold" disabled={isBulkUpdating}>
                                     <Clock className="w-3.5 h-3.5 mr-1.5" /> Pending
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold" disabled={isBulkUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('processing')} className="h-9 text-xs px-3 clay-black font-semibold" disabled={isBulkUpdating}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Processing
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 text-xs px-3 font-bold clay clay-green" disabled={isBulkUpdating}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-bold" disabled={isBulkUpdating}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 text-xs px-3 font-semibold" disabled={isBulkUpdating}>
                                     <XCircle className="w-3.5 h-3.5 mr-1.5" /> Fail (refund)
                                 </Button>
                             </div>
@@ -386,20 +386,20 @@ export default function AdminMtnMashupPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Selling Price (GHS)</Label>
+                                <Label>Customer price (GH₵)</Label>
                                 <Input type="number" value={formData.price} onChange={e => setFormData(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Cost Price (GHS)</Label>
+                                <Label>Cost price (GH₵)</Label>
                                 <Input type="number" value={formData.cost_price} onChange={e => setFormData(p => ({ ...p, cost_price: parseFloat(e.target.value) || 0 }))} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Agent Price (GHS)</Label>
+                                <Label>Agent price (GH₵)</Label>
                                 <Input type="number" value={formData.agent_price} onChange={e => setFormData(p => ({ ...p, agent_price: parseFloat(e.target.value) || 0 }))} />
                                 <p className="text-xs text-muted-foreground">Optional; falls back to selling price if 0</p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-brand-700">Dealer Price (GHS)</Label>
+                                <Label>Dealer price (GH₵)</Label>
                                 <Input type="number" value={formData.dealer_price} onChange={e => setFormData(p => ({ ...p, dealer_price: parseFloat(e.target.value) || 0 }))} />
                                 <p className="text-xs text-muted-foreground">Optional; falls back to agent/selling price if 0</p>
                             </div>
@@ -431,7 +431,7 @@ export default function AdminMtnMashupPage() {
             <Dialog open={!!failConfirm} onOpenChange={(o) => { if (!o) setFailConfirm(null) }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Mark failed &amp; refund?</DialogTitle>
+                        <DialogTitle>Mark as failed and refund?</DialogTitle>
                         <DialogDescription>
                             {failConfirm?.mode === 'bulk'
                                 ? `Mark ${selectedOrders.size} order(s) as failed and refund each buyer's wallet. This cannot be undone.`

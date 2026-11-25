@@ -174,7 +174,7 @@ function MessageComposer({
                 onChange={e => onChange(e.target.value)}
                 maxLength={480}
             />
-            <div className="flex justify-between text-[11px] text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground">
                 <span className={charCount > 400 ? 'text-amber-500 font-medium' : ''}>{charCount}/480 chars</span>
                 <span className={smsCount > 1 ? 'text-amber-500 font-medium' : ''}>{smsCount} SMS unit{smsCount > 1 ? 's' : ''}</span>
             </div>
@@ -200,7 +200,7 @@ function LivePreview({ message, sampleName }: { message: string; sampleName: str
             </div>
             <div className="p-4 min-h-[80px]">
                 {preview ? (
-                    <div className="inline-block max-w-xs bg-muted text-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow">
+                    <div className="inline-block max-w-xs bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow">
                         {preview}
                     </div>
                 ) : (
@@ -405,10 +405,10 @@ export default function AdminSMSBroadcastPage() {
             const { sent, failed, total } = data.results
             setLastResult({ sent, failed, total })
             toast.success(`✅ Sent ${sent}/${total} messages via batch API`)
-            if (failed > 0) toast.warning(`${failed} message(s) failed — check errors`)
+            if (failed > 0) toast.warning(`${failed} message(s) did not send. Check the errors.`)
             setMessage(''); setSelectedUsers(new Set()); setSelectedGroupId('')
         } catch (e: any) {
-            toast.error(e.message || 'Failed to send SMS')
+            toast.error(e.message || 'The messages did not send. Try again.')
         } finally { setSending(false) }
     }
 
@@ -608,7 +608,7 @@ export default function AdminSMSBroadcastPage() {
             {/* Header */}
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl clay-gold flex items-center justify-center shadow-lg flex-shrink-0">
-                    <MessageSquare className="w-6 h-6 text-white" />
+                    <MessageSquare className="w-6 h-6 text-black" />
                 </div>
                 <div>
                     <h1 className="text-xl font-bold tracking-tight">SMS Centre</h1>
@@ -691,7 +691,7 @@ export default function AdminSMSBroadcastPage() {
                                     <Button
                                         id="btn-send-sms"
                                         onClick={handleSend}
-                                        className="w-full gap-2 clay-gold hover:from-brand-700 hover:to-brand-700 text-white font-bold h-11"
+                                        className="w-full gap-2 clay-gold font-semibold h-11"
                                         disabled={sending || recipientCount === 0 || !message.trim()}
                                     >
                                         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -810,7 +810,7 @@ export default function AdminSMSBroadcastPage() {
                                                                     <span className="text-xs font-medium truncate">{u.first_name} {u.last_name}</span>
                                                                     <RoleBadge role={u.role} />
                                                                 </div>
-                                                                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                                     {u.phone_number}
                                                                     {u.phone_verified && (
                                                                         <ShieldCheck className="w-3 h-3 text-emerald-600 flex-shrink-0" aria-label="Verified" />
@@ -822,7 +822,7 @@ export default function AdminSMSBroadcastPage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-[11px] text-muted-foreground text-center">
+                                        <p className="text-xs text-muted-foreground text-center">
                                             Showing {filteredUsers.length} of {appUsers.length} users · {selectedUsers.size} selected
                                         </p>
                                     </CardContent>
@@ -870,7 +870,7 @@ export default function AdminSMSBroadcastPage() {
                                                         />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-semibold truncate">{g.name}</p>
-                                                            <p className="text-[11px] text-muted-foreground">
+                                                            <p className="text-xs text-muted-foreground">
                                                                 {g.contact_count} contact{g.contact_count !== 1 ? 's' : ''}
                                                                 {g.description ? ` · ${g.description}` : ''}
                                                             </p>
@@ -880,7 +880,7 @@ export default function AdminSMSBroadcastPage() {
                                             </div>
                                         )}
                                         {selectedGroupId && groupContacts.length > 0 && (
-                                            <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium text-center">
+                                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium text-center">
                                                 ✓ {groupContacts.length} contacts will receive this message
                                             </p>
                                         )}
@@ -1207,32 +1207,32 @@ export default function AdminSMSBroadcastPage() {
 
                             {/* Verification badge */}
                             {verifyStatus === 'loading' && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     Verifying MoMo account…
                                 </div>
                             )}
                             {verifyStatus === 'verified' && (
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                                     <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
                                     {verifiedName}
                                     {verifiedNetwork && <span className="opacity-60">· {verifiedNetwork}</span>}
                                 </div>
                             )}
                             {verifyStatus === 'unverified' && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                                <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                                     <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
                                     Could not verify — number may not have a MoMo wallet
                                 </div>
                             )}
                             {verifyStatus === 'invalid' && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-destructive">
+                                <div className="flex items-center gap-1.5 text-xs text-destructive">
                                     <ShieldX className="w-3.5 h-3.5 flex-shrink-0" />
                                     Invalid phone format
                                 </div>
                             )}
                             {verifyStatus === 'idle' && (
-                                <p className="text-[11px] text-muted-foreground">Accepts 0XXXXXXXXX or 233XXXXXXXXX · auto-verified on blur</p>
+                                <p className="text-xs text-muted-foreground">Accepts 0XXXXXXXXX or 233XXXXXXXXX · auto-verified on blur</p>
                             )}
                         </div>
                     </div>
@@ -1274,7 +1274,7 @@ export default function AdminSMSBroadcastPage() {
                                 className="min-h-[120px] resize-none font-mono text-sm"
                                 maxLength={480}
                             />
-                            <div className="flex justify-between text-[11px] text-muted-foreground">
+                            <div className="flex justify-between text-xs text-muted-foreground">
                                 <div className="flex gap-1.5 flex-wrap">
                                     {VARIABLES.map(v => (
                                         <button key={v.label} type="button"
