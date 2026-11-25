@@ -261,7 +261,7 @@ export function WithdrawalDetailSheet({
     } else if (row.status === 'failed') {
         timelineSteps.push({
             icon: <XCircle />,
-            label: 'Payment Failed',
+            label: 'Payment failed',
             time: row.processed_at ? formatDate(row.processed_at) : null,
             detail: row.failure_reason ?? null,
             active: true,
@@ -352,14 +352,14 @@ export function WithdrawalDetailSheet({
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
                     {/* ── Amount block ── */}
-                    <div className="rounded-xl border p-4 clay-gold dark:from-emerald-950/30 dark:to-emerald-900/10 border-emerald-200 dark:border-emerald-800/40">
-                        <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-                            Net Payout
+                    <div className="neu-raised-sm rounded-3xl p-4">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                            Net payout
                         </p>
-                        <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-1">
+                        <p className="font-display text-4xl font-bold text-foreground tabular-nums mt-1">
                             {formatCurrency(row.net_amount ?? 0)}
                         </p>
-                        <p className="text-xs text-emerald-600/70 dark:text-emerald-500/60 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Gross {formatCurrency(row.amount)} · Fee {formatCurrency(row.fee ?? 0)}
                             {row.paystack_fee ? ` · Paystack ${formatCurrency(row.paystack_fee)}` : ''}
                         </p>
@@ -597,14 +597,15 @@ export function WithdrawalDetailSheet({
                                         </Button>
                                         <Button
                                             size="sm"
+                                            variant="destructive"
                                             disabled={refunding || !refundReason.trim()}
                                             onClick={handleRefund}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5"
+                                            className="flex-1 font-semibold gap-1.5"
                                         >
                                             {refunding
                                                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                 : <XCircle className="w-3.5 h-3.5" />}
-                                            {refunding ? 'Refunding…' : 'Confirm Refund'}
+                                            {refunding ? 'Refunding…' : 'Refund'}
                                         </Button>
                                     </div>
                                 </div>

@@ -408,6 +408,7 @@ export function CreditAccountabilityLedger({
     red_count: 0,
   })
   const [loading, setLoading] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   // Debounce search → only update debouncedSearch after 300ms idle
   useEffect(() => {
@@ -420,6 +421,7 @@ export function CreditAccountabilityLedger({
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
+    setLoadFailed(false)
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -432,12 +434,14 @@ export function CreditAccountabilityLedger({
       const res = await fetch(`/api/admin/shop-credits?${params}`, { signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string }
-        toast.error(body.error ?? 'Failed to load credit ledger')
+        toast.error(body.error ?? 'Could not load the credit ledger.')
+        setLoadFailed(true)
         return
       }
       const body = (await res.json()) as ApiResponse
       if (!body.success) {
-        toast.error(body.error ?? 'Failed to load credit ledger')
+        toast.error(body.error ?? 'Could not load the credit ledger.')
+        setLoadFailed(true)
         return
       }
       const ZERO_ROLLUPS: Rollups = { green_total: 0, amber_total: 0, red_total: 0, red_count: 0 }
@@ -446,7 +450,7 @@ export function CreditAccountabilityLedger({
       setRollups(body.data?.rollups ?? ZERO_ROLLUPS)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
-      toast.error('Network error loading credit ledger')
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -469,6 +473,12 @@ export function CreditAccountabilityLedger({
 
   return (
     <div className="space-y-0">
+      {loadFailed && !loading && (
+        <div role="alert" className="mb-3 neu-raised-sm rounded-3xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-foreground">Could not load the credit ledger. The rows below may be out of date.</p>
+          <button type="button" onClick={() => void fetchData()} className="clay-silver text-xs px-4 py-2 rounded-full">Try again</button>
+        </div>
+      )}
       {/* ── Rollup header ── */}
       <RollupCards rollups={rollups} />
 
