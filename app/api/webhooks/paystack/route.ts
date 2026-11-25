@@ -267,6 +267,9 @@ export async function POST(request: NextRequest) {
                             updated_at: new Date().toISOString(),
                         })
                         .eq('reference', reference)
+                        // Only a still-pending payment may be failed: a concurrent delivery
+                        // that already completed it must not be flipped back.
+                        .eq('status', 'pending')
                 } catch (updateError) {
                     console.error('[PaystackWebhook] Failed to mark payment as failed:', updateError)
                 }

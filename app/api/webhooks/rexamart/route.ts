@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { verifyRexamartSignature } from '@/lib/rexamart-webhook-signature'
 import { syncShopOrderStatus } from '@/lib/shop-service'
+import { notifyDataOrderWebhook } from '@/lib/data-order-webhook'
+import { waitUntil } from '@vercel/functions'
 
 // POST /api/webhooks/rexamart
 //
@@ -164,12 +166,18 @@ async function handleDataOrderEvent(supabase: any, event: string, reference: str
         await syncShopOrderStatus(reference, nextStatus).catch((e: any) => console.error('[RexamartWebhook] syncShopOrderStatus failed:', e))
     }
 
+    // Background work goes through waitUntil: a bare promise can be dropped when the
+    // function freezes after the response. The developer-API webhook only fires for orders
+    // placed with an API key (notifyDataOrderWebhook no-ops otherwise), and only here,
+    // after the guarded UPDATE proved this delivery is what moved the order.
     if (nextStatus === 'completed') {
         const { sendOrderCompletedPushNotification } = await import('@/lib/push-service')
-        sendOrderCompletedPushNotification(reference).catch((e: any) => console.error('[RexamartWebhook] Push error:', e))
+        waitUntil(sendOrderCompletedPushNotification(reference).catch((e: any) => console.error('[RexamartWebhook] Push error:', e)))
+        waitUntil(notifyDataOrderWebhook(supabase, reference, 'order.completed'))
     } else if (nextStatus === 'failed') {
         const { sendOrderFailedPushNotification } = await import('@/lib/push-service')
-        sendOrderFailedPushNotification(reference).catch((e: any) => console.error('[RexamartWebhook] Push error:', e))
+        waitUntil(sendOrderFailedPushNotification(reference).catch((e: any) => console.error('[RexamartWebhook] Push error:', e)))
+        waitUntil(notifyDataOrderWebhook(supabase, reference, 'order.failed'))
     }
 }
 
