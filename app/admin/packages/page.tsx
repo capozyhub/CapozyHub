@@ -92,6 +92,8 @@ export default function AdminPackagesPage() {
     const [isSavingNetworkDesc, setIsSavingNetworkDesc] = useState(false)
     const [networkStock, setNetworkStock] = useState<Record<string, boolean>>({})
     const [stockSaving, setStockSaving] = useState<string | null>(null)
+    const [loadFailed, setLoadFailed] = useState(false)
+    const [stockFailed, setStockFailed] = useState(false)
 
     useEffect(() => {
         fetchPackages()
@@ -99,6 +101,7 @@ export default function AdminPackagesPage() {
     }, [])
 
     const fetchPackages = async () => {
+        setLoadFailed(false)
         try {
             const res = await fetch('/api/admin/packages')
             if (!res.ok) throw new Error('Failed to fetch packages')
@@ -106,18 +109,20 @@ export default function AdminPackagesPage() {
             setPackages(data || [])
         } catch (error) {
             console.error('Error fetching packages:', error)
-            toast.error('Failed to load packages')
+            setLoadFailed(true)
         } finally {
             setIsLoading(false)
         }
     }
 
     const loadNetworkStock = async () => {
+        setStockFailed(false)
         try {
             const res = await fetch('/api/admin-settings?keys=data_network_stock', { cache: 'no-store' })
+            if (!res.ok) throw new Error('stock')
             const json = await res.json()
             setNetworkStock((json?.data_network_stock as Record<string, boolean>) || {})
-        } catch { /* leave defaults — all in stock */ }
+        } catch { setStockFailed(true) }
     }
 
     const toggleNetworkStock = async (network: string, outOfStock: boolean) => {
@@ -131,12 +136,12 @@ export default function AdminPackagesPage() {
                 body: JSON.stringify({ network, outOfStock }),
             })
             const json = await res.json()
-            if (!res.ok || !json.success) throw new Error(json.error || 'Failed')
+            if (!res.ok || !json.success) throw new Error(json.error || 'Could not change the stock.')
             setNetworkStock(json.stock || {})
-            toast.success(`${network} ${outOfStock ? 'marked Out of Stock' : 'back In Stock'}`)
+            toast.success(`${network} is ${outOfStock ? 'out of stock' : 'back in stock'}`)
         } catch (e: any) {
             setNetworkStock(prev => ({ ...prev, [network]: !outOfStock })) // revert
-            toast.error(e.message || 'Failed to update stock')
+            toast.error(e.message || 'Could not change the stock. Try again.')
         } finally {
             setStockSaving(null)
         }
@@ -165,18 +170,26 @@ export default function AdminPackagesPage() {
     }
 
     const handleSave = async () => {
-        if (!formData.size || !formData.price) {
-            toast.error('Please fill in all required fields')
+        if (!formData.size.trim() || !(formData.price > 0)) {
+            toast.error('Enter the size and a price above 0.')
+            return
+        }
+        if ([formData.price, formData.agent_price, formData.dealer_price, formData.cost_price].some(n => !Number.isFinite(n) || n < 0)) {
+            toast.error('Prices cannot be negative.')
+            return
+        }
+        if (formData.cost_price > 0 && formData.price < formData.cost_price) {
+            toast.error('The customer price is below the cost price, so every sale would lose money.')
             return
         }
 
         if (formData.agent_price > 0 && formData.agent_price < formData.cost_price) {
-            toast.error('Agent price cannot be lower than cost price')
+            toast.error('The agent price is below the cost price.')
             return
         }
 
         if (formData.dealer_price > 0 && formData.dealer_price < formData.cost_price) {
-            toast.error('Dealer price cannot be lower than cost price')
+            toast.error('The dealer price is below the cost price.')
             return
         }
 
@@ -192,14 +205,13 @@ export default function AdminPackagesPage() {
             })
 
             const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to save package')
+            if (!res.ok) throw new Error(data.error || 'Could not save the package.')
 
-            toast.success(editingPackage ? 'Package updated successfully' : 'Package created successfully')
+            toast.success(editingPackage ? 'Package updated' : 'Package added')
             setIsDialogOpen(false)
             fetchPackages()
-        } catch (error) {
-            console.error('Error saving package:', error)
-            toast.error('Failed to save package')
+        } catch (error: any) {
+            toast.error(error?.message || 'Could not save the package. Try again.')
         } finally {
             setIsSaving(false)
         }
@@ -216,10 +228,10 @@ export default function AdminPackagesPage() {
 
             if (!res.ok) throw new Error('Failed to delete package')
 
-            toast.success('Package deleted successfully')
+            toast.success('Package deleted')
             fetchPackages()
         } catch (error) {
-            toast.error('Failed to delete package')
+            toast.error('Could not delete the package. Try again.')
         } finally {
             setDeletingId(null)
         }
@@ -242,7 +254,7 @@ export default function AdminPackagesPage() {
                 prev.map(p => p.id === pkg.id ? { ...p, is_available: !p.is_available } : p)
             )
         } catch (error) {
-            toast.error('Failed to update package')
+            toast.error('Could not change the package. Try again.')
         }
     }
 
@@ -269,14 +281,14 @@ export default function AdminPackagesPage() {
             })
 
             const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to update description')
+            if (!res.ok) throw new Error(data.error || 'Could not update the description.')
 
-            toast.success(`Description updated for all ${editingNetwork} packages`)
+            toast.success(`Description updated for every ${editingNetwork} package`)
             setIsNetworkDescDialogOpen(false)
             fetchPackages()
         } catch (error: any) {
             console.error('Error updating network description:', error)
-            toast.error(error.message || 'Failed to update description')
+            toast.error(error.message || 'Could not update the description. Try again.')
         } finally {
             setIsSavingNetworkDesc(false)
         }
@@ -292,21 +304,27 @@ export default function AdminPackagesPage() {
         <div className="space-y-6">
             {dialog}
             <div>
-                <h1 className="text-2xl font-bold">Data Packages</h1>
-                <p className="text-muted-foreground">Manage available data packages</p>
+                <h1 className="font-display text-2xl font-bold">Data packages</h1>
+                <p className="text-muted-foreground">Set sizes, prices and stock for each network.</p>
+                {(loadFailed || stockFailed) && (
+                    <div role="alert" className="mt-3 neu-raised-sm rounded-3xl p-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-foreground">{loadFailed ? 'Could not load the packages.' : 'Could not load which networks are out of stock, so they may all look in stock.'}</p>
+                        <Button variant="outline" size="sm" onClick={() => { fetchPackages(); loadNetworkStock() }}>Try again</Button>
+                    </div>
+                )}
             </div>
 
             <Tabs defaultValue="packages">
                 <TabsList>
                     <TabsTrigger value="packages">Packages</TabsTrigger>
-                    <TabsTrigger value="bulk-pricing">Bulk Pricing</TabsTrigger>
+                    <TabsTrigger value="bulk-pricing">Bulk pricing</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="packages" className="mt-6 space-y-6">
                     <div className="flex justify-end">
                         <Button onClick={openCreateDialog}>
                             <Plus className="w-4 h-4 mr-2" />
-                            Add Package
+                            Add package
                         </Button>
                     </div>
 
@@ -319,9 +337,9 @@ export default function AdminPackagesPage() {
                     <div key={network} className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                <span className={`px-3 py-1 rounded-full text-white text-sm ${network === 'MTN' ? 'bg-foreground/10' :
-                                    network === 'Telecel' ? 'bg-red-600' :
-                                        'bg-brand-600'
+                                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${network === 'MTN' ? 'bg-brand-500 text-black' :
+                                    network === 'Telecel' ? 'bg-red-600 text-white' :
+                                        'bg-black text-white'
                                     }`}>
                                     {network}
                                 </span>
@@ -330,13 +348,13 @@ export default function AdminPackagesPage() {
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2">
                                     <span className={`text-xs font-semibold ${networkStock[network] ? 'text-red-600' : 'text-emerald-600'}`}>
-                                        {networkStock[network] ? 'Out of Stock' : 'In Stock'}
+                                        {networkStock[network] ? 'Out of stock' : 'In stock'}
                                     </span>
                                     <Switch
                                         checked={!!networkStock[network]}
                                         disabled={stockSaving === network}
                                         onCheckedChange={(v) => toggleNetworkStock(network, v)}
-                                        aria-label={`Toggle ${network} out of stock`}
+                                        aria-label={`${network} out of stock`}
                                     />
                                 </div>
                                 <Button
@@ -346,7 +364,7 @@ export default function AdminPackagesPage() {
                                     className="gap-2"
                                 >
                                     <FileEdit className="w-4 h-4" />
-                                    Edit Description
+                                    Edit description
                                 </Button>
                             </div>
                         </div>
@@ -375,12 +393,13 @@ export default function AdminPackagesPage() {
                                             <Switch
                                                 checked={pkg.is_available ?? false}
                                                 onCheckedChange={() => toggleAvailability(pkg)}
+                                                aria-label={`${pkg.network} ${pkg.size} is for sale`}
                                             />
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
                                         <p className="text-sm text-muted-foreground line-clamp-2">
-                                            {pkg.description || 'No description'}
+                                            {pkg.description || 'No description yet'}
                                         </p>
                                         <div className="flex gap-2">
                                             <Button
@@ -425,10 +444,10 @@ export default function AdminPackagesPage() {
                 <DialogContent className="flex flex-col max-h-[90dvh]">
                     <DialogHeader className="flex-shrink-0">
                         <DialogTitle>
-                            {editingPackage ? 'Edit Package' : 'Create Package'}
+                            {editingPackage ? 'Edit package' : 'Add a package'}
                         </DialogTitle>
                         <DialogDescription>
-                            {editingPackage ? 'Update the package details' : 'Add a new data package'}
+                            {editingPackage ? 'Change the details below.' : 'Fill in the details of the new data package.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
@@ -454,7 +473,7 @@ export default function AdminPackagesPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label>Size (e.g., 1GB, 5GB)</Label>
+                                <Label>Size, e.g. 1GB or 5GB</Label>
                                 <Input
                                     value={formData.size}
                                     onChange={(e) => setFormData(prev => ({ ...prev, size: e.target.value }))}
@@ -464,7 +483,7 @@ export default function AdminPackagesPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Selling Price (GHS)</Label>
+                                <Label>Customer price (GH₵)</Label>
                                 <Input
                                     type="number"
                                     value={formData.price}
@@ -473,28 +492,28 @@ export default function AdminPackagesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Agent Price (GHS)</Label>
+                                <Label>Agent price (GH₵)</Label>
                                 <Input
                                     type="number"
                                     value={formData.agent_price}
                                     onChange={(e) => setFormData(prev => ({ ...prev, agent_price: parseFloat(e.target.value) || 0 }))}
                                     placeholder="0.00"
                                 />
-                                <p className="text-xs text-muted-foreground">Optional: Set specifically for agents</p>
+                                <p className="text-xs text-muted-foreground">Optional. Leave 0 to use the customer price.</p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-brand-700">Dealer Price (GHS)</Label>
+                                <Label>Dealer price (GH₵)</Label>
                                 <Input
                                     type="number"
                                     value={formData.dealer_price}
                                     onChange={(e) => setFormData(prev => ({ ...prev, dealer_price: parseFloat(e.target.value) || 0 }))}
                                     placeholder="0.00"
-                                    className="border-brand-200 focus-visible:ring-brand-400"
+                                   
                                 />
-                                <p className="text-xs text-muted-foreground">Optional: Dealers pay this (falls back to agent price if 0)</p>
+                                <p className="text-xs text-muted-foreground">Optional. Leave 0 to use the agent price.</p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Cost Price (GHS)</Label>
+                                <Label>Cost price (GH₵)</Label>
                                 <Input
                                     type="number"
                                     value={formData.cost_price}
@@ -505,7 +524,7 @@ export default function AdminPackagesPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Sort Order</Label>
+                                <Label>Order in the list</Label>
                                 <Input
                                     type="number"
                                     value={formData.sort_order}
@@ -518,7 +537,7 @@ export default function AdminPackagesPage() {
                             <Textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                placeholder="Package description..."
+                                placeholder="Short description"
                             />
                         </div>
                         <div className="flex items-center gap-2">
@@ -526,7 +545,7 @@ export default function AdminPackagesPage() {
                                 checked={formData.is_available}
                                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_available: checked }))}
                             />
-                            <Label>Available for purchase (Website)</Label>
+                            <Label>Available for purchase on the website</Label>
                         </div>
                     </div>
                     <DialogFooter className="flex-shrink-0 pt-2 border-t">
