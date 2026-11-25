@@ -163,7 +163,7 @@ export default function AdminOrdersPage() {
             const response = await fetch('/api/admin/orders?available=true')
             if (!response.ok) {
                 const result = await response.json()
-                throw new Error(result.error || 'Failed to fetch orders')
+                throw new Error(result.error || 'Could not load orders. Try again.')
             }
             const data = await response.json()
             const freshOrders = data.orders || []
@@ -222,7 +222,7 @@ export default function AdminOrdersPage() {
             const response = await fetch(url)
             if (!response.ok) {
                 const result = await response.json()
-                throw new Error(result.error || 'Failed to fetch batches')
+                throw new Error(result.error || 'Could not load batches. Try again.')
             }
             const data = await response.json()
 
@@ -258,7 +258,7 @@ export default function AdminOrdersPage() {
             })
 
             const result = await response.json()
-            if (!response.ok) throw new Error(result.error || 'Failed to update status')
+            if (!response.ok) throw new Error(result.error || 'Could not update status. Try again.')
 
             // Remove from available orders if it was there
             setOrders(prev => prev.filter(o => o.id !== orderId))
@@ -269,7 +269,7 @@ export default function AdminOrdersPage() {
             fetchBatches(0, true, true)
         } catch (error: any) {
             console.error('Update status error:', error)
-            toast.error(`Error: ${error.message || 'Failed to update status'}`)
+            toast.error(error.message || 'Could not update the status. Try again.')
         }
     }
 
@@ -376,7 +376,7 @@ export default function AdminOrdersPage() {
                 body: JSON.stringify(body),
             })
             const result = await response.json()
-            if (!response.ok || !result.success) throw new Error(result.error || 'Failed to process refund')
+            if (!response.ok || !result.success) throw new Error(result.error || 'Could not process refund. Try again.')
 
             const outcome = result.data?.outcome
             if (outcome === 'refund_initiated') {
@@ -394,7 +394,7 @@ export default function AdminOrdersPage() {
             fetchBatches(0, true, true)
         } catch (error: any) {
             console.error('Refund error:', error)
-            toast.error(error.message || 'Failed to process refund')
+            toast.error(error.message || 'Could not process refund. Try again.')
         } finally {
             setRefundBusy(false)
         }
@@ -460,7 +460,7 @@ export default function AdminOrdersPage() {
                     invalid_charge_amount: 'Could not determine a valid retry price for this order.',
                     invalid_actor_role: 'You are not authorized to perform this action.',
                 }
-                throw new Error((outcome && messages[outcome]) || result.error || 'Failed to retry order')
+                throw new Error((outcome && messages[outcome]) || result.error || 'Could not retry order. Try again.')
             }
 
             const data = result.data
@@ -473,7 +473,7 @@ export default function AdminOrdersPage() {
             fetchBatches(0, true, true)
         } catch (error: any) {
             console.error('Retry error:', error)
-            toast.error(error.message || 'Failed to retry order')
+            toast.error(error.message || 'Could not retry order. Try again.')
         } finally {
             setRetryBusy(false)
         }
@@ -540,7 +540,7 @@ export default function AdminOrdersPage() {
                     setIsDownloading(false)
                     return
                 }
-                throw new Error(result.error || 'Failed to create batch')
+                throw new Error(result.error || 'Could not create batch. Try again.')
             }
 
             // Get the filename from the backend response (includes admin name)
@@ -606,7 +606,7 @@ export default function AdminOrdersPage() {
             console.error('Export error:', error)
             // Only show error if download actually failed (not after successful download)
             if (error.message && !error.message.includes('preview') && !error.message.includes('failed')) {
-                toast.error(error.message || 'Failed to export orders')
+                toast.error(error.message || 'Could not export orders. Try again.')
             }
         } finally {
             setIsDownloading(false)
@@ -616,7 +616,7 @@ export default function AdminOrdersPage() {
     const reDownloadBatch = async (batch: any) => {
         try {
             const response = await fetch(`/api/admin/orders?batchId=${batch.id}`)
-            if (!response.ok) throw new Error('Failed to fetch batch orders')
+            if (!response.ok) throw new Error('Could not load batch orders. Try again.')
             const data = await response.json()
             const batchOrdersList = data.orders || []
 
@@ -672,7 +672,7 @@ export default function AdminOrdersPage() {
             writeFile(workbook, batch.filename)
             toast.success('Batch re-downloaded')
         } catch (error) {
-            toast.error('Failed to re-download batch')
+            toast.error('Could not re-download batch. Try again.')
         }
     }
 
@@ -689,7 +689,7 @@ export default function AdminOrdersPage() {
             const batchIds = (Array.isArray(filteredBatches) ? filteredBatches : []).map(b => b.id).join(',')
             const response = await fetch(`/api/admin/orders?batchIds=${batchIds}`)
 
-            if (!response.ok) throw new Error('Failed to fetch orders')
+            if (!response.ok) throw new Error('Could not load orders. Try again.')
             const data = await response.json()
             const allOrders = data.orders || []
 
@@ -706,7 +706,7 @@ export default function AdminOrdersPage() {
             toast.success(`Downloaded all filtered ${label}`, { id: toastId })
         } catch (error) {
             console.error('Bulk download error:', error)
-            toast.error('Failed to download filtered batches', { id: toastId })
+            toast.error('Could not download filtered batches. Try again.', { id: toastId })
         }
     }
 
@@ -758,7 +758,7 @@ export default function AdminOrdersPage() {
                 setBatchOrders(updatedOrders)
                 fetchBatches(0, true) // Update global counts if needed
             } catch (error) {
-                toast.error('Failed to update batch status')
+                toast.error('Could not update batch status. Try again.')
             } finally {
                 setIsUpdating(false)
             }
@@ -848,7 +848,7 @@ export default function AdminOrdersPage() {
                 fetchOrders() // Refresh available orders
                 fetchBatches(0, true) // Refresh batches list
             } catch (error: any) {
-                toast.error(error.message || 'Failed to delete failed orders')
+                toast.error(error.message || 'Could not delete failed orders. Try again.')
             } finally {
                 setIsUpdating(false)
             }
@@ -1073,16 +1073,16 @@ export default function AdminOrdersPage() {
         const retryTag = getRetryTag(order)
         return (
             <span className="inline-flex items-center gap-1 flex-wrap">
-                <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${styles[status] || styles.pending}`}>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${styles[status] || styles.pending}`}>
                     {status === 'in_review' ? 'Review' : status}
                 </span>
                 {shouldShowRefundOverlay(order) && (
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${REFUND_OVERLAY_BADGE_CLASS}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${REFUND_OVERLAY_BADGE_CLASS}`}>
                         Refunded
                     </span>
                 )}
                 {retryTag && (
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${retryTag.badge}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${retryTag.badge}`}>
                         {retryTag.label}
                     </span>
                 )}
@@ -1102,7 +1102,7 @@ export default function AdminOrdersPage() {
         }
         const s = map[rm]
         if (!s) return null
-        return <span className={`px-1.5 py-0.5 rounded text-xs font-medium uppercase ${s.cls}`}>{s.label}</span>
+        return <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span>
     }
 
     return (
