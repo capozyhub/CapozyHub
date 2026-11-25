@@ -63,7 +63,10 @@ interface BulkPricingTabProps {
     onApplied: () => void
 }
 
+import { useConfirm } from '@/components/ui/confirm-dialog'
+
 export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
+    const { ask, dialog } = useConfirm()
     const [network, setNetwork] = useState<Network>('MTN')
     const [role, setRole] = useState<PriceRole>('price')
     const [rateInput, setRateInput] = useState('')
@@ -99,7 +102,7 @@ export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
             const newPrice = Math.round(gbSize * rate * 100) / 100
             const costPrice = (pkg as any).cost_price ?? 0
 
-            if ((role === 'agent_price' || role === 'dealer_price') && costPrice > 0 && newPrice < costPrice) {
+            if (role !== 'cost_price' && costPrice > 0 && newPrice < costPrice) {
                 return {
                     pkg,
                     gbSize,
@@ -140,6 +143,12 @@ export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
     const handleApply = async () => {
         if (!validRate || applicableRows.length === 0) return
 
+        const ok = await ask({
+            title: `Change the price of ${applicableRows.length} package${applicableRows.length !== 1 ? 's' : ''}?`,
+            description: 'The new prices go live straight away for everyone who buys these packages.',
+            confirmLabel: 'Apply prices',
+        })
+        if (!ok) return
         setIsApplying(true)
         try {
             const res = await fetch('/api/admin/packages/bulk-pricing', {
@@ -154,14 +163,14 @@ export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
             })
 
             const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to apply bulk pricing')
+            if (!res.ok) throw new Error(data.error || 'Could not apply the prices.')
 
             toast.success(`Updated ${data.updated} package${data.updated !== 1 ? 's' : ''}`)
             setRateInput('')
             setExcludedIds(new Set())
             onApplied()
         } catch (err: any) {
-            toast.error(err.message || 'Failed to apply bulk pricing')
+            toast.error(err.message || 'Could not apply the prices. Check the package prices before trying again.')
         } finally {
             setIsApplying(false)
         }
@@ -171,11 +180,12 @@ export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
 
     return (
         <div className="space-y-6">
+            {dialog}
             <div>
                 <h2 className="text-lg font-semibold">Bulk Flat Pricing</h2>
                 <p className="text-sm text-muted-foreground">
-                    Apply a flat GHS-per-GB rate to all packages in a network for a specific role.
-                    e.g. Rate = 4 → 1GB = GHS 4.00, 2GB = GHS 8.00, 5GB = GHS 20.00
+                    Apply a flat GH₵-per-GB rate to all packages in a network for a specific role.
+                    e.g. Rate = 4 → 1GB = GH₵4.00, 2GB = GH₵8.00, 5GB = GH₵20.00
                 </p>
             </div>
 
@@ -216,9 +226,9 @@ export function BulkPricingTab({ packages, onApplied }: BulkPricingTabProps) {
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label>Rate per GB (GHS)</Label>
+                    <Label>Rate per GB (GH₵)</Label>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground font-medium">GHS</span>
+                        <span className="text-sm text-muted-foreground font-medium">GH₵</span>
                         <Input
                             type="number"
                             min="0.01"
