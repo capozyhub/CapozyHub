@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { BRAND } from "@/lib/brand"
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -26,7 +27,7 @@ export function generateReferenceCode(): string {
     const bytes = new Uint8Array(5)
     crypto.getRandomValues(bytes)
     const random = Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').substring(0, 8).toUpperCase()
-    return `GHD-${timestamp}-${random}`
+    return `${BRAND.referencePrefix}-${timestamp}-${random}`
 }
 
 export function getNetworkColor(network: string): string {

@@ -1,3 +1,5 @@
+import { BRAND } from '@/lib/brand'
+
 export interface PlaceItem {
     reference_code: string
     /** Canonical 0XXXXXXXXX (see toCanonicalPhone). */
@@ -85,11 +87,11 @@ export function isValidClientReference(value: unknown): value is string {
 
 /**
  * The idempotency key the dashboard makes for a data purchase (generateReferenceCode:
- * GHD-<time>-<random>). Order references are unique across every member and also key the
+ * CZH-<time>-<random>). Order references are unique across every member and also key the
  * wallet ledger and sub-agent earnings, so a data purchase accepts only this exact shape:
  * nobody can register an arbitrary string, or a look-alike of another table's reference,
  * to block or probe someone else's purchase.
  */
 export function isValidWebReference(value: unknown): value is string {
-    return typeof value === 'string' && /^GHD-[0-9A-Z]{6,12}-[0-9A-Z]{8}$/.test(value)
+    return typeof value === 'string' && new RegExp(`^${BRAND.referencePrefix}-[0-9A-Z]{6,12}-[0-9A-Z]{8}$`).test(value)
 }

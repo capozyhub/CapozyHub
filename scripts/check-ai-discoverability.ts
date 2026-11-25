@@ -30,7 +30,7 @@ for (const p of DEVELOPER_PRODUCTS) {
 }
 check('llms.txt links the OpenAPI spec', txt.includes(`${SITE}/openapi.yaml`))
 
-const banned = /datakazina|hubtel|moolre|spfastit|bundleportal|agentportal|ghdata|supabase|paystack|kingflexy|king flexy|kft|kf_/i
+const banned = /datakazina|hubtel|moolre|spfastit|bundleportal|agentportal|ghdata|supabase|paystack|kingflexy|king flexy|kft|kf_|ghd-/i
 check('no supplier or infra names in public copy', !banned.test(txt + JSON.stringify(DEVELOPER_PRODUCTS)))
 check('public spec has no supplier or infra names', !banned.test(publicSpec))
 

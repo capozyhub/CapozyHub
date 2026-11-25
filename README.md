@@ -77,7 +77,7 @@ The `CRON_SECRET` is a password that you create to ensure only your authorized c
 1. **Generate a Secret**: Use a random string generator or just type a long, complex string (e.g., `48392cf3-5d6e-4b4b-9b4b-1234567890ab`).
 2. **Add to Vercel**:
     - Go to your **Vercel Dashboard**.
-    - Select your project (**GHData**).
+    - Select your project (**Capozy Hub**).
     - Go to **Settings** > **Environment Variables**.
     - Add a new variable:
         - **Key**: `CRON_SECRET`
@@ -94,7 +94,7 @@ The `CRON_SECRET` is a password that you create to ensure only your authorized c
 | `refulfill-pending-orders` | Every 5 min | Auto-retries pending data orders via active supplier |
 | `sync-codecraft-status` | Every 5 min | Polls CodeCraft API to update processing order statuses (regular & bigtime) |
 | `sync-xpress-status` | Every 5 min | Polls Xpress API to update processing order statuses |
-| `sync-moolre-withdrawals` | Every 10 min | Polls Moolre API to settle pending withdrawals |
+| `sync-paystack-withdrawals` | Every 10 min | Polls Moolre API to settle pending withdrawals |
 | `auto-complete-data` | Every 10 min | Auto-completes stale data package orders |
 | `fulfill-pending-rc-vouchers` | Every 10 min | Auto-fulfills pending RC orders and retries delivery |
 | `release-rc-reservations` | Every 15 min | Frees expired Results Checker reservations |
@@ -111,9 +111,9 @@ The `CRON_SECRET` is a password that you create to ensure only your authorized c
 After creating your account on [cron-job.org](https://cron-job.org), follow these steps for **each** of the 15 jobs:
 
 1. **Click "Create Cron Job"**: Look for the big blue button on your dashboard.
-2. **Title**: Give it a clear name (e.g., `GHData: Sync Moolre Withdrawals`).
+2. **Title**: Give it a clear name (e.g., `Capozy Hub: Sync Paystack Withdrawals`).
 3. **URL**: Enter the full production URL for the specific endpoint:
-    - Example: `https://www.capozygh.com/api/cron/sync-moolre-withdrawals`
+    - Example: `https://www.capozygh.com/api/cron/sync-paystack-withdrawals`
     - *Make sure you use `https://` and change the last part of the URL for each job.*
 4. **Schedule**: Select "User-defined" and set the interval as specified in the table above:
     - For "Every 10 min", set minutes to `*/10`.
