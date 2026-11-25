@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -24,11 +24,15 @@ export default function AdminTransactionsPage() {
     const [loadingMore, setLoadingMore] = useState(false)
     const [hasMore, setHasMore] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
+    const [loadFailed, setLoadFailed] = useState(false)
+    const seqRef = useRef(0)
     const [typeFilter, setTypeFilter] = useState<(typeof TYPES)[number]>('all')
     const [sourceFilter, setSourceFilter] = useState<(typeof SOURCES)[number]>('all')
 
     const fetchTransactions = useCallback(async (reset: boolean) => {
+        const seq = ++seqRef.current
         reset ? setLoading(true) : setLoadingMore(true)
+        setLoadFailed(false)
         try {
             const offset = reset ? 0 : transactions.length
             let query = (supabase.from('wallet_transactions') as any)
@@ -40,13 +44,14 @@ export default function AdminTransactionsPage() {
 
             const { data, error } = await query
             if (error) throw error
+            if (seq !== seqRef.current) return
             const rows = data || []
             setHasMore(rows.length === PAGE_SIZE)
             setTransactions(prev => reset ? rows : [...prev, ...rows])
         } catch (error) {
-            console.error('Error fetching transactions:', error)
+            if (seq === seqRef.current) setLoadFailed(true)
         } finally {
-            reset ? setLoading(false) : setLoadingMore(false)
+            if (seq === seqRef.current) { reset ? setLoading(false) : setLoadingMore(false) }
         }
     }, [transactions.length, typeFilter, sourceFilter])
 
@@ -66,7 +71,11 @@ export default function AdminTransactionsPage() {
 
     const exportCsv = () => {
         const header = ['Date', 'User', 'Contact', 'Reference', 'Type', 'Source', 'Description', 'Amount', 'Status']
-        const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+        const esc = (v: unknown) => {
+            const raw = String(v ?? '')
+            const safe = /^[=+\-@\t\r]/.test(raw) && !/^-?\d+(\.\d+)?$/.test(raw) ? `'${raw}` : raw
+            return `"${safe.replace(/"/g, '""')}"`
+        }
         const rows = filteredTransactions.map(t => [
             formatDate(t.created_at),
             `${t.users?.first_name ?? ''} ${t.users?.last_name ?? ''}`.trim(),
@@ -88,11 +97,11 @@ export default function AdminTransactionsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Global Transactions</h1>
-                    <p className="text-muted-foreground">View all wallet transactions across the platform</p>
+                    <h1 className="font-display text-2xl font-bold">All transactions</h1>
+                    <p className="text-muted-foreground">Every wallet transaction on the platform, newest first.</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={exportCsv} disabled={filteredTransactions.length === 0}>
-                    <Download className="w-4 h-4 mr-1.5" /> Export CSV
+                    <Download className="w-4 h-4 mr-1.5" /> Export loaded rows
                 </Button>
             </div>
 
@@ -102,20 +111,20 @@ export default function AdminTransactionsPage() {
                         <div className="relative w-full md:w-80">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search loaded rows by user, reference, description…"
+                                aria-label="Search loaded transactions" placeholder="Search the loaded rows by user, reference or description…"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-9"
                             />
                         </div>
                         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
-                            <SelectTrigger className="w-full md:w-36"><SelectValue placeholder="Type" /></SelectTrigger>
+                            <SelectTrigger className="w-full md:w-36" aria-label="Filter by type"><SelectValue placeholder="Type" /></SelectTrigger>
                             <SelectContent>
-                                {TYPES.map(t => <SelectItem key={t} value={t}>{t === 'all' ? 'All types' : t}</SelectItem>)}
+                                {TYPES.map(t => <SelectItem key={t} value={t}>{t === 'all' ? 'All types' : t === 'credit' ? 'Money in' : 'Money out'}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as any)}>
-                            <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Source" /></SelectTrigger>
+                            <SelectTrigger className="w-full md:w-40" aria-label="Filter by source"><SelectValue placeholder="Source" /></SelectTrigger>
                             <SelectContent>
                                 {SOURCES.map(s => <SelectItem key={s} value={s}>{s === 'all' ? 'All sources' : s}</SelectItem>)}
                             </SelectContent>
@@ -139,29 +148,34 @@ export default function AdminTransactionsPage() {
                         <TableBody>
                             {loading ? (
                                 <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Loading…</TableCell></TableRow>
+                            ) : loadFailed && transactions.length === 0 ? (
+                                <TableRow><TableCell colSpan={8} className="text-center py-10" role="alert">
+                                    <p className="text-sm text-foreground">Could not load the transactions.</p>
+                                    <Button size="sm" variant="outline" className="mt-2" onClick={() => fetchTransactions(true)}>Try again</Button>
+                                </TableCell></TableRow>
                             ) : filteredTransactions.length === 0 ? (
-                                <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">No transactions found</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">No transactions match these filters</TableCell></TableRow>
                             ) : filteredTransactions.map((txn) => (
                                 <TableRow key={txn.id}>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span className="font-medium">{txn.users?.first_name} {txn.users?.last_name}</span>
+                                            <span className="font-medium">{[txn.users?.first_name, txn.users?.last_name].filter(Boolean).join(' ') || 'Unnamed user'}</span>
                                             <span className="text-xs text-muted-foreground">{txn.users?.phone_number || txn.users?.email}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-mono text-xs">{txn.reference}</TableCell>
                                     <TableCell>
                                         <Badge variant={txn.type === 'credit' ? 'completed' : 'destructive'}>
-                                            {(txn.type ?? '—').toUpperCase()}
+                                            {txn.type === 'credit' ? 'In' : txn.type === 'debit' ? 'Out' : '—'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-xs capitalize text-muted-foreground">{txn.source ?? '—'}</TableCell>
                                     <TableCell className="max-w-xs truncate">{txn.description}</TableCell>
-                                    <TableCell className={txn.type === 'credit' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                    <TableCell className={txn.type === 'credit' ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium'}>
                                         {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                                     </TableCell>
                                     <TableCell>
-                                        <span className={`text-xs capitalize ${txn.status === 'completed' ? 'text-green-600' :
+                                        <span className={`text-xs capitalize ${txn.status === 'completed' ? 'text-emerald-700 dark:text-emerald-400' :
                                             txn.status === 'failed' ? 'text-red-600' : 'text-amber-600'
                                             }`}>
                                             {txn.status}
@@ -174,6 +188,9 @@ export default function AdminTransactionsPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    {!loading && loadFailed && transactions.length > 0 && (
+                        <p role="alert" className="text-center text-xs text-red-600 pt-3">The last load failed. Press Load more to try again.</p>
+                    )}
                     {!loading && hasMore && (
                         <div className="flex justify-center p-4 border-t">
                             <Button variant="outline" size="sm" onClick={() => fetchTransactions(false)} disabled={loadingMore}>

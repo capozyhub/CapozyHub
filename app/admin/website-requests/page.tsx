@@ -55,6 +55,7 @@ export default function AdminWebsiteRequestsPage() {
     const [active, setActive] = useState<WebsiteRequestRow | null>(null)
     const [notesDraft, setNotesDraft] = useState('')
     const [savingStatus, setSavingStatus] = useState(false)
+    const [loadFailed, setLoadFailed] = useState(false)
 
     useEffect(() => {
         fetchRequests()
@@ -62,12 +63,14 @@ export default function AdminWebsiteRequestsPage() {
 
     const fetchRequests = async () => {
         setLoading(true)
+        setLoadFailed(false)
         try {
             const res = await fetch('/api/admin/website-requests')
             const json = await res.json()
             if (json.success) setRequests(json.data)
+            else setLoadFailed(true)
         } catch {
-            toast.error('Failed to load website requests')
+            setLoadFailed(true)
         } finally {
             setLoading(false)
         }
@@ -94,14 +97,14 @@ export default function AdminWebsiteRequestsPage() {
             })
             const json = await res.json()
             if (!json.success) {
-                toast.error(json.details?.[0] || json.error || 'Failed to update')
+                toast.error(json.details?.[0] || json.error || 'Could not update the request. Try again.')
                 return
             }
             setRequests(prev => prev.map(r => r.id === active.id ? json.data : r))
             setActive(json.data)
             toast.success('Updated')
         } catch {
-            toast.error('Failed to update request')
+            toast.error('Could not reach the server. Try again.')
         } finally {
             setSavingStatus(false)
         }
@@ -110,8 +113,9 @@ export default function AdminWebsiteRequestsPage() {
     return (
         <div className="p-4 space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-lg font-bold text-foreground">Website & App Requests</h1>
+                <h1 className="font-display text-lg font-bold text-foreground">Website and app requests</h1>
                 <select
+                    aria-label="Filter by status"
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value as StatusFilter)}
                     className="rounded-lg border border-border bg-background p-2 text-sm"
@@ -125,8 +129,13 @@ export default function AdminWebsiteRequestsPage() {
 
             {loading ? (
                 <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+            ) : loadFailed ? (
+                <div role="alert" className="neu-raised-sm rounded-3xl p-6 text-center space-y-3">
+                    <p className="text-sm text-foreground">Could not load the requests.</p>
+                    <Button size="sm" variant="outline" onClick={fetchRequests}>Try again</Button>
+                </div>
             ) : (
-                <div className="rounded-2xl border border-border overflow-hidden">
+                <div className="neu-raised-sm rounded-3xl overflow-hidden">
                     {filtered.map(row => (
                         <button
                             key={row.id}
@@ -135,7 +144,7 @@ export default function AdminWebsiteRequestsPage() {
                         >
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-foreground truncate">
-                                    {row.users?.first_name} {row.users?.last_name}
+                                    {[row.users?.first_name, row.users?.last_name].filter(Boolean).join(' ') || 'Unnamed user'}
                                     {' · '}
                                     {row.request_type === 'full_request' ? categoryLabel(row.category) : 'Call request'}
                                 </p>
@@ -150,7 +159,7 @@ export default function AdminWebsiteRequestsPage() {
                         </button>
                     ))}
                     {filtered.length === 0 && (
-                        <p className="p-6 text-center text-sm text-muted-foreground">No requests found</p>
+                        <p className="p-6 text-center text-sm text-muted-foreground">No requests match this filter.</p>
                     )}
                 </div>
             )}
@@ -161,7 +170,7 @@ export default function AdminWebsiteRequestsPage() {
                         <>
                             <DialogHeader>
                                 <DialogTitle>
-                                    {active.request_type === 'full_request' ? categoryLabel(active.category) : 'Call Request'}
+                                    {active.request_type === 'full_request' ? categoryLabel(active.category) : 'Call request'}
                                 </DialogTitle>
                             </DialogHeader>
 
@@ -208,8 +217,9 @@ export default function AdminWebsiteRequestsPage() {
                                 )}
 
                                 <div>
-                                    <label className="text-xs font-semibold text-foreground">Admin notes</label>
+                                    <label htmlFor="wr-notes" className="text-xs font-semibold text-foreground">Admin notes</label>
                                     <textarea
+                                        id="wr-notes"
                                         value={notesDraft}
                                         onChange={e => setNotesDraft(e.target.value.slice(0, 5000))}
                                         rows={3}
@@ -221,16 +231,16 @@ export default function AdminWebsiteRequestsPage() {
 
                                 <div className="flex flex-wrap gap-2 pt-2">
                                     <Button size="sm" variant={active.status === 'contacted' ? 'default' : 'outline'} disabled={savingStatus} onClick={() => updateStatus('contacted')}>
-                                        Mark Contacted
+                                        Mark as contacted
                                     </Button>
                                     <Button size="sm" variant="outline" disabled={savingStatus} onClick={() => updateStatus('closed', 'won')}>
-                                        Close: Won
+                                        Close as won
                                     </Button>
                                     <Button size="sm" variant="outline" disabled={savingStatus} onClick={() => updateStatus('closed', 'lost')}>
-                                        Close: Lost
+                                        Close as lost
                                     </Button>
                                     <Button size="sm" variant="outline" disabled={savingStatus} onClick={() => updateStatus('closed', 'spam')}>
-                                        Close: Spam
+                                        Close as spam
                                     </Button>
                                 </div>
                             </div>
