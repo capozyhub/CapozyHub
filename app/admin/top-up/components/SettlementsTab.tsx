@@ -88,7 +88,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
             if (!res.ok) { toast.error(data.error || 'Settlement failed'); return }
 
             if (data.isFullySettled) {
-                toast.success(`✅ Debt fully settled!`)
+                toast.success('Settled in full')
                 setSettled(prev => new Set([...prev, s.id]))
                 setTimeout(() => {
                     setSettlements(prev => prev.filter(x => x.id !== s.id))
@@ -114,8 +114,8 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                 body: JSON.stringify({ userId: s.user_id, amount: s.amount_owed - s.amount_settled })
             })
             const data = await res.json()
-            if (data.success) toast.success('SMS reminder sent!')
-            else toast.error('SMS failed: ' + (data.error || 'Unknown error'))
+            if (data.success) toast.success('Reminder sent')
+            else toast.error(data.error || 'The reminder could not be sent.')
         } catch { toast.error('Network error') } finally {
             setSendingSms(prev => ({ ...prev, [s.id]: false }))
         }
@@ -236,7 +236,7 @@ export function SettlementsTab({ onDebtChange }: { onDebtChange: () => void }) {
                                     <Button
                                         size="sm"
                                         variant="ghost"
-                                        title="Send SMS Reminder"
+                                        title="Send an SMS reminder" aria-label="Send an SMS reminder"
                                         onClick={() => handleSmsReminder(s)}
                                         disabled={sendingSms[s.id]}
                                         className="text-muted-foreground hover:text-brand-700"

@@ -64,7 +64,7 @@ function UserMiniCard({ user, onSelect }: { user: UserResult; onSelect: () => vo
             onClick={onSelect}
             className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-muted/50 dark:hover:bg-muted/60 transition-colors border-b border-border last:border-0"
         >
-            <div className="w-9 h-9 rounded-full clay-gold flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+            <div className="w-9 h-9 rounded-full clay-gold flex-shrink-0 flex items-center justify-center text-black text-xs font-bold">
                 {initials}
             </div>
             <div className="flex-1 min-w-0">
@@ -101,7 +101,7 @@ function UserChip({ user, onSelect }: { user: UserResult; onSelect: () => void }
             className="flex-shrink-0 p-3 w-36 text-left hover:border-border dark:hover:border-border hover:shadow-md transition-all group neu-raised-sm rounded-3xl"
         >
             <div className="relative mb-2">
-                <div className="w-8 h-8 rounded-full clay-gold flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-8 h-8 rounded-full clay-gold flex items-center justify-center text-black text-xs font-bold">
                     {initials}
                 </div>
                 {user.pending_debt_total > 0 && (
@@ -302,7 +302,7 @@ function SelectedUserCard({
                     <div className="flex items-start gap-4">
                         {/* Avatar with optional debt glow */}
                         <div className={cn(
-                            'w-16 h-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md',
+                            'w-16 h-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-black font-bold text-xl shadow-md',
                             user.pending_debt_total > 0
                                 ? 'clay-gold ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-neutral-900'
                                 : 'clay-gold'
@@ -484,7 +484,7 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                             className={cn(
                                 'flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-all',
                                 activeListTab === 'frequent'
-                                    ? 'bg-foreground/10 text-white border-border'
+                                    ? 'clay-black border-transparent'
                                     : 'bg-card border-border text-muted-foreground hover:border-border'
                             )}
                         >
@@ -497,7 +497,7 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
                                 className={cn(
                                     'flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border transition-all',
                                     activeListTab === list.id
-                                        ? 'bg-muted text-white dark:text-foreground border-border dark:border-white'
+                                        ? 'clay-black border-transparent'
                                         : 'bg-card border-border text-muted-foreground hover:border-border'
                                 )}
                             >

@@ -17,7 +17,7 @@ const ROLE_FILTERS = [
     { value: 'dealer', label: 'Dealer' },
     { value: 'agent', label: 'Agent' },
     { value: 'customer', label: 'Customer' },
-    { value: 'sub-admin', label: 'Sub-Admin' },
+    { value: 'sub-admin', label: 'Sub-admin' },
     { value: 'admin', label: 'Admin' },
 ]
 
@@ -62,16 +62,18 @@ export default function AdminTopUpPage() {
     const [stats, setStats] = useState<PageStats | null>(null)
     const [statsLoading, setStatsLoading] = useState(true)
     const [settlementCount, setSettlementCount] = useState(0)
+    const [statsFailed, setStatsFailed] = useState(false)
 
     const fetchStats = useCallback(async () => {
+        setStatsFailed(false)
         try {
             const res = await fetch('/api/admin/top-up/page-stats')
             if (res.ok) {
                 const data = await res.json()
                 setStats(data)
                 setSettlementCount(data.pendingDebtUsersCount || 0)
-            }
-        } catch { /* silent */ } finally { setStatsLoading(false) }
+            } else setStatsFailed(true)
+        } catch { setStatsFailed(true) } finally { setStatsLoading(false) }
     }, [])
 
     useEffect(() => { fetchStats() }, [fetchStats])
@@ -86,11 +88,11 @@ export default function AdminTopUpPage() {
         <div className="space-y-6 pb-20">
             {/* Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                    💳 Manual Credit Centre
+                <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    Top up wallets
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">
-                    Credit user wallets instantly · Track every debt · Settle with one click
+                    Add money to a user's wallet, record anything they still owe, and settle it later.
                 </p>
             </div>
 
@@ -101,27 +103,32 @@ export default function AdminTopUpPage() {
                 </div>
             ) : stats ? (
                 <StatCards stats={stats} />
+            ) : statsFailed ? (
+                <div role="alert" className="neu-raised-sm rounded-3xl p-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-foreground">Could not load the totals above. Topping up still works.</p>
+                    <button type="button" onClick={() => { setStatsLoading(true); fetchStats() }} className="clay-silver min-h-10 rounded-full px-4 text-sm font-semibold">Try again</button>
+                </div>
             ) : null}
 
             {/* Tab Switcher — centered, large */}
             <div className="flex justify-center">
-                <div className="flex gap-1 bg-muted rounded-2xl p-1.5 w-full sm:w-auto">
+                <div role="tablist" className="flex gap-1 neu-inset rounded-2xl p-1.5 w-full sm:w-auto">
                     <button
                         onClick={() => handleTabChange('topup')}
                         className={cn(
-                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
+                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'topup'
-                                ? 'bg-card shadow-md text-muted-foreground dark:text-muted-foreground'
+                                ? 'bg-card shadow-md text-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
                         <CreditCard className="w-4 h-4" />
-                        Top Up
+                        Top up
                     </button>
                     <button
                         onClick={() => handleTabChange('settlements')}
                         className={cn(
-                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all relative flex-1 sm:flex-auto justify-center',
+                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all relative flex-1 sm:flex-auto justify-center',
                             activeTab === 'settlements'
                                 ? 'bg-card shadow-md text-red-600 dark:text-red-400'
                                 : 'text-muted-foreground hover:text-foreground'
@@ -138,14 +145,14 @@ export default function AdminTopUpPage() {
                     <button
                         onClick={() => handleTabChange('history')}
                         className={cn(
-                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-auto justify-center',
+                            'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all flex-1 sm:flex-auto justify-center',
                             activeTab === 'history'
                                 ? 'bg-card shadow-md text-brand-700 dark:text-brand-400'
                                 : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
                         <History className="w-4 h-4" />
-                        Credits History
+                        Credit history
                     </button>
                 </div>
             </div>
@@ -158,11 +165,13 @@ export default function AdminTopUpPage() {
                         {ROLE_FILTERS.map(f => (
                             <button
                                 key={f.value}
+                                type="button"
+                                aria-pressed={roleFilter === f.value}
                                 onClick={() => { setRoleFilter(f.value); setSelectedUser(null) }}
                                 className={cn(
-                                    'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
+                                    'px-3 py-2 rounded-full text-xs font-semibold border transition-all',
                                     roleFilter === f.value
-                                        ? 'bg-foreground/10 text-white border-border shadow'
+                                        ? 'clay-black border-transparent'
                                         : 'bg-card border-border hover:border-border text-muted-foreground'
                                 )}
                             >
@@ -184,7 +193,7 @@ export default function AdminTopUpPage() {
                     </div>
 
                     {/* User Selector */}
-                    <Card className="border-border shadow-sm">
+                    <Card className="border-0">
                         <CardContent className="p-4 sm:p-6">
                             <UserSelector
                                 roleFilter={roleFilter}
@@ -196,7 +205,7 @@ export default function AdminTopUpPage() {
                     </Card>
 
                     {/* Top-Up Form */}
-                    <Card className="border-border shadow-sm">
+                    <Card className="border-0">
                         <CardContent className="p-4 sm:p-6">
                             <TopUpForm
                                 selectedUser={selectedUser}
@@ -211,7 +220,7 @@ export default function AdminTopUpPage() {
             )}
 
             {activeTab === 'settlements' && (
-                <Card className="border-border shadow-sm">
+                <Card className="border-0">
                     <CardContent className="p-4 sm:p-6">
                         <SettlementsTab onDebtChange={fetchStats} />
                     </CardContent>
@@ -219,7 +228,7 @@ export default function AdminTopUpPage() {
             )}
 
             {activeTab === 'history' && (
-                <Card className="border-border shadow-sm">
+                <Card className="border-0">
                     <CardContent className="p-4 sm:p-6">
                         <CreditsHistoryTab />
                     </CardContent>

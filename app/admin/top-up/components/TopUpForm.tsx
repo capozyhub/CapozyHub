@@ -18,9 +18,9 @@ import { differenceInMinutes } from 'date-fns'
 const DESCRIPTION_TEMPLATES = [
     { id: 'manual', label: 'Manual wallet top-up' },
     { id: 'data_order', label: 'Credit for data order' },
-    { id: 'owe_momo', label: 'Unpaid — will settle via Momo' },
-    { id: 'owe_cash', label: 'Unpaid — will pay in cash' },
-    { id: 'error_fix', label: 'Correcting previous error' },
+    { id: 'owe_momo', label: 'Unpaid, will settle by MoMo' },
+    { id: 'owe_cash', label: 'Unpaid, will pay in cash' },
+    { id: 'error_fix', label: 'Correcting an earlier mistake' },
     { id: 'promo', label: 'Promotional credit' },
     { id: 'advance', label: 'Partial advance for order' },
 ]
@@ -121,10 +121,10 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
     }
 
     const getButtonLabel = () => {
-        if (!selectedUser || amountNum <= 0) return 'Select a user and enter an amount'
-        if (deductFromDebt && deductNum > 0) return `Credit GH₵${netCredit.toFixed(2)} · Settle GH₵${deductNum.toFixed(2)} Debt`
-        if (paymentStatus === 'unpaid') return `Credit GH₵${amountNum.toFixed(2)} — Mark as Debt`
-        return `Credit GH₵${amountNum.toFixed(2)} — Paid`
+        if (!selectedUser || amountNum <= 0) return 'Pick a user and enter an amount'
+        if (deductFromDebt && deductNum > 0) return `Credit GH₵${netCredit.toFixed(2)} and settle GH₵${deductNum.toFixed(2)} owed`
+        if (paymentStatus === 'unpaid') return `Credit GH₵${amountNum.toFixed(2)} and record as owed`
+        return `Credit GH₵${amountNum.toFixed(2)}, paid`
     }
 
     const handleSubmit = async () => {
@@ -148,13 +148,13 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
             const data = await res.json()
             if (!res.ok) {
                 if (data.error === 'DUPLICATE') {
-                    toast.error('⛔ Duplicate top-up blocked — this exact amount was just processed for this user.')
+                    toast.error('Blocked as a duplicate. This exact amount was just credited to this user.')
                 } else {
-                    toast.error(data.error || 'Top-up failed')
+                    toast.error(data.error || 'The top-up did not go through. Check the user\'s balance before trying again.')
                 }
                 return
             }
-            toast.success(`✅ GH₵${netCredit.toFixed(2)} credited to ${selectedUser!.first_name} ${selectedUser!.last_name}`)
+            toast.success(`GH₵${netCredit.toFixed(2)} credited to ${[selectedUser!.first_name, selectedUser!.last_name].filter(Boolean).join(' ') || 'the user'}`)
             // Reset form
             setAmount('')
             setDeductAmount('')
@@ -164,7 +164,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
             setSelectedTemplates(['manual'])
             onSuccess()
         } catch {
-            toast.error('Network error. Please try again.')
+            toast.error('Could not reach the server. Check the user\'s balance before trying again, so you don\'t credit twice.')
         } finally {
             setIsSubmitting(false)
         }
@@ -174,7 +174,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
         return (
             <div className="text-center py-12 text-muted-foreground">
                 <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">Select a user above to top up their wallet</p>
+                <p className="font-medium">Pick a user above to top up their wallet</p>
             </div>
         )
     }
@@ -183,7 +183,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
         <div className="space-y-5">
             {/* Amount Zone */}
             <div className="space-y-2">
-                <Label htmlFor="topup-amount" className="font-semibold">Amount (GHS)</Label>
+                <Label htmlFor="topup-amount" className="font-semibold">Amount (GH₵)</Label>
                 <Input
                     id="topup-amount"
                     type="number"
@@ -203,13 +203,13 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                 </div>
                 {amountNum > 0 && (
                     <p className="text-sm text-muted-foreground">
-                        New balance after top-up: <strong className="text-emerald-600">{formatCurrency(selectedUser.wallet_balance + netCredit)}</strong>
+                        Balance after this top-up: <strong className="text-foreground">{formatCurrency(selectedUser.wallet_balance + netCredit)}</strong>
                     </p>
                 )}
                 {showSameAmountWarning && (
                     <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2.5 text-xs">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        🔁 You topped up this user <strong>GH₵{amountNum}</strong> recently. Double-check this isn&apos;t a duplicate.
+                        You credited this user <strong>GH₵{amountNum}</strong> in the last 30 minutes. Check this isn&apos;t a duplicate.
                     </div>
                 )}
             </div>
@@ -226,7 +226,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                             className={cn(
                                 'text-xs px-2.5 py-1.5 rounded-full border transition-all',
                                 selectedTemplates.includes(t.id)
-                                    ? 'bg-brand-600 text-black border-brand-600'
+                                    ? 'bg-brand-500 text-black border-brand-500'
                                     : 'bg-card border-border hover:border-brand-400'
                             )}
                         >
@@ -256,7 +256,7 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                             title="Deduct debt from this top-up"
                         />
                         <Label htmlFor="deductFromDebt" className="font-semibold text-orange-700 dark:text-orange-400 cursor-pointer">
-                            ⚡ Deduct debt from this top-up (Force Settle)
+                            Take what they owe out of this top-up
                         </Label>
                     </div>
 
@@ -274,14 +274,14 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                                     >
                                         {debts.map((d, i) => (
                                             <option key={d.id} value={d.id}>
-                                                Debt #{i + 1} — {new Date(d.created_at).toLocaleDateString()} — {formatCurrency(d.remaining)} remaining
+                                                Owed #{i + 1}, {new Date(d.created_at).toLocaleDateString()}, {formatCurrency(d.remaining)} left
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                             )}
                             <div>
-                                <Label htmlFor="deduct-amount" className="text-xs">Deduct Amount (max: {formatCurrency(Math.min(selectedDebt?.remaining || 0, amountNum))})</Label>
+                                <Label htmlFor="deduct-amount" className="text-xs">Amount to take off (most: {formatCurrency(Math.min(selectedDebt?.remaining || 0, amountNum))})</Label>
                                 <Input
                                     id="deduct-amount"
                                     type="number"
@@ -296,12 +296,12 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                             {amountNum > 0 && deductNum > 0 && (
                                 <div className="text-xs space-y-1 bg-card rounded-lg p-3 font-mono">
                                     <div className="flex justify-between"><span>Cash received:</span><span className="font-bold">GH₵{amountNum.toFixed(2)}</span></div>
-                                    <div className="flex justify-between text-red-600"><span>Debt deducted:</span><span className="font-bold">−GH₵{deductNum.toFixed(2)}</span></div>
+                                    <div className="flex justify-between text-red-600"><span>Owed, settled:</span><span className="font-bold">−GH₵{deductNum.toFixed(2)}</span></div>
                                     <div className="border-t border-border my-1" />
                                     <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet credit:</span><span>GH₵{netCredit.toFixed(2)}</span></div>
                                     <div className={cn('flex justify-between', debtRemaining === 0 ? 'text-green-600' : 'text-amber-600')}>
-                                        <span>Debt remaining:</span>
-                                        <span className="font-bold">{debtRemaining === 0 ? '✅ Fully settled' : `GH₵${debtRemaining.toFixed(2)}`}</span>
+                                        <span>Still owed:</span>
+                                        <span className="font-bold">{debtRemaining === 0 ? 'Fully settled' : `GH₵${debtRemaining.toFixed(2)}`}</span>
                                     </div>
                                 </div>
                             )}
@@ -312,21 +312,21 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
 
             {/* Payment Status */}
             <div className="space-y-2">
-                <Label className="font-semibold">Payment Status</Label>
+                <Label className="font-semibold">Has the user paid?</Label>
                 <div className="space-y-2">
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input type="radio" checked={paymentStatus === 'paid'} onChange={() => setPaymentStatus('paid')} className="w-4 h-4 accent-green-600" />
-                        <span className="font-medium text-green-700 dark:text-green-400">✅ Paid — cash / MoMo received</span>
+                        <span className="font-medium text-green-700 dark:text-green-400">Paid (cash or MoMo received)</span>
                     </label>
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input type="radio" checked={paymentStatus === 'unpaid'} onChange={() => setPaymentStatus('unpaid')} className="w-4 h-4 accent-amber-500" />
-                        <span className="font-medium text-amber-700 dark:text-amber-400">💳 Unpaid — mark as debt</span>
+                        <span className="font-medium text-amber-700 dark:text-amber-400">Not paid yet (record as owed)</span>
                     </label>
                 </div>
                 {paymentStatus === 'unpaid' && (
                     <Textarea
                         id="unpaid-notes"
-                        placeholder="Optional note (e.g. will pay tomorrow via MoMo)"
+                        placeholder="Optional note, e.g. will pay tomorrow by MoMo" aria-label="Note about the unpaid amount"
                         value={notes}
                         onChange={e => setNotes(e.target.value)}
                         rows={2}
@@ -342,10 +342,8 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                 className={cn(
                     'w-full h-12 text-base font-bold transition-all',
                     paymentStatus === 'unpaid'
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                        : deductFromDebt
-                            ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                            : 'clay clay-green'
+                        ? 'clay-silver'
+                        : 'clay-black'
                 )}
             >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
@@ -356,21 +354,20 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
                 <DialogContent aria-describedby={undefined}>
                     <DialogHeader>
-                        <DialogTitle>Confirm Top-Up</DialogTitle>
+                        <DialogTitle>Credit this wallet?</DialogTitle>
                         <DialogDescription asChild>
                             <div className="space-y-2 text-sm">
                                 <div className="bg-muted/50 rounded-lg p-3 font-mono space-y-1">
                                     {deductFromDebt && deductNum > 0 ? (
                                         <>
-                                            <p>✅ Credit <strong>GH₵{netCredit.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
+                                            <p>Credit <strong>GH₵{netCredit.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
                                             <p className="text-muted-foreground text-xs">(GH₵{amountNum.toFixed(2)} cash − GH₵{deductNum.toFixed(2)} debt deducted)</p>
-                                            <p>✅ Mark GH₵{deductNum.toFixed(2)} debt as: {debtRemaining === 0 ? 'Settled' : 'Partially Settled'}</p>
+                                            <p>Mark GH₵{deductNum.toFixed(2)} owed as {debtRemaining === 0 ? 'settled' : 'partly settled'}</p>
                                         </>
                                     ) : (
-                                        <p>✅ Credit <strong>GH₵{amountNum.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
+                                        <p>Credit <strong>GH₵{amountNum.toFixed(2)}</strong> to {selectedUser.first_name}&apos;s wallet</p>
                                     )}
-                                    {paymentStatus === 'unpaid' && <p>💳 Mark as: Unpaid (debt created)</p>}
-                                    <p className="text-muted-foreground text-xs">📱 SMS will be sent to {selectedUser.phone_number}</p>
+                                    {paymentStatus === 'unpaid' && <p>Recorded as owed: they still have to pay this.</p>}
                                 </div>
                             </div>
                         </DialogDescription>
@@ -379,8 +376,8 @@ export function TopUpForm({ selectedUser, onSuccess }: TopUpFormProps) {
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                         </DialogClose>
-                        <Button onClick={handleSubmit} className="clay clay-green">
-                            Confirm
+                        <Button onClick={handleSubmit} className="clay-gold" disabled={isSubmitting}>
+                            Credit wallet
                         </Button>
                     </DialogFooter>
                 </DialogContent>

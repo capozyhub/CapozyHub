@@ -68,7 +68,7 @@ function AddDebtPopover({ tx, onDone }: { tx: Transaction; onDone: () => void })
             })
             const data = await res.json()
             if (!res.ok) { toast.error(data.error || 'Failed'); return }
-            toast.success('✅ Debt record created! Check Settlements tab.')
+            toast.success('Recorded as owed. It now shows under Settlements.')
             onDone()
         } catch { toast.error('Network error') }
         finally { setLoading(false) }
@@ -100,9 +100,9 @@ function AddDebtPopover({ tx, onDone }: { tx: Transaction; onDone: () => void })
             </div>
             <div className="flex gap-2">
                 <Button size="sm" onClick={handleSubmit} disabled={loading}
-                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-7">
+                    className="clay-black text-xs h-8">
                     {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
-                    Confirm Debt
+                    Record as owed
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onDone} className="text-xs h-7">
                     <X className="w-3 h-3 mr-1" /> Cancel
@@ -239,7 +239,7 @@ export function CreditsHistoryTab() {
                         className={cn(
                             'px-3 py-1.5 rounded-full text-xs font-bold border transition-all',
                             filter === f.value
-                                ? 'bg-muted text-white dark:text-foreground border-border dark:border-white shadow'
+                                ? 'clay-black border-transparent'
                                 : 'bg-card border-border text-muted-foreground hover:border-border'
                         )}
                     >
