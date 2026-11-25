@@ -1,4 +1,23 @@
 {
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "schedules": {
+        "verify-pending-payments": { "schedule": "*/15 * * * *", "path": "/api/cron/verify-pending-payments", "requestMethod": "GET" },
+        "release-rc-reservations": { "schedule": "*/15 * * * *", "path": "/api/cron/release-rc-reservations", "requestMethod": "GET" },
+        "sync-paystack-withdrawals": { "schedule": "5-59/15 * * * *", "path": "/api/cron/sync-paystack-withdrawals", "requestMethod": "GET" },
+        "fulfill-pending-rc-vouchers": { "schedule": "5-59/15 * * * *", "path": "/api/cron/fulfill-pending-rc-vouchers", "requestMethod": "GET" },
+        "refulfill-pending-orders": { "schedule": "10-59/15 * * * *", "path": "/api/cron/refulfill-pending-orders", "requestMethod": "GET" },
+        "publish-scheduled-announcements": { "schedule": "10-59/15 * * * *", "path": "/api/cron/publish-scheduled-announcements", "requestMethod": "GET" },
+        "auto-unsuspend": { "schedule": "0 * * * *", "path": "/api/cron/auto-unsuspend", "requestMethod": "GET" },
+        "escalate-sub-withdrawals": { "schedule": "20 * * * *", "path": "/api/cron/escalate-sub-withdrawals", "requestMethod": "GET" },
+        "auto-upgrade": { "schedule": "30 */6 * * *", "path": "/api/cron/auto-upgrade", "requestMethod": "GET" },
+        "downgrade-expired-dealers": { "schedule": "40 */6 * * *", "path": "/api/cron/downgrade-expired-dealers", "requestMethod": "GET" },
+        "downgrade-expired-agents": { "schedule": "30 0 * * *", "path": "/api/cron/downgrade-expired-agents", "requestMethod": "GET" },
+        "reconcile-shop-pricing": { "schedule": "0 2 * * *", "path": "/api/cron/reconcile-shop-pricing", "requestMethod": "GET" },
+        "purge-afa-staging": { "schedule": "0 3 * * *", "path": "/api/cron/purge-afa-staging", "requestMethod": "GET" },
+        "delete-old-notifications": { "schedule": "0 4 * * *", "path": "/api/cron/delete-old-notifications", "requestMethod": "GET" },
+        "shop-sales-report": { "schedule": "0 6 * * *", "path": "/api/cron/shop-sales-report", "requestMethod": "GET" },
+        "agent-renewal-reminder": { "schedule": "0 7 * * *", "path": "/api/cron/agent-renewal-reminder", "requestMethod": "GET" }
+    },
     "functions": {
         "app/api/**/*.ts": {
             "maxDuration": 60

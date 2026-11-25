@@ -51,8 +51,8 @@ What is in scope now:
 ### Developer API
 One key type, `standard`, prefix `cz_live_` (`app/api/user/api-keys`). `validateApiKey` (`lib/api-auth.ts`) refuses any other `key_type`. A route is public only if it matches `lib/developer-api.ts` `DEV_API_PATTERNS`; add a route there and in `public/openapi.yaml`, and `scripts/test-developer-api.ts` plus `scripts/check-ai-discoverability.ts` will tell you if they drift. Order webhooks: `lib/api-webhook.ts`.
 
-### Crons: NOT currently scheduled
-`app/api/cron/*` has 20 routes, including `verify-pending-payments`, `sync-paystack-withdrawals` and `refulfill-pending-orders`, but `vercel.json` has no `crons` and `.github/workflows/cron.yml` has its schedule commented out. Payment reconciliation does not run until this is configured (Vercel Pro crons in `vercel.json` is the intended fix). Do not launch without it.
+### Crons: Vercel Schedules
+`app/api/cron/*` has 20 routes. 16 run from `vercel.json` `schedules` (path targets, `requestMethod: "GET"`; Vercel sends `Authorization: Bearer $CRON_SECRET`, which `validateCronAuth` checks). Nothing runs more often than every 15 minutes, so the config deploys on Hobby as well as Pro. Four routes are deliberately unscheduled pending an owner decision: `delete-old-orders`, `delete-old-complaints`, `auto-complete-data`, `daily-greeting`. `scripts/test-cron-schedules.ts` fails if a route is neither scheduled nor on that list, or if a schedule points at a missing route. Never add legacy `crons` alongside `schedules` (routes would run twice). `.github/workflows/cron.yml` is manual-dispatch only.
 
 ## Database
 - Migrations live in `supabase/migrations`; the baseline is trimmed last (full copy kept locally). Apply SQL with `node scripts/apply-sql.js` (transactional; reads `CAPOZY_DB_URL` from env or the gitignored `.env.db`), not by pasting large SQL through MCP calls.

@@ -23,7 +23,18 @@ storefront checkout end to end, developer API, performance advisors.
   tier is the same price for every role, so a bulk ceiling would reject any markup).
   Live had 0 saved markups, so nothing existing became unavailable.
 - Reviewed by `payments-security-reviewer`: no critical/high findings.
-- Still open: cron scheduling (launch blocker); leaked-password protection (dashboard toggle);
+- Crons: 16 routes scheduled via `vercel.json` `schedules` (path targets, GET, every 15 min at
+  most). Held back for an owner decision: `delete-old-orders` (hard-deletes all orders > 90
+  days), `delete-old-complaints` (deletes complaints > 30 days regardless of status),
+  `auto-complete-data` (toggle unset = ON; marks data orders stuck 30 min as completed with no
+  delivery proof), `daily-greeting` (daily push to every subscriber).
+- **New, High: every Vercel env var is type `plain`, not Sensitive.** The service-role key,
+  Paystack secret, CRON_SECRET, Resend, Rexamart, Upstash and VAPID keys are readable by anyone
+  with project access and through the API (the env listing returned their values). CLAUDE.md
+  requires Sensitive variables and rotating anything ever stored as plain.
+- **New, Low: `BREVO_API_KEY` is set but unused** (no code references it). A second email
+  provider is out of scope; delete the variable and revoke the key at Brevo.
+- Still open: leaked-password protection (dashboard toggle);
   `scripts/test-subagent-create.ts` duplicate-phone cases fail since the 2026-10-08
   non-unique-phone auth change (pre-existing, unrelated).
 
