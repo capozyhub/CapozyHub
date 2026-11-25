@@ -95,12 +95,13 @@ export function AnnouncementDialog({ content, from, onDismiss, readSeconds = 5, 
             )}
         >
             <div className="relative isolate shrink-0 overflow-hidden bg-black px-6 pb-6 pt-7 text-white sm:px-7">
-                <BrandSwoosh className="pointer-events-none absolute -bottom-4 -right-1/3 -z-10 w-full opacity-70" />
+                <BrandSwoosh className="pointer-events-none absolute -bottom-6 -right-1/2 -z-10 w-full opacity-35" />
                 <span className="clay-gold flex h-11 w-11 items-center justify-center rounded-full">
                     <Megaphone className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <p className="mt-4 text-sm font-semibold text-brand-400">{from}</p>
-                <h2 id={titleId} className="mt-1 font-display text-2xl font-bold leading-tight tracking-tight text-balance">
+                {/* The global h2 rule sets a dark colour, so white has to be set here or the title vanishes on the black header. */}
+                <h2 id={titleId} className="mt-1 font-display text-2xl font-bold leading-tight tracking-tight text-balance !text-white">
                     {content.title?.trim() || 'A quick update'}
                 </h2>
             </div>
