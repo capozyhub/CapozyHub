@@ -250,7 +250,7 @@ function DocTable({ head, rows }: { head: string[]; rows: (string | React.ReactN
 // API surface; every sample below inherits the flip automatically since they
 // all interpolate ${BASE} rather than hardcoding a version.
 const BASE = 'https://api.capozygh.com/api'
-const KEY = 'cz_live_your_api_key_here'
+const KEY = 'cs_live_your_api_key_here'
 
 const PACKAGES_SAMPLES: Record<LangTab, string> = {
     'cURL': `# All packages

@@ -5,13 +5,12 @@ import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 import { getAuthCookieDomain, getAuthCookieOptions } from '@/lib/cookie-domain'
 import { isDevApiPath, DEV_API_HOST } from '@/lib/developer-api'
+import { API_KEY_SHAPE } from '@/lib/api-key-format'
 
 // Salt for hashing API keys into rate-limit bucket IDs. Must be set in env.
 // Without this, the public key_prefix alone would be enough to address — and
 // exhaust — another user's bucket from outside.
 const API_RATE_LIMIT_SALT = process.env.API_RATE_LIMIT_SALT || ''
-// Exact shape of a valid issued key: cz_live_ + 32 lowercase hex chars
-const API_KEY_SHAPE = /^cz_live_[a-f0-9]{32}$/
 
 // Write endpoints that must NOT serve traffic when the rate limiter is down.
 // Stored as VERSION-AGNOSTIC suffixes (matched against the normalised apiSuffix,

@@ -494,7 +494,7 @@ export default function ApiDashboardPage() {
 // is now the only live base URL. Every sample below interpolates ${API_BASE}
 // rather than a hardcoded version, so the flip propagates automatically.
 const API_BASE = 'https://api.capozygh.com/api'
-const API_KEY_PLACEHOLDER = 'cz_live_your_api_key_here'
+const API_KEY_PLACEHOLDER = 'cs_live_your_api_key_here'
 
 function ApiRefTable({ head, rows }: { head: string[]; rows: (string | React.ReactNode)[][] }) {
     return (
@@ -587,7 +587,7 @@ type RefTabKey = 'standard' | 'airtime' | 'webhooks'
 
 const REF_TABS: { key: RefTabKey; label: string; icon: any }[] = [
     { key: 'standard', label: 'Standard API', icon: Key },
-    { key: 'airtime', label: 'Airtime API', icon: Wifi },
+    { key: 'airtime', label: 'Commission API', icon: Wifi },
     { key: 'webhooks', label: 'Webhooks', icon: Webhook },
 ]
 
@@ -714,7 +714,7 @@ function StandardApiTab() {
     return (
         <>
             <p className="text-sm text-muted-foreground">
-                5 endpoints for buying data bundles. Replace <code className="font-mono text-brand-800 dark:text-brand-400 text-xs">cz_live_your_api_key_here</code> with your actual standard key.
+                5 endpoints for buying data bundles. Replace <code className="font-mono text-brand-800 dark:text-brand-400 text-xs">cs_live_your_api_key_here</code> with your actual standard key.
             </p>
 
             {/* Base URL strip */}
@@ -844,8 +844,8 @@ function AirtimeApiTab() {
         <>
             <div id="ref-com-intro" className="scroll-mt-6">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    Send MTN, Telecel or AT airtime to a beneficiary from your wallet. These endpoints use the same API key as the
-                    Data API. Orders start as <code className="font-mono text-xs">pending</code> and are fulfilled by our team: poll the
+                    The Commission API is how you sell <strong>airtime</strong>. Send MTN, Telecel or AT airtime to a beneficiary from your wallet. These endpoints use the same API key as the
+                    Standard API. Orders start as <code className="font-mono text-xs">pending</code> and are fulfilled by our team: poll the
                     status endpoint or configure a webhook to hear when an order reaches a final state.
                 </p>
             </div>

@@ -658,7 +658,7 @@ components:
       name: Authorization
       description: |
         Your API key, sent RAW (not `Bearer <key>`) — e.g.
-        `Authorization: cz_live_...`. One key works on every endpoint.
+        `Authorization: cs_live_...`. One key works on every endpoint.
 
   parameters:
     ReferencePath:

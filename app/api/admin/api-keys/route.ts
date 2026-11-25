@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateAdminAccess } from '@/lib/auth-utils'
 import { createServerClient } from '@/lib/supabase'
 import { parseAllowedRoles, VALID_API_ROLES } from '@/lib/role-parser'
+import { isIssuedKeyPrefix } from '@/lib/api-key-format'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -510,7 +511,7 @@ export async function PATCH(request: NextRequest) {
             }
             // Only keys issued in the current format can authenticate (see lib/api-auth.ts). Approving an
             // older-format key would show it as active to its owner while every request is rejected.
-            if (!String(currentKey.key_prefix || '').startsWith('cz_live_')) {
+            if (!isIssuedKeyPrefix(currentKey.key_prefix)) {
                 return NextResponse.json({
                     error: 'This key uses a retired format and cannot be approved. Ask the owner to generate a new key, then revoke this one.',
                 }, { status: 400 })

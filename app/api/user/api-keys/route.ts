@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase'
 import { parseAllowedRoles } from '@/lib/role-parser'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
+import { API_KEY_PREFIX } from '@/lib/api-key-format'
 
 // ============================================================================
 // API Key Management — User Endpoints (cookie-based auth, NOT API key auth)
@@ -164,10 +165,10 @@ export async function POST(request: NextRequest) {
             .eq('key_type', 'standard')
 
         // ── Generate new key ──────────────────────────────────────────────
-        // cz_live_ + 32 hex = 40 chars. The prefix is ALWAYS the first 16 chars
-        // (must match lib/api-auth.ts's lookup).
+        // cs_live_ + 32 hex = 40 chars (see lib/api-key-format.ts). The prefix is ALWAYS the
+        // first 16 chars (must match lib/api-auth.ts's lookup).
         const randomPart = randomBytes(16).toString('hex') // 32 hex chars
-        const fullKey = `cz_live_${randomPart}`
+        const fullKey = `${API_KEY_PREFIX}${randomPart}`
         const keyPrefix = fullKey.substring(0, 16)
 
         // Hash for storage (bcrypt, 10 salt rounds)

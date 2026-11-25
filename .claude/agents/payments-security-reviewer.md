@@ -35,7 +35,7 @@ Capozy has no hard-coded suppliers. Fulfillment goes through adapters the owner 
 - Admin routes must verify the caller's role server-side (`admin`, or `sub-admin` where allowed); a hidden menu item is not access control.
 
 ## 6. Developer API and API keys
-- Routes under the developer API authenticate with `validateApiKey` (`lib/api-auth.ts`). One key type exists (`standard`, `cz_live_`); anything else must be refused, never treated as standard.
+- Routes under the developer API authenticate with `validateApiKey` (`lib/api-auth.ts`). One key type exists (`standard`, `cs_live_`; legacy `cz_live_` still accepted, see `lib/api-key-format.ts`); anything else must be refused, never treated as standard.
 - A public route must be listed in `lib/developer-api.ts` `DEV_API_PATTERNS` and in `public/openapi.yaml`; an internal route must **not** match (public paths get open CORS and skip session handling).
 - Keys are shown once and stored only as a bcrypt hash; flag any logging or response that leaks a full key, prefix-only lookups that skip the hash check, or timing differences between "no such key" and "wrong key".
 - Per-key rate limits: `consumeRateLimit` buckets use an `api-` prefix; every `new Ratelimit` has a literal unique `prefix` (`czh:<name>` in middleware).

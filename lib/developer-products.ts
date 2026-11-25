@@ -11,7 +11,7 @@ export const SITE = BRAND.siteUrl
 export type KeyType = 'standard'
 
 export const KEY_INFO: Record<KeyType, { label: string; prefix: string }> = {
-    standard: { label: 'API key', prefix: 'cz_live_' },
+    standard: { label: 'API key', prefix: 'cs_live_' },
 }
 
 export interface ProductEndpoint {
@@ -60,7 +60,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/orders/{reference}', summary: 'Check a data order\'s fulfillment status' },
             { method: 'GET', path: '/wallet/balance', summary: 'Get your wallet balance' },
         ],
-        curl: curlPost('/data/purchase', 'cz_live_your_api_key_here', {
+        curl: curlPost('/data/purchase', 'cs_live_your_api_key_here', {
             network: 'MTN',
             volume_gb: 5,
             recipient: '0551617309',
@@ -82,7 +82,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/airtime/orders', summary: 'List your recent airtime orders' },
             { method: 'GET', path: '/airtime/orders/{reference}', summary: 'Check one airtime order\'s status' },
         ],
-        curl: curlPost('/airtime/purchase', 'cz_live_your_api_key_here', {
+        curl: curlPost('/airtime/purchase', 'cs_live_your_api_key_here', {
             network: 'MTN',
             beneficiary_phone: '0551617309',
             amount: 10,
@@ -105,7 +105,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/resultschecker/orders', summary: 'List your recent results checker orders' },
             { method: 'GET', path: '/resultschecker/orders/{reference}', summary: 'Look up one order, including its vouchers again' },
         ],
-        curl: curlPost('/resultschecker/purchase', 'cz_live_your_api_key_here', {
+        curl: curlPost('/resultschecker/purchase', 'cs_live_your_api_key_here', {
             typeId: 'voucher-type-uuid-from-/resultschecker/types',
             quantity: 1,
             reference: 'rc-1001',
@@ -126,7 +126,7 @@ export const DEVELOPER_PRODUCTS: DeveloperProduct[] = [
             { method: 'GET', path: '/afa/orders', summary: 'List your recent AFA registrations' },
             { method: 'GET', path: '/afa/orders/{reference}', summary: 'Check one AFA registration\'s status' },
         ],
-        curl: curlPost('/afa/register', 'cz_live_your_api_key_here', {
+        curl: curlPost('/afa/register', 'cs_live_your_api_key_here', {
             reference: 'afa-1001',
             full_name: 'Ama Mensah',
             phone: '0241234567',
@@ -156,7 +156,7 @@ export function llmsTxt(): string {
     lines.push('')
     lines.push(`- Base URL: ${API_BASE}`)
     lines.push('- Auth: send your API key RAW in the Authorization header (no "Bearer" prefix).')
-    lines.push('- Keys start with cz_live_ and cover data, airtime, results checker, AFA, wallet and orders.')
+    lines.push('- Keys start with cs_live_ and cover data, airtime, results checker, AFA, wallet and orders.')
     lines.push('- Money-moving endpoints take a unique `reference` as an idempotency key.')
     lines.push(`- [Full API documentation](${SITE}/developers)`)
     lines.push(`- [OpenAPI 3 specification](${SITE}/openapi.yaml)`)

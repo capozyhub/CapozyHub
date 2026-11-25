@@ -6,12 +6,13 @@ import { createServerClient } from '@/lib/supabase'
 import { parseAllowedRoles } from '@/lib/role-parser'
 import { effectiveRoleFromExpiry } from '@/lib/effective-role'
 
+import { API_KEY_SHAPE } from '@/lib/api-key-format'
 // ============================================================================
 // Developer API — Authentication & Utilities
 // This is the API-key equivalent of createRouteClient().
 // Used by all /api/ routes instead of cookie-based session auth.
 // Never uses cookies — all auth is via API key in the Authorization header
-// (accepts both "cz_live_xxx" and "Bearer cz_live_xxx" formats).
+// (accepts both "cs_live_xxx" and "Bearer cs_live_xxx" formats).
 // ============================================================================
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -138,8 +139,8 @@ export async function validateApiKey(
 
     // ── Step 1: Extract API key from Authorization header ───────────────
     // Accept both formats for caller convenience:
-    //   Authorization: cz_live_xxx           (direct — what our docs show)
-    //   Authorization: Bearer cz_live_xxx    (standard HTTP convention — what
+    //   Authorization: cs_live_xxx           (direct — what our docs show)
+    //   Authorization: Bearer cs_live_xxx    (standard HTTP convention — what
     //                                         Postman/Insomnia/many SDKs default to)
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.trim()) {
@@ -151,9 +152,9 @@ export async function validateApiKey(
         fullKey = fullKey.replace(/^Bearer\s+/i, '').trim()
     }
 
-    // Issued keys are exactly cz_live_ + 32 lowercase hex chars (see app/api/user/api-keys). Middleware
+    // Issued keys are exactly a known prefix + 32 lowercase hex chars (lib/api-key-format.ts). Middleware
     // buckets rate limits on that same shape, so a key of any other shape must not authenticate here.
-    if (!/^cz_live_[a-f0-9]{32}$/.test(fullKey)) {
+    if (!API_KEY_SHAPE.test(fullKey)) {
         return apiError(401, 'Invalid API key format')
     }
 
