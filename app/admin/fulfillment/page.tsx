@@ -164,9 +164,12 @@ export default function FulfillmentPage() {
     // app/admin/ishare/page.tsx compute identical ranges from identical presets.
     const getDateRange = () => computeDateRange(dateFilter, customDate)
 
+    const [settingsFailed, setSettingsFailed] = useState(false)
+
     const fetchSettings = async () => {
+        setSettingsFailed(false)
         try {
-            const { data } = await supabase
+            const { data, error: settingsError } = await supabase
                 .from('admin_settings')
                 .select('key, value')
                 .in('key', [
@@ -179,6 +182,7 @@ export default function FulfillmentPage() {
                     'rexamart_afa_enabled',
                 ])
 
+            if (settingsError) throw settingsError
             const map = (data || []).reduce((acc: any, curr: any) => {
                 acc[curr.key] = curr.value
                 return acc
@@ -211,6 +215,7 @@ export default function FulfillmentPage() {
             setAutoRefulfillThresholdInput(String(autoRefulfillThresholdVal))
         } catch (error) {
             console.error('Failed to fetch settings:', error)
+            setSettingsFailed(true)
         }
     }
 
@@ -226,9 +231,9 @@ export default function FulfillmentPage() {
             setCronEnabled(enabled)
             setCronThreshold(thresholdMins)
             setCronThresholdInput(String(thresholdMins))
-            toast.success('Auto-complete cron settings saved')
+            toast.success('Auto-complete settings saved')
         } catch (error: any) {
-            toast.error('Failed to save cron settings: ' + error.message)
+            toast.error('Could not save the settings: ' + error.message)
         } finally {
             setIsSavingCron(false)
         }
@@ -246,9 +251,9 @@ export default function FulfillmentPage() {
             setAutoRefulfillEnabled(enabled)
             setAutoRefulfillThreshold(thresholdMins)
             setAutoRefulfillThresholdInput(String(thresholdMins))
-            toast.success('Auto-refulfill cron settings saved')
+            toast.success('Auto-retry settings saved')
         } catch (error: any) {
-            toast.error('Failed to save cron settings: ' + error.message)
+            toast.error('Could not save the settings: ' + error.message)
         } finally {
             setIsSavingAutoRefulfill(false)
         }
@@ -272,10 +277,10 @@ export default function FulfillmentPage() {
             })
             const body = await res.json().catch(() => ({}))
             if (!res.ok) throw new Error(body.error || 'Failed to update')
-            toast.success(`Auto-Fulfillment ${next ? 'enabled' : 'disabled'}`)
+            toast.success(`Auto-fulfilment is ${next ? 'on' : 'off'}`)
         } catch (e: any) {
             setSettings(s => ({ ...s, is_global_enabled: prev })) // revert
-            toast.error(e.message || 'Failed to update setting')
+            toast.error(e.message || 'Could not change the setting. Try again.')
         } finally {
             setIsSavingSettings(false)
         }
@@ -298,7 +303,7 @@ export default function FulfillmentPage() {
             toast.success(`Rexamart ${next[network] ? 'connected for' : 'disconnected from'} ${network}`)
         } catch (e: any) {
             setRexamartNetworks(rexamartNetworks) // revert
-            toast.error('Failed to update Rexamart settings: ' + e.message)
+            toast.error('Could not update the Rexamart settings: ' + e.message)
         } finally {
             setIsSavingRexamart(false)
         }
@@ -313,7 +318,7 @@ export default function FulfillmentPage() {
             toast.success(`Rexamart AFA dispatch ${next ? 'enabled' : 'disabled'}`)
         } catch (e: any) {
             setRexamartAfaEnabled(!next) // revert
-            toast.error('Failed to update setting: ' + e.message)
+            toast.error('Could not change the setting: ' + e.message)
         } finally {
             setIsSavingRexamart(false)
         }
@@ -651,8 +656,8 @@ export default function FulfillmentPage() {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh]">
                 <Activity className="w-12 h-12 text-destructive mb-4" />
-                <h1 className="text-2xl font-bold">Access Denied</h1>
-                <p className="text-muted-foreground">Admin privileges required.</p>
+                <h1 className="font-display text-2xl font-bold">Admins only</h1>
+                <p className="text-muted-foreground">You need an admin account to fulfil orders.</p>
             </div>
         )
     }
@@ -663,13 +668,13 @@ export default function FulfillmentPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2.5">
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Fulfillment Center</h1>
+                        <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Fulfilment</h1>
                         <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-all ${isLive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-foreground/10'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-foreground/10'}`} />
                             {isLive ? 'Live' : 'Offline'}
                         </span>
                     </div>
-                    <p className="text-xs md:text-sm text-muted-foreground">Manage multi-network automated and manual order processing</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Send orders to suppliers and complete the ones you fulfil by hand</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <Button
@@ -682,7 +687,7 @@ export default function FulfillmentPage() {
                         ) : (
                             <RotateCcw className="w-4 h-4 mr-2" />
                         )}
-                        Refulfill All Pending
+                        Retry all pending orders
                     </Button>
                     <Button onClick={() => fetchOrders(true)} disabled={isLoadingOrders} variant="outline" size="sm" className="h-9 md:h-10 text-xs md:text-sm">
                         <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingOrders ? 'animate-spin' : ''}`} />
@@ -690,10 +695,17 @@ export default function FulfillmentPage() {
                     </Button>
                     <div className="flex items-center gap-2 bg-background border px-3 h-9 md:h-10 rounded-full shadow-sm">
                         <span className="text-xs md:text-xs font-semibold">Auto-Fulfillment</span>
-                        <Switch checked={settings.is_global_enabled} onCheckedChange={toggleGlobal} disabled={isSavingSettings} className="scale-75 md:scale-90" />
+                        <Switch aria-label="Auto-fulfilment" checked={settings.is_global_enabled} onCheckedChange={toggleGlobal} disabled={isSavingSettings || settingsFailed} className="scale-75 md:scale-90" />
                     </div>
                 </div>
             </div>
+
+            {settingsFailed && (
+                <div role="alert" className="neu-raised-sm rounded-3xl p-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-foreground">Could not load the fulfilment settings, so the switches below may show the wrong state and are turned off.</p>
+                    <Button variant="outline" size="sm" onClick={() => fetchSettings()}>Try again</Button>
+                </div>
+            )}
 
             {/* Supplier status — reflects whatever's actually enabled in the Rexamart panel
                 below, rather than being a separate thing to keep in sync. */}
@@ -827,7 +839,7 @@ export default function FulfillmentPage() {
                                     <div key={r.number} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between')}>
                                         <span className="font-mono text-xs">{r.number}</span>
                                         <span className={cn(
-                                            'text-xs font-bold uppercase px-1.5 py-0.5 rounded',
+                                            'text-xs font-semibold px-1.5 py-0.5 rounded',
                                             r.verified ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400'
                                         )}>
                                             {r.status.replace(/_/g, ' ')}
@@ -869,7 +881,7 @@ export default function FulfillmentPage() {
                             ) : disputes.map(d => (
                                 <div key={d.reportReference} className={cn(mutedSurface, 'px-2.5 py-1.5 flex items-center justify-between gap-2')}>
                                     <span className="font-mono text-xs truncate">{d.reportReference}</span>
-                                    <span className="text-xs font-bold uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                                         {d.disputeStatus}
                                     </span>
                                 </div>
@@ -1012,7 +1024,7 @@ export default function FulfillmentPage() {
 
                             {/* Date Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Date Range</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Date Range</label>
                                 <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
                                     {DATE_FILTER_PRESETS.map(range => (
                                         <Button
@@ -1044,7 +1056,7 @@ export default function FulfillmentPage() {
 
                             {/* Status Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Status</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Status</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', 'Pending', 'Queued', 'Processing', 'Completed', 'Failed', 'Refunded'].map(s => (
                                         <Button
@@ -1062,7 +1074,7 @@ export default function FulfillmentPage() {
 
                             {/* Channel (origin) Filter — client-side */}
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Channel</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Channel</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {CHANNELS.map(c => (
                                         <Button
@@ -1080,7 +1092,7 @@ export default function FulfillmentPage() {
 
                             {/* Network Filter */}
                             <div className="space-y-1.5">
-                                <label className="text-xs uppercase font-bold text-muted-foreground">Network</label>
+                                <label className="text-xs font-semibold text-muted-foreground">Network</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {['All', ...NETWORKS].map(n => (
                                         <Button
@@ -1108,12 +1120,12 @@ export default function FulfillmentPage() {
                                         { label: 'Selected', value: selectedOrders.size, color: accent.slate },
                                     ].map(stat => (
                                         <div key={stat.label} className={cn(mutedSurface, 'p-2 md:p-2.5')}>
-                                            <p className="text-[11px] md:text-xs text-muted-foreground font-bold uppercase">{stat.label}</p>
+                                            <p className="text-xs text-muted-foreground font-semibold">{stat.label}</p>
                                             <p className="text-lg md:text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
                                         </div>
                                     ))}
                                     <div className={cn(mutedSurface, 'p-2 md:p-2.5')}>
-                                        <p className="text-[11px] md:text-xs text-muted-foreground font-bold uppercase">Total Cost</p>
+                                        <p className="text-xs text-muted-foreground font-semibold">Total Cost</p>
                                         <p className="text-sm md:text-base font-bold truncate" style={{ color: accent.emerald }}>
                                             GH₵{visibleOrders.reduce((acc, curr) => acc + (curr.price || 0), 0).toFixed(2)}
                                         </p>
@@ -1142,7 +1154,7 @@ export default function FulfillmentPage() {
                         <div className="sticky top-20 z-30 flex items-center justify-between bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 p-2 md:p-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-4 flex-wrap gap-2 mx-2">
                             <div className="flex items-center gap-2">
                                 <Badge variant="default" className="rounded-full px-2 text-xs">{selectedOrders.size}</Badge>
-                                <span className="text-xs md:text-xs font-bold uppercase">Selected</span>
+                                <span className="text-xs md:text-xs font-semibold">Selected</span>
                             </div>
                             <div className="flex gap-2 md:gap-3 flex-wrap justify-end">
                                 <Button
@@ -1167,7 +1179,7 @@ export default function FulfillmentPage() {
                                 <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('processing')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold" disabled={isUpdating || isRefulfilling}>
                                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reprocess
                                 </Button>
-                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isUpdating || isRefulfilling}>
+                                <Button size="sm" onClick={() => bulkUpdateStatus('completed')} className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-semibold clay-black" disabled={isUpdating || isRefulfilling}>
                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Complete
                                 </Button>
                                 <Button size="sm" onClick={() => bulkUpdateStatus('failed')} variant="destructive" className="h-9 md:h-10 text-xs md:text-sm px-3 md:px-4 font-bold" disabled={isUpdating || isRefulfilling}>
@@ -1243,19 +1255,19 @@ export default function FulfillmentPage() {
                                                 purchaser/shop name truncates instead of forcing the row to overflow. */}
                                             <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-6 items-center gap-x-2 gap-y-3 md:gap-4 p-1">
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Beneficiary</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Beneficiary</p>
                                                     <p className="text-[13px] md:text-sm font-medium text-primary">{order.phone_number}</p>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Bundle</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Bundle</p>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         <Badge variant="outline" className="text-xs px-1.5 font-bold leading-none py-1 bg-secondary/50">{order.network}</Badge>
                                                         <span className="text-[13px] md:text-xs font-medium">{order.size}</span>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Purchaser</p>
-                                                    <div className="text-[11px] md:text-xs">
+                                                    <p className="text-xs font-medium text-muted-foreground">Purchaser</p>
+                                                    <div className="text-xs">
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {/* Shop-attributed orders with no buyer account (USSD shop
                                                                 guests) show the SHOP as the purchaser — 'N/A' hid who
@@ -1279,13 +1291,13 @@ export default function FulfillmentPage() {
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="text-muted-foreground opacity-70 text-xs font-bold uppercase">
+                                                        <p className="text-muted-foreground opacity-70 text-xs font-semibold">
                                                             {order.users?.role || (order.shop_name ? 'Shop' : order.source?.startsWith('ussd') ? 'Guest' : 'User')}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Status</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Status</p>
                                                     <div>
                                                         {(() => {
                                                             // "Background Queue Fulfillment Success" is a provider processing sub-state
@@ -1297,7 +1309,7 @@ export default function FulfillmentPage() {
                                                             return (
                                                                 <div className="flex items-center gap-1 flex-wrap">
                                                                     <span className={cn(
-                                                                        "inline-flex items-center rounded-md text-xs md:text-[11px] font-medium  h-5 px-2",
+                                                                        "inline-flex items-center rounded-md text-xs font-medium  h-5 px-2",
                                                                         isBgQueue
                                                                             ? "border border-border text-muted-foreground bg-muted dark:bg-yellow-900/20"
                                                                             : getStatusBadgeClass(order.status)
@@ -1306,7 +1318,7 @@ export default function FulfillmentPage() {
                                                                     </span>
                                                                     {shouldShowRefundOverlay(order) && (
                                                                         <span className={cn(
-                                                                            "inline-flex items-center rounded-md text-xs md:text-[11px] font-medium  h-5 px-2",
+                                                                            "inline-flex items-center rounded-md text-xs font-medium  h-5 px-2",
                                                                             REFUND_OVERLAY_BADGE_CLASS
                                                                         )}>
                                                                             Refunded
@@ -1343,13 +1355,13 @@ export default function FulfillmentPage() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-xs md:text-[11px] uppercase font-medium text-muted-foreground">Time</p>
+                                                    <p className="text-xs font-medium text-muted-foreground">Time</p>
                                                     <p className="text-[11px] md:text-[12px] font-bold opacity-80">
                                                         {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(order.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                                     </p>
                                                 </div>
                                                 <div className="hidden md:block space-y-0.5 text-right">
-                                                    <p className="text-[11px] uppercase font-medium text-muted-foreground">Cost</p>
+                                                    <p className="text-[11px] font-medium text-muted-foreground">Cost</p>
                                                     <p className="text-sm font-semibold text-primary">{formatCurrency(order.price)}</p>
                                                 </div>
                                             </div>
