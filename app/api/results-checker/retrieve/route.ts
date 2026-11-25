@@ -5,22 +5,21 @@ import {
     normalizeResultsCheckerPhone,
 } from '@/lib/results-checker-utils'
 import { checkRcRetrieveLimit } from '@/lib/rc-retrieve-ratelimit'
+import { limitDistributed } from '@/lib/distributed-rate-limit'
+import { getRequestIp } from '@/lib/request-ip'
 
-function getClientIp(request: Request): string {
-    const forwardedFor = request.headers.get('x-forwarded-for') || ''
-    return forwardedFor.split(',')[0]?.trim() || 'unknown'
-}
+// The only guest-facing endpoint that reveals voucher PINs. Three caps, all global:
+//   - per IP (trusted source, see lib/request-ip.ts; the leftmost X-Forwarded-For used to
+//     be read here, which a caller can rotate per request),
+//   - per phone: a brute force against one buyer fixes the phone and walks references,
+//   - per reference: a brute force against one receipt walks phones.
+const TOO_MANY = { error: 'Too many retrieval attempts. Please try again later.' }
 
 export async function POST(req: Request) {
     try {
-        const ip = getClientIp(req)
-        const allowed = await checkRcRetrieveLimit(ip)
-
-        if (!allowed) {
-            return NextResponse.json(
-                { error: 'Too many retrieval attempts. Please try again later.' },
-                { status: 429 }
-            )
+        const ip = getRequestIp(req)
+        if (!(await checkRcRetrieveLimit(ip))) {
+            return NextResponse.json(TOO_MANY, { status: 429 })
         }
 
         const { reference, phone } = await req.json()
@@ -35,8 +34,16 @@ export async function POST(req: Request) {
         }
 
         const normalizedReference = String(reference).trim()
-        if (!normalizedReference) {
+        if (!normalizedReference || normalizedReference.length > 120) {
             return NextResponse.json({ error: 'Reference code is required' }, { status: 400 })
+        }
+
+        const [byPhone, byRef] = await Promise.all([
+            limitDistributed('rc-retrieve-phone', normalizedPhone, 10, 3600),
+            limitDistributed('rc-retrieve-ref', normalizedReference, 10, 3600),
+        ])
+        if (!byPhone.allowed || !byRef.allowed) {
+            return NextResponse.json(TOO_MANY, { status: 429 })
         }
 
         const result = await getResultsCheckerOrderForGuest(normalizedReference, normalizedPhone)

@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { computeShopCheckout, sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
 import { guardGuestCharge } from '@/lib/guest-charge-guard'
 import { resolveMomoWallet } from '@/lib/momo-wallet'
+import { getRequestIp } from '@/lib/request-ip'
 
 // Best-effort per-lambda IP rate limit (10/min). Real dup-guard is the DB +
 // processShopOrder idempotency. Mirrors the initialize route.
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 async function handlePost(request: NextRequest) {
     try {
         cleanup()
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+        const ip = getRequestIp(request)
         const rl = rateLimitCache.get(ip) || { count: 0, resetTime: Date.now() + 60000 }
         if (rl.count >= 10 && rl.resetTime > Date.now()) {
             return NextResponse.json({ error: 'Too many requests. Please try again in a minute.' }, { status: 429 })

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { computeShopAfaCheckout } from '@/lib/shop-afa-checkout'
 import { sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
+import { getRequestIp } from '@/lib/request-ip'
 
 // Mirrors app/api/shop/initialize/route.ts's rate-limit + idempotency shape exactly —
 // the real duplicate guard is the DB UNIQUE constraint on afa_orders.paystack_reference.
@@ -18,7 +19,7 @@ function cleanupCaches() {
 export async function POST(request: NextRequest) {
     try {
         cleanupCaches()
-        const ip = request.headers.get('x-forwarded-for') || 'unknown'
+        const ip = getRequestIp(request)
         const body = await request.json()
 
         // Rate limit: 10 initialize attempts per IP per minute

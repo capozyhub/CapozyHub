@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { creditShopProfit } from '@/lib/shop-service'
 import { sendOrderSuccessSMS } from '@/lib/sms-service'
 import { getShopUrl } from '@/lib/site-url'
+import { getRequestIp } from '@/lib/request-ip'
 
 // 5 verify attempts per IP per minute — prevents Paystack API quota exhaustion
 // from spam attacks on random/forged references
@@ -19,7 +20,7 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+    const ip = getRequestIp(request)
     if (!checkRateLimit(ip)) {
         // Redirect to error rather than exposing the rate limit in JSON
         const { searchParams } = new URL(request.url)

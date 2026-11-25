@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { getRequestIp } from '@/lib/request-ip'
 
 // 30 requests per minute per IP — prevents bulk scraping of shop owner PII
 const rateLimitCache = new Map<string, { count: number; resetAt: number }>()
@@ -14,7 +15,7 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+    const ip = getRequestIp(request)
     if (!checkRateLimit(ip)) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }

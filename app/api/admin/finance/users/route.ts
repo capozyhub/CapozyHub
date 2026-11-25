@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const limit = parseInt(searchParams.get('limit') || '20')
         const offset = parseInt(searchParams.get('offset') || '0')
-        const search = searchParams.get('search')
+        // Interpolated into a PostgREST .or() filter: keep only characters a name, email or phone
+        // needs, so a search can't add or break filter conditions.
+        const search = (searchParams.get('search') || '').replace(/[^A-Za-z0-9_\-+@. ]/g, '').trim().slice(0, 60) || null
         const sort = searchParams.get('sort') || 'balance' // Default sort by balance
         const order = searchParams.get('order') || 'desc'
         const ascending = order === 'asc'

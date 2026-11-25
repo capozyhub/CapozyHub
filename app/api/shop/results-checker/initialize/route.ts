@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { generateReferenceCode } from '@/lib/utils'
 import { validateGhanaianPhone } from '@/lib/phone-validation'
 import {
@@ -22,6 +23,7 @@ import {
 } from '@/lib/results-checker-utils'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentRcCost } from '@/lib/sub-agent-rc-pricing'
+import { getRequestIp } from '@/lib/request-ip'
 
 const rateLimitCache = new Map<string, { count: number; resetTime: number }>()
 
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     try {
         cleanupCache()
 
-        const ip = request.headers.get('x-forwarded-for') || 'unknown'
+        const ip = getRequestIp(request)
         let body: any
         try {
             body = await request.json()
@@ -242,7 +244,9 @@ export async function POST(request: NextRequest) {
 
         // Email is validated and required — use directly (no synthetic fallback needed)
         const paystackEmail = validatedGuestEmail
-        const paystackRef = `RC-${shop.id.slice(0, 8)}-${Date.now()}`
+        // The random tail is what makes this reference unguessable. It doubles as the guest's
+        // voucher-retrieval credential (with their phone), so a bare timestamp is not enough.
+        const paystackRef = `RC-${shop.id.slice(0, 8)}-${Date.now()}-${randomBytes(4).toString('hex')}`
 
         const protocol = request.headers.get('x-forwarded-proto') || 'https'
         const host = request.headers.get('host') || 'capozygh.com'

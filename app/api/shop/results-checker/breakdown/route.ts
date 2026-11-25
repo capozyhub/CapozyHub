@@ -14,6 +14,7 @@ import {
 } from '@/lib/results-checker-pricing'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentRcCost } from '@/lib/sub-agent-rc-pricing'
+import { getRequestIp } from '@/lib/request-ip'
 
 const rateLimitCache = new Map<string, { count: number; resetTime: number }>()
 function cleanup() { const now = Date.now(); for (const [k, v] of rateLimitCache.entries()) if (v.resetTime < now) rateLimitCache.delete(k) }
@@ -34,7 +35,7 @@ function cleanup() { const now = Date.now(); for (const [k, v] of rateLimitCache
 export async function POST(request: NextRequest) {
     try {
         cleanup()
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+        const ip = getRequestIp(request)
 
         const body = await request.json().catch(() => null)
         if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

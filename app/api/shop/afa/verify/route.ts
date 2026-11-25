@@ -1,5 +1,6 @@
 // app/api/shop/afa/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { getRequestIp } from '@/lib/request-ip'
 
 // 5 verify attempts per IP per minute — prevents Paystack API quota exhaustion
 // from spam on forged references. Mirrors app/api/shop/verify/route.ts.
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
         targetBaseUrl = 'https://shop.capozygh.com'
     }
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+    const ip = getRequestIp(request)
     if (!checkRateLimit(ip)) {
         return NextResponse.redirect(new URL(`${targetBaseUrl}/${slug || ''}?error=too_many_requests`))
     }

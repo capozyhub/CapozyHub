@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
         const network = searchParams.get('network')
         const startDate = searchParams.get('startDate') // ISO string
         const endDate = searchParams.get('endDate') // ISO string
-        const search = searchParams.get('search')
+        // Interpolated into a PostgREST .or() filter: strip the characters that filter syntax
+        // uses (, ( ) . * % : etc.) so a search can't add or break conditions.
+        const search = (searchParams.get('search') || '').replace(/[^A-Za-z0-9_\-+@ ]/g, '').trim().slice(0, 60) || null
 
         // Service role client to bypass RLS
         const supabase = createServerClient()

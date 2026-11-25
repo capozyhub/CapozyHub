@@ -4,20 +4,14 @@ import {
     isValidResultsCheckerPhone,
     normalizeResultsCheckerPhone,
 } from '@/lib/results-checker-utils'
-import { consumeRateLimit } from '@/lib/simple-rate-limit'
-
-const RATE_LIMIT_WINDOW = 10 * 60 * 1000
-const MAX_REQUESTS = 5
-
-function getClientIp(request: Request): string {
-    const forwardedFor = request.headers.get('x-forwarded-for') || ''
-    return forwardedFor.split(',')[0]?.trim() || 'unknown'
-}
+import { limitDistributed } from '@/lib/distributed-rate-limit'
+import { getRequestIp } from '@/lib/request-ip'
 
 export async function POST(req: Request) {
     try {
-        const ip = getClientIp(req)
-        const rateLimit = consumeRateLimit(`rc-order-status:${ip}`, MAX_REQUESTS, RATE_LIMIT_WINDOW)
+        // Global and keyed on a trusted IP (lib/request-ip.ts): this endpoint confirms whether a
+        // reference + phone pair is real, which is the first half of a PIN brute force.
+        const rateLimit = await limitDistributed('rc-order-status', getRequestIp(req), 5, 600)
         if (!rateLimit.allowed) {
             return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
         }

@@ -25,6 +25,7 @@ import {
 } from '@/lib/results-checker-utils'
 import { resolveSubAgentContext } from '@/lib/sub-agent-account'
 import { resolveSubAgentRcCost } from '@/lib/sub-agent-rc-pricing'
+import { getRequestIp } from '@/lib/request-ip'
 
 // Storefront network name → Paystack mobile_money provider code (mirrors /api/shop/charge).
 const PROVIDER_MAP: Record<string, 'MTN' | 'VOD' | 'ATL'> = { MTN: 'MTN', Telecel: 'VOD', AT: 'ATL' }
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 async function handlePost(request: NextRequest) {
     try {
         cleanup()
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown'
+        const ip = getRequestIp(request)
 
         const body = await request.json().catch(() => null)
         if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

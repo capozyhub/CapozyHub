@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { computeShopCheckout, sanitizeForPaystack, buildGuestEmail } from '@/lib/shop-checkout'
+import { getRequestIp } from '@/lib/request-ip'
 
 // In-memory rate limiter — best-effort per lambda instance (not distributed)
 // The real duplicate-order guard is the DB UNIQUE constraint on paystack_reference
@@ -18,7 +19,7 @@ function cleanupCaches() {
 export async function POST(request: NextRequest) {
     try {
         cleanupCaches()
-        const ip = request.headers.get('x-forwarded-for') || 'unknown'
+        const ip = getRequestIp(request)
         const body = await request.json()
 
         // Rate limit: 10 initialize attempts per IP per minute

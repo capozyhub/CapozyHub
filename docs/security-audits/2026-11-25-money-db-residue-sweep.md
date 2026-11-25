@@ -128,3 +128,91 @@ storefront checkout end to end, developer API, performance advisors.
 - No tracked file imports `_parked/`. No KiNG FLEXY / KFT strings in app code (only the deliberate
   guards in `scripts/apply-sql.js` and `scripts/check-ai-discoverability.ts`). `app/api/commission`,
   `utilities` and `sms` are empty folders.
+
+---
+
+# Stage E: developer API and webhooks (same day)
+
+Migration `20261125b` verified live after the owner applied it: definitions match, owner
+INSERT/UPDATE policies on `shop_pricing` are gone, and two rolled-back tests as a signed-in user
+confirmed a suspended user cannot change `suspended_until` and an owner cannot insert
+`shop_pricing` or set `ussd_code`. Advisors unchanged.
+
+## Findings
+- **[High, config] `REXAMART_WEBHOOK_SECRET` is not set in Vercel.** `app/api/webhooks/rexamart`
+  fails closed with 503 for every delivery, so asynchronous supplier updates (failed, refunded,
+  late completion) never land; orders stay `processing`. Add the secret (Sensitive) from the
+  Rexamart dashboard.
+- **[Medium, fixed] Developers never got order webhooks for Rexamart-fulfilled orders.**
+  `notifyDataOrderWebhook` was only called from the admin status route and the unscheduled
+  auto-complete cron. The Rexamart webhook now calls it after its guarded update.
+- **[Low, fixed] Bare promises dropped on Vercel:** Rexamart push notifications (now
+  `waitUntil`); `last_used_at` and `api_logs` writes in `lib/api-auth.ts` (now `waitUntil`; that
+  file is also being changed by another session, so these hunks ship with its commit).
+- **[Low, fixed] Paystack amount-mismatch update** could flip a concurrently completed payment to
+  failed; now guarded by `status = 'pending'`.
+- **[Low, open] API references share one global namespace** (`API-<ref>`): another developer
+  using `order-1` first makes yours a 409. Scoping per key changes the idempotency contract;
+  owner decision.
+- **[Low, open] Per-key `rate_limits` are resolved but never enforced**; middleware uses fixed
+  limits.
+- **[Info] `ENABLE_AUTO_FULFILLMENT` env var is unused.**
+
+## Verified clean
+- Paystack webhook: HMAC-SHA512 over the raw body, constant-time compare, before any read;
+  duplicate and amount checks on wallet top-ups. Browser-initiated payments with forged
+  `SHOP-`/`RC-` metadata cannot profit: every storefront processor re-derives the price from the
+  DB and rejects a mismatch before creating an order.
+- Rexamart webhook: HMAC-SHA256 over `timestamp.body`, 5-minute replay window, fails closed
+  without a secret, guarded status transitions.
+- API keys: strict shape, prefix lookup, bcrypt with equalised timing, status before bcrypt,
+  standard-only, suspended users refused, role allowlist. Rate limits in middleware are keyed on a
+  salted hash of the full key and fail closed on money endpoints.
+- Purchases: idempotency scoped to the key owner, UNIQUE index catches races without a double
+  charge.
+- Outbound webhooks: HMAC-signed, https only, IP-literal/localhost/bare-host blocked, redirects
+  refused, 5 s timeout. DNS rebinding is out of scope by design. `api_keys` has no client write
+  grant (the "writable from the browser" comment in `lib/api-webhook.ts` is stale).
+
+---
+
+# Storefront: API, injection, database protection (same day)
+
+## Findings
+- **[High, fixed] Voucher PINs were brute-forceable.** Storefront results-checker references were
+  `RC-<shop id prefix>-<ms timestamp>` with no random part
+  (`app/api/shop/results-checker/initialize`), and `/api/results-checker/retrieve` (returns PINs
+  for reference + phone) was limited only per IP, keyed on the leftmost `X-Forwarded-For`, which
+  the caller controls. Knowing a buyer's phone and rough purchase time was enough to enumerate
+  references. Fixed: 4 random bytes added to the reference (as every other storefront reference
+  already had); retrieve now uses a trusted IP and adds global caps per phone and per reference
+  (10/hour each); `order-status` moved to a global, trusted-IP limit.
+- **[Medium, fixed] 13 public storefront routes keyed rate limits on the spoofable leftmost
+  `X-Forwarded-For`.** All now use `lib/request-ip.ts` (x-real-ip, then the rightmost hop).
+- **[Medium, open] Any signed-in user can read every approved shop's full `shop_profiles` row**
+  (admin approval/pricing notes, per-shop fee and withdrawal overrides, `approved_by`, sender-ID
+  state). `authenticated` has table-level SELECT and the policy allows approved+active shops.
+  Anon is correctly limited to display columns. Fix needs a public view for non-owners, because
+  owners read their own full row from the browser; design change, not rushed.
+- **[Medium, open] Shop mirror reference collisions.** Orders mirrored from storefront sales use
+  `SHOP-${reference.slice(-10)}` (`lib/shop-order-processor.ts`), about 1 timestamp digit + 32
+  random bits. `orders.reference_code` is UNIQUE, so a collision makes the mirror insert fail for a
+  paid order. ~0.1% chance across 10k orders, ~11% across 100k. Use the full reference.
+- **[Low, fixed] Four admin searches interpolated raw input into PostgREST `.or()`** (batches,
+  finance/users, lifetime-agents, search-users). Admin-only, but a comma or bracket broke the
+  query; now sanitised.
+
+## Verified clean
+- No SQL injection surface in the database: the only dynamic SQL is the `rls_auto_enable` event
+  trigger (catalog identifiers, not callable by clients). App code only reaches Postgres through
+  PostgREST.
+- `shop/withdraw` `.or()` uses a regex-validated value and is ANDed with the caller's owner id.
+- Authenticated shop routes on the service role all scope by `owner_id` / `shop_owner_id` or a
+  verified `shop_id`.
+- Guest order lookup: shop-scoped, 48 h window, global per-IP and per-phone limits, and the RPC
+  returns no names, emails or payment details.
+- Status polling endpoints return status only, never PINs.
+- Uploads: MIME allowlist, magic-byte check and re-encode, paths prefixed with the user id.
+- Anonymous reads: every money/order table is scoped to the signed-in user or admin;
+  `results_checker_inventory` is service-role only; anon gets storefront display columns of
+  `shop_profiles` only.

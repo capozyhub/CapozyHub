@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
         }
 
         const { searchParams } = new URL(request.url)
-        const q = searchParams.get('q')?.trim() || ''
+        // Interpolated into a PostgREST .or() filter: keep only name/email characters.
+        const q = (searchParams.get('q') || '').replace(/[^A-Za-z0-9_\-+@. ]/g, '').trim().slice(0, 60)
 
         if (q && (q.length > 50 || !/^[\w\s@.+\-]+$/.test(q))) {
             return NextResponse.json({ error: 'Invalid search term' }, { status: 400 })
