@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface ShopDetail {
     id: string
@@ -84,6 +85,8 @@ export default function AdminShopDetailPage() {
     const router = useRouter()
     const params = useParams()
     const shopId = params.shopId as string
+    const { ask, dialog } = useConfirm()
+    const [loadFailed, setLoadFailed] = useState(false)
 
     const [shop, setShop] = useState<ShopDetail | null>(null)
     const [wallet, setWallet] = useState<ShopWallet | null>(null)
@@ -113,6 +116,7 @@ export default function AdminShopDetailPage() {
     }, [dbUser, isAdmin, shopId])
 
     const fetchData = async () => {
+        setLoadFailed(false)
         try {
             // Note: wallet is fetched separately after shop loads (owner_id needed)
             const [shopRes, ordersRes] = await Promise.all([
@@ -123,6 +127,7 @@ export default function AdminShopDetailPage() {
                 (supabase as any).from('shop_orders').select('id', { count: 'exact', head: true }).eq('shop_id', shopId),
             ])
 
+            if (shopRes.error && shopRes.error.code !== 'PGRST116') throw shopRes.error
             if (shopRes.data) {
                 const s = shopRes.data
                 setShop(s)
@@ -142,6 +147,7 @@ export default function AdminShopDetailPage() {
             setOrderCount(ordersRes.count || 0)
         } catch (err) {
             console.error(err)
+            setLoadFailed(true)
         } finally {
             setLoading(false)
         }
@@ -157,14 +163,23 @@ export default function AdminShopDetailPage() {
             body: JSON.stringify({ shopId, ...body }),
         })
         const json = await res.json().catch(() => ({}))
-        if (!res.ok || json.success === false) throw new Error(json.error || 'Request failed')
+        if (!res.ok || json.success === false) throw new Error(json.error || 'That did not work.')
     }
 
     const updateApproval = async (status: 'approved' | 'rejected' | 'suspended') => {
+        if (status !== 'approved') {
+            const ok = await ask({
+                title: status === 'suspended' ? `Suspend ${shop?.shop_name ?? 'this shop'}?` : `Reject ${shop?.shop_name ?? 'this shop'}?`,
+                description: 'The shop goes offline and the owner is told. You can approve it again later.',
+                confirmLabel: status === 'suspended' ? 'Suspend shop' : 'Reject shop',
+                destructive: true,
+            })
+            if (!ok) return
+        }
         setSaving(true)
         try {
             await shopAction({ status, note: approvalNote.trim() })
-            toast.success(`Shop ${status}`)
+            toast.success(status === 'approved' ? 'Shop approved' : status === 'suspended' ? 'Shop suspended' : 'Shop rejected')
             fetchData()
 
             // Alerts 5 & 6 — profile approved/rejected SMS + Email (non-blocking)
@@ -185,7 +200,7 @@ export default function AdminShopDetailPage() {
                 }).catch(err => console.warn('[ShopAlert]', err))
             }
         } catch (err: any) {
-            toast.error(err.message || 'Failed to update status')
+            toast.error(err.message || 'Could not update the shop. Try again.')
         } finally {
             setSaving(false)
         }
@@ -199,7 +214,7 @@ export default function AdminShopDetailPage() {
             // publishes them and brings the shop online.
             await shopAction({ action: 'approve_pricing' })
 
-            toast.success('Pricing approved! Shop is now live.')
+            toast.success('Prices approved. The shop is live.')
             fetchData()
 
             // Alert 3 — SMS + Email to owner (non-blocking)
@@ -214,7 +229,7 @@ export default function AdminShopDetailPage() {
                 }).catch(err => console.warn('[ShopAlert]', err))
             }
         } catch (err: any) {
-            toast.error(err.message || 'Failed to approve pricing')
+            toast.error(err.message || 'Could not approve the prices. Try again.')
         } finally {
             setPricingAction(null)
         }
@@ -222,13 +237,13 @@ export default function AdminShopDetailPage() {
 
     const rejectPricing = async () => {
         if (!pricingNote.trim()) {
-            toast.error('Please add a rejection note for the shop owner')
+            toast.error('Write a note so the owner knows what to change.')
             return
         }
         setPricingAction('rejecting')
         try {
             await shopAction({ action: 'reject_pricing', note: pricingNote.trim() })
-            toast.success('Pricing rejected. Owner will be notified.')
+            toast.success('Prices rejected. The owner is told.')
             fetchData()
 
             // Alert 4 — SMS + Email to owner (non-blocking)
@@ -243,7 +258,7 @@ export default function AdminShopDetailPage() {
                 }).catch(err => console.warn('[ShopAlert]', err))
             }
         } catch (err: any) {
-            toast.error(err.message || 'Failed to reject pricing')
+            toast.error(err.message || 'Could not reject the prices. Try again.')
         } finally {
             setPricingAction(null)
         }
@@ -262,7 +277,7 @@ export default function AdminShopDetailPage() {
             // needs service-role DB access and can't run safely in the browser.
             const res = await fetch(`/api/admin/shop/${shopId}/live-pricing`)
             const json = await res.json()
-            if (!res.ok || json.success === false) throw new Error(json.error || 'Failed to fetch live pricing')
+            if (!res.ok || json.success === false) throw new Error(json.error || 'Could not load the live prices.')
             const data = json.data
             const sorted = ((data || []) as LivePrice[]).sort((a, b) => {
                 const netA = networkSortOrder(a.data_packages?.network || '')
@@ -273,7 +288,7 @@ export default function AdminShopDetailPage() {
             setLivePrices(sorted)
             setShowLivePrices(true)
         } catch (err: any) {
-            toast.error(err.message || 'Failed to fetch live pricing')
+            toast.error(err.message || 'Could not load the live prices. Try again.')
         } finally {
             setFetchingPrices(false)
         }
@@ -281,9 +296,16 @@ export default function AdminShopDetailPage() {
 
     const revokeLivePricing = async () => {
         if (!revocationNote.trim()) {
-            toast.error('Please provide a revocation reason for the shop owner')
+            toast.error('Write a reason so the owner knows what to change.')
             return
         }
+        const ok = await ask({
+            title: 'Take down this shop\'s prices?',
+            description: 'All live prices are cleared and the shop goes offline until the owner submits prices again.',
+            confirmLabel: 'Revoke prices',
+            destructive: true,
+        })
+        if (!ok) return
         setRevokingPricing(true)
         try {
             await shopAction({ action: 'revoke_pricing', note: revocationNote.trim() })
@@ -303,13 +325,13 @@ export default function AdminShopDetailPage() {
                     }),
                 }).catch(err => console.warn('[ShopAlert]', err))
             }
-            toast.success('Live pricing revoked. Shop has been taken offline.')
+            toast.success('Prices revoked. The shop is offline.')
             setShowLivePrices(false)
             setLivePrices([])
             setRevocationNote('')
             fetchData()
         } catch (err: any) {
-            toast.error(err.message || 'Failed to revoke pricing')
+            toast.error(err.message || 'Could not revoke the prices. Try again.')
         } finally {
             setRevokingPricing(false)
         }
@@ -324,9 +346,22 @@ export default function AdminShopDetailPage() {
             // - any number → that exact number as an override
             const parseOverride = (val: string): number | null => {
                 const trimmed = val.trim()
-                if (trimmed === '' || trimmed === null) return null
-                const parsed = parseFloat(trimmed)
-                return isNaN(parsed) ? null : parsed
+                if (trimmed === '') return null
+                return Number(trimmed)
+            }
+            const bounds: [string, string, number][] = [
+                ['Paystack fee', feeOverride, 10],
+                ['Withdrawal fee', withdrawFeePercent, 50],
+                ['Withdrawal flat fee', withdrawFeeFlat, 1000],
+                ['Smallest withdrawal', minWithdrawAmount, 100000],
+            ]
+            for (const [label, val, max] of bounds) {
+                if (val.trim() === '') continue
+                const n = Number(val)
+                if (!Number.isFinite(n) || n < 0 || n > max) {
+                    toast.error(`${label} must be a number from 0 to ${max}, or left blank to use the default.`)
+                    return
+                }
             }
 
             // Use the server-side API route which uses the service role client.
@@ -344,12 +379,12 @@ export default function AdminShopDetailPage() {
                     min_withdrawal_amount:  parseOverride(minWithdrawAmount),
                 }),
             })
-            const result = await res.json()
-            if (!res.ok) throw new Error(result.error || 'Failed to save settings')
+            const result = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(result.error || 'Could not save the settings.')
             toast.success('Settings saved')
             fetchData()
         } catch (err: any) {
-            toast.error(err.message || 'Failed to save settings')
+            toast.error(err.message || 'Could not save the settings. Try again.')
         } finally {
             setSaving(false)
         }
@@ -366,11 +401,21 @@ export default function AdminShopDetailPage() {
         )
     }
 
+    if (loadFailed) {
+        return (
+            <div role="alert" className="max-w-md neu-raised-sm rounded-3xl p-6 space-y-3">
+                <p className="font-display text-base font-semibold">Could not load this shop</p>
+                <p className="text-sm text-muted-foreground">Check your connection, then try again.</p>
+                <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchData() }}>Try again</Button>
+            </div>
+        )
+    }
+
     if (!shop) {
         return (
             <div className="text-center py-12">
-                <p className="text-muted-foreground">Shop not found.</p>
-                <Link href="/admin/shops"><Button variant="outline" className="mt-4">Back to Shops</Button></Link>
+                <p className="text-muted-foreground">This shop doesn't exist.</p>
+                <Link href="/admin/shops"><Button variant="outline" className="mt-4">Back to shops</Button></Link>
             </div>
         )
     }
@@ -381,16 +426,17 @@ export default function AdminShopDetailPage() {
 
     return (
         <div className="space-y-6 max-w-3xl">
+            {dialog}
             {/* Header */}
             <div className="flex items-center gap-3">
                 <Link href="/admin/shops">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Back to shops">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                 </Link>
                 <div className="flex-1">
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Store className="w-5 h-5 text-emerald-600" />
+                    <h1 className="font-display text-xl font-bold flex items-center gap-2">
+                        <Store className="w-5 h-5 text-brand-700 dark:text-brand-500" />
                         {shop.shop_name}
                     </h1>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -410,40 +456,40 @@ export default function AdminShopDetailPage() {
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm">Owner Details</CardTitle>
+                        <CardTitle className="text-sm">Owner</CardTitle>
                         {shop.whatsapp_number && (
                             <a
                                 href={`https://wa.me/${shop.whatsapp_number}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                <Button size="sm" className="h-8 text-xs bg-[#25D366] hover:bg-[#1ebe5d] text-white gap-1.5">
+                                <Button size="sm" className="h-9 text-xs clay-silver gap-1.5">
                                     <MessageCircle className="w-3.5 h-3.5" />
-                                    WhatsApp Owner
+                                    Message on WhatsApp
                                 </Button>
                             </a>
                         )}
                     </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-3 text-sm">
-                    <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{owner?.first_name} {owner?.last_name}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{[owner?.first_name, owner?.last_name].filter(Boolean).join(' ') || 'Unnamed owner'}</p></div>
                     <div><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{owner?.email}</p></div>
                     <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{shop.owner_phone}</p></div>
                     <div><p className="text-xs text-muted-foreground">WhatsApp</p><p className="font-medium">{shop.whatsapp_number || '—'}</p></div>
                     <div><p className="text-xs text-muted-foreground">Created</p><p className="font-medium">{new Date(shop.created_at).toLocaleDateString()}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Total Orders</p><p className="font-medium">{orderCount}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Orders</p><p className="font-medium">{orderCount}</p></div>
                 </CardContent>
             </Card>
 
             {/* Profit Wallet */}
-            <Card className="overflow-hidden border-0 shadow-md">
-                <div className="clay-gold p-5 text-white">
+            <Card className="overflow-hidden border-0">
+                <div className="neu-raised-sm rounded-3xl p-5">
                     <div className="flex items-center gap-2 mb-2">
-                        <Wallet className="w-4 h-4 text-emerald-200" />
-                        <p className="text-emerald-100 text-sm font-medium">Profit Wallet</p>
+                        <Wallet className="w-4 h-4 text-muted-foreground" />
+                        <p className="text-muted-foreground text-sm font-medium">Shop profit wallet</p>
                     </div>
                     <p className="text-3xl font-bold">{formatCurrency(wallet?.balance || 0)}</p>
-                    <div className="flex gap-4 mt-2 text-xs text-emerald-200">
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Earned: {formatCurrency(wallet?.total_earned || 0)}</span>
                         <span>Withdrawn: {formatCurrency(wallet?.total_withdrawn || 0)}</span>
                     </div>
@@ -452,27 +498,26 @@ export default function AdminShopDetailPage() {
 
             {/* Stage 2: Pricing Review Panel */}
             {shop.approval_status === 'approved' && shop.pricing_status === 'pending_review' && (
-                <Card className="border-brand-200 dark:border-brand-800">
+                <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm flex items-center gap-2 text-brand-700 dark:text-brand-400">
+                        <CardTitle className="text-sm flex items-center gap-2">
                             <Tag className="w-4 h-4" />
-                            Pricing Review — Action Required
+                            Prices waiting for your review
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <p className="text-xs text-muted-foreground">
-                            The shop owner has submitted new pricing and the shop is offline until you decide.
-                            Open <strong>View Live Pricing</strong> below to review the submitted prices, then approve or reject.
+                            The owner submitted new prices and the shop is offline until you decide. Open <strong>View live prices</strong> below to check them, then approve or reject.
                         </p>
 
                         {/* Rejection note */}
                         <div>
-                            <Label htmlFor="pricing_note">Rejection Note (required if rejecting)</Label>
+                            <Label htmlFor="pricing_note">Note to the owner (needed to reject)</Label>
                             <Textarea
                                 id="pricing_note"
                                 value={pricingNote}
                                 onChange={(e) => setPricingNote(e.target.value)}
-                                placeholder="Explain why the pricing was rejected so the owner can revise..."
+                                placeholder="Say what to change so the owner can resubmit…"
                                 rows={2}
                                 className="mt-1"
                             />
@@ -482,10 +527,10 @@ export default function AdminShopDetailPage() {
                             <Button
                                 onClick={approvePricing}
                                 disabled={!!pricingAction}
-                                className="gap-1.5 clay clay-green"
+                                className="gap-1.5 clay-black"
                             >
                                 {pricingAction === 'approving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                Approve Pricing
+                                Approve prices
                             </Button>
                             <Button
                                 onClick={rejectPricing}
@@ -494,7 +539,7 @@ export default function AdminShopDetailPage() {
                                 className="border-red-500 text-red-600 hover:bg-red-50 gap-1.5"
                             >
                                 {pricingAction === 'rejecting' ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                Reject Pricing
+                                Reject prices
                             </Button>
                         </div>
                     </CardContent>
@@ -502,19 +547,19 @@ export default function AdminShopDetailPage() {
             )}
 
             {/* Live Pricing Viewer */}
-            <Card className="border-brand-200 dark:border-brand-800">
+            <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm flex items-center gap-2 text-brand-700 dark:text-brand-400">
+                        <CardTitle className="text-sm flex items-center gap-2">
                             <BarChart2 className="w-4 h-4" />
-                            Live Shop Pricing
+                            Live prices
                         </CardTitle>
                         <Button
                             size="sm"
                             variant="outline"
                             onClick={fetchLivePrices}
                             disabled={fetchingPrices}
-                            className="h-8 text-xs gap-1.5 border-brand-500 text-brand-700 hover:bg-brand-50"
+                            className="h-9 text-xs gap-1.5"
                         >
                             {fetchingPrices ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -523,7 +568,7 @@ export default function AdminShopDetailPage() {
                             ) : (
                                 <Eye className="w-3.5 h-3.5" />
                             )}
-                            {showLivePrices ? 'Hide Live Pricing' : 'View Live Pricing'}
+                            {showLivePrices ? 'Hide live prices' : 'View live prices'}
                         </Button>
                     </div>
                 </CardHeader>
@@ -531,7 +576,7 @@ export default function AdminShopDetailPage() {
                 {showLivePrices && (
                     <CardContent className="space-y-4">
                         {livePrices.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">No live pricing configured for this shop.</p>
+                            <p className="text-sm text-muted-foreground text-center py-4">This shop has no live prices.</p>
                         ) : (() => {
                             const totalPkg = livePrices.length
                             const avgProfit = livePrices.reduce((sum, p) => {
@@ -541,16 +586,16 @@ export default function AdminShopDetailPage() {
                             return (
                                 <>
                                     {/* Summary Metrics Bar */}
-                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-brand-50 dark:bg-brand-950 border border-brand-100 dark:border-brand-800">
+                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted">
                                         <div className="flex items-center gap-1.5">
-                                            <BarChart2 className="w-3.5 h-3.5 text-brand-700" />
-                                            <span className="text-xs text-muted-foreground">Total Packages:</span>
-                                            <span className="text-xs font-bold text-brand-700">{totalPkg}</span>
+                                            <BarChart2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                            <span className="text-xs text-muted-foreground">Packages:</span>
+                                            <span className="text-xs font-semibold text-foreground">{totalPkg}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                                            <span className="text-xs text-muted-foreground">Avg. Profit:</span>
-                                            <span className={cn('text-xs font-bold', avgProfit > 0 ? 'text-emerald-600' : 'text-red-600')}>
+                                            <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+                                            <span className="text-xs text-muted-foreground">Average profit:</span>
+                                            <span className={cn('text-xs font-bold', avgProfit > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600')}>
                                                 {avgProfit > 0 ? '+' : ''}{formatCurrency(avgProfit)}
                                             </span>
                                         </div>
@@ -581,7 +626,7 @@ export default function AdminShopDetailPage() {
                                                             <td className="px-3 py-2 font-medium">{pkg?.network} {pkg?.size}</td>
                                                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(cost)}</td>
                                                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.selling_price)}</td>
-                                                            <td className={cn('px-3 py-2 text-right font-bold', hasWarning ? 'text-red-600' : 'text-emerald-600')}>
+                                                            <td className={cn('px-3 py-2 text-right font-bold', hasWarning ? 'text-red-600' : 'text-emerald-700 dark:text-emerald-400')}>
                                                                 <span className="flex items-center justify-end gap-1">
                                                                     {hasWarning && <AlertTriangle className="w-3 h-3" />}
                                                                     {profit > 0 ? '+' : ''}{formatCurrency(profit)}
@@ -596,15 +641,15 @@ export default function AdminShopDetailPage() {
 
                                     {/* Revoke Live Pricing */}
                                     <div className="space-y-2 pt-2 border-t">
-                                        <p className="text-xs font-semibold text-red-600">Revoke Live Pricing</p>
-                                        <p className="text-xs text-muted-foreground">Revoking will clear all live prices, take the shop offline, and notify the owner to re-submit pricing.</p>
+                                        <p className="text-xs font-semibold text-red-600">Revoke live prices</p>
+                                        <p className="text-xs text-muted-foreground">This clears every live price, takes the shop offline and tells the owner to submit prices again.</p>
                                         <div>
-                                            <Label htmlFor="revocation_note">Revocation Reason (required)</Label>
+                                            <Label htmlFor="revocation_note">Reason for the owner (required)</Label>
                                             <Textarea
                                                 id="revocation_note"
                                                 value={revocationNote}
                                                 onChange={(e) => setRevocationNote(e.target.value)}
-                                                placeholder="Explain to the shop owner why their pricing was revoked..."
+                                                placeholder="Say why the prices were revoked…"
                                                 rows={2}
                                                 className="mt-1"
                                             />
@@ -616,7 +661,7 @@ export default function AdminShopDetailPage() {
                                             className="border-red-500 text-red-600 hover:bg-red-50 gap-1.5"
                                         >
                                             {revokingPricing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                            Revoke Live Pricing
+                                            Revoke live prices
                                         </Button>
                                     </div>
                                 </>
@@ -628,15 +673,15 @@ export default function AdminShopDetailPage() {
 
             {/* Approval Controls */}
             <Card>
-                <CardHeader><CardTitle className="text-sm">Profile Approval Controls</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">Shop approval</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label htmlFor="approval_note">Admin Note (shown to shop owner)</Label>
+                        <Label htmlFor="approval_note">Note to the owner</Label>
                         <Textarea
                             id="approval_note"
                             value={approvalNote}
                             onChange={(e) => setApprovalNote(e.target.value)}
-                            placeholder="Reason for rejection/suspension, or approval message..."
+                            placeholder="The reason, or a message with the approval…"
                             rows={2}
                             className="mt-1"
                         />
@@ -645,9 +690,9 @@ export default function AdminShopDetailPage() {
                         <Button
                             onClick={() => updateApproval('approved')}
                             disabled={saving || shop.approval_status === 'approved'}
-                            className="gap-1.5 clay clay-green"
+                            className="gap-1.5 clay-black"
                         >
-                            <CheckCircle2 className="w-4 h-4" /> Approve Profile
+                            <CheckCircle2 className="w-4 h-4" /> Approve shop
                         </Button>
                         <Button
                             onClick={() => updateApproval('suspended')}
@@ -663,7 +708,7 @@ export default function AdminShopDetailPage() {
                             variant="outline"
                             className="border-red-500 text-red-600 hover:bg-red-50 gap-1.5"
                         >
-                            <XCircle className="w-4 h-4" /> Reject Profile
+                            <XCircle className="w-4 h-4" /> Reject shop
                         </Button>
                     </div>
                 </CardContent>
@@ -671,20 +716,20 @@ export default function AdminShopDetailPage() {
 
             {/* Shop Settings */}
             <Card>
-                <CardHeader><CardTitle className="text-sm">Shop Settings</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">Shop settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
-                            <p className="text-sm font-medium">Shop Active</p>
-                            <p className="text-xs text-muted-foreground">Toggle to hide shop without changing approval status</p>
+                            <p className="text-sm font-medium">Shop is visible</p>
+                            <p className="text-xs text-muted-foreground">Hide the shop without changing its approval</p>
                         </div>
                         <Switch checked={isActive} onCheckedChange={setIsActive} />
                     </div>
 
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
-                            <p className="text-sm font-medium">Auto Fulfillment</p>
-                            <p className="text-xs text-muted-foreground">Auto-fulfill orders via a connected supplier (none configured yet — orders wait for manual fulfillment either way)</p>
+                            <p className="text-sm font-medium">Fulfil orders automatically</p>
+                            <p className="text-xs text-muted-foreground">Uses a connected supplier. None is set up yet, so orders wait for manual fulfilment either way.</p>
                         </div>
                         <Switch
                             checked={fulfillmentMode === 'auto'}
@@ -693,7 +738,7 @@ export default function AdminShopDetailPage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="fee_override">Paystack Fee Override (%)</Label>
+                        <Label htmlFor="fee_override">Paystack fee for this shop (%)</Label>
                         <Input
                             id="fee_override"
                             type="number"
@@ -702,20 +747,20 @@ export default function AdminShopDetailPage() {
                             step="0.01"
                             value={feeOverride}
                             onChange={(e) => setFeeOverride(e.target.value)}
-                            placeholder="Blank = Inherits Global Rate"
+                            placeholder="Blank uses the default"
                             className="mt-1 max-w-xs"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                            Leave blank to inherit the global rate for this owner's role. Enter <strong>0</strong> to waive the fee entirely for this shop.
+                            Leave blank to use the default for this owner's role. Enter <strong>0</strong> to waive the fee for this shop.
                         </p>
                     </div>
 
                     <div className="p-3 rounded-lg bg-muted/40 border border-dashed text-xs text-muted-foreground mb-1">
-                        <strong>Note:</strong> Blank = Inherits rate from Global Settings (based on owner's role). &nbsp;|&nbsp; <strong>0</strong> = Fee deliberately waived for this shop.
+                        Blank uses the default from Shop settings for the owner's role. <strong>0</strong> waives the fee for this shop.
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="withdraw_fee_percent">Withdrawal Fee (%) Override</Label>
+                            <Label htmlFor="withdraw_fee_percent">Withdrawal fee for this shop (%)</Label>
                             <Input
                                 id="withdraw_fee_percent"
                                 type="number"
@@ -724,12 +769,12 @@ export default function AdminShopDetailPage() {
                                 step="0.1"
                                 value={withdrawFeePercent}
                                 onChange={(e) => setWithdrawFeePercent(e.target.value)}
-                                placeholder="Blank = Inherits Global Rate"
+                                placeholder="Blank uses the default"
                                 className="mt-1"
                             />
                         </div>
                         <div>
-                            <Label htmlFor="withdraw_fee_flat">Withdrawal Flat Fee (GHS) Override</Label>
+                            <Label htmlFor="withdraw_fee_flat">Withdrawal flat fee for this shop (GH₵)</Label>
                             <Input
                                 id="withdraw_fee_flat"
                                 type="number"
@@ -737,12 +782,12 @@ export default function AdminShopDetailPage() {
                                 step="0.01"
                                 value={withdrawFeeFlat}
                                 onChange={(e) => setWithdrawFeeFlat(e.target.value)}
-                                placeholder="Blank = Inherits Global Rate"
+                                placeholder="Blank uses the default"
                                 className="mt-1"
                             />
                         </div>
                         <div>
-                            <Label htmlFor="min_withdraw">Min Withdrawal (GHS) Override</Label>
+                            <Label htmlFor="min_withdraw">Smallest withdrawal for this shop (GH₵)</Label>
                             <Input
                                 id="min_withdraw"
                                 type="number"
@@ -750,15 +795,15 @@ export default function AdminShopDetailPage() {
                                 step="0.01"
                                 value={minWithdrawAmount}
                                 onChange={(e) => setMinWithdrawAmount(e.target.value)}
-                                placeholder="Blank = Inherits Global Rate"
+                                placeholder="Blank uses the default"
                                 className="mt-1"
                             />
                         </div>
                     </div>
 
-                    <Button onClick={saveSettings} disabled={saving} className="gap-2 clay clay-green">
+                    <Button onClick={saveSettings} disabled={saving} className="gap-2 clay-black">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Settings
+                        Save settings
                     </Button>
                 </CardContent>
             </Card>
