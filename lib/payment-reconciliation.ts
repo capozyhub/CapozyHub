@@ -83,7 +83,9 @@ export async function fetchPaystackStatus(reference: string): Promise<PaystackSt
     const st: string = charge.data.status
     // Fast path: a SUCCESS from /charge is safe to act on immediately — crediting is
     // idempotent and amount-verified downstream. This preserves the speed benefit.
-    if (st === 'success') {
+    // Only when /charge reports the amount: the processors refuse to credit without it, so
+    // an amount-less success falls through to /transaction/verify below instead.
+    if (st === 'success' && typeof charge.data.amount === 'number') {
       return {
         paystackStatus: st,
         amount: typeof charge.data.amount === 'number' ? charge.data.amount / 100 : undefined,

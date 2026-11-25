@@ -5,6 +5,11 @@ import { waitUntil } from '@vercel/functions'
 
 export { processCompletedDealerUpgradePayment } from './dealer-payments'
 
+function hasVerifiableAmount(providerAmountKobo: unknown, expectedTotal: number): boolean {
+    return typeof providerAmountKobo === 'number' && Number.isFinite(providerAmountKobo) &&
+        Number.isFinite(expectedTotal) && expectedTotal > 0
+}
+
 /**
  * Processes a completed payment by updating the status, 
  * crediting the wallet, logging the transaction, and notifying the user.
@@ -41,6 +46,12 @@ export async function processCompletedWalletPayment(reference: string, providerM
     // Paystack always reports `amount` in the minor unit (pesewas/kobo).
     const providerAmountKobo = providerMetadata?.amount
     const expectedTotal = Number((payment as any).total_amount)
+    // Fail closed: a pending payment is never credited unless both amounts are known.
+    // It stays pending, so the webhook/reconciliation can retry with full provider data.
+    if (payment.status === 'pending' && !hasVerifiableAmount(providerAmountKobo, expectedTotal)) {
+        console.error(`[PaymentProcess] Amount missing for ${reference}; not crediting until it can be verified`)
+        return { success: false, error: 'Payment amount could not be verified' }
+    }
     if (
         typeof providerAmountKobo === 'number' &&
         Number.isFinite(providerAmountKobo) &&
@@ -194,6 +205,11 @@ export async function processCompletedUpgradePayment(reference: string, provider
     // Paystack always reports `amount` in the minor unit (pesewas/kobo).
     const providerAmountKobo = providerMetadata?.amount
     const expectedTotal = Number((payment as any).total_amount)
+    // Fail closed, as in processCompletedWalletPayment.
+    if ((payment as any).status === 'pending' && !hasVerifiableAmount(providerAmountKobo, expectedTotal)) {
+        console.error(`[UpgradeProcess] Amount missing for ${reference}; not applying until it can be verified`)
+        return { success: false, error: 'Payment amount could not be verified' }
+    }
     if (
         typeof providerAmountKobo === 'number' &&
         Number.isFinite(providerAmountKobo) &&

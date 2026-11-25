@@ -34,6 +34,14 @@ export async function processCompletedDealerUpgradePayment(reference: string, pr
     // Paystack always reports `amount` in the minor unit (pesewas/kobo).
     const providerAmountKobo = providerMetadata?.amount
     const expectedTotal = Number((payment as any).total_amount)
+    // Fail closed: a pending payment is never applied unless both amounts are known.
+    // It stays pending, so the webhook/reconciliation can retry with full provider data.
+    const amountKnown = typeof providerAmountKobo === 'number' && Number.isFinite(providerAmountKobo) &&
+        Number.isFinite(expectedTotal) && expectedTotal > 0
+    if (payment.status === 'pending' && !amountKnown) {
+        console.error(`[DealerUpgradeProcess] Amount missing for ${reference}; not applying until it can be verified`)
+        return { success: false, error: 'Payment amount could not be verified' }
+    }
     if (
         typeof providerAmountKobo === 'number' &&
         Number.isFinite(providerAmountKobo) &&
