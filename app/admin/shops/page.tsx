@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface Shop {
     id: string
@@ -47,6 +48,8 @@ const roleColors: Record<string, string> = {
 export default function AdminShopsPage() {
     const { dbUser, isAdmin } = useAuth()
     const router = useRouter()
+    const { ask, dialog } = useConfirm()
+    const [loadFailed, setLoadFailed] = useState(false)
     const [shops, setShops] = useState<Shop[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
@@ -59,17 +62,29 @@ export default function AdminShopsPage() {
     }, [dbUser, isAdmin])
 
     const fetchShops = async () => {
-        const { data } = await (supabase
+        setLoadFailed(false)
+        const { data, error } = await (supabase
             .from('shop_profiles')
             .select('*, owner:users!shop_profiles_owner_id_fkey(first_name, last_name, email, role)')
             .order('created_at', { ascending: false }) as any)
-        setShops(data || [])
+        if (error) setLoadFailed(true)
+        else setShops(data || [])
         setLoading(false)
     }
 
     const handleProfileAction = async (shopId: string, action: 'approved' | 'rejected', e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
+        if (action === 'rejected') {
+            const name = shops.find(s => s.id === shopId)?.shop_name ?? 'this shop'
+            const ok = await ask({
+                title: `Reject ${name}?`,
+                description: 'The owner is told it was rejected and the shop stays offline.',
+                confirmLabel: 'Reject shop',
+                destructive: true,
+            })
+            if (!ok) return
+        }
         setActioning(shopId + action)
         try {
             const res = await fetch('/api/admin/shops', {
@@ -79,9 +94,9 @@ export default function AdminShopsPage() {
             })
             if (!res.ok) {
                 const data = await res.json()
-                throw new Error(data.error || 'Failed to update shop status')
+                throw new Error(data.error || 'Could not update the shop. Try again.')
             }
-            toast.success(action === 'approved' ? 'Shop profile approved! Owner can now set prices.' : 'Shop rejected.')
+            toast.success(action === 'approved' ? 'Shop approved. The owner can now set prices.' : 'Shop rejected.')
             fetchShops()
 
             // Fire alert (non-blocking) — send SMS + Email to owner
@@ -103,7 +118,7 @@ export default function AdminShopsPage() {
                 }).catch(err => console.warn('[ShopAlert] Failed to send alert:', err))
             }
         } catch (err: any) {
-            toast.error(err.message || 'Action failed')
+            toast.error(err.message || 'That did not work. Try again.')
         } finally {
             setActioning(null)
         }
@@ -113,7 +128,7 @@ export default function AdminShopsPage() {
         const matchSearch = !search ||
             s.shop_name.toLowerCase().includes(search.toLowerCase()) ||
             s.shop_slug.toLowerCase().includes(search.toLowerCase()) ||
-            s.owner_phone.includes(search) ||
+            (s.owner_phone ?? '').includes(search) ||
             s.owner?.email?.toLowerCase().includes(search.toLowerCase())
         const matchStatus = filterStatus === 'all' || s.approval_status === filterStatus
         return matchSearch && matchStatus
@@ -124,6 +139,16 @@ export default function AdminShopsPage() {
         pending: shops.filter(s => s.approval_status === 'pending').length,
         approved: shops.filter(s => s.approval_status === 'approved').length,
         suspended: shops.filter(s => s.approval_status === 'suspended').length,
+    }
+
+    if (!loading && loadFailed) {
+        return (
+            <div role="alert" className="max-w-md neu-raised-sm rounded-3xl p-6 space-y-3">
+                <p className="font-display text-base font-semibold">Could not load the shops</p>
+                <p className="text-sm text-muted-foreground">Check your connection, then try again.</p>
+                <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchShops() }}>Try again</Button>
+            </div>
+        )
     }
 
     if (loading) {
@@ -137,23 +162,24 @@ export default function AdminShopsPage() {
 
     return (
         <div className="space-y-6">
+            {dialog}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Store className="w-6 h-6 text-emerald-600" />
-                        Shop Management
+                    <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+                        <Store className="w-6 h-6 text-brand-700 dark:text-brand-500" />
+                        Shops
                     </h1>
-                    <p className="text-muted-foreground text-sm mt-1">{shops.length} shops total</p>
+                    <p className="text-muted-foreground text-sm mt-1">{shops.length} {shops.length === 1 ? 'shop' : 'shops'}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link href="/admin/shops/withdrawals">
-                        <Button variant="outline" size="sm" className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                            <Banknote className="w-4 h-4" /> Manage Withdrawals
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                            <Banknote className="w-4 h-4" /> Withdrawals
                         </Button>
                     </Link>
                     <Link href="/admin/shops/settings">
                         <Button variant="outline" size="sm" className="gap-1.5">
-                            <Settings className="w-4 h-4" /> Global Settings
+                            <Settings className="w-4 h-4" /> Shop settings
                         </Button>
                     </Link>
                 </div>
@@ -164,11 +190,13 @@ export default function AdminShopsPage() {
                 {(['all', 'pending', 'approved', 'suspended'] as const).map(status => (
                     <button
                         key={status}
+                        type="button"
+                        aria-pressed={filterStatus === status}
                         onClick={() => setFilterStatus(status)}
                         className={cn(
                             'flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-all border',
                             filterStatus === status
-                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                ? 'clay-black border-transparent'
                                 : 'bg-card text-muted-foreground border-border'
                         )}
                     >
@@ -184,7 +212,7 @@ export default function AdminShopsPage() {
                 <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search by name, slug, phone, or email..."
+                    aria-label="Search shops" placeholder="Search by name, link, phone or email…"
                     className="pl-9"
                 />
             </div>
@@ -194,7 +222,7 @@ export default function AdminShopsPage() {
                 {filtered.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                         <Store className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">No shops found.</p>
+                        <p className="text-sm">{shops.length === 0 ? 'No shops yet.' : 'No shops match this search.'}</p>
                     </div>
                 ) : (
                     filtered.map(shop => {
@@ -205,12 +233,12 @@ export default function AdminShopsPage() {
                         const isRejectingProfile = actioning === shop.id + 'rejected'
 
                         return (
-                            <Card key={shop.id} className="hover:shadow-md transition-shadow">
+                            <Card key={shop.id} className="transition-shadow hover:shadow-md">
                                 <CardContent className="p-4">
                                     <div className="flex items-start gap-4">
                                         {/* Icon */}
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <Store className="w-5 h-5 text-emerald-600" />
+                                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <Store className="w-5 h-5 text-muted-foreground" />
                                         </div>
 
                                         {/* Info */}
@@ -231,19 +259,19 @@ export default function AdminShopsPage() {
                                                                     'bg-muted text-muted-foreground '
                                                     )}>
                                                         <Tag className="w-3 h-3" />
-                                                        {shop.pricing_status === 'approved' ? 'Pricing ✓' :
-                                                            shop.pricing_status === 'pending_review' ? 'Pricing Review' :
-                                                                shop.pricing_status === 'rejected' ? 'Pricing Rejected' :
-                                                                    'Awaiting Pricing'}
+                                                        {shop.pricing_status === 'approved' ? 'Prices approved' :
+                                                            shop.pricing_status === 'pending_review' ? 'Prices to review' :
+                                                                shop.pricing_status === 'rejected' ? 'Prices rejected' :
+                                                                    'Waiting for prices'}
                                                     </span>
                                                 )}
                                             </div>
                                             <div className="flex items-center flex-wrap gap-2 mt-1">
                                                 <p className="text-xs text-muted-foreground">
-                                                    /shop/{shop.shop_slug} · {owner?.first_name} {owner?.last_name} · {shop.owner_phone}
+                                                    /shop/{shop.shop_slug} · {[owner?.first_name, owner?.last_name].filter(Boolean).join(' ') || 'Unnamed owner'} · {shop.owner_phone}
                                                 </p>
                                                 {owner?.role && (
-                                                    <span className={cn('inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full capitalize', roleColors[owner.role] || roleColors.customer)}>
+                                                    <span className={cn('inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full capitalize', roleColors[owner.role] || roleColors.customer)}>
                                                         <Crown className="w-2.5 h-2.5 mr-1" />
                                                         {owner.role}
                                                     </span>
@@ -261,7 +289,7 @@ export default function AdminShopsPage() {
                                                 <>
                                                     <Button
                                                         size="sm"
-                                                        className="h-8 text-xs gap-1 clay clay-green"
+                                                        className="h-9 text-xs gap-1 clay-black"
                                                         onClick={(e) => handleProfileAction(shop.id, 'approved', e)}
                                                         disabled={!!actioning}
                                                     >
@@ -271,7 +299,7 @@ export default function AdminShopsPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="h-8 text-xs border-red-400 text-red-600 hover:bg-red-50 gap-1"
+                                                        className="h-9 text-xs border-red-400 text-red-600 hover:bg-red-50 gap-1"
                                                         onClick={(e) => handleProfileAction(shop.id, 'rejected', e)}
                                                         disabled={!!actioning}
                                                     >
@@ -284,9 +312,9 @@ export default function AdminShopsPage() {
                                             {/* Stage 2: Pricing pending review — show Review Pricing */}
                                             {shop.approval_status === 'approved' && shop.pricing_status === 'pending_review' && (
                                                 <Link href={`/admin/shops/${shop.id}`}>
-                                                    <Button size="sm" className="h-8 text-xs bg-brand-600 hover:bg-brand-700 text-white gap-1">
+                                                    <Button size="sm" className="h-9 text-xs clay-gold gap-1">
                                                         <Tag className="w-3 h-3" />
-                                                        Review Pricing
+                                                        Review prices
                                                     </Button>
                                                 </Link>
                                             )}

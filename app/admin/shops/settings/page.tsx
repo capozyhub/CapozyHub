@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Settings, ArrowLeft, Save, Loader2, AlertCircle, Users, UserCheck, Gem } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface RoleFeeConfig {
     paystack_fee_percent: string
@@ -90,7 +91,7 @@ function RoleFeeCard({
     onChange: (key: keyof RoleFeeConfig, value: string) => void
 }) {
     return (
-        <Card className={`border-2 ${borderColor}`}>
+        <Card className={`border ${borderColor}`}>
             <CardHeader className="pb-3">
                 <CardTitle className={`text-sm flex items-center gap-2 ${iconColor}`}>
                     <Icon className="w-4 h-4" />
@@ -100,7 +101,7 @@ function RoleFeeCard({
             </CardHeader>
             <CardContent className="space-y-4">
                 <div>
-                    <Label htmlFor={`${title}_paystack_fee`}>Paystack Fee (%)</Label>
+                    <Label htmlFor={`${title}_paystack_fee`}>Paystack fee (%)</Label>
                     <Input
                         id={`${title}_paystack_fee`}
                         type="number"
@@ -112,12 +113,12 @@ function RoleFeeCard({
                         className="mt-1"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Added on top of selling price to cover Paystack charges for {title.toLowerCase()} shops.
+                        Added on top of the selling price to cover Paystack's charge at {title.toLowerCase()} shops.
                     </p>
                 </div>
 
                 <div>
-                    <Label htmlFor={`${title}_withdrawal_fee_percent`}>Withdrawal Fee (%)</Label>
+                    <Label htmlFor={`${title}_withdrawal_fee_percent`}>Withdrawal fee (%)</Label>
                     <Input
                         id={`${title}_withdrawal_fee_percent`}
                         type="number"
@@ -131,7 +132,7 @@ function RoleFeeCard({
                 </div>
 
                 <div>
-                    <Label htmlFor={`${title}_withdrawal_fee_flat`}>Withdrawal Flat Fee (GHS)</Label>
+                    <Label htmlFor={`${title}_withdrawal_fee_flat`}>Withdrawal flat fee (GH₵)</Label>
                     <Input
                         id={`${title}_withdrawal_fee_flat`}
                         type="number"
@@ -144,7 +145,7 @@ function RoleFeeCard({
                 </div>
 
                 <div>
-                    <Label htmlFor={`${title}_min_withdrawal`}>Minimum Withdrawal Amount (GHS)</Label>
+                    <Label htmlFor={`${title}_min_withdrawal`}>Smallest withdrawal (GH₵)</Label>
                     <Input
                         id={`${title}_min_withdrawal`}
                         type="number"
@@ -157,7 +158,7 @@ function RoleFeeCard({
                 </div>
 
                 <div>
-                    <Label htmlFor={`${title}_data_profit_max`}>Max Data Package Profit (GHS)</Label>
+                    <Label htmlFor={`${title}_data_profit_max`}>Most profit per data package (GH₵)</Label>
                     <Input
                         id={`${title}_data_profit_max`}
                         type="number"
@@ -168,12 +169,12 @@ function RoleFeeCard({
                         className="mt-1"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Maximum profit per data package for {title.toLowerCase()} shops. <strong>0 = no limit.</strong>
+                        The most a {title.toLowerCase()} shop can earn on one data package. <strong>0 means no limit.</strong>
                     </p>
                 </div>
 
                 <div>
-                    <Label htmlFor={`${title}_mashup_fee_max`}>Max MTN Mashup Shop Fee (%)</Label>
+                    <Label htmlFor={`${title}_mashup_fee_max`}>Most MTN Mashup shop fee (%)</Label>
                     <Input
                         id={`${title}_mashup_fee_max`}
                         type="number"
@@ -184,7 +185,7 @@ function RoleFeeCard({
                         className="mt-1"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Maximum markup fee for MTN Mashup storefront orders. <strong>0 = no limit.</strong>
+                        The most a shop can add on MTN Mashup orders. <strong>0 means no limit.</strong>
                     </p>
                 </div>
             </CardContent>
@@ -197,6 +198,8 @@ type Role = 'customer' | 'agent' | 'dealer'
 export default function AdminShopSettingsPage() {
     const { dbUser, isAdmin } = useAuth()
     const router = useRouter()
+    const { ask, dialog } = useConfirm()
+    const [loadFailed, setLoadFailed] = useState(false)
     const [settings, setSettings] = useState<GlobalSettings>(DEFAULTS)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -207,7 +210,14 @@ export default function AdminShopSettingsPage() {
     }, [dbUser, isAdmin])
 
     const fetchSettings = async () => {
-        const { data } = await (supabase as any).from('shop_global_settings').select('*')
+        setLoadFailed(false)
+        setLoading(true)
+        const { data, error } = await (supabase as any).from('shop_global_settings').select('*')
+        if (error || !data) {
+            setLoadFailed(true)
+            setLoading(false)
+            return
+        }
         if (data) {
             const map: Record<string, any> = {}
             for (const row of data) {
@@ -268,6 +278,34 @@ export default function AdminShopSettingsPage() {
     }
 
     const handleSave = async () => {
+        const roleLabel: Record<Role, string> = { customer: 'Customer', agent: 'Agent', dealer: 'Dealer' }
+        for (const role of ['customer', 'agent', 'dealer'] as Role[]) {
+            const c = settings[role]
+            const checks: [string, string, number, number][] = [
+                ['Paystack fee', c.paystack_fee_percent, 0, 10],
+                ['Withdrawal fee (%)', c.withdrawal_fee_percent, 0, 50],
+                ['Withdrawal flat fee', c.withdrawal_fee_flat, 0, 1000],
+                ['Minimum withdrawal', c.min_withdrawal_amount, 1, 100000],
+                ['Max data package profit', c.data_profit_max, 0, 100000],
+                ['Max MTN Mashup fee', c.mashup_shop_fee_max, 0, 100],
+            ]
+            for (const [label, val, min, max] of checks) {
+                const n = Number(val)
+                if (val.trim() === '' || !Number.isFinite(n) || n < min || n > max) {
+                    toast.error(`${roleLabel[role]} ${label.toLowerCase()} must be a number from ${min} to ${max}.`)
+                    return
+                }
+            }
+        }
+        if (!settings.shop_feature_enabled) {
+            const ok = await ask({
+                title: 'Switch off all shop checkouts?',
+                description: 'Nobody will be able to pay at any shop until you switch this back on.',
+                confirmLabel: 'Save with shops off',
+                destructive: true,
+            })
+            if (!ok) return
+        }
         setSaving(true)
         try {
             const now = new Date().toISOString()
@@ -316,11 +354,11 @@ export default function AdminShopSettingsPage() {
                 body: JSON.stringify({ rows }),
             })
             const result = await res.json()
-            if (!res.ok) throw new Error(result.error || 'Failed to save settings')
+            if (!res.ok) throw new Error(result.error || 'Could not save the settings.')
 
-            toast.success('Global settings saved! Changes take effect immediately.')
+            toast.success('Saved. Shops use these settings straight away.')
         } catch (err: any) {
-            toast.error(err.message || 'Failed to save settings')
+            toast.error(err.message || 'Could not save the settings. Try again.')
         } finally {
             setSaving(false)
         }
@@ -335,33 +373,44 @@ export default function AdminShopSettingsPage() {
         )
     }
 
+    if (loadFailed) {
+        return (
+            <div role="alert" className="max-w-md neu-raised-sm rounded-3xl p-6 space-y-3">
+                <p className="font-display text-base font-semibold">Could not load the shop settings</p>
+                <p className="text-sm text-muted-foreground">The form is hidden so you can't save defaults over the live values. Check your connection and try again.</p>
+                <Button variant="outline" size="sm" onClick={() => fetchSettings()}>Try again</Button>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6 max-w-4xl">
+            {dialog}
             <div className="flex items-center gap-3">
                 <Link href="/admin/shops">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Back to shops">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Settings className="w-5 h-5 text-emerald-600" />
-                        Global Shop Settings
+                    <h1 className="font-display text-xl font-bold flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-brand-700 dark:text-brand-500" />
+                        Shop settings
                     </h1>
                     <p className="text-muted-foreground text-sm">
-                        Platform-wide defaults. Shops without custom overrides inherit these instantly on save.
+                        Defaults for every shop. A shop with its own override keeps it.
                     </p>
                 </div>
             </div>
 
             {/* Master Kill Switch */}
             <Card className={!settings.shop_feature_enabled ? 'border-red-500' : ''}>
-                <CardHeader><CardTitle className="text-sm">Platform Control</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">Shops on or off</CardTitle></CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
-                            <p className="text-sm font-medium">Shop Feature Enabled</p>
-                            <p className="text-xs text-muted-foreground">Master kill switch — disables all shop checkouts</p>
+                            <p className="text-sm font-medium">Shops are on</p>
+                            <p className="text-xs text-muted-foreground">Switch off to stop checkouts at every shop</p>
                         </div>
                         <Switch
                             checked={settings.shop_feature_enabled}
@@ -371,7 +420,7 @@ export default function AdminShopSettingsPage() {
                     {!settings.shop_feature_enabled && (
                         <div className="mt-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex gap-2 text-sm text-red-700 dark:text-red-300">
                             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                            <span>All shop checkouts are currently disabled. Customers cannot make payments.</span>
+                            <span>Shop checkouts are off. Nobody can pay at any shop until you switch this back on and save.</span>
                         </div>
                     )}
                 </CardContent>
@@ -380,27 +429,26 @@ export default function AdminShopSettingsPage() {
             {/* Auto-Approve Settings */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm">Auto-Approve Settings</CardTitle>
+                    <CardTitle className="text-sm">Automatic approval</CardTitle>
                     <p className="text-xs text-muted-foreground">
-                        Control whether shop profiles and pricing submissions are approved instantly per role.
-                        When off, shops go into pending review and pricing requires manual admin approval.
+                        Choose, for each role, whether new shops and price changes go live straight away. When off, they wait for an admin to approve.
                     </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {(
                             [
-                                { role: 'customer' as Role, label: 'Customer', color: 'text-brand-700' },
-                                { role: 'agent' as Role, label: 'Agent', color: 'text-emerald-600' },
-                                { role: 'dealer' as Role, label: 'Dealer', color: 'text-brand-800 dark:text-brand-400' },
+                                { role: 'customer' as Role, label: 'Customer', color: 'text-foreground' },
+                                { role: 'agent' as Role, label: 'Agent', color: 'text-foreground' },
+                                { role: 'dealer' as Role, label: 'Dealer', color: 'text-foreground' },
                             ]
                         ).map(({ role, label, color }) => (
                             <div key={role} className="space-y-3 p-4 rounded-xl border bg-muted/20">
                                 <p className={`text-xs font-bold  ${color}`}>{label}</p>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs font-medium">Profile Auto-Approve</p>
-                                        <p className="text-xs text-muted-foreground">Shop creation approved instantly</p>
+                                        <p className="text-xs font-medium">Approve new shops</p>
+                                        <p className="text-xs text-muted-foreground">Go live straight away</p>
                                     </div>
                                     <Switch
                                         checked={(settings as any)[`auto_approve_profile_${role}`]}
@@ -409,8 +457,8 @@ export default function AdminShopSettingsPage() {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs font-medium">Pricing Auto-Approve</p>
-                                        <p className="text-xs text-muted-foreground">Pricing goes live instantly</p>
+                                        <p className="text-xs font-medium">Approve price changes</p>
+                                        <p className="text-xs text-muted-foreground">Go live straight away</p>
                                     </div>
                                     <Switch
                                         checked={(settings as any)[`auto_approve_pricing_${role}`]}
@@ -426,37 +474,36 @@ export default function AdminShopSettingsPage() {
             {/* Role-Specific Fee Configuration */}
             <div>
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-                    Fee Configuration by Role
+                    Fees by role
                 </h2>
                 <p className="text-xs text-muted-foreground mb-4">
-                    Default fees applied based on whether the shop owner is a Customer, Agent, or Dealer.
-                    Shops with custom admin-set overrides are not affected.
+                    The fee a shop pays depends on whether its owner is a customer, agent or dealer. Shops with an override set by an admin are not affected.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <RoleFeeCard
                         title="Customer"
-                        subtitle="Applies to shops owned by regular customers"
+                        subtitle="Shops owned by customers"
                         icon={Users}
-                        iconColor="text-brand-700"
-                        borderColor="border-brand-200 dark:border-brand-800"
+                        iconColor="text-foreground"
+                        borderColor="border-border"
                         config={settings.customer}
                         onChange={(key, value) => updateRoleConfig('customer', key, value)}
                     />
                     <RoleFeeCard
                         title="Agent"
-                        subtitle="Applies to shops owned by subscribed agents"
+                        subtitle="Shops owned by agents"
                         icon={UserCheck}
-                        iconColor="text-emerald-600"
-                        borderColor="border-emerald-200 dark:border-emerald-800"
+                        iconColor="text-foreground"
+                        borderColor="border-border"
                         config={settings.agent}
                         onChange={(key, value) => updateRoleConfig('agent', key, value)}
                     />
                     <RoleFeeCard
                         title="Dealer"
-                        subtitle="Applies to shops owned by active dealers"
+                        subtitle="Shops owned by dealers"
                         icon={Gem}
-                        iconColor="text-brand-800 dark:text-brand-400"
-                        borderColor="border-brand-200 dark:border-brand-800"
+                        iconColor="text-foreground"
+                        borderColor="border-border"
                         config={settings.dealer}
                         onChange={(key, value) => updateRoleConfig('dealer', key, value)}
                     />
@@ -465,12 +512,12 @@ export default function AdminShopSettingsPage() {
 
             {/* Fulfillment */}
             <Card>
-                <CardHeader><CardTitle className="text-sm">Default Fulfillment Mode</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">How new shops fulfil orders</CardTitle></CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
-                            <p className="text-sm font-medium">Auto Fulfillment</p>
-                            <p className="text-xs text-muted-foreground">Default for new shops. Can be overridden per shop.</p>
+                            <p className="text-sm font-medium">Fulfil orders automatically</p>
+                            <p className="text-xs text-muted-foreground">The starting choice for new shops. You can change it per shop.</p>
                         </div>
                         <Switch
                             checked={settings.default_fulfillment_mode === 'auto'}
@@ -483,10 +530,10 @@ export default function AdminShopSettingsPage() {
             <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full h-11 font-semibold gap-2 clay clay-green"
+                className="w-full h-11 font-semibold gap-2 clay-black"
             >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Global Settings'}
+                {saving ? 'Saving…' : 'Save settings'}
             </Button>
         </div>
     )
