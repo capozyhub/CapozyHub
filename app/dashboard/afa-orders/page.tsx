@@ -19,6 +19,7 @@ export default function AfaOrdersPage() {
     const [tab, setTab] = useState<Tab>('register')
     const [orders, setOrders] = useState<AfaOrder[]>([])
     const [ordersLoading, setOrdersLoading] = useState(true)
+    const [ordersFailed, setOrdersFailed] = useState(false)
     const [balance, setBalance] = useState<number | null>(null)
     const [price, setPrice] = useState(0)
     const [priceLoading, setPriceLoading] = useState(true)
@@ -37,12 +38,14 @@ export default function AfaOrdersPage() {
     const loadOrders = useCallback(async () => {
         if (!userId) return
         setOrdersLoading(true)
-        const { rows } = await fetchAllRows(() => (supabase.from('afa_orders') as any)
+        setOrdersFailed(false)
+        const { rows, failed } = await fetchAllRows(() => (supabase.from('afa_orders') as any)
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .order('id', { ascending: false }))
-        setOrders(rows)
+        if (failed && rows.length === 0) setOrdersFailed(true)
+        else setOrders(rows)
         setOrdersLoading(false)
     }, [userId])
 
@@ -81,7 +84,7 @@ export default function AfaOrdersPage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight">AFA registration</h1>
-                    <p className="text-sm text-muted-foreground">Register an MTN AFA number from your wallet — it&apos;s a one-time registration, and membership doesn&apos;t expire.</p>
+                    <p className="text-sm text-muted-foreground">Register an MTN AFA number from your wallet. You pay once and it doesn&apos;t expire.</p>
                 </div>
                 <Link href="/dashboard/wallet" className="neu-raised-sm neu-press rounded-2xl px-4 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                     <p className="text-xs text-muted-foreground">Wallet</p>
@@ -115,7 +118,15 @@ export default function AfaOrdersPage() {
                     onViewOrders={() => setTab('orders')}
                 />
             ) : (
+                ordersFailed ? (
+                    <div role="alert" className="surface rounded-3xl p-8 text-center">
+                        <p className="font-display text-lg font-semibold">We couldn’t load your registrations</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Your registrations are safe. Check your connection and try again.</p>
+                        <button type="button" onClick={loadOrders} className="clay-gold mt-4 rounded-xl px-5 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Try again</button>
+                    </div>
+                ) : (
                 <OrdersPanel orders={orders} loading={ordersLoading} onRefresh={loadOrders} onRegister={() => setTab('register')} />
+                )
             )}
         </div>
     )

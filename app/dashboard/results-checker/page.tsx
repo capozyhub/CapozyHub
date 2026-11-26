@@ -21,7 +21,7 @@ export default function ResultsCheckerPage() {
     const [tab, setTab] = useState<Tab>('buy')
     const [types, setTypes] = useState<RCType[]>([])
     const [orders, setOrders] = useState<RCOrder[]>([])
-    const [balance, setBalance] = useState(0)
+    const [balance, setBalance] = useState<number | null>(null)
     // The server decides whether buying is on and how many can be bought at once; the page just shows it.
     const [enabled, setEnabled] = useState(true)
     const [maxQty, setMaxQty] = useState(50)
@@ -60,7 +60,7 @@ export default function ResultsCheckerPage() {
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .order('id', { ascending: false }))
-        if (failed && rows.length === 0) toast.error('We could not load your vouchers.')
+        if (failed && rows.length === 0) toast.error('We could not load your vouchers. Pull to refresh or try again in a moment.')
         else setOrders(rows)
         setOrdersLoading(false)
     }, [userId])
@@ -86,7 +86,7 @@ export default function ResultsCheckerPage() {
                 </div>
                 <Link href="/dashboard/wallet" className="neu-raised-sm neu-press rounded-2xl px-4 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                     <p className="text-xs text-muted-foreground">Your wallet</p>
-                    <p className="font-display text-lg font-bold leading-tight tabular-nums">{formatCurrency(balance)}</p>
+                    <p className="font-display text-lg font-bold leading-tight tabular-nums">{balance === null ? '—' : formatCurrency(balance)}</p>
                 </Link>
             </div>
 
@@ -119,7 +119,7 @@ export default function ResultsCheckerPage() {
                         types={types}
                         enabled={enabled}
                         maxQty={maxQty}
-                        balance={balance}
+                        balance={balance ?? 0}
                         ownPhone={dbUser?.phone_number ?? undefined}
                         ownEmail={dbUser?.email ?? undefined}
                         onPurchased={onPurchased}

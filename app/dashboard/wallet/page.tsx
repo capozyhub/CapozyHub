@@ -27,6 +27,7 @@ export default function WalletPage() {
     const [maxTopup, setMaxTopup] = useState(5000)
 
     const [walletError, setWalletError] = useState(false)
+    const [txnsError, setTxnsError] = useState(false)
 
     const loadWalletData = useCallback(async () => {
         if (!userId) return
@@ -52,7 +53,8 @@ export default function WalletPage() {
                 // than silently rendering GHS 0.00 as if the account were empty.
                 setWalletError(walletRes.error?.code !== 'PGRST116')
             }
-            setTransactions((txnsRes.data as WalletTransaction[]) || [])
+            setTxnsError(!!txnsRes.error)
+            if (!txnsRes.error) setTransactions((txnsRes.data as WalletTransaction[]) || [])
 
             if (settingsRes && !settingsRes.error) {
                 if (settingsRes.paystack_fee_percent !== undefined) setPaystackFeePercent(settingsRes.paystack_fee_percent)
@@ -98,7 +100,7 @@ export default function WalletPage() {
                 <div className="surface flex flex-wrap items-center justify-between gap-3 rounded-3xl p-5">
                     <div className="flex items-center gap-2.5 text-sm">
                         <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
-                        <span>Couldn&apos;t load your balance. Your money is safe — this is just a display issue.</span>
+                        <span>We couldn&apos;t load your balance. Your money is safe. This only affects what you see here.</span>
                     </div>
                     <button
                         type="button"
@@ -158,7 +160,14 @@ export default function WalletPage() {
 
             <div className="space-y-3">
                 <h2 className="font-display text-lg font-semibold">Recent top-ups</h2>
-                <TransactionsList transactions={transactions} />
+                {txnsError ? (
+                    <div role="alert" className="well rounded-3xl p-5 text-sm">
+                        We couldn&apos;t load your top-ups.{' '}
+                        <button type="button" onClick={() => loadWalletData()} className="font-semibold underline underline-offset-2">Try again</button>
+                    </div>
+                ) : (
+                    <TransactionsList transactions={transactions} />
+                )}
             </div>
         </div>
     )
