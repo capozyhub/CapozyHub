@@ -1,5 +1,6 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
+    "regions": ["fra1"],
     "schedules": {
         "verify-pending-payments": { "schedule": "*/15 * * * *", "path": "/api/cron/verify-pending-payments", "requestMethod": "GET" },
         "release-rc-reservations": { "schedule": "*/15 * * * *", "path": "/api/cron/release-rc-reservations", "requestMethod": "GET" },

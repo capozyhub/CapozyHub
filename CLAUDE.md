@@ -51,6 +51,9 @@ What is in scope now:
 ### Developer API
 One key type, `standard`. New keys start `cs_live_` (cs = commission services); older `cz_live_` keys stay valid until regenerated. The format lives in `lib/api-key-format.ts` and is shared by key generation, `validateApiKey`, middleware and admin approval (`app/api/user/api-keys`). `validateApiKey` (`lib/api-auth.ts`) refuses any other `key_type`. A route is public only if it matches `lib/developer-api.ts` `DEV_API_PATTERNS`; add a route there and in `public/openapi.yaml`, and `scripts/test-developer-api.ts` plus `scripts/check-ai-discoverability.ts` will tell you if they drift. Order webhooks: `lib/api-webhook.ts`.
 
+### Region
+Functions run in `fra1` (Frankfurt), set by `regions` in `vercel.json`, next to the Supabase project in `eu-central-1`. Don't add a per-route `preferredRegion` elsewhere: every money path makes several DB round trips.
+
 ### Crons: Vercel Schedules
 `app/api/cron/*` has 20 routes. 16 run from `vercel.json` `schedules` (path targets, `requestMethod: "GET"`; Vercel sends `Authorization: Bearer $CRON_SECRET`, which `validateCronAuth` checks). Nothing runs more often than every 15 minutes, so the config deploys on Hobby as well as Pro. Four routes are deliberately unscheduled pending an owner decision: `delete-old-orders`, `delete-old-complaints`, `auto-complete-data`, `daily-greeting`. `scripts/test-cron-schedules.ts` fails if a route is neither scheduled nor on that list, or if a schedule points at a missing route. Never add legacy `crons` alongside `schedules` (routes would run twice). `.github/workflows/cron.yml` is manual-dispatch only.
 
