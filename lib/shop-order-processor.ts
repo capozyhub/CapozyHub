@@ -11,6 +11,7 @@ import { repairSubAgentEarning } from '@/lib/sub-agent-earning-repair'
 import { resolveMashupShopFee } from '@/lib/shop-checkout'
 import { fulfillOrder as rexamartFulfillOrder, isRexamartConfigured } from '@/lib/rexamart-service'
 import { claimForDispatchByShopOrderId, acceptDispatch, releaseClaim } from '@/lib/dispatch-claim'
+import { shopMirrorReference, shopMirrorReferenceCandidates } from '@/lib/shop-mirror-reference'
 
 /**
  * A customer has PAID but the order cannot be created. Persist a durable security_events
@@ -327,7 +328,7 @@ export async function processShopOrder(
                 await db.from('orders').update({ status: 'failed' }).eq('shop_order_id', existingOrder.id)
                 await db.from('airtime_orders')
                     .update({ status: 'failed' })
-                    .eq('reference_code', `SHOP-${reference.slice(-10)}`)
+                    .in('reference_code', shopMirrorReferenceCandidates(reference))
             }
 
             return { success: false, error: 'Payment amount mismatch' }
@@ -431,7 +432,7 @@ export async function processShopOrder(
                 role_at_time: ownerRole,
                 status: 'pending',
                 payment_status: 'paid',
-                reference_code: `SHOP-${reference.slice(-10)}`,
+                reference_code: shopMirrorReference(reference),
                 fulfillment_method: 'auto',
                 shop_name: shopProfile?.shop_name || slug,
                 shop_order_id: orderId
@@ -473,7 +474,7 @@ export async function processShopOrder(
                     // Explicit: the column's DEFAULT is 'web', which would mislabel every
                     // storefront order. See 20260826_airtime_source_default.sql.
                     source: 'shop',
-                    reference_code: `SHOP-${reference.slice(-10)}`,
+                    reference_code: shopMirrorReference(reference),
                     shop_id: metadata.shop_id,
                     shop_name: shopProfile?.shop_name || slug,
                     type: metadata.order_type,
@@ -517,7 +518,7 @@ export async function processShopOrder(
                : { size: metadata.package_size }
 
             await triggerShopFulfillment(orderId!, metadata.network, metadata.guest_phone, db, {
-                referenceCode: `SHOP-${reference.slice(-10)}`,
+                referenceCode: shopMirrorReference(reference),
                 price: verifiedSellingPrice,
                 customerName: 'Shop Guest',
                 customerEmail: 'N/A',

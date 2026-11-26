@@ -193,10 +193,11 @@ confirmed a suspended user cannot change `suspended_until` and an owner cannot i
   state). `authenticated` has table-level SELECT and the policy allows approved+active shops.
   Anon is correctly limited to display columns. Fix needs a public view for non-owners, because
   owners read their own full row from the browser; design change, not rushed.
-- **[Medium, open] Shop mirror reference collisions.** Orders mirrored from storefront sales use
+- **[Medium, fixed 2026-11-26] Shop mirror reference collisions.** Orders mirrored from storefront sales use
   `SHOP-${reference.slice(-10)}` (`lib/shop-order-processor.ts`), about 1 timestamp digit + 32
   random bits. `orders.reference_code` is UNIQUE, so a collision makes the mirror insert fail for a
-  paid order. ~0.1% chance across 10k orders, ~11% across 100k. Use the full reference.
+  paid order. ~0.1% chance across 10k orders, ~11% across 100k. Now the full Paystack reference
+  (`lib/shop-mirror-reference.ts`); lookups match both forms for older rows.
 - **[Low, fixed] Four admin searches interpolated raw input into PostgREST `.or()`** (batches,
   finance/users, lifetime-agents, search-users). Admin-only, but a comma or bracket broke the
   query; now sanitised.
@@ -215,3 +216,7 @@ confirmed a suspended user cannot change `suspended_until` and an owner cannot i
 - Anonymous reads: every money/order table is scoped to the signed-in user or admin;
   `results_checker_inventory` is service-role only; anon gets storefront display columns of
   `shop_profiles` only.
+
+## Performance (2026-11-26)
+- **[fixed] Functions ran in `sfo1` while the database is in `eu-central-1`.** Every query crossed
+  the Atlantic. `vercel.json` now pins `regions: ["fra1"]`.

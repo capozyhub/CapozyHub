@@ -3,6 +3,7 @@ import { validateAdminAccess } from '@/lib/auth-utils'
 import { createServerClient } from '@/lib/supabase'
 import { processRefulfillment } from '@/lib/refulfillment-service'
 import { logAdminPaymentAction } from '@/lib/payment-reconciliation'
+import { shopMirrorReferenceCandidates } from '@/lib/shop-mirror-reference'
 
 export async function POST(request: NextRequest) {
   const access = await validateAdminAccess(false)
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
     const { data } = await db.from('orders').select('id, status').eq('shop_order_id', shopOrderId).maybeSingle()
     internalOrder = data || undefined
   } else if (reference) {
-    const refCode = `SHOP-${reference.slice(-10)}`
-    const { data } = await db.from('orders').select('id, status').eq('reference_code', refCode).maybeSingle()
+    // Matches both the current (full Paystack reference) and the pre-2026-11-26 short form.
+    const { data } = await db.from('orders').select('id, status').in('reference_code', shopMirrorReferenceCandidates(reference)).limit(1).maybeSingle()
     internalOrder = data || undefined
   }
 
