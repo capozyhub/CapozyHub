@@ -81,7 +81,7 @@ export default function WebsiteRequestPage() {
     const submitFull = async () => {
         const budgetNum = Number(budget)
         if (!category) return toast.error('Please choose what you want built')
-        if (!budgetNum || budgetNum < 1000) return toast.error('Budget guide must be at least GHS 1,000')
+        if (!budgetNum || budgetNum < 1000) return toast.error('Your budget guide must be at least GH₵1,000.')
         if (!timeline) return toast.error('Please choose a timeline')
         if (description.trim().length < 10) return toast.error('Please describe your project (at least 10 characters)')
         if (!contactPhone) return toast.error('Please provide a contact phone number')
@@ -164,7 +164,7 @@ export default function WebsiteRequestPage() {
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Back to dashboard
                 </button>
-                <h1 className="text-2xl font-black tracking-tight text-foreground">
+                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
                     Start your project
                 </h1>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
@@ -349,7 +349,7 @@ export default function WebsiteRequestPage() {
                     <section className="neu-raised-sm rounded-3xl p-5">
                         <SectionHeading step={4} title="Budget and timing" />
 
-                        <label className="text-sm font-semibold text-foreground">Your budget guide (GHS)</label>
+                        <label className="text-sm font-semibold text-foreground">Your budget guide (GH₵)</label>
                         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                             This is <span className="font-semibold text-foreground">not a payment</span> and
                             not a fixed price. It just tells us what scale of solution to design for. We agree

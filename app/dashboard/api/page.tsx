@@ -155,11 +155,11 @@ function StatCard({
                 </div>
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                        {pulse && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse motion-reduce:animate-none flex-shrink-0" />}
+                        {pulse && <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />}
                         <p className="text-xs font-semibold text-muted-foreground truncate">{label}</p>
                     </div>
                     <p className={cn('text-sm sm:text-base lg:text-lg font-semibold mt-0.5 tabular-nums whitespace-nowrap', accents.text)}>{value}</p>
-                    {sub && <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
+                    {sub && <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>}
                 </div>
             </div>
         </div>
@@ -769,7 +769,7 @@ function StandardApiTab() {
             <div id="ref-std-balance" className="scroll-mt-6">
             <ApiEndpointBlock
                 method="GET" path="/api/wallet/balance"
-                description="Retrieve your current wallet balance in GHS. Top up via the dashboard wallet page."
+                description="Retrieve your current wallet balance in GH₵. Top up via the dashboard wallet page."
                 responseBody={`{\n  "success": true,\n  "data": {\n    "balance": 124.50,\n    "currency": "GHS"\n  }\n}`}
                 notes={['Top up at capozygh.com/dashboard/wallet.', 'Check before bulk orders to avoid insufficient balance failures.']}
                 samples={BALANCE_API_SAMPLES}

@@ -324,7 +324,7 @@ export default function MyOrdersPage() {
                     : null
                 const messages: Record<string, string> = {
                     insufficient_balance: `Insufficient wallet balance to fund this retry${result?.required != null && result?.available != null
-                        ? ` — needs GHS ${Number(result.required).toFixed(2)}, wallet has GHS ${Number(result.available).toFixed(2)}`
+                        ? ` (needs GH₵${Number(result.required).toFixed(2)}, wallet has GH₵${Number(result.available).toFixed(2)})`
                         : ''
                         }.`,
                     retry_locked: `This order is locked from further retries${result?.until ? ` — try again after ${new Date(result.until).toLocaleString()}` : ', try again later'

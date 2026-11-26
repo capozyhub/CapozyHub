@@ -423,7 +423,7 @@ export default function RecruitPage() {
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <p className="text-sm font-medium truncate">{sub.name || sub.email}</p>
-                                                <Badge variant={STATUS_VARIANT[sub.status] || 'outline'} className="text-[10px] capitalize">
+                                                <Badge variant={STATUS_VARIANT[sub.status] || 'outline'} className="text-xs capitalize">
                                                     {sub.status}
                                                 </Badge>
                                             </div>
