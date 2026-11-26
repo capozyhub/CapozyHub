@@ -405,6 +405,7 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
     const [showDropdown, setShowDropdown] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const debounceRef = useRef<NodeJS.Timeout>()
+    const searchSeq = useRef(0)
 
     const fetchFrequent = useCallback(async () => {
         try {
@@ -435,15 +436,21 @@ export function UserSelector({ roleFilter, onUserSelect, selectedUser, onClear }
         clearTimeout(debounceRef.current)
         if (!query.trim()) { setResults([]); setShowDropdown(false); return }
         debounceRef.current = setTimeout(async () => {
+            const seq = ++searchSeq.current
             setLoading(true)
             try {
                 const res = await fetch(`/api/admin/top-up/search-users?q=${encodeURIComponent(query)}&role=${roleFilter}`)
+                if (seq !== searchSeq.current) return
                 if (res.ok) {
                     const data = await res.json()
+                    if (seq !== searchSeq.current) return
                     setResults(data.users || [])
                     setShowDropdown(true)
+                } else {
+                    setResults([])
+                    toast.error('Could not search for users. Try again.')
                 }
-            } catch { /* silent */ } finally { setLoading(false) }
+            } catch { if (seq === searchSeq.current) toast.error('Could not search for users. Check your connection.') } finally { if (seq === searchSeq.current) setLoading(false) }
         }, 300)
         return () => clearTimeout(debounceRef.current)
     }, [query, roleFilter])
