@@ -43,3 +43,9 @@ export function consumeRateLimit(
         retryAfterMs: Math.max(0, entry.resetAt - now),
     }
 }
+
+/** True when key is already at its limit. Reads only: does not count a request. */
+export function isRateLimited(key: string, limit: number): boolean {
+    const entry = rateLimitStore.get(key)
+    return !!entry && entry.resetAt > Date.now() && entry.count >= limit
+}
